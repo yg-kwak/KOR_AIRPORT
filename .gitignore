@@ -1,0 +1,36 @@
+# 비밀값 (하네스 불변식)
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.keystore
+*.jks
+*.key
+
+# 빌드/생성물
+build/
+.gradle/
+target/
+out/
+bin/
+dist/
+.next/
+coverage/
+
+# 의존성
+node_modules/
+
+# IDE/OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# 로그
+*.log
+
+# Claude Code 로컬 설정(개인)
+.claude/settings.local.json
