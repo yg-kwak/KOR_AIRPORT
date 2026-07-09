@@ -1,6 +1,6 @@
 ---
 description: 빌드·테스트 후 환경별로 배포한다 (가드레일 포함)
-argument-hint: <dev | staging | prod> [mssql | mariadb]
+argument-hint: <dev | staging | prod>
 allowed-tools: Bash(*gradlew*), Bash(git*), Bash(npx*), Read
 ---
 
@@ -11,7 +11,7 @@ allowed-tools: Bash(*gradlew*), Bash(git*), Bash(npx*), Read
 1. 인자로 **대상 환경**이 명시되어야 한다: `dev` / `staging` / `prod`. 없으면 사용자에게 확인.
 2. `git status` 가 clean 인가 (미커밋 변경이 있으면 중단하고 알림).
 3. **prod** 이면: 반드시 사용자에게 명시적 확인을 받는다. 승인 없이 진행 금지.
-4. DB 프로파일(`mssql`/`mariadb`)이 대상 환경 설정과 일치하는가. (`docs/deployment.md`)
+4. 운영 환경은 DMZ(외부통신 불가) — 필요한 의존성/드라이버가 산출물에 포함됐는가. (`docs/deployment.md`)
 
 ## 절차
 1. 클린 빌드 + 전체 테스트: `project/gradlew.bat clean build`.

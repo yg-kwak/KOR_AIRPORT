@@ -1,11 +1,12 @@
 # Suprema BiostarX 연동
 
-> 도어/디바이스 연동 작업 시 읽는다. **외부 연동은 어댑터 계층으로만** (불변식).
+> 사용자, 카드, 사용자그룹, 출입그룹, 로그인 등 연동 작업 시 읽는다. **외부 연동은 어댑터 계층으로만** (불변식).
 
 ## 원칙
-- BiostarX SDK/API 호출은 전용 **Adapter** 에 격리. Service 가 SDK 를 직접 부르지 않는다.
+- BiostarX SDK/API 호출은 전용 **adapter** 계층에 격리. Service 가 SDK 를 직접 부르지 않는다.
+- BiostarX 접속정보는 `tb_system`(biostar_ip/id/pw)에서 읽는다. (`database.md`)
+- 출입그룹은 `tb_ac_group.biostar_ac_id` 로 BiostarX 출입그룹과 매핑한다.
 - 어댑터가 담당: 인증/세션, 요청·응답 매핑, 오류 변환, 재시도/타임아웃.
-- 도어 제어·권한 동기화는 **반드시 감사 이력**을 남긴다. (`security.md`)
 
 ## 연동 범위 (TODO 채우기)
 - TODO: BiostarX 버전/엔드포인트, 인증 방식(API key/세션).

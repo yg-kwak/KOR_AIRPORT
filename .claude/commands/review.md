@@ -12,10 +12,11 @@ allowed-tools: Bash(git*), Read, Grep, Glob
 1. **비밀값**: 하드코딩된 접속정보/토큰/키가 없는가. `.env` 값이 코드에 들어오지 않았는가. (`docs/security.md`)
 2. **계층 경계**: `Controller → Service → Mapper` 단방향인가. Controller 에 SQL·비즈니스 로직이 새지 않았는가. (`docs/architecture.md`)
 3. **MyBatis 규약**: SQL 이 mapper XML 에만 있는가. 문자열 연결 SQL 이 없는가. 파라미터가 `#{}` 인가 (`${}` 는 정당한 사유만). JPA(`@Entity`) 도입이 없는가. (`docs/database.md`)
-4. **BiostarX 격리**: 외부 연동이 어댑터 계층으로만 나가는가. Service 가 SDK 를 직접 부르지 않는가. (`docs/biostar-integration.md`)
-5. **감사/이력**: 권한 부여·회수, 도어 제어 경로에 이력 기록이 있는가. (`docs/security.md`)
-6. **관례**: 네이밍·패키지 배치가 `docs/conventions.md` 와 일치하는가.
-7. **테스트**: 변경 로직에 대한 테스트가 있는가/필요한가. (`docs/testing.md`)
+4. **외부 시스템 격리**: 외부 연동이 `adapter` 계층으로만 나가는가. (`docs/integration.md`)
+5. **개인정보 암호화**: 지정 컬럼(성명/비밀번호 등)이 ARIA 로 암호화되는가. 키가 하드코딩되지 않았는가. (`docs/security.md`)
+6. **감사/이력**: 사용자의 메뉴 접속, 데이터 조회, 입력, 수정, 삭제가 `tb_system_log` 에 기록되는가. (`docs/security.md`)
+7. **관례**: 네이밍·패키지 배치(역할별 평면 + 클래스명 접두)가 `docs/conventions.md` 와 일치하는가.
+8. **테스트**: 변경 로직에 대한 테스트가 있는가/필요한가. (`docs/testing.md`)
 
 ## 출력 형식
 - 🔴 **차단(불변식 위반)** — 반드시 고쳐야 함 (파일:라인, 이유, 수정 방향)

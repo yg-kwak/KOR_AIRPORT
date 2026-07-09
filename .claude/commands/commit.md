@@ -10,12 +10,14 @@ allowed-tools: Bash(git*), Bash(*gradlew*), Bash(npx*), Read, Grep
 ## 절차
 1. `git status --short` 와 `git diff` 로 무엇이 바뀌었는지 파악한다.
 2. **비밀값 검사**: 변경 내용에 접속정보/토큰/키가 섞였는지 grep 으로 확인. 있으면 즉시 중단하고 사용자에게 알린다. (`docs/security.md`)
+   - 함께 확인(불변식): `@Entity`/JpaRepository 도입, Java 내 인라인 SQL 문자열, `adapter` 우회 외부호출이 없는지.
 3. **포맷**: 
    - Java 변경이 있으면 `project/gradlew.bat spotlessApply` (없으면 건너뛴다).
    - 프론트 변경이 있으면 `npx --no-install prettier --write` 대상 파일.
 4. **빌드/테스트 최소 검증**: 변경 범위에 맞게 `project/gradlew.bat compileJava` 또는 관련 테스트를 돌려 깨지지 않는지 확인.
 5. 관련 파일만 `git add` 한다. 무관한 변경을 함께 담지 않는다.
 6. **Conventional Commits** 형식으로 메시지를 만든다:
+   - 한국어로 메시지를 작성한다.
    - `feat|fix|refactor|docs|test|chore|perf(scope): 요약`
    - scope 예: `access`(출입), `visitor`(방문자), `biostar`(연동), `web`(화면), `db`(mapper)
    - 본문에 "무엇을/왜" 를 한국어로 간단히.
