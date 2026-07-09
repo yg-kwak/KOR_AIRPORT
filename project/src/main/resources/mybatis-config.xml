@@ -6,7 +6,8 @@
 	<settings>
 		<!-- reg_dt -> regDt 자동 매핑 -->
 		<setting name="mapUnderscoreToCamelCase" value="true"/>
-		<setting name="jdbcTypeForNull" value="NULL"/>
+		<!-- SQL Server: null 파라미터를 varbinary 로 추론해 ISNULL 등에서 변환오류(257) 나는 문제 방지 -->
+		<setting name="jdbcTypeForNull" value="VARCHAR"/>
 	</settings>
 	<typeAliases>
 		<package name="AirPort.model"/>
