@@ -2,3 +2,6 @@
 build/
 bin/
 !gradle/wrapper/gradle-wrapper.jar
+
+# 로컬 비밀값 오버라이드 (커밋 금지, .example 만 커밋)
+src/main/resources/application-local.properties

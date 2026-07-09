@@ -1,0 +1,17 @@
+# ── IntelliJ 로컬 실행용 오버라이드 템플릿 ──────────────────────────────
+# 사용법: 이 파일을 같은 폴더에 application-local.properties 로 복사한 뒤 값을 채운다.
+#   application-local.properties 는 비밀값이므로 커밋 금지(.gitignore 처리됨).
+#   Run Configuration 의 활성 프로파일이 local 이면 자동 로드되어 아래 값이 우선한다.
+
+# 로컬 MSSQL 접속 (본인 환경에 맞게 수정)
+spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=CJ_AIRPORT;encrypt=true;trustServerCertificate=true
+spring.datasource.username=sa
+spring.datasource.password=CHANGE_ME
+
+# ARIA 개발 키(32자). seed 의 관리자 비밀번호(admin123)와 동일 키여야 로그인됨.
+app.crypto.aria-key=01234567890123456789012345678901
+
+# 개발 편의
+server.port=8080
+server.ssl.enabled=false
+spring.thymeleaf.cache=false
