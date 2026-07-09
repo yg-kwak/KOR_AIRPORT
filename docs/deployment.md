@@ -9,15 +9,19 @@
 - 프론트는 같은 앱(Thymeleaf) — 별도 프론트 빌드 단계 없음. (`frontend.md`)
 
 ## IntelliJ 로컬 실행
-1. **`project/` 폴더를 프로젝트로 연다** (저장소 루트가 아님). `File > Open` → `.../CJAirPort/project` 선택 → `build.gradle` 이 루트에 있어 Gradle 프로젝트로 깔끔히 임포트된다(모듈 `cjairport.main`).
-   - ⚠️ 저장소 루트를 열면 예전 하네스 시절의 낡은 `.idea` 가 Gradle 임포트를 가로채 `ClassNotFoundException: AirPort.ProjectApplication` 이 날 수 있다. `project/` 를 직접 열 것.
-2. **JDK 17+ 지정 (필수)**: `Settings > Build Tools > Gradle > Gradle JVM = 17(또는 20)`. ⚠️ 시스템 `JAVA_HOME` 이 JDK 15 면 이 값을 바꾸지 않는 한 Gradle 동기화가 실패한다. (Project SDK 도 17+)
-3. **로컬 접속정보**: `src/main/resources/application-local.properties.example` 을 같은 폴더에 `application-local.properties` 로 복사 후 DB 비밀번호 등 수정. **이 파일은 커밋 금지(비밀값)** — gitignore 처리됨.
-4. **DB 준비**: MSSQL 에 `CJ_AIRPORT` 생성 후 `sql/ddl/01_tables.sql` → `sql/seed/02_seed.sql` 실행. (DataGrip/SSMS/sqlcmd)
-5. **실행**: 상단 Run 목록의 **`bootRun (local)`**(권장) 또는 **`ProjectApplication (local)`** 선택 후 Run ▶. (`project/.run/` 에 포함, 프로파일 `local` 자동 활성)
-6. 브라우저 `http://localhost:8080/login` → `admin` / `admin123` → 공통코드관리에서 CRUD 확인.
+빌드는 `project/` 에 있지만, **저장소 루트를 열고 Gradle 을 링크**하면 docs/·sql/·AGENTS.md 등 전체를 보면서 개발할 수 있다.
 
-> 검증됨: 위 절차로 로그인·공통코드 CRUD·감사 이력 적재까지 정상 동작 확인(2026-07). `ProjectApplication (local)` 이 모듈을 못 찾으면 `bootRun (local)` 을 사용.
+1. **저장소 루트를 연다**: `File > Open` → `D:\...\CJAirPort` → Trust. (트리에 전체 폴더가 보인다)
+2. **Gradle 링크**: 보통 우측 하단에 "Gradle build scripts found" 알림 → **Import/Link**. 안 뜨면 `View > Tool Windows > Gradle` → **＋(Link Gradle Project)** → `project/build.gradle` 선택.
+   - ⚠️ 예전 하네스 시절의 낡은 루트 `.idea` 가 남아 있으면 non-Gradle 프로젝트로 열려 링크가 막힌다 → 루트 `.idea` 삭제 후 다시 열 것.
+3. **JDK 17+**: `project/gradle.properties`(로컬, gitignore)의 `org.gradle.java.home` 이 JDK17 을 지정하므로 시스템 `JAVA_HOME` 이 15 여도 동기화된다. 없으면 `Settings > Build Tools > Gradle > Gradle JVM = 17` 로 지정.
+4. **로컬 접속정보**: `project/src/main/resources/application-local.properties.example` → 같은 폴더에 `application-local.properties` 로 복사 후 DB 비밀번호 수정. **커밋 금지(gitignore)**.
+5. **DB 준비**: MSSQL 에 `CJ_AIRPORT` 생성 후 `sql/ddl/01_tables.sql` → `sql/seed/02_seed.sql` 실행.
+6. **실행**: 상단 Run 목록의 **`bootRun (local)`**(권장) 또는 **`ProjectApplication (local)`** ▶. (루트 `.run/` 에 포함, 프로파일 `local` 자동 활성, Gradle 대상은 `$PROJECT_DIR$/project`)
+7. `http://localhost:8080/login` → `admin` / `admin123` → 공통코드관리 CRUD 확인.
+
+> 검증됨(2026-07): 로그인·공통코드 CRUD·감사 이력 적재까지 로컬 MSSQL 로 정상 동작 확인.
+> `ProjectApplication (local)` 이 모듈(`cjairport.main`)을 못 찾으면 `bootRun (local)` 을 사용.
 
 ## 환경
 - `dev` / `staging` / `prod`. Spring 프로파일 `--spring.profiles.active` 로 전환.
