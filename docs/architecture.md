@@ -7,7 +7,7 @@
 
 - 사용자 네트워크 구성: **운영(적용) 환경은 DMZ — 외부 통신 불가** (개발 환경은 해당 없음)
 - 루트 패키지: `AirPort`
-- 빌드/실행: `project/gradlew.bat build`, `project/gradlew.bat bootRun`
+- 빌드/실행: `gradlew.bat build`, `gradlew.bat bootRun` (저장소 루트)
 - 서비스 포트, DB설정, Mapper 경로, 세션 타임아웃, SSL 활성화, 로그 저장 등 환경설정은 `application.properties` 에 등록
 - eGovFrame 은 **의존성만 포함하고 코드에서는 사용하지 않는다** (`backend.md`)
 

@@ -17,7 +17,7 @@ jobs:
 
       - name: JPA 미사용 (@Entity / JpaRepository / data-jpa 금지)
         run: |
-          if grep -rniE '@Entity|JpaRepository|spring-boot-starter-data-jpa' project/src build.gradle project/build.gradle 2>/dev/null; then
+          if grep -rniE '@Entity|JpaRepository|spring-boot-starter-data-jpa' src build.gradle 2>/dev/null; then
             echo "::error::JPA 흔적 발견 → 퍼시스턴스는 MyBatis 로 통일해야 합니다. @Entity/JpaRepository/ data-jpa 의존성을 제거하세요. (docs/database.md)"
             exit 1
           fi
@@ -26,7 +26,7 @@ jobs:
       - name: 계층 경계 (Controller 에 인라인 SQL 금지)
         run: |
           # Java 소스에 SQL 키워드가 문자열로 조립된 흔적(휴리스틱)
-          if grep -rniE '"\s*(select|insert|update|delete)\s' project/src/main/java 2>/dev/null; then
+          if grep -rniE '"\s*(select|insert|update|delete)\s' src/main/java 2>/dev/null; then
             echo "::error::Java 코드에 인라인 SQL 로 보이는 문자열이 있습니다 → 모든 SQL 은 mapper XML 로 옮기고 #{} 파라미터를 사용하세요. (docs/database.md)"
             exit 1
           fi
@@ -34,7 +34,7 @@ jobs:
 
       - name: DB 단일화 (MariaDB 미사용)
         run: |
-          if grep -rniE 'mariadb' project 2>/dev/null | grep -viE 'node_modules|/build/|/bin/'; then
+          if grep -rniE 'mariadb' src build.gradle 2>/dev/null; then
             echo "::error::MariaDB 참조 발견 → 본 프로젝트는 MSSQL 단일입니다. (docs/database.md)"
             exit 1
           fi
@@ -58,21 +58,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: gradlew 존재 확인
-        id: check
-        run: |
-          if [ -f project/gradlew ]; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; echo "프로젝트 코드가 아직 없어 빌드를 건너뜁니다."; fi
-
       - name: JDK 17
-        if: steps.check.outputs.exists == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
       - name: build
-        if: steps.check.outputs.exists == 'true'
-        working-directory: project
         run: |
           chmod +x ./gradlew
           ./gradlew clean build --no-daemon

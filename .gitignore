@@ -18,6 +18,11 @@ bin/
 dist/
 .next/
 coverage/
+!gradle/wrapper/gradle-wrapper.jar
+
+# 로컬 전용 (커밋 금지)
+gradle.properties
+src/main/resources/application-local.properties
 
 # 의존성
 node_modules/

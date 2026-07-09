@@ -30,7 +30,7 @@ allowed-tools: Read, Grep, Glob, Write, Edit, Bash(*gradlew*)
    - 개인정보(성명/비밀번호 등) 저장 시 ARIA 암호화. (`docs/security.md`)
    - 조회/입력/수정/삭제 경로면 `tb_system_log` 감사 기록 포함.
 6. `--read-only` 면 조회 전용으로만 스캐폴딩(쓰기 엔드포인트 생략).
-7. 컴파일 확인: `project/gradlew.bat compileJava`.
+7. 컴파일 확인: `gradlew.bat compileJava`.
 8. 생성한 파일 목록과 다음 할 일(TODO)을 요약한다.
 
 ## 불변식 (AGENTS.md §4)

@@ -3,7 +3,7 @@
 > 테스트 작성·실행 시 읽는다. 커밋 전 최소 검증은 `/commit` 이 수행.
 
 ## 실행
-- 전체: `project/gradlew.bat test`.
+- 전체: `gradlew.bat test`.
 - 단위 범위: 변경한 도메인의 테스트만 선택 실행.
 
 ## 전략

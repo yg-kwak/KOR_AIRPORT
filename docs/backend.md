@@ -5,7 +5,7 @@
 
 ## 런타임/빌드
 - Java 17, Spring Boot 3.2.0. 서버사이드 렌더링(Thymeleaf) — 프론트는 `frontend.md`.
-- 빌드: `project/gradlew.bat` (wrapper). 태스크: `compileJava`, `test`, `build`, `bootRun`.
+- 빌드: `gradlew.bat` (wrapper, 저장소 루트). 태스크: `compileJava`, `test`, `build`, `bootRun`.
 - 루트 패키지: `AirPort`.
 
 ## eGovFrame — 포함하되 사용하지 않음

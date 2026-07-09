@@ -2,7 +2,7 @@
 
 > 화면의 **구조·파일 위치·동작 관례**의 단일 출처. 스캐폴딩은 `/new-screen`.
 > 화면의 **시각 규칙(색·타이포·컴포넌트 룩·토큰)** 은 `design.md` 가 담당한다(여기서 반복하지 않는다).
-> **별도 SPA/번들러(webpack/vite) 없음.** 백엔드(project/)와 한 앱이다.
+> **별도 SPA/번들러(webpack/vite) 없음.** 백엔드와 한 앱이다.
 
 ## 화면 구성 방식
 - **Thymeleaf** 서버사이드 렌더링 + `thymeleaf-layout-dialect`.

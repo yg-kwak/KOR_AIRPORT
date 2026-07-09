@@ -14,7 +14,7 @@ allowed-tools: Bash(*gradlew*), Bash(git*), Bash(npx*), Read
 4. 운영 환경은 DMZ(외부통신 불가) — 필요한 의존성/드라이버가 산출물에 포함됐는가. (`docs/deployment.md`)
 
 ## 절차
-1. 클린 빌드 + 전체 테스트: `project/gradlew.bat clean build`.
+1. 클린 빌드 + 전체 테스트: `gradlew.bat clean build`.
 2. 테스트 실패 시 즉시 중단하고 실패 로그를 보고한다.
 3. 프론트 산출물 빌드(있으면): `npx --no-install`(또는 web 빌드 스크립트).
 4. 환경별 프로파일로 아티팩트 생성 (`-Pprofile=<env>` / `--spring.profiles.active`).

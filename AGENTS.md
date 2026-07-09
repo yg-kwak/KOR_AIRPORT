@@ -15,7 +15,7 @@
 | 영역 | 내용 |
 |------|------|
 | 언어/런타임 | Java 17 |
-| 빌드 | Gradle 8.13 (wrapper: `project/gradlew.bat`) |
+| 빌드 | Gradle 8.13 (wrapper: `gradlew.bat`, 저장소 루트) |
 | 백엔드 | Spring Boot 3.2.0 |
 | eGovFrame | 4.3.0 의존성 **포함하되 코드에서 미사용** (idgnr, property, cmmn, mvc, dataaccess) |
 | 퍼시스턴스 | MyBatis (JPA **미사용**) |
@@ -26,10 +26,10 @@
 ## 3. 저장소 지도 (어디에 무엇이 있나)
 
 ```
-project/                Spring Boot 백엔드 (gradlew.bat 위치, JDK 17+ 필요)
-  src/main/java/AirPort/   controller / service / mapper / model / adapter / config / security / common / util
-  src/main/resources/      mapper/(MyBatis XML), templates/·static/(Thymeleaf 화면), application.properties
-  src/test/                JUnit 테스트
+build.gradle·settings.gradle·gradlew(.bat)   Spring Boot 백엔드 빌드 (저장소 루트, JDK 17+)
+src/main/java/AirPort/   controller / service / mapper / model / adapter / config / security / common / util
+src/main/resources/      mapper/(MyBatis XML), templates/·static/(Thymeleaf 화면), application.properties
+src/test/                JUnit 테스트
 sql/                    DDL(ddl/) · seed(seed/) 스크립트 (docs/database.md)
 docs/                   상세 지식 (아래 §5 문서 지도 참고)
 .claude/commands/       반복 작업 스킬 (/commit, /review, /deploy, /cleanup, /new-screen)
