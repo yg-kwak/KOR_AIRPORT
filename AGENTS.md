@@ -26,10 +26,11 @@
 ## 3. 저장소 지도 (어디에 무엇이 있나)
 
 ```
-project/                Spring Boot 백엔드 (gradlew.bat 위치)
-  src/main/java/AirPort/   controller / service / mapper / model / adapter / config / security / util
+project/                Spring Boot 백엔드 (gradlew.bat 위치, JDK 17+ 필요)
+  src/main/java/AirPort/   controller / service / mapper / model / adapter / config / security / common / util
   src/main/resources/      mapper/(MyBatis XML), templates/·static/(Thymeleaf 화면), application.properties
   src/test/                JUnit 테스트
+sql/                    DDL(ddl/) · seed(seed/) 스크립트 (docs/database.md)
 docs/                   상세 지식 (아래 §5 문서 지도 참고)
 .claude/commands/       반복 작업 스킬 (/commit, /review, /deploy, /cleanup, /new-screen)
 .claude/hooks/          강제 규칙 스크립트 (.env·생성물 보호, 포맷, 세션요약)

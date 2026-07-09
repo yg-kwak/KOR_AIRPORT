@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbLoginUserMapper">
+
+  <select id="selectById" resultType="TbLoginUser">
+    SELECT user_id, user_name, password, dept_name, use_yn, root_yn, auth_id,
+           login_fail_cnt, password_change_dt, start_menu_id, work_location_code,
+           work_type, desk_ip, dev_id, reg_dt, mod_dt
+    FROM tb_login_user
+    WHERE user_id = #{userId}
+  </select>
+
+  <update id="updateLoginFailCnt">
+    UPDATE tb_login_user SET login_fail_cnt = #{cnt} WHERE user_id = #{userId}
+  </update>
+
+</mapper>

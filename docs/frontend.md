@@ -52,7 +52,7 @@ src/main/resources/
 - 새 화면: `templates/web/{도메인}/{화면}.html` + `static/js/web/{도메인}/{화면}.js` (kiosk 는 `kiosk/` 하위).
 - 페이지는 `fragments/`(head/main/sidebar)를 조합해 구성. 모달/팝업은 `components/` 조각을 재사용(복제 금지).
 - 시각 컴포넌트 룩·토큰은 `design.md` 를 따른다.
-- 서버 통신은 core JS 규약(fetch 래퍼 등)을 따른다. TODO: AJAX 응답 표준 포맷(→ `backend.md` 에러 규격과 정합).
+- 서버 통신은 core JS 규약을 따른다: `static/js/core/app.js` 의 `api.get/post/put/del`. 응답은 표준 `ApiResponse{success,code,message,data}` 로 처리(`backend.md`).
 - 권한별 메뉴/버튼 노출은 서버가 내려준 권한(`tb_menu_auth_detail`)에 따른다. (`security.md`)
 - 감사 대상 화면(조회/입력/수정/삭제)은 서버에서 이력을 남긴다. (`security.md`)
 

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbSystemLogMapper">
+
+  <insert id="insert" parameterType="TbSystemLog">
+    INSERT INTO tb_system_log
+      (user_id, user_name, action_type, menu_id, action_detail, remark)
+    VALUES
+      (#{userId}, #{userName}, #{actionType}, #{menuId}, #{actionDetail}, #{remark})
+  </insert>
+
+</mapper>

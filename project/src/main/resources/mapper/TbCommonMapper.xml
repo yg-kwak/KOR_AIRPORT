@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbCommonMapper">
+
+  <sql id="searchWhere">
+    <where>
+      <if test="keyword != null and keyword != ''">
+        (cmm_id LIKE '%' + #{keyword} + '%'
+         OR cmm_name LIKE '%' + #{keyword} + '%'
+         OR code_id LIKE '%' + #{keyword} + '%'
+         OR code_name LIKE '%' + #{keyword} + '%')
+      </if>
+    </where>
+  </sql>
+
+  <select id="selectList" parameterType="AirPort.common.PageParam" resultType="TbCommon">
+    SELECT cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_ipnut, use_yn
+    FROM tb_common
+    <include refid="searchWhere"/>
+    ORDER BY cmm_id, code_id
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="selectCount" parameterType="AirPort.common.PageParam" resultType="long">
+    SELECT COUNT(*) FROM tb_common
+    <include refid="searchWhere"/>
+  </select>
+
+  <select id="selectOne" resultType="TbCommon">
+    SELECT cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_ipnut, use_yn
+    FROM tb_common
+    WHERE cmm_id = #{cmmId} AND code_id = #{codeId}
+  </select>
+
+  <insert id="insert" parameterType="TbCommon">
+    INSERT INTO tb_common
+      (cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_ipnut, use_yn)
+    VALUES
+      (#{cmmId}, #{cmmName}, #{codeId}, #{codeName}, #{codeTag}, #{codeRemark},
+       ISNULL(#{userIpnut}, 'N'), ISNULL(#{useYn}, 'Y'))
+  </insert>
+
+  <update id="update" parameterType="TbCommon">
+    UPDATE tb_common
+    SET cmm_name = #{cmmName},
+        code_name = #{codeName},
+        code_tag = #{codeTag},
+        code_remark = #{codeRemark},
+        use_yn = #{useYn}
+    WHERE cmm_id = #{cmmId} AND code_id = #{codeId}
+  </update>
+
+  <delete id="delete">
+    DELETE FROM tb_common WHERE cmm_id = #{cmmId} AND code_id = #{codeId}
+  </delete>
+
+</mapper>

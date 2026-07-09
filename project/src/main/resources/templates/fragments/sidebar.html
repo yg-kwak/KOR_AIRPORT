@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 좌측 메뉴(LNB). 권한 필터링은 서버에서 menus 구성 시 적용(향후) -->
+<nav th:fragment="sidebar(menus)" class="lnb-sidebar">
+  <ul class="lnb-menu">
+    <li th:each="m : ${menus}" th:if="${m.menuUrl != null and m.menuUrl != ''}"
+        class="lnb-item">
+      <a th:href="${m.menuUrl}" th:text="${m.menuName}">메뉴</a>
+    </li>
+  </ul>
+</nav>
+</body>
+</html>

@@ -1,0 +1,63 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.0'
+	id 'io.spring.dependency-management' version '1.1.4'
+	id 'com.diffplug.spotless' version '6.25.0'
+}
+
+group = 'AirPort'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+	mavenCentral()
+	maven { url 'https://maven.egovframe.go.kr/maven' }
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:3.3.0'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	// 퍼시스턴스: MyBatis (JPA 미사용)
+	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+	// DB: MSSQL 단일
+	implementation 'com.microsoft.sqlserver:mssql-jdbc:12.4.1.jre11'
+
+	// 유틸
+	implementation 'org.apache.commons:commons-lang3:3.14.0'
+	implementation 'org.apache.poi:poi-ooxml:5.2.5'
+	// 프로퍼티 암호화
+	implementation 'com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.5'
+
+	compileOnly 'org.projectlombok:lombok:1.18.30'
+	annotationProcessor 'org.projectlombok:lombok:1.18.30'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	// eGovFrame — 사업 요건상 의존성 포함, 코드에서는 미사용 (docs/backend.md)
+	implementation 'org.egovframe.rte:org.egovframe.rte.fdl.idgnr:4.3.0'
+	implementation 'org.egovframe.rte:org.egovframe.rte.fdl.property:4.3.0'
+	implementation 'org.egovframe.rte:org.egovframe.rte.fdl.cmmn:4.3.0'
+	implementation 'org.egovframe.rte:org.egovframe.rte.ptl.mvc:4.3.0'
+	implementation 'org.egovframe.rte:org.egovframe.rte.psl.dataaccess:4.3.0'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.3'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+// 포맷터: google-java-format (docs/conventions.md)
+spotless {
+	java {
+		googleJavaFormat('1.19.2')
+		target 'src/**/*.java'
+	}
+}

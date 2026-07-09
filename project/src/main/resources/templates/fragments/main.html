@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 상단 헤더 바 -->
+<header th:fragment="header" class="layout-header">
+  <div class="header-logo-section">
+    <span class="header-title">청주공항 출입관리시스템</span>
+  </div>
+  <div class="header-buttons">
+    <span class="header-user" th:if="${currentUser != null}" th:text="${currentUser.userName}">사용자</span>
+    <a class="btn-logout" href="/logout">로그아웃</a>
+  </div>
+</header>
+</body>
+</html>

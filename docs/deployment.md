@@ -3,8 +3,9 @@
 > 배포의 진실 원천. 자동화·가드레일은 `/deploy`. DB 는 **MSSQL 단일**.
 
 ## 빌드/실행
+- **JDK 17+ 필요**(Spring Boot 3.2 Gradle 플러그인). `JAVA_HOME` 을 17 이상으로 지정한다(예: `jdk-17`). JDK 15 로는 빌드 실패.
 - `project/gradlew.bat clean build` — 컴파일 + 테스트 + 패키징(jar).
-- 로컬 실행: `project/gradlew.bat bootRun`.
+- 로컬 실행: `project/gradlew.bat bootRun`. DB 접속정보는 환경변수(`DB_MSSQL_URL/USERNAME/PASSWORD`)로 주입.
 - 프론트는 같은 앱(Thymeleaf) — 별도 프론트 빌드 단계 없음. (`frontend.md`)
 
 ## 환경

@@ -1,0 +1,122 @@
+/* 디자인 토큰·공통 스타일 — 규칙 원천: docs/design.md */
+:root {
+  --color-primary-default: #2D5273;
+  --color-primary-hover: #396892;
+  --color-primary-active: #4075A3;
+  --color-primary-disabled: #ADB7BF;
+  --color-secondary-default: #68B2F4;
+  --color-tertiary-default: #FAFCFD;
+  --color-tertiary-hover: #F1F4F8;
+  --color-tertiary-active: #DDE6EE;
+  --neutral-300: #dcdcdc;
+  --neutral-500: #b7b7b7;
+  --neutral-700: #858585;
+  --neutral-900: #666666;
+  --color-error: #DE2B2B;
+  --color-black: #000;
+  --color-white: #fff;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
+  font-size: 14px; color: var(--color-black);
+  background-color: var(--color-tertiary-default);
+}
+h2 { font-size: 20px; font-weight: 700; margin: 0 0 16px; }
+.body2 { font-size: 16px; }
+a { color: inherit; text-decoration: none; }
+
+/* 폭 유틸 */
+.w-80 { width: 80px; } .w-120 { width: 120px; } .w-160 { width: 160px; }
+.w-200 { width: 200px; } .w-300 { width: 300px; }
+
+/* 헤더 */
+.layout-header {
+  position: fixed; top: 0; left: 0; right: 0; height: 60px; z-index: 1000;
+  background-color: var(--color-primary-default); color: var(--color-white);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+}
+.header-title { font-size: 18px; font-weight: 700; }
+.header-buttons { display: flex; align-items: center; gap: 12px; }
+.header-user { font-size: 14px; }
+.btn-logout {
+  padding: 6px 12px; background: var(--color-white); color: var(--color-primary-default);
+  border-radius: 8px; font-size: 13px;
+}
+
+/* 레이아웃 */
+.layout-container { display: flex; padding-top: 60px; min-height: 100vh; }
+.lnb-sidebar {
+  width: 220px; flex-shrink: 0; background: var(--color-white);
+  border-right: 1px solid var(--color-tertiary-active); min-height: calc(100vh - 60px);
+}
+.lnb-menu { list-style: none; margin: 0; padding: 12px 0; }
+.lnb-item a { display: block; padding: 10px 20px; color: var(--neutral-900); }
+.lnb-item a:hover, .lnb-item a.active { background: var(--color-tertiary-hover); color: var(--color-primary-default); font-weight: 700; }
+.layout-content { flex: 1; padding: 24px 32px; }
+
+/* 검색/카드 */
+.search-section {
+  background: var(--color-white); border: 1px solid var(--color-tertiary-active);
+  border-radius: 12px; padding: 14px 20px; margin-bottom: 16px;
+  display: flex; gap: 8px; align-items: center;
+}
+.content-card {
+  background: var(--color-white); border: 1px solid var(--color-tertiary-active);
+  border-radius: 16px; padding: 20px;
+}
+
+/* 입력/버튼 */
+.input {
+  height: 36px; padding: 0 10px; border: 1px solid var(--color-tertiary-active);
+  border-radius: 8px; font-size: 14px; outline: none;
+}
+.input:focus { border-color: var(--color-primary-default); }
+.btn {
+  height: 36px; padding: 0 14px; border: 1px solid var(--color-tertiary-active);
+  background: var(--color-white); color: var(--color-black);
+  border-radius: 8px; cursor: pointer; font-size: 14px;
+}
+.btn:hover { background: var(--color-tertiary-hover); }
+.btn-primary { background: var(--color-primary-default); color: var(--color-white); border-color: var(--color-primary-default); }
+.btn-primary:hover { background: var(--color-primary-hover); }
+.btn-block { width: 100%; }
+.btn-sm { height: 28px; padding: 0 10px; font-size: 13px; }
+.btn-danger { color: var(--color-error); }
+
+/* 테이블 */
+.grid { width: 100%; border-collapse: collapse; }
+.grid th, .grid td { padding: 10px 12px; border-bottom: 1px solid var(--color-tertiary-active); text-align: left; font-size: 14px; }
+.grid thead th { background: var(--color-tertiary-hover); font-weight: 700; }
+.grid tbody tr:hover { background: var(--color-tertiary-hover); }
+.grid .empty { text-align: center; color: var(--neutral-700); padding: 24px; }
+
+/* 페이징 */
+.paging { display: flex; gap: 4px; justify-content: center; margin-top: 16px; }
+.paging button { min-width: 32px; height: 32px; border: 1px solid var(--color-tertiary-active); background: var(--color-white); border-radius: 6px; cursor: pointer; }
+.paging button.active { background: var(--color-primary-default); color: var(--color-white); border-color: var(--color-primary-default); }
+
+/* 폼 */
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.form-group label { font-size: 13px; color: var(--neutral-900); }
+.form-group .input { width: 100%; }
+
+/* 모달 */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 2000; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal-container { background: var(--color-white); border-radius: 16px; width: 480px; max-width: 92vw; }
+.modal-container.small { width: 420px; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--color-tertiary-active); }
+.modal-title { font-size: 18px; font-weight: 700; margin: 0; }
+.modal-close { border: none; background: none; font-size: 22px; cursor: pointer; line-height: 1; }
+.modal-body { padding: 20px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--color-tertiary-active); }
+
+/* 로그인 */
+.login-body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.login-card { background: var(--color-white); border: 1px solid var(--color-tertiary-active); border-radius: 16px; padding: 36px; width: 360px; }
+.login-title { font-size: 20px; font-weight: 700; text-align: center; margin: 0 0 24px; }
+.login-form .form-group { margin-bottom: 16px; }
+.login-error { color: var(--color-error); font-size: 13px; margin: 0 0 12px; }
