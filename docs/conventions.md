@@ -17,7 +17,7 @@
 - 화면: 템플릿 `templates/{도메인}/*.html`, 스크립트 `static/js/pages/{도메인}/*.js`. (`frontend.md`)
 
 ## 포맷팅
-- Java: Gradle spotless (`/commit` 시 자동). TODO: 포맷터(google-java-format 등) 확정.
+- Java: **google-java-format** (Gradle spotless `googleJavaFormat()` 로 적용, `/commit` 시 자동).
 - 프론트(HTML/JS/CSS): prettier (PostToolUse 훅이 저장 시 자동).
 
 ## 커밋

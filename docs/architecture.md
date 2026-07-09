@@ -54,8 +54,12 @@ AirPort
 
 > 테이블 상세는 `database.md`, 감사/권한 정책은 `security.md`.
 
-## 5. TODO (채워야 할 결정)
-- TODO: 프론트↔백 라우팅/URL 규칙 정의 위치.
+## 5. 라우팅/URL 규칙
+- URL 경로는 **각 Controller 파일에** `@RequestMapping`/`@GetMapping` 등으로 정의한다(중앙 라우팅 테이블 없음).
+- 경로 프리픽스는 도메인 기준으로 Controller 클래스 상단에 둔다(예: `@RequestMapping("/system/loginUser")`).
+- 화면 반환(Thymeleaf 뷰)과 데이터 응답(`@ResponseBody`)을 한 Controller 안에서 구분해 명확히 한다.
+
+## 6. TODO (채워야 할 결정)
 - TODO: 트랜잭션 전파 정책.
 - TODO: 미설계 도메인(임시/정규카드, 기관, 차량) 테이블 확정.
 

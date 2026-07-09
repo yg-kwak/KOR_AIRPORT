@@ -20,7 +20,7 @@
 | eGovFrame | 4.3.0 의존성 **포함하되 코드에서 미사용** (idgnr, property, cmmn, mvc, dataaccess) |
 | 퍼시스턴스 | MyBatis (JPA **미사용**) |
 | DB | **MSSQL 단일** |
-| 화면 | **Thymeleaf 서버사이드 렌더링** + static (shadcn/ui = 시각 레퍼런스) |
+| 화면 | **Thymeleaf 서버사이드 렌더링** + static (Pretendard, 로컬 자산) |
 | 외부 연동 | Suprema BiostarX API |
 
 ## 3. 저장소 지도 (어디에 무엇이 있나)
@@ -64,7 +64,8 @@ docs/                   상세 지식 (아래 §5 문서 지도 참고)
 | 전체 구조·계층·패키지 | `docs/architecture.md` |
 | 백엔드(Controller/Service) 작업 | `docs/backend.md` |
 | SQL / MyBatis mapper / 테이블 | `docs/database.md` |
-| 화면(Thymeleaf) 추가·수정 | `docs/frontend.md` |
+| 화면(Thymeleaf) 구조·동작 | `docs/frontend.md` |
+| UI/UX·색·타이포·컴포넌트 룩 | `docs/design.md` |
 | 외부 시스템 연동(BiostarX 등) | `docs/integration.md` |
 | 네이밍·코드 스타일·강제 | `docs/conventions.md` |
 | 인증/권한/암호화/감사 | `docs/security.md` |

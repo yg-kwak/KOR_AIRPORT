@@ -9,7 +9,8 @@ allowed-tools: Read, Grep, Glob, Write, Edit, Bash(*gradlew*)
 스캐폴딩만 하고 도메인 로직은 최소로 둔다. 관례는 문서가 진실 원천이다.
 
 ## 먼저 읽을 문서 (해당하는 것만)
-- 화면/템플릿 관례: `docs/frontend.md`
+- 화면 구조/파일 위치: `docs/frontend.md`
+- 화면 시각 규칙(색·타이포·컴포넌트): `docs/design.md`
 - 백엔드 계층/패키지 관례: `docs/architecture.md`, `docs/backend.md`
 - SQL/mapper/테이블: `docs/database.md`
 - 외부(BiostarX 등)가 얽히면: `docs/integration.md`
@@ -20,7 +21,7 @@ allowed-tools: Read, Grep, Glob, Write, Edit, Bash(*gradlew*)
 3. **화면(Thymeleaf)**:
    - 템플릿: `src/main/resources/templates/{도메인}/{화면}.html` — `fragments/` 공통 조각 재사용.
    - 스크립트: `src/main/resources/static/js/pages/{도메인}/{화면}.js`.
-   - shadcn 룩을 참고한 공통 CSS/컴포넌트를 재사용(직접 재구현 금지).
+   - 공통 CSS/컴포넌트(토큰·버튼·테이블·모달)를 재사용. 시각 규칙은 `docs/design.md`.
 4. **백엔드**: 역할별 평면 패키지에 `{도메인}Controller` → `{도메인}Service` → `Tb{Table}Mapper` + mapper XML 스텁 생성.
    - Controller 는 요청/응답 매핑만. 로직은 Service. SQL 은 mapper XML(`#{}`).
    - 도메인 구분은 클래스명 접두사로. (`docs/conventions.md`)
