@@ -18,9 +18,10 @@ allowed-tools: Read, Grep, Glob, Write, Edit, Bash(*gradlew*)
 ## 절차
 1. **화면명**을 인자에서 받는다. 없으면 사용자에게 묻는다. (kebab-case, 예: `visitor-register`)
 2. 기존 유사 화면 1개를 찾아 **패턴을 그대로 따른다** (새 패턴을 발명하지 않는다).
-3. **화면(Thymeleaf)**:
-   - 템플릿: `src/main/resources/templates/{도메인}/{화면}.html` — `fragments/` 공통 조각 재사용.
-   - 스크립트: `src/main/resources/static/js/pages/{도메인}/{화면}.js`.
+3. **화면(Thymeleaf)** — 대상 영역(web/kiosk) 확인 후:
+   - 템플릿: `templates/web/{도메인}/{화면}.html` (kiosk 는 `templates/kiosk/...`) — `fragments/`(head/main/sidebar)를 `th:replace` 로 조합. 탭/iframe 금지.
+   - 스크립트: `static/js/web/{도메인}/{화면}.js` (템플릿과 미러 경로).
+   - 모달/팝업은 새로 만들지 말고 `components/` 공통 조각을 재사용.
    - 공통 CSS/컴포넌트(토큰·버튼·테이블·모달)를 재사용. 시각 규칙은 `docs/design.md`.
 4. **백엔드**: 역할별 평면 패키지에 `{도메인}Controller` → `{도메인}Service` → `Tb{Table}Mapper` + mapper XML 스텁 생성.
    - Controller 는 요청/응답 매핑만. 로직은 Service. SQL 은 mapper XML(`#{}`).

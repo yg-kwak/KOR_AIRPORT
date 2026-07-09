@@ -53,7 +53,7 @@
 
 ## 4. 간격·레이아웃·라운드
 - 레이아웃: 상단 **헤더 60px 고정**(primary 배경) + 좌측 **LNB 사이드바 ~220px 고정** + 본문 영역(패딩 `30px 40px`).
-- 카드/영역 라운드: 검색영역 `12px`, 콘텐츠 카드 `16px`, 버튼 `8px`, 탭 상단 `6px`.
+- 카드/영역 라운드: 검색영역 `12px`, 콘텐츠 카드 `16px`, 버튼 `8px`.
 - 보더: `1px solid var(--color-tertiary-active)` 또는 `#D6DFEB`.
 - 폭 유틸리티: `.w-80 .w-100 .w-120 .w-160 .w-200 .w-240 .w-300 .w-500 .w-full`.
 - 반응형: `max-width:1024px` 에서 LNB 오프캔버스, `768px` 에서 2컬럼→1컬럼.
@@ -62,8 +62,8 @@
 - **버튼**: 기본 primary 배경/흰 글자, hover 시 `*-hover`. 보조 버튼은 흰 배경+primary 글자+보더. 비활성 `*-disabled`. 라운드 8px.
 - **입력(input)**: 보더 `--color-tertiary-active`, 포커스 시 primary 보더. 비밀번호는 표시/숨김 토글 아이콘.
 - **테이블**: 헤더 배경 `--color-tertiary-hover`, 행 구분선 `--color-tertiary-active`, hover 강조. 셀 정렬·폭은 `.w-*` 유틸.
-- **모달(modal)**: 오버레이 + `.modal-container`(small/기본), 헤더(title+닫기 아이콘)/바디/푸터 구조.
-- **탭**: 상단 탭바(활성 탭 흰 배경+primary 글자+굵게, 하단 인디케이터), 탭별 iframe/pane.
+- **모달(modal)**: 오버레이 + `.modal-container`(small/기본), 헤더(title+닫기 아이콘)/바디/푸터 구조. 공통 조각으로 재사용(`frontend.md`).
+- **페이지 레이아웃**: 탭/iframe 없이 **독립 페이지**. 고정 헤더 + 좌측 사이드바 + 본문 영역을 공통 조각(head/main/sidebar)으로 조합.
 - **사이드바(LNB)**: 트리 메뉴, 권한(`tb_menu_auth_detail`)에 따라 노출. 현재 메뉴 활성 강조.
 
 ## 6. 아이콘

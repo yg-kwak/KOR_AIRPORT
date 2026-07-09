@@ -14,7 +14,7 @@
 - Controller/Service/Mapper: `{도메인}Controller` / `{도메인}Service` / `Tb{Table}Mapper`.
 - 테이블 매핑 모델: `Tb{Table}` (예: `TbLoginUser`).
 - DB 테이블/컬럼: 소문자 스네이크, 테이블 `tb_` 접두. (`database.md`)
-- 화면: 템플릿 `templates/{도메인}/*.html`, 스크립트 `static/js/pages/{도메인}/*.js`. (`frontend.md`)
+- 화면: 템플릿 `templates/web/{도메인}/*.html`, 스크립트 `static/js/web/{도메인}/*.js` (kiosk 는 `kiosk/` 하위). 구조 상세는 `frontend.md`.
 
 ## 포맷팅
 - Java: **google-java-format** (Gradle spotless `googleJavaFormat()` 로 적용, `/commit` 시 자동).
