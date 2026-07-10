@@ -32,8 +32,7 @@ src/main/resources/      mapper/(MyBatis XML), templates/·static/(Thymeleaf 화
 src/test/                JUnit 테스트
 sql/                    DDL(ddl/) · seed(seed/) 스크립트 (docs/database.md)
 scripts/                dev-setup(환경 부트스트랩) · smoke-test(E2E 검증) · 린트 3종(docs/schema/code)
-TASKS.md                작업 보드 — 백로그/진행중(담당)/완료. 작업 시작·종료 시 갱신
-docs/                   상세 지식 (아래 §5 문서 지도 참고) · reviews/(코드 리뷰 기록)
+docs/                   상세 지식 (아래 §5 문서 지도 참고) · reviews/(코드 리뷰 기록) · tasks-archive.md(작업 완료 기록)
 .claude/commands/       반복 작업 스킬 (/commit, /review, /deploy, /cleanup, /new-screen)
 .claude/hooks/          강제 규칙 스크립트 (.env·생성물 보호, 포맷, 세션요약)
 .github/workflows/      CI — 빌드·테스트·정적 검사(강제)
@@ -91,9 +90,8 @@ docs/                   상세 지식 (아래 §5 문서 지도 참고) · revie
 ## 7. 처음 온 에이전트에게 (Start Here)
 
 1. 이 파일(§4 불변식, §3 지도)만 먼저 이해한다.
-2. **`TASKS.md`(작업 보드)를 확인한다** — 백로그에서 작업을 골라 🔧 진행중으로 옮기고 담당을 적은 뒤 시작한다. 끝나면 ✅ 완료로 옮긴다(커밋 포함).
-3. 작업 유형이 정해지면 §5 표에서 **해당 문서 하나만** 연다.
-4. 반복 작업이면 §6 스킬을 먼저 찾는다.
-5. 애매하면 추측하지 말고 `docs/` 를 확인하거나 사용자에게 묻는다.
-6. **새 명명·패턴을 도입하면 `docs/conventions.md`(규칙 대장)에 등록하고 같은 커밋에 포함한다.**
-7. 커밋 전 `/review`(기록은 `docs/reviews/`) → `/commit`.
+2. 작업 유형이 정해지면 §5 표에서 **해당 문서 하나만** 연다.
+3. 반복 작업이면 §6 스킬을 먼저 찾는다.
+4. 애매하면 추측하지 말고 `docs/` 를 확인하거나 사용자에게 묻는다.
+5. **새 명명·패턴을 도입하면 `docs/conventions.md`(규칙 대장)에 등록하고 같은 커밋에 포함한다.**
+6. 커밋 전 `/review`(기록은 `docs/reviews/`) → `/commit`. 작업 완료분은 `docs/tasks-archive.md` 에 한 줄 기록한다.
