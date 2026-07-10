@@ -51,9 +51,11 @@
   --radius: 6px;
   --radius-lg: 8px;
 
-  /* ===== 헤더 바 (화이트 + 하단 보더) ===== */
-  --header-bg: #ffffff;
-  --header-text: var(--nt-text);
+  /* ===== 헤더 바 (다크 네이비 — 사이드바와 통일) ===== */
+  --header-bg: var(--nt-sidebar);
+  --header-text: var(--nt-on-dark-strong);
+  --header-muted: var(--nt-on-dark);
+  --header-border: var(--nt-on-dark-border);
 
   /* ===== 사이드바 (다크) ===== */
   --sidebar-bg: var(--nt-sidebar);
@@ -94,17 +96,17 @@ a { color: inherit; text-decoration: none; }
 .layout-header {
   position: fixed; top: 0; left: 0; right: 0; height: 60px; z-index: 1000;
   background-color: var(--header-bg); color: var(--header-text);
-  border-bottom: 1px solid var(--nt-border);
+  border-bottom: 1px solid var(--header-border);
   display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
 }
 .header-title { font-size: 16px; font-weight: 700; }
 .header-buttons { display: flex; align-items: center; gap: 12px; }
-.header-user { font-size: 14px; color: var(--nt-text-2); }
+.header-user { font-size: 14px; color: var(--header-muted); }
 .btn-logout {
-  padding: 6px 12px; background: var(--nt-bg-gray); color: var(--color-black);
-  border: 1px solid var(--nt-border); border-radius: var(--radius-sm); font-size: 13px;
+  padding: 6px 12px; background: transparent; color: var(--header-text);
+  border: 1px solid var(--header-border); border-radius: var(--radius-sm); font-size: 13px;
 }
-.btn-logout:hover { background: var(--nt-hover); }
+.btn-logout:hover { background: var(--color-primary-default); border-color: var(--color-primary-default); }
 
 /* 레이아웃 */
 .layout-container { display: flex; padding-top: 60px; min-height: 100vh; }

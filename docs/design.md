@@ -28,7 +28,7 @@
 --neutral-900/700/500 → 본문/보조/흐림 텍스트
 --color-error → --nt-red   --color-black → 본문(#1f1f1f)   --color-white → #fff
 --sidebar-*  다크 사이드바(선택=흰 글자+블루 배경)   --toast-*  다크 토스트   --radius-sm/-/-lg: 4/6/8px
---header-bg 흰색 + 하단 보더
+--header-bg/-text/-muted/-border  다크 네이비 헤더(사이드바와 통일)
 ```
 - 본문 텍스트: `--color-black`(거의 검정) / 보조: `--neutral-700~500` / 위험·실패: `--color-error`.
 - 상태색(토스트): success=녹, error=적, warning=황.
@@ -52,7 +52,7 @@
 | body3 (기본 본문) | 14 / 18 | 500 |
 
 ## 4. 간격·레이아웃·라운드
-- 레이아웃: 상단 **헤더 60px 고정**(흰색 배경 + 하단 보더, `--header-bg`) + 좌측 **LNB 사이드바 240px**(다크 네이비, 접힘 64px) + 본문 영역.
+- 레이아웃: 상단 **헤더 60px 고정**(다크 네이비 `--header-bg`, 사이드바와 통일) + 좌측 **LNB 사이드바 240px**(다크 네이비, 접힘 64px) + 본문 영역.
 - 라운드(토큰): 입력/버튼 `--radius-sm`(4px), 카드/검색영역 `--radius`(6px), 모달 `--radius-lg`(8px).
 - 보더: `1px solid var(--color-tertiary-active)` (=`--nt-border` `#d9d9d9`, 뚜렷 — 표·영역 경계 명확).
 - 폭 유틸리티: `.w-80 .w-100 .w-120 .w-160 .w-200 .w-240 .w-300 .w-500 .w-full`.
