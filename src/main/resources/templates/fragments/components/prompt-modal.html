@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 공통 입력 모달. 제목/라벨/버튼문구는 JS(promptModal.open)로 주입해 재사용한다.
+     사용: <div th:replace="~{fragments/components/prompt-modal :: promptModal}"></div>
+          const v = await promptModal.open({title:'엑셀 다운로드', label:'다운로드 목적', confirmText:'다운로드'});
+          // v = 입력값(문자열) | null(닫기) -->
+<div th:fragment="promptModal" class="modal-overlay" id="promptModal">
+  <div class="modal-container confirm">
+    <div class="modal-header">
+      <h2 class="modal-title" id="promptModalTitle">입력</h2>
+      <button class="modal-close" id="promptModalClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label id="promptModalLabel"></label>
+        <input type="text" id="promptModalInput" class="input"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="promptModalOk">확인</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

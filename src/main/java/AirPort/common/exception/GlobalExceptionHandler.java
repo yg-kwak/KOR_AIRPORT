@@ -28,6 +28,17 @@ public class GlobalExceptionHandler {
         .body(ApiResponse.fail(e.getErrorCode().code(), e.getMessage()));
   }
 
+  /** 필수 요청 파라미터 누락 → 400 (예: 엑셀 다운로드 purpose 미입력) */
+  @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMissingParam(
+      org.springframework.web.bind.MissingServletRequestParameterException e) {
+    log.warn("missing parameter: {}", e.getParameterName());
+    return ResponseEntity.badRequest()
+        .body(
+            ApiResponse.fail(
+                ErrorCode.INVALID_INPUT.code(), "필수 값이 누락되었습니다: " + e.getParameterName()));
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiResponse<Void>> handleEtc(Exception e) {
     log.error("unexpected error", e);

@@ -46,6 +46,14 @@
     OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
   </select>
 
+  <!-- 엑셀 다운로드용: 동일 검색/정렬, 페이징 없음(전체) -->
+  <select id="selectListAll" parameterType="AirPort.model.CommonSearchParam" resultType="TbCommon">
+    SELECT cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_ipnut, use_yn
+    FROM tb_common
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+  </select>
+
   <select id="selectCount" parameterType="AirPort.model.CommonSearchParam" resultType="long">
     SELECT COUNT(*) FROM tb_common
     <include refid="searchWhere"/>

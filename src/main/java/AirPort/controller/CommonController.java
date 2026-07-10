@@ -10,7 +10,13 @@ import AirPort.model.TbLoginUser;
 import AirPort.service.CommonService;
 import AirPort.service.MenuAuthService;
 import AirPort.service.MenuService;
+import AirPort.util.ExcelUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -62,6 +68,35 @@ public class CommonController {
   public ApiResponse<PageResult<TbCommon>> list(CommonSearchParam param, HttpSession session) {
     menuAuthService.requireRead(actor(session), MENU_ID);
     return ApiResponse.ok(commonService.list(param));
+  }
+
+  /** 엑셀 다운로드 — 현재 검색/정렬 조건의 전체(모든 페이지) 데이터. 목적(purpose)은 감사 remark 로 기록. */
+  @GetMapping("/excel")
+  public void excel(
+      CommonSearchParam param,
+      @RequestParam String purpose,
+      HttpSession session,
+      HttpServletResponse response)
+      throws IOException {
+    List<TbCommon> rows = commonService.listAllForExcel(param, actor(session), MENU_ID, purpose);
+    String[] headers = {"코드구분ID", "코드구분명", "코드ID", "코드명", "사용여부"};
+    List<String[]> data =
+        rows.stream()
+            .map(
+                r ->
+                    new String[] {
+                      r.getCmmId(),
+                      r.getCmmName(),
+                      r.getCodeId(),
+                      r.getCodeName(),
+                      "Y".equals(r.getUseYn()) ? "사용" : "미사용"
+                    })
+            .toList();
+    String filename =
+        "공통코드_"
+            + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"))
+            + ".xlsx";
+    ExcelUtil.download(response, filename, headers, data);
   }
 
   /** 등록 (AJAX) */

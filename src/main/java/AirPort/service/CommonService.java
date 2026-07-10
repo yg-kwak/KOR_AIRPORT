@@ -35,6 +35,19 @@ public class CommonService {
         commonMapper.selectList(param), total, param.getPage(), param.getSize());
   }
 
+  /** 엑셀 다운로드용 전체 목록(동일 검색/정렬, 페이징 없음). 목적(purpose)은 감사 remark 로 기록. */
+  public java.util.List<TbCommon> listAllForExcel(
+      CommonSearchParam param, TbLoginUser actor, Integer menuId, String purpose) {
+    menuAuthService.requireRead(actor, menuId);
+    if (purpose == null || purpose.isBlank()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "다운로드 목적을 입력해주세요.");
+    }
+    java.util.List<TbCommon> rows = commonMapper.selectListAll(param);
+    auditService.log(
+        actor, AuditService.DOWNLOAD, menuId, "공통코드 엑셀 다운로드 (" + rows.size() + "건)", purpose);
+    return rows;
+  }
+
   public TbCommon get(String cmmId, String codeId) {
     TbCommon row = commonMapper.selectOne(cmmId, codeId);
     if (row == null) {

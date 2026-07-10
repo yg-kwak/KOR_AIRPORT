@@ -112,6 +112,23 @@
     load();
   }
 
+  // ---- 엑셀 다운로드 (목적 입력 → 감사 remark 기록, 현재 검색/정렬의 전체 데이터) ----
+  async function excelDownload() {
+    const purpose = await promptModal.open({
+      title: '엑셀 다운로드',
+      label: '다운로드 목적',
+      placeholder: '다운로드 목적을 입력해주세요',
+      confirmText: '다운로드',
+    });
+    if (!purpose) return;
+    const q =
+      `?keyword=${encodeURIComponent(state.keyword)}` +
+      `&searchType=${state.searchType}&useYn=${state.useYn}` +
+      `&sort=${state.sort}&dir=${state.dir}` +
+      `&purpose=${encodeURIComponent(purpose)}`;
+    location.href = BASE + '/excel' + q; // 브라우저 다운로드
+  }
+
   // ---- 등록/수정 모달 ----
   function openModal(mode, row) {
     $('mode').value = mode;
@@ -162,6 +179,7 @@
     $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
     // 등록 버튼은 create 권한이 없으면 서버 렌더에서 제외됨(th:if)
     if ($('btnNew')) $('btnNew').addEventListener('click', () => openModal('create', null));
+    $('btnExcel').addEventListener('click', excelDownload);
     $('btnSave').addEventListener('click', save);
     $('btnCancel').addEventListener('click', closeModal);
     $('modalClose').addEventListener('click', closeModal);
