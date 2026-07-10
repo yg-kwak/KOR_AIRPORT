@@ -116,7 +116,7 @@ PK 없음(설정 1행 운영).
 |------|------|------|------|
 | biostar_ip | nvarchar(50) | 바이오스타 IP | |
 | biostar_id | nvarchar(100) | 바이오스타 ID | |
-| biostar_pw | nvarchar(255) | 바이오스타 비밀번호 | 민감정보 — 암호화 검토 (`security.md`) |
+| biostar_pw | nvarchar(255) | 바이오스타 비밀번호 | **ARIA 암호화 저장**(Enc=Y). 화면엔 미노출, 연동 시 복호화 (`security.md`) |
 | reg_dt / mod_dt | datetime2(0) | 생성/수정일자 | 기본 getdate() |
 
 ### tb_ac_group — 출입권한 그룹 (BiostarX 매핑)

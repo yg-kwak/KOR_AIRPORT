@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbSystemMapper">
+
+  <select id="selectOne" resultType="TbSystem">
+    SELECT TOP 1 biostar_ip, biostar_id, biostar_pw, reg_dt, mod_dt
+    FROM tb_system
+  </select>
+
+  <select id="countAll" resultType="int">
+    SELECT COUNT(*) FROM tb_system
+  </select>
+
+  <insert id="insert" parameterType="TbSystem">
+    INSERT INTO tb_system (biostar_ip, biostar_id, biostar_pw)
+    VALUES (#{biostarIp}, #{biostarId}, #{biostarPw})
+  </insert>
+
+  <!-- 단일 행 운영 — WHERE 없이 전체(=1행) 갱신 -->
+  <update id="update" parameterType="TbSystem">
+    UPDATE tb_system
+    SET biostar_ip = #{biostarIp},
+        biostar_id = #{biostarId},
+        biostar_pw = #{biostarPw},
+        mod_dt = getdate()
+  </update>
+
+</mapper>

@@ -27,7 +27,8 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use
 /* 메뉴 */
 INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, use_yn) VALUES
   (300, N'시스템관리',   NULL, NULL,                 1, 1, 'Y'),
-  (301, N'공통코드관리', 300,  '/system/commonCode', 2, 1, 'Y');
+  (301, N'공통코드관리', 300,  '/system/commonCode', 2, 1, 'Y'),
+  (302, N'설정관리',     300,  '/system/system',     2, 2, 'Y');
 
 /* 관리자 권한 + 공통코드관리 전권 + 관리자 계정 */
 INSERT INTO dbo.tb_menu_auth (auth_name) VALUES (N'관리자');
