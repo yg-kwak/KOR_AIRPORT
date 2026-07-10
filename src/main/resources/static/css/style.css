@@ -131,7 +131,7 @@ a { color: inherit; text-decoration: none; }
   background: none; border: none; color: var(--sidebar-text-strong); cursor: pointer;
   padding: 10px 12px; border-radius: var(--radius); font-size: 14px;
 }
-.lnb-group-btn:hover { background: var(--sidebar-hover); }
+.lnb-group-btn:hover { background: var(--color-primary-default); color: var(--color-white); }
 .lnb-ic { width: 20px; height: 20px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
 .lnb-ic svg { width: 20px; height: 20px; }
 .lnb-group-name { flex: 1; text-align: left; white-space: nowrap; overflow: hidden; }
@@ -149,7 +149,7 @@ a { color: inherit; text-decoration: none; }
 .lnb-flyout-title { display: none; }
 .lnb-subhead { padding: 8px 12px 4px 44px; font-weight: 700; color: var(--sidebar-text-strong); font-size: 13px; }
 .lnb-link { display: block; padding: 8px 12px 8px 44px; color: var(--sidebar-text); font-size: 13px; border-radius: var(--radius-sm); }
-.lnb-link:hover { color: var(--sidebar-text-strong); background: var(--sidebar-hover); }
+.lnb-link:hover { color: var(--color-white); background: var(--color-primary-default); }
 .lnb-link.active { color: var(--sidebar-active); font-weight: 700; background: var(--sidebar-active-bg); }
 
 /* 접힘: 이름/캐럿/하위 숨김, 아이콘만 */
@@ -157,9 +157,8 @@ a { color: inherit; text-decoration: none; }
 .lnb-sidebar.collapsed .lnb-caret { display: none; }
 .lnb-sidebar.collapsed .lnb-group-btn { justify-content: center; padding: 12px 0; }
 .lnb-sidebar.collapsed .lnb-group > .lnb-sub { display: none; }
-/* 접힘 상태에서 아이콘 클릭(flyout)/hover → 하위를 우측 팝오버로 */
-.lnb-sidebar.collapsed .lnb-group.flyout > .lnb-sub,
-.lnb-sidebar.collapsed .lnb-group:hover > .lnb-sub {
+/* 접힘 상태에서 아이콘 클릭(flyout) → 하위를 우측 팝오버로 (hover 아님, 클릭만) */
+.lnb-sidebar.collapsed .lnb-group.flyout > .lnb-sub {
   display: block; position: absolute; left: 60px; top: 0; min-width: 200px;
   background: var(--sidebar-flyout-bg); border: 1px solid var(--sidebar-border);
   border-radius: var(--radius-lg); padding: 6px 0;
