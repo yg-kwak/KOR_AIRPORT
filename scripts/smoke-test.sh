@@ -48,6 +48,8 @@ echo "== 화면/조회 =="
 check "공통코드 화면"  200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
 check "목록 조회"      200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/list?size=5")"
 check "미인증 AJAX 401" 401 "$(curl -s -H 'X-Requested-With: XMLHttpRequest' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/list")"
+# 시스템 코드(AT=N)는 목록에 나오지 않아야 함
+check "시스템코드(AT) 목록 제외" 0 "$(A "$BASE_URL/system/commonCode/list?searchType=cmmId&keyword=AT&size=200" | grep -q '"cmmId":"AT"' && echo 1 || echo 0)"
 
 echo "== 코드구분 select (허용 구분만) =="
 check "허용 구분 목록 200" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/groups")"

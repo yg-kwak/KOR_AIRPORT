@@ -86,7 +86,7 @@ public class CommonController {
       HttpServletResponse response)
       throws IOException {
     List<TbCommon> rows = commonService.listAllForExcel(param, actor(session), MENU_ID, purpose);
-    String[] headers = {"코드구분ID", "코드구분명", "코드ID", "코드명", "사용여부", "구분"};
+    String[] headers = {"코드구분ID", "코드구분명", "코드ID", "코드명", "사용여부"};
     List<String[]> data =
         rows.stream()
             .map(
@@ -96,8 +96,7 @@ public class CommonController {
                       r.getCmmName(),
                       r.getCodeId(),
                       r.getCodeName(),
-                      "Y".equals(r.getUseYn()) ? "사용" : "미사용",
-                      "Y".equals(r.getUserInput()) ? "사용자" : "시스템"
+                      "Y".equals(r.getUseYn()) ? "사용" : "미사용"
                     })
             .toList();
     String filename =

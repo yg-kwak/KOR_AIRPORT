@@ -3,10 +3,12 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="AirPort.mapper.TbCommonMapper">
 
-  <!-- 검색 조건: searchType(전체/개별) + 사용여부 필터 -->
+  <!-- 검색 조건: 시스템 코드(user_input='N')는 화면 조회에서 완전히 제외 + searchType + 사용여부 필터 -->
   <sql id="searchWhere">
     <where>
+      user_input = 'Y'
       <if test="keyword != null and keyword != ''">
+        AND
         <choose>
           <when test="searchType == 'cmmId'">cmm_id LIKE '%' + #{keyword} + '%'</when>
           <when test="searchType == 'cmmName'">cmm_name LIKE '%' + #{keyword} + '%'</when>

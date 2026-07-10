@@ -101,9 +101,9 @@ PK: `cmm_id` + `code_id` (복합). 코드구분(`cmm_id`) 아래에 코드(`code
 | user_input | nchar(1) | | 사용자등록여부 *(설계서 오타 user_ipnut 를 정정)* |
 | use_yn | nchar(1) | | 사용여부 (기본 'Y', CHK Y/N) |
 
-> **시스템 코드 보호 규칙**: `user_input='N'` 은 시스템이 참조하는 코드(AT 감사유형 등) — 화면에서
-> 수정/삭제 불가(서버 403 + SQL `AND user_input='Y'` 가드), 변경은 개발자/관리자가 DB 에서 직접.
-> 화면에서 등록한 코드는 항상 `user_input='Y'` 로 저장된다.
+> **시스템 코드 보호 규칙**: `user_input='N'` 은 시스템이 참조하는 코드(AT 감사유형 등) — **화면 목록/엑셀에서
+> 아예 조회되지 않는다**(공통 `searchWhere` 에 `user_input='Y'` 고정). 변경은 개발자/관리자가 DB 에서 직접.
+> 화면에서 등록한 코드는 항상 `user_input='Y'` 로 저장되며, update/delete 도 SQL `AND user_input='Y'` 가드(직접 API 방어).
 >
 > **코드구분 선택 규칙**: 화면 등록 시 `cmm_id` 는 자유입력이 아니라 **select** — `user_input='Y'` 인 행이
 > 있는 코드구분(=사용자 추가 허용 구분)만 노출된다. `cmm_name` 은 선택한 구분에서 서버가 파생(사용자 입력/수정 불가).
