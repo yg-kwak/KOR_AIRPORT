@@ -16,6 +16,9 @@
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
 
+  // 메뉴 권한(서버 렌더 시 주입). 버튼 숨김은 1차 방어 — 서버가 생성/수정/삭제를 재검증한다.
+  const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
+
   async function load() {
     const q =
       `?page=${state.page}&size=${state.size}` +
@@ -52,18 +55,25 @@
       body.innerHTML = '<tr><td colspan="6" class="empty">조회 결과가 없습니다.</td></tr>';
       return;
     }
-    body.innerHTML = rows.map((r) => `
+    body.innerHTML = rows.map((r) => {
+      const actions = [
+        PERM.canCreate
+          ? `<button class="btn btn-sm" data-act="edit" data-json='${esc(JSON.stringify(r))}'>수정</button>`
+          : '',
+        PERM.canDelete
+          ? `<button class="btn btn-sm btn-danger" data-act="del" data-cmm="${esc(r.cmmId)}" data-code="${esc(r.codeId)}">삭제</button>`
+          : '',
+      ].join(' ').trim() || '-';
+      return `
       <tr>
         <td>${esc(r.cmmId)}</td>
         <td>${esc(r.cmmName)}</td>
         <td>${esc(r.codeId)}</td>
         <td>${esc(r.codeName)}</td>
         <td>${r.useYn === 'Y' ? '사용' : '미사용'}</td>
-        <td>
-          <button class="btn btn-sm" data-act="edit" data-json='${esc(JSON.stringify(r))}'>수정</button>
-          <button class="btn btn-sm btn-danger" data-act="del" data-cmm="${esc(r.cmmId)}" data-code="${esc(r.codeId)}">삭제</button>
-        </td>
-      </tr>`).join('');
+        <td>${actions}</td>
+      </tr>`;
+    }).join('');
   }
 
   function renderPaging(page, totalPages) {
@@ -122,6 +132,7 @@
   function closeModal() { $('editModal').classList.remove('open'); }
 
   async function save() {
+    if (!PERM.canCreate) return;
     const payload = {
       cmmId: $('cmmId').value.trim(),
       cmmName: $('cmmName').value.trim(),
@@ -137,6 +148,7 @@
   }
 
   async function remove(cmmId, codeId) {
+    if (!PERM.canDelete) return;
     if (!confirm('삭제하시겠습니까?')) return;
     await api.del(`${BASE}?cmmId=${encodeURIComponent(cmmId)}&codeId=${encodeURIComponent(codeId)}`);
     load();
@@ -147,7 +159,8 @@
     $('btnReset').addEventListener('click', reset);
     $('keyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
     $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
-    $('btnNew').addEventListener('click', () => openModal('create', null));
+    // 등록 버튼은 create 권한이 없으면 서버 렌더에서 제외됨(th:if)
+    if ($('btnNew')) $('btnNew').addEventListener('click', () => openModal('create', null));
     $('btnSave').addEventListener('click', save);
     $('btnCancel').addEventListener('click', closeModal);
     $('modalClose').addEventListener('click', closeModal);

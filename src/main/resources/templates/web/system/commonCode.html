@@ -40,7 +40,7 @@
       <div class="grid-toolbar">
         <span class="grid-total" id="totalInfo"></span>
         <div class="grid-actions">
-          <button class="btn" id="btnNew">신규</button>
+          <button class="btn" id="btnNew" th:if="${perm.canCreate}">등록</button>
           <select id="pageSize" class="input">
             <option value="30">30개씩 보기</option>
             <option value="50">50개씩 보기</option>
@@ -111,6 +111,13 @@
   </div>
 </div>
 
+<!-- 메뉴 권한 → JS 전달 (행 버튼 노출 제어. 서버가 2차로 강제하므로 조작해도 실행 불가) -->
+<script th:inline="javascript">
+  window.PAGE_PERM = {
+    canCreate: [[${perm.canCreate}]],
+    canDelete: [[${perm.canDelete}]]
+  };
+</script>
 <script src="/js/web/system/commonCode.js" defer></script>
 </body>
 </html>

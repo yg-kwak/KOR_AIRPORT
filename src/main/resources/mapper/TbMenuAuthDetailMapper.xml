@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbMenuAuthDetailMapper">
+
+  <select id="selectOne" resultType="TbMenuAuthDetail">
+    SELECT auth_id, menu_id, read_auth, create_auth, update_auth, delete_auth
+    FROM tb_menu_auth_detail
+    WHERE auth_id = #{authId} AND menu_id = #{menuId}
+  </select>
+
+</mapper>

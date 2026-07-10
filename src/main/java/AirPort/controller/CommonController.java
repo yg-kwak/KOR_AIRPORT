@@ -4,9 +4,11 @@ import AirPort.common.ApiResponse;
 import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
 import AirPort.model.CommonSearchParam;
+import AirPort.model.MenuPermission;
 import AirPort.model.TbCommon;
 import AirPort.model.TbLoginUser;
 import AirPort.service.CommonService;
+import AirPort.service.MenuAuthService;
 import AirPort.service.MenuService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -33,23 +35,32 @@ public class CommonController {
 
   private final CommonService commonService;
   private final MenuService menuService;
+  private final MenuAuthService menuAuthService;
 
-  public CommonController(CommonService commonService, MenuService menuService) {
+  public CommonController(
+      CommonService commonService, MenuService menuService, MenuAuthService menuAuthService) {
     this.commonService = commonService;
     this.menuService = menuService;
+    this.menuAuthService = menuAuthService;
   }
 
-  /** 화면 */
+  /** 화면 — 메뉴 권한(perm)을 내려 버튼 노출을 제어한다(1차 방어). */
   @GetMapping
-  public String page(Model model) {
+  public String page(Model model, HttpSession session) {
+    MenuPermission perm = menuAuthService.permissionFor(actor(session), MENU_ID);
+    if (!perm.isCanRead()) {
+      return "redirect:/"; // 조회 권한 없음 → 메인으로
+    }
     model.addAttribute("menus", menuService.useList());
+    model.addAttribute("perm", perm);
     return "web/system/commonCode";
   }
 
   /** 목록 (AJAX) */
   @GetMapping("/list")
   @ResponseBody
-  public ApiResponse<PageResult<TbCommon>> list(CommonSearchParam param) {
+  public ApiResponse<PageResult<TbCommon>> list(CommonSearchParam param, HttpSession session) {
+    menuAuthService.requireRead(actor(session), MENU_ID);
     return ApiResponse.ok(commonService.list(param));
   }
 

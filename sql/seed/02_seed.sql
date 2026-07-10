@@ -36,3 +36,18 @@ VALUES
    '3F04A75824FA503043F56A4A78370B23',   -- ARIA('관리자')
    'CADF8C82EC0394005E5F4DA4520BBFE1',   -- ARIA('admin123')
    N'운영팀', 'Y', 'Y', @authId, 301, 'T1');
+
+/* 조회전용 권한 + 계정: viewer / viewer123 — 메뉴 권한 CRUD 통제 확인용 (read Y, create/delete N) */
+INSERT INTO dbo.tb_menu_auth (auth_name) VALUES (N'조회전용');
+DECLARE @viewerAuthId int = SCOPE_IDENTITY();
+
+INSERT INTO dbo.tb_menu_auth_detail (auth_id, menu_id, read_auth, create_auth, update_auth, delete_auth)
+VALUES (@viewerAuthId, 301, 'Y', 'N', 'N', 'N');
+
+INSERT INTO dbo.tb_login_user
+  (user_id, user_name, password, dept_name, use_yn, root_yn, auth_id, start_menu_id, work_location_code)
+VALUES
+  ('viewer',
+   '90CC915CE3C405B614B53104CEECEB65',   -- ARIA('조회자')
+   '61C20F44FC56313D845AD7B760D15F09',   -- ARIA('viewer123')
+   N'운영팀', 'Y', 'N', @viewerAuthId, 301, 'T1');
