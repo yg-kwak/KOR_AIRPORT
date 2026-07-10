@@ -56,16 +56,12 @@
       return;
     }
     body.innerHTML = rows.map((r) => {
-      const actions = [
-        PERM.canCreate
-          ? `<button class="btn btn-sm" data-act="edit" data-json='${esc(JSON.stringify(r))}'>수정</button>`
-          : '',
-        PERM.canDelete
-          ? `<button class="btn btn-sm btn-danger" data-act="del" data-cmm="${esc(r.cmmId)}" data-code="${esc(r.codeId)}">삭제</button>`
-          : '',
-      ].join(' ').trim() || '-';
+      // 수정은 행 클릭으로 진입(create 권한 필요). 관리 칸에는 삭제만 둔다.
+      const actions = PERM.canDelete
+        ? `<button class="btn btn-sm btn-danger" data-act="del" data-cmm="${esc(r.cmmId)}" data-code="${esc(r.codeId)}">삭제</button>`
+        : '-';
       return `
-      <tr>
+      <tr${PERM.canCreate ? ' class="row-click"' : ''} data-json='${esc(JSON.stringify(r))}'>
         <td>${esc(r.cmmId)}</td>
         <td>${esc(r.cmmName)}</td>
         <td>${esc(r.codeId)}</td>
@@ -149,7 +145,12 @@
 
   async function remove(cmmId, codeId) {
     if (!PERM.canDelete) return;
-    if (!confirm('삭제하시겠습니까?')) return;
+    const ok = await confirmModal.open({
+      title: '삭제 확인',
+      message: `선택한 공통코드(${cmmId}/${codeId})를 삭제하시겠습니까?`,
+      confirmText: '삭제',
+    });
+    if (!ok) return;
     await api.del(`${BASE}?cmmId=${encodeURIComponent(cmmId)}&codeId=${encodeURIComponent(codeId)}`);
     load();
   }
@@ -170,9 +171,14 @@
 
     $('gridBody').addEventListener('click', (e) => {
       const btn = e.target.closest('button');
-      if (!btn) return;
-      if (btn.dataset.act === 'edit') openModal('edit', JSON.parse(btn.dataset.json));
-      if (btn.dataset.act === 'del') remove(btn.dataset.cmm, btn.dataset.code);
+      if (btn) {
+        // 버튼 클릭은 행 클릭(수정 진입)과 분리
+        if (btn.dataset.act === 'del') remove(btn.dataset.cmm, btn.dataset.code);
+        return;
+      }
+      // 행 클릭 → 수정 모달 (create 권한 필요)
+      const tr = e.target.closest('tr[data-json]');
+      if (tr && PERM.canCreate) openModal('edit', JSON.parse(tr.dataset.json));
     });
     $('paging').addEventListener('click', (e) => {
       const btn = e.target.closest('button');

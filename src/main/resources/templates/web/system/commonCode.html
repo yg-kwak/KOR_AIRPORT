@@ -111,6 +111,9 @@
   </div>
 </div>
 
+<!-- 공통 확인 모달 (fragments/components — 제목/내용은 confirmModal.open 으로 주입) -->
+<div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
+
 <!-- 메뉴 권한 → JS 전달 (행 버튼 노출 제어. 서버가 2차로 강제하므로 조작해도 실행 불가) -->
 <script th:inline="javascript">
   window.PAGE_PERM = {

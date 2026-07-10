@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 공통 확인 모달. 제목/내용/버튼문구는 JS(confirmModal.open)로 주입해 재사용한다.
+     사용: <div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
+          const ok = await confirmModal.open({title:'삭제 확인', message:'...', confirmText:'삭제'}); -->
+<div th:fragment="confirmModal" class="modal-overlay" id="confirmModal">
+  <div class="modal-container confirm">
+    <div class="modal-header">
+      <h2 class="modal-title" id="confirmModalTitle">확인</h2>
+      <button class="modal-close" id="confirmModalClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-message" id="confirmModalMessage"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="confirmModalOk">확인</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
