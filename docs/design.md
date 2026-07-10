@@ -2,7 +2,7 @@
 
 > 화면의 **시각 규칙**(색·타이포·간격·컴포넌트 룩)의 단일 출처.
 > 화면의 **구조·파일 위치·동작 관례**는 `frontend.md` 가 담당한다(중복 금지).
-> **현재 테마: Notion** (getdesign.md 참고). 웜 블랙 텍스트·라이트 웜그레이 서피스·블루 액센트·옅은 보더·낮은 라운드.
+> **현재 테마: Ant Design 대비(라이트 본문) + 다크 사이드바.** 거의 검정 본문·뚜렷한 보더(표 가독성)·블루 액센트, 좌측 LNB는 딥 네이비.
 
 ## 1. 원칙
 - 업무용 관리 시스템 — **정보 밀도·가독성·일관성** 우선. 화려함보다 명료함.
@@ -10,26 +10,27 @@
 - 토큰은 2단계: **팔레트(`--nt-*` 원천값)** → **역할 토큰(`--color-*`, `--sidebar-*`, `--toast-*`, `--radius-*` …)**. 컴포넌트는 역할 토큰만 참조.
 - 컴포넌트는 재사용한다. 같은 요소(버튼/입력/테이블)를 화면마다 새로 만들지 않는다.
 
-## 2. 컬러 토큰 (`static/css` `:root`, 현재=Notion)
+## 2. 컬러 토큰 (`static/css` `:root`, 현재=Ant 대비 + 다크 사이드바)
 ```css
 /* 팔레트(원천) */
---nt-blue:#2383e2; --nt-blue-hover:#1a72c4; --nt-blue-active:#1667b3;
---nt-red:#eb5757;  --nt-green:#4dab9a; --nt-amber:#d9a94e;
---nt-text:#37352f;      /* 웜 블랙 본문 */
---nt-text-2:#787774;    /* 보조 */   --nt-text-3:#9b9a97; /* 흐림 */
---nt-bg:#ffffff;        /* 페이지 */  --nt-bg-gray:#f7f7f5; /* hover/thead */
---nt-sidebar:#fbfbfa;   --nt-border:#e9e9e7; --nt-hover:#efefee;
+--nt-blue:#1677ff; --nt-blue-hover:#0958d9; --nt-blue-active:#003eb3;
+--nt-red:#ff4d4f;  --nt-green:#52c41a; --nt-amber:#faad14;
+--nt-text:#1f1f1f;      /* 본문 — 거의 검정(대비 최상) */
+--nt-text-2:#595959;    /* 보조 */   --nt-text-3:#8c8c8c; /* 흐림 */
+--nt-bg:#ffffff;        /* 페이지 */  --nt-bg-gray:#fafafa; /* thead */  --nt-hover:#f0f0f0;
+--nt-border:#d9d9d9;    /* 보더 — 뚜렷(표 행 구분 명확) */
+--nt-sidebar:#001529; --nt-sidebar-sub:#000c17;   /* 다크 사이더 */
+--nt-on-dark:rgba(255,255,255,.72); --nt-on-dark-strong:#fff;  /* 다크 위 텍스트 */
 
 /* 역할(컴포넌트는 이것만 사용) */
 --color-primary-*  → 블루 액센트(주요 버튼/링크/포커스)
 --color-tertiary-default(페이지) / -hover(옅은 서피스) / -active(보더)
 --neutral-900/700/500 → 본문/보조/흐림 텍스트
---color-error → --nt-red
---color-black → 웜 블랙(#37352f)   --color-white → #fff
---sidebar-*  라이트 사이드바   --toast-*  다크 토스트   --radius-sm/-/-lg: 4/6/8px
+--color-error → --nt-red   --color-black → 본문(#1f1f1f)   --color-white → #fff
+--sidebar-*  다크 사이드바(선택=흰 글자+블루 배경)   --toast-*  다크 토스트   --radius-sm/-/-lg: 4/6/8px
 --header-bg 흰색 + 하단 보더
 ```
-- 본문 텍스트: `--color-black`(웜 블랙) / 보조: `--neutral-700~500` / 위험·실패: `--color-error`.
+- 본문 텍스트: `--color-black`(거의 검정) / 보조: `--neutral-700~500` / 위험·실패: `--color-error`.
 - 상태색(토스트): success=녹, error=적, warning=황.
 
 ## 🎨 다른 테마로 교체하려면
@@ -51,9 +52,9 @@
 | body3 (기본 본문) | 14 / 18 | 500 |
 
 ## 4. 간격·레이아웃·라운드
-- 레이아웃: 상단 **헤더 60px 고정**(흰색 배경 + 하단 보더, `--header-bg`) + 좌측 **LNB 사이드바 240px**(라이트, 접힘 64px) + 본문 영역.
-- 라운드(토큰): 입력/버튼 `--radius-sm`(4px), 카드/검색영역 `--radius`(6px), 모달 `--radius-lg`(8px). *(Notion 낮은 라운드)*
-- 보더: `1px solid var(--color-tertiary-active)` (=`--nt-border`, 옅음).
+- 레이아웃: 상단 **헤더 60px 고정**(흰색 배경 + 하단 보더, `--header-bg`) + 좌측 **LNB 사이드바 240px**(다크 네이비, 접힘 64px) + 본문 영역.
+- 라운드(토큰): 입력/버튼 `--radius-sm`(4px), 카드/검색영역 `--radius`(6px), 모달 `--radius-lg`(8px).
+- 보더: `1px solid var(--color-tertiary-active)` (=`--nt-border` `#d9d9d9`, 뚜렷 — 표·영역 경계 명확).
 - 폭 유틸리티: `.w-80 .w-100 .w-120 .w-160 .w-200 .w-240 .w-300 .w-500 .w-full`.
 - 반응형: `max-width:1024px` 에서 LNB 오프캔버스, `768px` 에서 2컬럼→1컬럼.
 

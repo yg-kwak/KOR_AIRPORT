@@ -1,35 +1,43 @@
 /* 디자인 토큰·공통 스타일 — 규칙 원천: docs/design.md
-   스타일 교체는 여기 :root 값만 바꾼다(전 컴포넌트가 토큰만 사용, HEX 직접 사용 금지). 현재 테마: Notion */
+   스타일 교체는 여기 :root 값만 바꾼다(전 컴포넌트가 토큰만 사용, HEX 직접 사용 금지).
+   현재 테마: Ant Design 대비(라이트 본문) + 다크 사이드바 */
 :root {
-  /* ===== Notion 팔레트 (원천 값) ===== */
-  --nt-blue: #2383e2;
-  --nt-blue-hover: #1a72c4;
-  --nt-blue-active: #1667b3;
-  --nt-red: #eb5757;
-  --nt-green: #4dab9a;
-  --nt-amber: #d9a94e;
-  --nt-text: #37352f;        /* 웜 블랙 본문 */
-  --nt-text-2: #787774;      /* 보조 텍스트 */
-  --nt-text-3: #9b9a97;      /* 흐린 텍스트 */
+  /* ===== 팔레트 (원천 값) — Ant Design 계열 ===== */
+  --nt-blue: #1677ff;        /* 액센트(주요 버튼/링크/선택) */
+  --nt-blue-hover: #0958d9;  /* hover 시 진하게 */
+  --nt-blue-active: #003eb3;
+  --nt-red: #ff4d4f;
+  --nt-green: #52c41a;
+  --nt-amber: #faad14;
+  --nt-text: #1f1f1f;        /* 본문 — 거의 검정(대비 최상) */
+  --nt-text-2: #595959;      /* 보조 텍스트 */
+  --nt-text-3: #8c8c8c;      /* 흐린 텍스트 */
   --nt-bg: #ffffff;          /* 페이지 배경 */
-  --nt-bg-gray: #f7f7f5;     /* hover / thead 등 옅은 서피스 */
-  --nt-sidebar: #fbfbfa;     /* 사이드바 서피스 */
-  --nt-border: #e9e9e7;      /* 옅은 보더 */
-  --nt-hover: #efefee;       /* 진한 hover */
-  --nt-shadow: rgba(15, 15, 15, .12);
-  --nt-scrim: rgba(15, 15, 15, .4);
-  --nt-focus-ring: rgba(35, 131, 226, .35);
+  --nt-bg-gray: #fafafa;     /* thead / 옅은 서피스 */
+  --nt-hover: #f0f0f0;       /* 행 hover 등 진한 서피스 */
+  --nt-border: #d9d9d9;      /* 보더 — 뚜렷(표 행 구분 명확) */
+  --nt-shadow: rgba(0, 0, 0, .15);
+  --nt-scrim: rgba(0, 0, 0, .45);
+  --nt-focus-ring: rgba(22, 119, 255, .25);
 
-  /* ===== 역할 토큰 (이름 유지 → Notion 매핑, 컴포넌트는 이것만 사용) ===== */
+  /* 다크 사이드바 팔레트 */
+  --nt-sidebar: #001529;         /* 딥 네이비 사이더 */
+  --nt-sidebar-sub: #000c17;     /* 하위/플라이아웃 서피스 */
+  --nt-on-dark: rgba(255, 255, 255, .72);  /* 다크 위 기본 텍스트 */
+  --nt-on-dark-strong: #ffffff;
+  --nt-on-dark-hover: rgba(255, 255, 255, .08);
+  --nt-on-dark-border: rgba(255, 255, 255, .08);
+
+  /* ===== 역할 토큰 (이름 유지, 컴포넌트는 이것만 사용) ===== */
   --color-primary-default: var(--nt-blue);
   --color-primary-hover: var(--nt-blue-hover);
   --color-primary-active: var(--nt-blue-active);
-  --color-primary-disabled: #aacdf2;
-  --color-secondary-default: #5aa3ea;
+  --color-primary-disabled: #91caff;
+  --color-secondary-default: #4096ff;
   --color-tertiary-default: var(--nt-bg);
   --color-tertiary-hover: var(--nt-bg-gray);
   --color-tertiary-active: var(--nt-border);
-  --color-tertiary-disabled: #d3d2ce;
+  --color-tertiary-disabled: #f0f0f0;
   --neutral-300: var(--nt-border);
   --neutral-500: var(--nt-text-3);
   --neutral-700: var(--nt-text-2);
@@ -38,33 +46,33 @@
   --color-black: var(--nt-text);
   --color-white: #ffffff;
 
-  /* ===== 라운드 (Notion 낮은 라운드) ===== */
+  /* ===== 라운드 ===== */
   --radius-sm: 4px;
   --radius: 6px;
   --radius-lg: 8px;
 
-  /* ===== 헤더 바 ===== */
+  /* ===== 헤더 바 (화이트 + 하단 보더) ===== */
   --header-bg: #ffffff;
   --header-text: var(--nt-text);
 
-  /* ===== 사이드바 (Notion 라이트) ===== */
+  /* ===== 사이드바 (다크) ===== */
   --sidebar-bg: var(--nt-sidebar);
-  --sidebar-text: var(--nt-text-2);
-  --sidebar-text-strong: var(--nt-text);
-  --sidebar-hover: var(--nt-hover);
-  --sidebar-active: var(--nt-blue);
-  --sidebar-active-bg: rgba(35, 131, 226, .1);
-  --sidebar-flyout-bg: #ffffff;
-  --sidebar-border: var(--nt-border);
+  --sidebar-text: var(--nt-on-dark);
+  --sidebar-text-strong: var(--nt-on-dark-strong);
+  --sidebar-hover: var(--nt-on-dark-hover);
+  --sidebar-active: var(--nt-on-dark-strong);   /* 선택 항목 텍스트 */
+  --sidebar-active-bg: var(--nt-blue);          /* 선택 항목 배경(액센트) */
+  --sidebar-flyout-bg: var(--nt-sidebar-sub);
+  --sidebar-border: var(--nt-on-dark-border);
 
-  /* ===== 토스트 (다크 서피스, 토큰화) ===== */
-  --toast-bg: #2f2e29;
+  /* ===== 토스트 (다크 서피스) ===== */
+  --toast-bg: #1f1f1f;
   --toast-text: #ffffff;
-  --toast-close: #b9b8b3;
+  --toast-close: #bfbfbf;
   --toast-success: var(--nt-green);
-  --toast-error: #ff7369;
+  --toast-error: #ff7875;
   --toast-warning: var(--nt-amber);
-  --toast-shadow: rgba(15, 15, 15, .35);
+  --toast-shadow: rgba(0, 0, 0, .35);
 }
 
 * { box-sizing: border-box; }
