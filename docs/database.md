@@ -101,6 +101,10 @@ PK: `cmm_id` + `code_id` (복합). 코드구분(`cmm_id`) 아래에 코드(`code
 | user_input | nchar(1) | | 사용자등록여부 *(설계서 오타 user_ipnut 를 정정)* |
 | use_yn | nchar(1) | | 사용여부 (기본 'Y', CHK Y/N) |
 
+> **시스템 코드 보호 규칙**: `user_input='N'` 은 시스템이 참조하는 코드(AT 감사유형 등) — 화면에서
+> 수정/삭제 불가(서버 403 + SQL `AND user_input='Y'` 가드), 변경은 개발자/관리자가 DB 에서 직접.
+> 화면에서 등록한 코드는 항상 `user_input='Y'` 로 저장된다.
+
 ### tb_system — 시스템 설정 (BiostarX 연동정보, 단일 행)
 PK 없음(설정 1행 운영).
 

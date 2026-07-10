@@ -73,6 +73,7 @@
        ISNULL(#{userInput}, 'N'), ISNULL(#{useYn}, 'Y'))
   </insert>
 
+  <!-- user_input='Y' 가드: 시스템 코드(N)는 화면 경로로 절대 변경되지 않게 SQL 에서도 차단 -->
   <update id="update" parameterType="TbCommon">
     UPDATE tb_common
     SET cmm_name = #{cmmName},
@@ -80,11 +81,12 @@
         code_tag = #{codeTag},
         code_remark = #{codeRemark},
         use_yn = #{useYn}
-    WHERE cmm_id = #{cmmId} AND code_id = #{codeId}
+    WHERE cmm_id = #{cmmId} AND code_id = #{codeId} AND user_input = 'Y'
   </update>
 
   <delete id="delete">
-    DELETE FROM tb_common WHERE cmm_id = #{cmmId} AND code_id = #{codeId}
+    DELETE FROM tb_common
+    WHERE cmm_id = #{cmmId} AND code_id = #{codeId} AND user_input = 'Y'
   </delete>
 
 </mapper>

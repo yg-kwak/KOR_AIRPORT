@@ -88,6 +88,7 @@ public class CommonService {
     if (commonMapper.selectOne(row.getCmmId(), row.getCodeId()) != null) {
       throw new BusinessException(ErrorCode.DUPLICATE);
     }
+    row.setUserInput("Y"); // 화면 등록분은 사용자 코드로 고정 (시스템 코드는 DB 에서만 생성)
     commonMapper.insert(row);
     auditService.log(
         actor, AuditService.CREATE, menuId, "공통코드 등록: " + row.getCmmId() + "/" + row.getCodeId());
@@ -96,6 +97,7 @@ public class CommonService {
   @Transactional
   public void update(TbCommon row, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId); // 정책: 등록/수정은 create_auth 로 판정
+    requireUserCode(row.getCmmId(), row.getCodeId());
     if (commonMapper.update(row) == 0) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
@@ -106,9 +108,24 @@ public class CommonService {
   @Transactional
   public void delete(String cmmId, String codeId, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireDelete(actor, menuId);
+    requireUserCode(cmmId, codeId);
     if (commonMapper.delete(cmmId, codeId) == 0) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
     auditService.log(actor, AuditService.DELETE, menuId, "공통코드 삭제: " + cmmId + "/" + codeId);
+  }
+
+  /**
+   * 시스템 코드 보호 — user_input='N' 은 시스템이 참조하는 코드라 화면 수정/삭제를 차단한다(다른 데이터 파급 방지). 시스템 코드 변경은 개발자/관리자가 DB
+   * 에서 직접 수행한다. (docs/database.md tb_common)
+   */
+  private void requireUserCode(String cmmId, String codeId) {
+    TbCommon existing = commonMapper.selectOne(cmmId, codeId);
+    if (existing == null) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    if (!"Y".equals(existing.getUserInput())) {
+      throw new BusinessException(ErrorCode.FORBIDDEN, "시스템 코드는 화면에서 수정/삭제할 수 없습니다. (DB 관리 대상)");
+    }
   }
 }

@@ -50,9 +50,13 @@ check "목록 조회"      200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/sy
 check "미인증 AJAX 401" 401 "$(curl -s -H 'X-Requested-With: XMLHttpRequest' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/list")"
 
 echo "== CRUD (SMK/T1 임시행) =="
+# 이전 실행이 중단돼 남은 잔여 데이터 정리(결과 무시)
+A -X DELETE -o /dev/null "$BASE_URL/system/commonCode?cmmId=SMK&codeId=T1" || true
 check "등록" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"cmmId":"SMK","codeId":"T1","codeName":"smoke","useYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
 check "수정" 200 "$(A -H 'Content-Type: application/json' -X PUT  --data '{"cmmId":"SMK","codeId":"T1","codeName":"smoke2","useYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
 check "중복 등록 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"cmmId":"SMK","codeId":"T1","useYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
+check "시스템코드 수정 차단(403)" 403 "$(A -H 'Content-Type: application/json' -X PUT --data '{"cmmId":"AT","codeId":"READ","codeName":"hack","useYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
+check "시스템코드 삭제 차단(403)" 403 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode?cmmId=AT&codeId=READ")"
 check "엑셀 다운로드" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/excel?searchType=cmmId&keyword=SMK&purpose=smoke-test")"
 check "엑셀 purpose 누락 400" 400 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/excel?size=1")"
 check "삭제" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode?cmmId=SMK&codeId=T1")"

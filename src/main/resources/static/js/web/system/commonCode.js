@@ -52,21 +52,23 @@
   function renderRows(rows) {
     const body = $('gridBody');
     if (!rows || rows.length === 0) {
-      body.innerHTML = '<tr><td colspan="6" class="empty">조회 결과가 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" class="empty">조회 결과가 없습니다.</td></tr>';
       return;
     }
     body.innerHTML = rows.map((r) => {
-      // 수정은 행 클릭으로 진입(create 권한 필요). 관리 칸에는 삭제만 둔다.
-      const actions = PERM.canDelete
+      // 시스템 코드(user_input='N')는 화면에서 수정/삭제 불가 — DB 관리 대상(서버가 2차 차단)
+      const editable = r.userInput === 'Y';
+      const actions = (PERM.canDelete && editable)
         ? `<button class="btn btn-sm btn-danger" data-act="del" data-cmm="${esc(r.cmmId)}" data-code="${esc(r.codeId)}">삭제</button>`
         : '-';
       return `
-      <tr${PERM.canCreate ? ' class="row-click"' : ''} data-json='${esc(JSON.stringify(r))}'>
+      <tr${PERM.canCreate && editable ? ' class="row-click" data-json=\'' + esc(JSON.stringify(r)) + '\'' : ''}>
         <td>${esc(r.cmmId)}</td>
         <td>${esc(r.cmmName)}</td>
         <td>${esc(r.codeId)}</td>
         <td>${esc(r.codeName)}</td>
         <td>${r.useYn === 'Y' ? '사용' : '미사용'}</td>
+        <td>${editable ? '사용자' : '<span class="tag-system">시스템</span>'}</td>
         <td>${actions}</td>
       </tr>`;
     }).join('');
