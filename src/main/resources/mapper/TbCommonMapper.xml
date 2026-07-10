@@ -65,6 +65,21 @@
     WHERE cmm_id = #{cmmId} AND code_id = #{codeId}
   </select>
 
+  <!-- 사용자 추가 허용 구분: user_input='Y' 인 행이 있는 코드구분 (등록 화면 select 용) -->
+  <select id="selectAddableGroups" resultType="TbCommon">
+    SELECT cmm_id, MAX(cmm_name) AS cmm_name
+    FROM tb_common
+    WHERE user_input = 'Y' AND use_yn = 'Y'
+    GROUP BY cmm_id
+    ORDER BY cmm_id
+  </select>
+
+  <select id="selectAddableGroupName" resultType="string">
+    SELECT MAX(cmm_name)
+    FROM tb_common
+    WHERE cmm_id = #{cmmId} AND user_input = 'Y'
+  </select>
+
   <insert id="insert" parameterType="TbCommon">
     INSERT INTO tb_common
       (cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_input, use_yn)

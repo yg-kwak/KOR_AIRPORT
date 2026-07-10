@@ -14,10 +14,15 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
   ('AT', N'감사유형', 'LOGIN',  N'로그인',  'Y'),
   ('AT', N'감사유형', 'LOGOUT', N'로그아웃', 'Y');
 
-/* 공통코드: 근무지역(LO) 예시 */
+/* 공통코드: 근무지역(LO) 예시 — 시스템 코드(user_input=N, 기본값) */
 INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
   ('LO', N'근무지역', 'T1', N'여객터미널', 'Y'),
   ('LO', N'근무지역', 'T2', N'화물터미널', 'Y');
+
+/* 사용자 추가 허용 구분(방문사유 VR) — user_input='Y' 로 개설. 화면 등록 시 select 에 노출됨. */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use_yn) VALUES
+  ('VR', N'방문사유', 'MEETING', N'회의', 'Y', 'Y'),
+  ('VR', N'방문사유', 'WORK',    N'공사', 'Y', 'Y');
 
 /* 메뉴 */
 INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, use_yn) VALUES

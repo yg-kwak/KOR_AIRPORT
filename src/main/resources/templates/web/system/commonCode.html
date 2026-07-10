@@ -83,11 +83,13 @@
         <input type="hidden" id="mode" value="create"/>
         <div class="form-group">
           <label>코드구분ID</label>
-          <input type="text" id="cmmId" name="cmmId" class="input" required/>
+          <select id="cmmId" name="cmmId" class="input" required>
+            <option value="">선택</option>
+          </select>
         </div>
         <div class="form-group">
-          <label>코드구분명</label>
-          <input type="text" id="cmmName" name="cmmName" class="input"/>
+          <label>코드구분명 <span class="form-hint">(코드구분ID 선택 시 자동)</span></label>
+          <input type="text" id="cmmName" name="cmmName" class="input" readonly/>
         </div>
         <div class="form-group">
           <label>코드ID</label>

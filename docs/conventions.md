@@ -39,6 +39,7 @@
 | 모달 class | `modal-*` | `modal-overlay(.open)` `modal-container(.small/.confirm)` `modal-header/title/close/body/footer` |
 | **data-\*** | 서버값/동작을 JS 로 전달 | `data-sort`(정렬키) `data-act`(동작) `data-json`(행 데이터) `data-page`, PK 는 `data-{필드}` |
 - 서버 → JS 전역 전달은 `window.PAGE_*` (예: `PAGE_PERM`) 인라인 스크립트로.
+- **의존 선택 패턴**(선택값에 따라 다른 필드 자동): 부모는 `<select>`(서버가 허용 목록 제공), 자식은 `readonly` 입력 + `change` 시 자동 채움. 서버가 파생값을 재검증·재설정한다(클라이언트 값 불신). 예: 공통코드 등록의 코드구분ID→코드구분명.
 - 공통 모달 등 재사용 조각은 `fragments/components/`, 화면 전용은 `web|kiosk/components/`. (`frontend.md`)
 
 ## 3. JavaScript — 명명 규칙 · 호출 흐름

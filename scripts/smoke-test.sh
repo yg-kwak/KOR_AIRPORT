@@ -49,17 +49,22 @@ check "공통코드 화면"  200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_c
 check "목록 조회"      200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/list?size=5")"
 check "미인증 AJAX 401" 401 "$(curl -s -H 'X-Requested-With: XMLHttpRequest' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/list")"
 
-echo "== CRUD (SMK/T1 임시행) =="
-# 이전 실행이 중단돼 남은 잔여 데이터 정리(결과 무시)
-A -X DELETE -o /dev/null "$BASE_URL/system/commonCode?cmmId=SMK&codeId=T1" || true
-check "등록" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"cmmId":"SMK","codeId":"T1","codeName":"smoke","useYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
-check "수정" 200 "$(A -H 'Content-Type: application/json' -X PUT  --data '{"cmmId":"SMK","codeId":"T1","codeName":"smoke2","useYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
-check "중복 등록 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"cmmId":"SMK","codeId":"T1","useYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
+echo "== 코드구분 select (허용 구분만) =="
+check "허용 구분 목록 200" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/groups")"
+check "허용 구분에 VR 포함" 0 "$(A "$BASE_URL/system/commonCode/groups" | grep -q '"cmmId":"VR"' && echo 0 || echo 1)"
+
+echo "== CRUD (VR/SMKT1 임시행 — 허용 구분) =="
+# 이전 실행 잔여 정리(결과 무시)
+A -X DELETE -o /dev/null "$BASE_URL/system/commonCode?cmmId=VR&codeId=SMKT1" || true
+check "등록(허용구분 VR)" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"cmmId":"VR","codeId":"SMKT1","codeName":"smoke","useYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
+check "비허용 구분 등록 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"cmmId":"AT","codeId":"XX","codeName":"x","useYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
+check "수정" 200 "$(A -H 'Content-Type: application/json' -X PUT  --data '{"cmmId":"VR","codeId":"SMKT1","codeName":"smoke2","useYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
+check "중복 등록 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"cmmId":"VR","codeId":"SMKT1","codeName":"dup","useYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
 check "시스템코드 수정 차단(403)" 403 "$(A -H 'Content-Type: application/json' -X PUT --data '{"cmmId":"AT","codeId":"READ","codeName":"hack","useYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
 check "시스템코드 삭제 차단(403)" 403 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode?cmmId=AT&codeId=READ")"
-check "엑셀 다운로드" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/excel?searchType=cmmId&keyword=SMK&purpose=smoke-test")"
+check "엑셀 다운로드" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/excel?searchType=cmmId&keyword=VR&purpose=smoke-test")"
 check "엑셀 purpose 누락 400" 400 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/excel?size=1")"
-check "삭제" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode?cmmId=SMK&codeId=T1")"
+check "삭제" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode?cmmId=VR&codeId=SMKT1")"
 
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
 VCODE=$(curl -s -m 2 -c "$CK_V" -o /dev/null -w "%{http_code}" --data "userId=viewer&password=viewer123" "$BASE_URL/login" 2>/dev/null)

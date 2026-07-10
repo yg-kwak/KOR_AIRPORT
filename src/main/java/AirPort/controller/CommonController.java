@@ -70,6 +70,13 @@ public class CommonController {
     return ApiResponse.ok(commonService.list(param, actor(session), MENU_ID));
   }
 
+  /** 코드구분 select 목록 — 사용자 추가 허용 구분(user_input='Y')만. (AJAX) */
+  @GetMapping("/groups")
+  @ResponseBody
+  public ApiResponse<java.util.List<TbCommon>> groups(HttpSession session) {
+    return ApiResponse.ok(commonService.addableGroups(actor(session), MENU_ID));
+  }
+
   /** 엑셀 다운로드 — 현재 검색/정렬 조건의 전체(모든 페이지) 데이터. 목적(purpose)은 감사 remark 로 기록. */
   @GetMapping("/excel")
   public void excel(

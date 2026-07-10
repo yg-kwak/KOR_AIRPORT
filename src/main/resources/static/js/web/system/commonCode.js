@@ -19,6 +19,33 @@
   // 메뉴 권한(서버 렌더 시 주입). 버튼 숨김은 1차 방어 — 서버가 생성/수정/삭제를 재검증한다.
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
+  // 사용자 추가 허용 코드구분 { cmmId: cmmName }. 등록 모달 select 에 사용(서버가 재검증).
+  const groupNames = {};
+
+  async function loadGroups() {
+    if (!PERM.canCreate) return; // 등록 권한 없으면 불필요
+    const list = await api.get(BASE + '/groups');
+    (list || []).forEach((g) => { groupNames[g.cmmId] = g.cmmName || ''; });
+  }
+
+  // 등록 모달 select 옵션 구성. lockedCmmId 가 있으면(수정) 그 값만 표시하고 잠근다.
+  function fillGroupSelect(lockedCmmId) {
+    const sel = $('cmmId');
+    if (lockedCmmId != null) {
+      sel.innerHTML = `<option value="${esc(lockedCmmId)}">${esc(lockedCmmId)}</option>`;
+      sel.value = lockedCmmId;
+      sel.disabled = true;
+      return;
+    }
+    sel.disabled = false;
+    sel.innerHTML =
+      '<option value="">선택</option>' +
+      Object.keys(groupNames)
+        .map((id) => `<option value="${esc(id)}">${esc(id)}</option>`)
+        .join('');
+    sel.value = '';
+  }
+
   async function load() {
     const q =
       `?page=${state.page}&size=${state.size}` +
@@ -135,12 +162,16 @@
   function openModal(mode, row) {
     $('mode').value = mode;
     $('modalTitle').textContent = mode === 'create' ? '공통코드 등록' : '공통코드 수정';
-    $('cmmId').value = row ? row.cmmId : '';
-    $('cmmName').value = row ? row.cmmName || '' : '';
+    if (mode === 'create') {
+      fillGroupSelect(null); // 허용 구분 목록 select
+      $('cmmName').value = '';
+    } else {
+      fillGroupSelect(row.cmmId); // 수정: 구분 잠금
+      $('cmmName').value = row.cmmName || '';
+    }
     $('codeId').value = row ? row.codeId : '';
     $('codeName').value = row ? row.codeName || '' : '';
     $('useYn').value = row ? row.useYn || 'Y' : 'Y';
-    $('cmmId').readOnly = mode === 'edit';
     $('codeId').readOnly = mode === 'edit';
     $('editModal').classList.add('open');
   }
@@ -156,6 +187,7 @@
       useYn: $('useYn').value,
     };
     if (!payload.cmmId || !payload.codeId) { alert('코드구분ID와 코드ID는 필수입니다.'); return; }
+    if (!payload.codeName) { alert('코드명을 입력해주세요.'); return; }
     if ($('mode').value === 'create') await api.post(BASE, payload);
     else await api.put(BASE, payload);
     closeModal();
@@ -185,6 +217,8 @@
     $('btnSave').addEventListener('click', save);
     $('btnCancel').addEventListener('click', closeModal);
     $('modalClose').addEventListener('click', closeModal);
+    // 코드구분ID 선택 → 코드구분명 자동(읽기전용)
+    $('cmmId').addEventListener('change', (e) => { $('cmmName').value = groupNames[e.target.value] || ''; });
 
     document.querySelectorAll('th.sortable').forEach((th) =>
       th.addEventListener('click', () => toggleSort(th.dataset.sort)));
@@ -206,5 +240,5 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => { bind(); load(); });
+  document.addEventListener('DOMContentLoaded', () => { bind(); loadGroups(); load(); });
 })();

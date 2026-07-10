@@ -17,6 +17,12 @@ public interface TbCommonMapper {
 
   TbCommon selectOne(@Param("cmmId") String cmmId, @Param("codeId") String codeId);
 
+  /** 사용자 코드 추가가 허용된 코드구분 목록 (user_input='Y' 인 행이 있는 cmm_id). cmmId/cmmName 만 채워짐. */
+  List<TbCommon> selectAddableGroups();
+
+  /** 해당 cmm_id 가 허용 구분이면 코드구분명, 아니면 null. 등록 검증·cmm_name 파생에 사용. */
+  String selectAddableGroupName(@Param("cmmId") String cmmId);
+
   int insert(TbCommon row);
 
   int update(TbCommon row);

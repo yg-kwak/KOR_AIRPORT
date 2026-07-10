@@ -82,12 +82,24 @@ public class CommonService {
     return row;
   }
 
+  /** 등록 화면 코드구분 select 용 — 사용자 추가가 허용된 구분(user_input='Y')만. */
+  public java.util.List<TbCommon> addableGroups(TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireRead(actor, menuId);
+    return commonMapper.selectAddableGroups();
+  }
+
   @Transactional
   public void create(TbCommon row, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
+    // 허용 구분만 등록 가능. cmm_name 은 클라이언트 값을 믿지 않고 서버에서 파생(사용자 입력/수정 불가).
+    String groupName = commonMapper.selectAddableGroupName(row.getCmmId());
+    if (groupName == null) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "선택할 수 없는 코드구분입니다.");
+    }
     if (commonMapper.selectOne(row.getCmmId(), row.getCodeId()) != null) {
       throw new BusinessException(ErrorCode.DUPLICATE);
     }
+    row.setCmmName(groupName);
     row.setUserInput("Y"); // 화면 등록분은 사용자 코드로 고정 (시스템 코드는 DB 에서만 생성)
     commonMapper.insert(row);
     auditService.log(
