@@ -120,7 +120,8 @@ a { color: inherit; text-decoration: none; }
 .setting-form { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
 .setting-form .form-group { width: 220px; }
 .setting-form .form-group.wide { width: 300px; }
-.setting-actions { display: flex; gap: 8px; margin-left: auto; }
+.setting-form .form-group.wider { width: 340px; }
+.setting-actions { display: flex; gap: 8px; }
 .form-group .input { width: 100%; }
 
 /* 그리드 툴바 (총건수 / 페이지크기) */
