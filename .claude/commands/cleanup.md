@@ -8,6 +8,10 @@ allowed-tools: Bash(git*), Read, Grep, Glob, Edit
 OpenAI Harness Engineering 의 **doc-gardening** 을 실천한다.
 코드와 어긋난 문서, 죽은 코드, 깨진 링크를 찾아 저장소를 최신·정합 상태로 유지한다.
 
+> **주기**: 주 1회 실행 권장. 기계 검증(링크·스키마 드리프트)은 CI 주간 스케줄이 자동 수행하므로,
+> 이 스킬은 **의미 수준**(문서 내용 ↔ 실제 코드 동작 불일치, 죽은 코드)에 집중한다.
+> 시작 전 `bash scripts/docs-lint.sh && bash scripts/schema-drift.sh` 로 기계 검증을 먼저 돌려라.
+
 ## 절차
 1. **오래된 문서 탐지**:
    - `docs/` 와 `AGENTS.md` 가 참조하는 경로/파일/명령이 실제로 존재하는가 (깨진 링크 탐지).

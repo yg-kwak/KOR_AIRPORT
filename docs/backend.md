@@ -33,11 +33,12 @@ MyBatis(`mybatis-spring-boot-starter`), Thymeleaf(+layout-dialect), Validation, 
 - **골든 샘플**: 공통코드관리(`CommonController`/`CommonService`/`TbCommonMapper` + `templates/web/system/commonCode.html`). 신규 CRUD 는 이 수직 슬라이스를 복제한다.
 - **권장(더 나은 방법)**: 코드가 많아지면 `messages.properties`(i18n·핫스왑 용이)를 1차로, 정책성 매핑(HTTP 상태↔코드)은 별도 `error-codes.yml` 로 관리. YAML 은 구조화에, properties 는 다국어 문구에 강함 → 둘을 역할 분리해서 쓴다.
 
-## 로깅 컨벤션 (권장)
-- SLF4J 파사드 + Log4j2(또는 Logback). 설정은 `log4j2.properties`(운영/개발 프로파일 분리).
-- **MDC 로 요청 컨텍스트 주입**: `requestId`(필터에서 UUID 발급), `userId`(세션) 를 패턴에 포함 → 로그 상관관계 추적.
+## 로깅 컨벤션 (확정·구현됨)
+- SLF4J + **Logback**(Spring Boot 기본). 패턴은 `application.properties` 의 `logging.pattern.console`.
+- **MDC 요청 컨텍스트**: `AirPort.config.MdcFilter` 가 요청마다 `requestId`(UUID 8자리)·`userId`(세션)를 주입 → 모든 로그 라인에 `[requestId] [userId]` 로 출력, 한 요청의 로그를 상관관계 추적.
 - 레벨: 운영 INFO 기준, 외부연동(BiostarX)·보안 이벤트는 명시적 로깅. 개인정보/비밀번호는 **로그에 남기지 않는다**(마스킹).
-- 감사(`tb_system_log`)와 애플리케이션 로그는 **목적이 다르다** — 감사는 DB, 진단은 파일 로그. (`security.md`)
+- 감사(`tb_system_log`)와 애플리케이션 로그는 **목적이 다르다** — 감사는 DB, 진단은 로그. (`security.md`)
+- TODO: 운영 파일 로그(롤링) 설정.
 
 ## 기타 공통 규칙
 - 코드값은 하드코딩 대신 `tb_common` 참조.

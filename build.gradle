@@ -48,6 +48,8 @@ dependencies {
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.3'
+	// 구조 테스트 — 계층 경계·네이밍을 테스트로 강제 (docs/conventions.md §9)
+	testImplementation 'com.tngtech.archunit:archunit-junit5:1.2.1'
 }
 
 tasks.named('test') {

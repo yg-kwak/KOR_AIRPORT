@@ -1,12 +1,14 @@
 name: CI
 
 # 불변식(AGENTS.md §4)을 "선언"에서 "강제"로. PR/푸시 시 정적 검사 + 빌드.
-# 아직 코드가 없으면 각 단계는 안전하게 통과(no-op)하고, 코드가 생기면 실제로 검사한다.
+# 주간 스케줄은 doc-gardening 의 기계 파트 — 문서·스키마 드리프트를 정기적으로 재검증한다.
 
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '0 21 * * 0'   # 매주 월요일 06:00 KST — 문서/드리프트 정기 점검
 
 jobs:
   invariants:
@@ -23,9 +25,8 @@ jobs:
           fi
           echo "OK: JPA 미사용"
 
-      - name: 계층 경계 (Controller 에 인라인 SQL 금지)
+      - name: 계층 경계 (Java 에 인라인 SQL 금지)
         run: |
-          # Java 소스에 SQL 키워드가 문자열로 조립된 흔적(휴리스틱)
           if grep -rniE '"\s*(select|insert|update|delete)\s' src/main/java 2>/dev/null; then
             echo "::error::Java 코드에 인라인 SQL 로 보이는 문자열이 있습니다 → 모든 SQL 은 mapper XML 로 옮기고 #{} 파라미터를 사용하세요. (docs/database.md)"
             exit 1
@@ -40,6 +41,19 @@ jobs:
           fi
           echo "OK: MSSQL 단일"
 
+      - name: 파일 크기 제한 (Java≤500 / JS≤400)
+        run: bash scripts/code-lint.sh
+
+  docs:
+    name: 문서 린트 · 스키마 드리프트
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 문서 링크·구조 검증
+        run: bash scripts/docs-lint.sh
+      - name: DDL ↔ database.md 드리프트
+        run: bash scripts/schema-drift.sh
+
   secret-scan:
     name: 시크릿 스캔
     runs-on: ubuntu-latest
@@ -53,7 +67,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
-    name: 빌드 · 테스트
+    name: 빌드 · 테스트 (ArchUnit 구조 테스트 포함)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

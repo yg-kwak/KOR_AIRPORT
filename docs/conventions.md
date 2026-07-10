@@ -144,12 +144,14 @@ DOMContentLoaded → bind()  → load()
 - 주석: "무엇"이 아니라 "왜". 정책 결정(예: 등록/수정=create_auth)은 결정 지점에 주석으로 남긴다.
 
 ## 9. 강제 (Enforcement)
-불변식은 3계층에서 강제한다. 새 규칙에는 가능한 한 자동 검사를 붙인다.
+불변식은 4계층에서 강제한다. 새 규칙에는 가능한 한 자동 검사를 붙인다.
 1. **로컬 훅** `.claude/hooks/` — 비밀값·생성물 차단(+교정 지침 출력).
-2. **CI** `.github/workflows/ci.yml` — 빌드/테스트 + JPA·인라인SQL·MariaDB 가드 + gitleaks.
-3. **구조 테스트(ArchUnit)** — 계층 단방향(추가 예정, `testing.md`).
+2. **구조 테스트(ArchUnit)** `src/test/.../ArchitectureTest` — 계층 단방향·model 순수성·클래스 네이밍. `gradlew test` 로 실행.
+3. **린트 스크립트** `scripts/` — `code-lint.sh`(파일 크기: Java≤500/JS≤400, 예외는 ALLOWLIST 에 사유와 함께), `docs-lint.sh`(md 링크·AGENTS 200줄), `schema-drift.sh`(DDL↔database.md 양방향 일치). 로컬·CI 동일 스크립트.
+4. **CI** `.github/workflows/ci.yml` — 위 전부 + JPA·인라인SQL·MariaDB 가드 + gitleaks + 빌드/테스트. **주간 스케줄**로 문서·드리프트를 정기 재검(도큐 가드닝의 기계 파트, 나머지는 `/cleanup`).
 
 > 검사 실패 메시지는 "무엇이 왜 막혔고 **어떻게 고쳐라**"까지 담는다.
+> 검증 루프: 기능 작업 후 `scripts/smoke-test.sh`(E2E 13체크) → `/review` → `/commit`.
 
 ## 관련 문서
 [architecture.md](architecture.md) · [backend.md](backend.md) · [frontend.md](frontend.md) · [database.md](database.md) · [security.md](security.md) · [design.md](design.md)

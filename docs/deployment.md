@@ -8,6 +8,16 @@
 - 로컬 실행: `gradlew.bat bootRun`. DB 접속정보는 환경변수(`DB_MSSQL_URL/USERNAME/PASSWORD`) 또는 `application-local.properties` 로 주입.
 - 프론트는 같은 앱(Thymeleaf) — 별도 프론트 빌드 단계 없음. (`frontend.md`)
 
+## 원커맨드 개발환경 셋업 (권장 — 팀원 온보딩)
+```bash
+# Git Bash. DB 생성 → DDL → seed → application-local.properties 생성까지 한 번에
+DB_SA_PASSWORD=**** scripts/dev-setup.sh          # 재생성: --reset
+./gradlew bootRun --args="--spring.profiles.active=local"
+scripts/smoke-test.sh                              # E2E 검증(13개 체크: 로그인/CRUD/권한/엑셀)
+```
+- `smoke-test.sh` 는 앱을 직접 부팅해 검증 후 종료한다(떠 있는 앱 대상은 `--no-boot`).
+- 기능 작업 완료 시 커밋 전에 smoke-test 통과를 확인한다.
+
 ## IntelliJ 로컬 실행
 Gradle 빌드(`build.gradle`)가 **저장소 루트**에 있어, 루트를 열면 Gradle 이 자동 임포트되고 docs/·sql/·AGENTS.md 등 전체가 트리에 보인다.
 

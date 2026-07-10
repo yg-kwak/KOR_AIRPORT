@@ -31,6 +31,7 @@ src/main/java/AirPort/   controller / service / mapper / model / adapter / confi
 src/main/resources/      mapper/(MyBatis XML), templates/·static/(Thymeleaf 화면), application.properties
 src/test/                JUnit 테스트
 sql/                    DDL(ddl/) · seed(seed/) 스크립트 (docs/database.md)
+scripts/                dev-setup(환경 부트스트랩) · smoke-test(E2E 검증) · 린트 3종(docs/schema/code)
 TASKS.md                작업 보드 — 백로그/진행중(담당)/완료. 작업 시작·종료 시 갱신
 docs/                   상세 지식 (아래 §5 문서 지도 참고) · reviews/(코드 리뷰 기록)
 .claude/commands/       반복 작업 스킬 (/commit, /review, /deploy, /cleanup, /new-screen)

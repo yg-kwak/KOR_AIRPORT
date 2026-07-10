@@ -14,7 +14,6 @@
 - [ ] 설정관리(tb_system) 화면 — 단일 행 수정형, biostar_pw 암호화 여부 결정(docs/database.md TODO)
 - [ ] 감사추적(tb_system_log) 조회 화면 — 조회 전용, 기간/유형/사용자 검색 + 엑셀
 - [ ] 출입권한매핑(tb_ac_group) 화면 + BiostarX adapter 착수 (docs/integration.md)
-- [ ] ArchUnit 구조 테스트 도입 — 계층 단방향 강제 (docs/conventions.md §9)
 - [ ] 미설계 도메인 테이블 설계 반영 — 임시/정규카드·기관·차량 (table.xlsx 갱신 시)
 - [ ] 로그인 정책 구현 — 실패횟수 잠금(login_fail_cnt), 비밀번호 변경주기(password_change_dt)
 - [ ] 운영 배포 준비 — 기동 스크립트/서비스 등록, 운영 ARIA 키 seed 재암호화 (docs/deployment.md TODO)
@@ -23,6 +22,8 @@
 *(없음)*
 
 ## ✅ 완료
+- [x] 하네스 자동화 보강(OpenAI 원문 격차 1~6) — 담당: yg-kwak(+Claude), 2026-07-10
+  - ① scripts/dev-setup·smoke-test(13체크) ② 문서 CI 린트 ③ ArchUnit 7규칙+파일크기 린트 ④ CI 주간 스케줄+/cleanup 주기화 ⑤ DDL↔문서 드리프트 체크 ⑥ MDC 구조화 로깅
 - [x] 하네스 구축(AGENTS/docs/skills/hooks/CI) 및 정합화 — 담당: yg-kwak, ~2026-07-08, `1592fe3` 외
 - [x] 앱 스캐폴딩 + DB(DDL/seed) + 공통기반(인증/ARIA/감사/예외) — 담당: yg-kwak, 2026-07-09, `5747902`
 - [x] 골든 샘플: 공통코드관리 CRUD — 담당: yg-kwak, 2026-07-09, `5747902`
