@@ -184,8 +184,8 @@
       codeName: $('codeName').value.trim(),
       useYn: $('useYn').value,
     };
-    if (!payload.cmmId || !payload.codeId) { alert('코드구분ID와 코드ID는 필수입니다.'); return; }
-    if (!payload.codeName) { alert('코드명을 입력해주세요.'); return; }
+    if (!payload.cmmId || !payload.codeId) { toast.warning('코드구분ID와 코드ID는 필수입니다.'); return; }
+    if (!payload.codeName) { toast.warning('코드명을 입력해주세요.'); return; }
     if ($('mode').value === 'create') await api.post(BASE, payload);
     else await api.put(BASE, payload);
     closeModal();

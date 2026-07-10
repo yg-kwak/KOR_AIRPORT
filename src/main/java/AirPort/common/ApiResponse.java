@@ -29,6 +29,11 @@ public class ApiResponse<T> {
     return new ApiResponse<>(true, "OK", null, null);
   }
 
+  /** 성공 + 안내 메시지(클라이언트가 성공 토스트로 표시). */
+  public static ApiResponse<Void> okMessage(String message) {
+    return new ApiResponse<>(true, "OK", message, null);
+  }
+
   public static <T> ApiResponse<T> fail(String code, String message) {
     return new ApiResponse<>(false, code, message, null);
   }

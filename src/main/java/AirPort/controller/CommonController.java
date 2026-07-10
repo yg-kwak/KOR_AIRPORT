@@ -111,7 +111,7 @@ public class CommonController {
   @ResponseBody
   public ApiResponse<Void> create(@RequestBody TbCommon row, HttpSession session) {
     commonService.create(row, actor(session), MENU_ID);
-    return ApiResponse.ok();
+    return ApiResponse.okMessage("등록되었습니다.");
   }
 
   /** 수정 (AJAX) */
@@ -119,7 +119,7 @@ public class CommonController {
   @ResponseBody
   public ApiResponse<Void> update(@RequestBody TbCommon row, HttpSession session) {
     commonService.update(row, actor(session), MENU_ID);
-    return ApiResponse.ok();
+    return ApiResponse.okMessage("수정되었습니다.");
   }
 
   /** 삭제 (AJAX) */
@@ -128,7 +128,7 @@ public class CommonController {
   public ApiResponse<Void> delete(
       @RequestParam String cmmId, @RequestParam String codeId, HttpSession session) {
     commonService.delete(cmmId, codeId, actor(session), MENU_ID);
-    return ApiResponse.ok();
+    return ApiResponse.okMessage("삭제되었습니다.");
   }
 
   private TbLoginUser actor(HttpSession session) {

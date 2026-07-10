@@ -67,7 +67,8 @@ DOMContentLoaded → bind()  → load()
 ```
 **공통 규약**
 - 서버 통신은 **`api.get/post/put/del`**(core/app.js)만 사용 — `ApiResponse` 해석·401 리다이렉트·오류 alert 내장. fetch 직접 호출 금지.
-- `alert/confirm/prompt` 브라우저 기본창 대신 **공통 모달**(`confirmModal`, `promptModal`) 사용(오류 alert 는 api 래퍼 내장 예외).
+- `alert/confirm/prompt` 브라우저 기본창 금지 — **공통 컴포넌트** 사용: 확인=`confirmModal`, 입력=`promptModal`, 안내=`toast`(success/error/warning).
+- **안내 메시지는 서버 return 우선**: 성공은 컨트롤러가 `ApiResponse.okMessage("...")` 로 내려주면 `api` 래퍼가 자동 `toast.success`. 서버 오류는 `api` 래퍼가 자동 `toast.error`. 클라 검증 실패만 화면에서 `toast.warning`.
 - 이벤트 바인딩은 `bind()` 한 곳에. 권한 없는 버튼은 서버 렌더에서 빠지므로 `if ($('btnNew'))` 가드.
 - 목록 쿼리 파라미터 이름은 백엔드 `PageParam` 과 동일: `page/size/keyword/searchType/sort/dir`(+도메인 필터).
 
