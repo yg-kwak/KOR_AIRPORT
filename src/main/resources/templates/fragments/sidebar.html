@@ -1,12 +1,39 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- 좌측 메뉴(LNB). 권한 필터링은 서버에서 menus 구성 시 적용(향후) -->
-<nav th:fragment="sidebar(menus)" class="lnb-sidebar">
+<!-- 계층형 사이드바 — menu_level 1(그룹) → 하위. 접기/펼치기·접힘 시 아이콘 플라이아웃은 js/core/sidebar.js. -->
+<nav th:fragment="sidebar(menus)" class="lnb-sidebar" id="lnbSidebar">
+  <div class="lnb-header">
+    <button type="button" class="lnb-toggle" id="lnbToggle" aria-label="메뉴 접기/펼치기">
+      <span class="lnb-toggle-icon lnb-open">&times;</span>
+      <span class="lnb-toggle-icon lnb-closed">&#9776;</span>
+    </button>
+  </div>
+
   <ul class="lnb-menu">
-    <li th:each="m : ${menus}" th:if="${m.menuUrl != null and m.menuUrl != ''}"
-        class="lnb-item">
-      <a th:href="${m.menuUrl}" th:text="${m.menuName}">메뉴</a>
+    <li class="lnb-group" th:each="g : ${menus}" th:attr="data-menu-id=${g.menuId}">
+      <button type="button" class="lnb-group-btn">
+        <span class="lnb-ic" th:attr="data-icon=${g.menuIcon}"></span>
+        <span class="lnb-group-name" th:text="${g.menuName}">그룹</span>
+        <span class="lnb-caret" th:if="${!g.children.isEmpty()}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </span>
+      </button>
+
+      <div class="lnb-sub">
+        <div class="lnb-flyout-title" th:text="${g.menuName}">그룹</div>
+        <th:block th:each="c : ${g.children}">
+          <!-- 하위에 또 자식이 있으면: 소제목 + 그 아래 링크들 (3단) -->
+          <th:block th:if="${!c.children.isEmpty()}">
+            <div class="lnb-subhead" th:text="${c.menuName}">소제목</div>
+            <a th:each="gc : ${c.children}" class="lnb-link"
+               th:href="${gc.menuUrl}" th:attr="data-url=${gc.menuUrl}" th:text="${gc.menuName}">링크</a>
+          </th:block>
+          <!-- 하위가 링크면 바로 링크 (2단) -->
+          <a th:unless="${!c.children.isEmpty()}" class="lnb-link"
+             th:href="${c.menuUrl}" th:attr="data-url=${c.menuUrl}" th:text="${c.menuName}">링크</a>
+        </th:block>
+      </div>
     </li>
   </ul>
 </nav>

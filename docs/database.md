@@ -61,8 +61,9 @@ PK: `menu_id`
 | menu_name | nvarchar(100) | | 메뉴명 |
 | parent_menu_id | int | | 부모메뉴ID (트리) |
 | menu_url | nvarchar(255) | | 메뉴 접속 URL |
-| menu_level | int | | 메뉴 레벨 |
+| menu_level | int | | 메뉴 레벨 (1=그룹, 2~=하위) |
 | menu_order | int | | 메뉴 순서 |
+| menu_icon | nvarchar(30) | | level 1 그룹 아이콘 키 (사이드바, 예: `settings`). 프론트 ICONS 매핑 |
 | use_yn | nchar(1) | | 사용여부 |
 
 ### tb_menu_auth — 권한(그룹)

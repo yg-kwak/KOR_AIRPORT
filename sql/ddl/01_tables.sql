@@ -32,6 +32,7 @@ CREATE TABLE dbo.tb_menu (
   menu_url       nvarchar(255) NULL,
   menu_level     int          NULL,
   menu_order     int          NULL,
+  menu_icon      nvarchar(30) NULL,
   use_yn         nchar(1)     NOT NULL DEFAULT 'Y',
   CONSTRAINT PK_tb_menu PRIMARY KEY (menu_id)
 );

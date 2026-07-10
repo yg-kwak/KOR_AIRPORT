@@ -4,7 +4,7 @@
 <mapper namespace="AirPort.mapper.TbMenuMapper">
 
   <select id="selectUseList" resultType="TbMenu">
-    SELECT menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, use_yn
+    SELECT menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn
     FROM tb_menu
     WHERE use_yn = 'Y'
     ORDER BY menu_level, menu_order, menu_id

@@ -38,7 +38,7 @@ src/main/resources/
     ├── images/
     └── js/
         ├── common.js, common/    공용 라이브러리
-        ├── core/                 app.js, page-factory, head, sidebar 등 공통 뼈대
+        ├── core/                 app.js(fetch), toast, confirm/prompt-modal, sidebar(계층·접기·플라이아웃) 등 공통 뼈대
         ├── web/
         │   ├── {도메인}/          화면별 스크립트
         │   └── components/       조각별 스크립트

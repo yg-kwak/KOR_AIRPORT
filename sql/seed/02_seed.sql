@@ -24,11 +24,11 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use
   ('VR', N'방문사유', 'MEETING', N'회의', 'Y', 'Y'),
   ('VR', N'방문사유', 'WORK',    N'공사', 'Y', 'Y');
 
-/* 메뉴 */
-INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, use_yn) VALUES
-  (300, N'시스템관리',   NULL, NULL,                 1, 1, 'Y'),
-  (301, N'공통코드관리', 300,  '/system/commonCode', 2, 1, 'Y'),
-  (302, N'설정관리',     300,  '/system/system',     2, 2, 'Y');
+/* 메뉴 (level 1 그룹은 menu_icon 지정 — 사이드바 아이콘) */
+INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn) VALUES
+  (300, N'시스템관리',   NULL, NULL,                 1, 1, 'settings', 'Y'),
+  (301, N'공통코드관리', 300,  '/system/commonCode', 2, 1, NULL,       'Y'),
+  (302, N'설정관리',     300,  '/system/system',     2, 2, NULL,       'Y');
 
 /* 관리자 권한 + 공통코드관리 전권 + 관리자 계정 */
 INSERT INTO dbo.tb_menu_auth (auth_name) VALUES (N'관리자');

@@ -57,7 +57,7 @@ public class CommonController {
     if (!perm.isCanRead()) {
       return "redirect:/"; // 조회 권한 없음 → 메인으로
     }
-    model.addAttribute("menus", menuService.useList());
+    model.addAttribute("menus", menuService.tree());
     model.addAttribute("perm", perm);
     return "web/system/commonCode";
   }

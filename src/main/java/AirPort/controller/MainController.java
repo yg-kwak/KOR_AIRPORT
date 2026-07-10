@@ -17,7 +17,7 @@ public class MainController {
 
   @GetMapping("/")
   public String main(Model model) {
-    model.addAttribute("menus", menuService.useList());
+    model.addAttribute("menus", menuService.tree());
     return "web/main";
   }
 }

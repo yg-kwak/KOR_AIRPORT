@@ -43,7 +43,7 @@ public class SystemController {
     if (!perm.isCanRead()) {
       return "redirect:/";
     }
-    model.addAttribute("menus", menuService.useList());
+    model.addAttribute("menus", menuService.tree());
     model.addAttribute("perm", perm);
     model.addAttribute("system", systemService.getForView(actor(session), MENU_ID));
     return "web/system/system";
