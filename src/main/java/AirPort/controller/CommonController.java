@@ -1,9 +1,9 @@
 package AirPort.controller;
 
 import AirPort.common.ApiResponse;
-import AirPort.common.PageParam;
 import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
+import AirPort.model.CommonSearchParam;
 import AirPort.model.TbCommon;
 import AirPort.model.TbLoginUser;
 import AirPort.service.CommonService;
@@ -49,7 +49,7 @@ public class CommonController {
   /** 목록 (AJAX) */
   @GetMapping("/list")
   @ResponseBody
-  public ApiResponse<PageResult<TbCommon>> list(PageParam param) {
+  public ApiResponse<PageResult<TbCommon>> list(CommonSearchParam param) {
     return ApiResponse.ok(commonService.list(param));
   }
 

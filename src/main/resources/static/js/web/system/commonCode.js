@@ -1,17 +1,49 @@
-/* 공통코드관리 화면 — 골든 샘플. 신규 CRUD 화면 스크립트는 이 구조를 따른다. */
+/* 공통코드관리 화면 — 골든 샘플. 신규 CRUD 화면 스크립트는 이 구조를 따른다.
+   목록 공통 기능: 검색조건 + 사용여부 필터 + 페이지크기 + 컬럼 정렬(오름/내림). */
 (function () {
   const BASE = '/system/commonCode';
-  const state = { page: 1, size: 10, keyword: '' };
+  const state = {
+    page: 1,
+    size: 30,
+    keyword: '',
+    searchType: 'all',
+    useYn: '',
+    sort: 'cmmId',
+    dir: 'asc',
+  };
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
 
   async function load() {
-    const q = `?page=${state.page}&size=${state.size}&keyword=${encodeURIComponent(state.keyword)}`;
+    const q =
+      `?page=${state.page}&size=${state.size}` +
+      `&keyword=${encodeURIComponent(state.keyword)}` +
+      `&searchType=${state.searchType}&useYn=${state.useYn}` +
+      `&sort=${state.sort}&dir=${state.dir}`;
     const data = await api.get(BASE + '/list' + q);
     renderRows(data.content);
     renderPaging(data.page, data.totalPages);
+    renderTotal(data.total);
+    renderSortIndicators();
+  }
+
+  function renderTotal(total) {
+    $('totalInfo').textContent = `총 ${total.toLocaleString()}건`;
+  }
+
+  function renderSortIndicators() {
+    document.querySelectorAll('th.sortable').forEach((th) => {
+      const ind = th.querySelector('.sort-ind');
+      if (th.dataset.sort === state.sort) {
+        ind.textContent = state.dir === 'asc' ? ' ▲' : ' ▼';
+        th.classList.add('sorted');
+      } else {
+        ind.textContent = '';
+        th.classList.remove('sorted');
+      }
+    });
   }
 
   function renderRows(rows) {
@@ -44,6 +76,26 @@
     box.innerHTML = html;
   }
 
+  function search() {
+    state.keyword = $('keyword').value.trim();
+    state.searchType = $('searchType').value;
+    state.useYn = $('useYnFilter').value;
+    state.page = 1;
+    load();
+  }
+
+  function toggleSort(col) {
+    if (state.sort === col) {
+      state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      state.sort = col;
+      state.dir = 'asc';
+    }
+    state.page = 1;
+    load();
+  }
+
+  // ---- 등록/수정 모달 ----
   function openModal(mode, row) {
     $('mode').value = mode;
     $('modalTitle').textContent = mode === 'create' ? '공통코드 등록' : '공통코드 수정';
@@ -52,7 +104,6 @@
     $('codeId').value = row ? row.codeId : '';
     $('codeName').value = row ? row.codeName || '' : '';
     $('useYn').value = row ? row.useYn || 'Y' : 'Y';
-    // 수정 시 PK 잠금
     $('cmmId').readOnly = mode === 'edit';
     $('codeId').readOnly = mode === 'edit';
     $('editModal').classList.add('open');
@@ -81,11 +132,17 @@
   }
 
   function bind() {
-    $('btnSearch').addEventListener('click', () => { state.keyword = $('keyword').value.trim(); state.page = 1; load(); });
+    $('btnSearch').addEventListener('click', search);
+    $('keyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
+    $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
     $('btnNew').addEventListener('click', () => openModal('create', null));
     $('btnSave').addEventListener('click', save);
     $('btnCancel').addEventListener('click', closeModal);
     $('modalClose').addEventListener('click', closeModal);
+
+    document.querySelectorAll('th.sortable').forEach((th) =>
+      th.addEventListener('click', () => toggleSort(th.dataset.sort)));
+
     $('gridBody').addEventListener('click', (e) => {
       const btn = e.target.closest('button');
       if (!btn) return;

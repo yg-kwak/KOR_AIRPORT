@@ -1,6 +1,6 @@
 package AirPort.mapper;
 
-import AirPort.common.PageParam;
+import AirPort.model.CommonSearchParam;
 import AirPort.model.TbCommon;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
@@ -8,9 +8,9 @@ import org.apache.ibatis.annotations.Param;
 /** 공통 코드 매퍼. SQL 은 mapper/TbCommonMapper.xml. */
 public interface TbCommonMapper {
 
-  List<TbCommon> selectList(PageParam param);
+  List<TbCommon> selectList(CommonSearchParam param);
 
-  long selectCount(PageParam param);
+  long selectCount(CommonSearchParam param);
 
   TbCommon selectOne(@Param("cmmId") String cmmId, @Param("codeId") String codeId);
 

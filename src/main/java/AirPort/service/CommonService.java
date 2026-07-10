@@ -1,10 +1,10 @@
 package AirPort.service;
 
-import AirPort.common.PageParam;
 import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCommonMapper;
+import AirPort.model.CommonSearchParam;
 import AirPort.model.TbCommon;
 import AirPort.model.TbLoginUser;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ public class CommonService {
     this.auditService = auditService;
   }
 
-  public PageResult<TbCommon> list(PageParam param) {
+  public PageResult<TbCommon> list(CommonSearchParam param) {
     long total = commonMapper.selectCount(param);
     return new PageResult<>(
         commonMapper.selectList(param), total, param.getPage(), param.getSize());

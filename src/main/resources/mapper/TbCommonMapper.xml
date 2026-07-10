@@ -3,26 +3,50 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="AirPort.mapper.TbCommonMapper">
 
+  <!-- 검색 조건: searchType(전체/개별) + 사용여부 필터 -->
   <sql id="searchWhere">
     <where>
       <if test="keyword != null and keyword != ''">
-        (cmm_id LIKE '%' + #{keyword} + '%'
-         OR cmm_name LIKE '%' + #{keyword} + '%'
-         OR code_id LIKE '%' + #{keyword} + '%'
-         OR code_name LIKE '%' + #{keyword} + '%')
+        <choose>
+          <when test="searchType == 'cmmId'">cmm_id LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'cmmName'">cmm_name LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'codeId'">code_id LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'codeName'">code_name LIKE '%' + #{keyword} + '%'</when>
+          <otherwise>
+            (cmm_id LIKE '%' + #{keyword} + '%'
+             OR cmm_name LIKE '%' + #{keyword} + '%'
+             OR code_id LIKE '%' + #{keyword} + '%'
+             OR code_name LIKE '%' + #{keyword} + '%')
+          </otherwise>
+        </choose>
+      </if>
+      <if test="useYn != null and useYn != ''">
+        AND use_yn = #{useYn}
       </if>
     </where>
   </sql>
 
-  <select id="selectList" parameterType="AirPort.common.PageParam" resultType="TbCommon">
+  <!-- 정렬: sort 는 화이트리스트로만 매핑(SQL 인젝션 방지). 각 항목에 안정 정렬용 tie-breaker 포함 -->
+  <sql id="orderBy">
+    ORDER BY
+    <choose>
+      <when test="sort == 'cmmName'">cmm_name <if test="desc">DESC</if>, cmm_id, code_id</when>
+      <when test="sort == 'codeId'">code_id <if test="desc">DESC</if>, cmm_id</when>
+      <when test="sort == 'codeName'">code_name <if test="desc">DESC</if>, cmm_id, code_id</when>
+      <when test="sort == 'useYn'">use_yn <if test="desc">DESC</if>, cmm_id, code_id</when>
+      <otherwise>cmm_id <if test="desc">DESC</if>, code_id</otherwise>
+    </choose>
+  </sql>
+
+  <select id="selectList" parameterType="AirPort.model.CommonSearchParam" resultType="TbCommon">
     SELECT cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_ipnut, use_yn
     FROM tb_common
     <include refid="searchWhere"/>
-    ORDER BY cmm_id, code_id
+    <include refid="orderBy"/>
     OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
   </select>
 
-  <select id="selectCount" parameterType="AirPort.common.PageParam" resultType="long">
+  <select id="selectCount" parameterType="AirPort.model.CommonSearchParam" resultType="long">
     SELECT COUNT(*) FROM tb_common
     <include refid="searchWhere"/>
   </select>
