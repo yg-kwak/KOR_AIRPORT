@@ -41,7 +41,8 @@
 ## 감사 이력 (불변식)
 - **사용자의 메뉴 접속, 데이터 조회, 입력, 수정, 삭제**를 `tb_system_log` 에 **간략히** 남긴다. (스키마: `database.md`)
 - 기록 항목: 누가(user_id/user_name) / 무엇을(action_type, `tb_common` cmm_id='AT') / 어디서(menu_id) / 언제(reg_dt) / 상세(action_detail).
-- **action_type 코드(확정)**: `MENU`(메뉴접속) / `READ`(조회) / `CREATE`(등록) / `UPDATE`(수정) / `DELETE`(삭제). seed: `sql/seed/02_seed.sql`, 상수: `AirPort.service.AuditService`.
+- **action_type 코드(확정)**: `MENU`(메뉴접속) / `READ`(조회) / `CREATE`(등록) / `UPDATE`(수정) / `DELETE`(삭제) / `DOWNLOAD`(엑셀 등 반출, 목적=remark) / `LOGIN` / `LOGOUT`. seed: `sql/seed/02_seed.sql`, 상수: `AirPort.service.AuditService`.
+- 목록 조회(READ)는 검색조건·결과 건수를 action_detail 에 남긴다.
 - 공통 처리: `AuditService.log(actor, actionType, menuId, detail)` 를 Service 계층에서 호출.
 - "조회"는 **개별 SELECT 단위가 아니라 메뉴 진입·검색 실행 단위**로 남긴다(과다 적재 방지).
 - 외부 시스템(BiostarX 등)으로 나가는 제어도 감사 대상. (`integration.md`)

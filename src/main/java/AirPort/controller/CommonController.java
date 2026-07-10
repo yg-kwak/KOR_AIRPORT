@@ -67,7 +67,7 @@ public class CommonController {
   @ResponseBody
   public ApiResponse<PageResult<TbCommon>> list(CommonSearchParam param, HttpSession session) {
     menuAuthService.requireRead(actor(session), MENU_ID);
-    return ApiResponse.ok(commonService.list(param));
+    return ApiResponse.ok(commonService.list(param, actor(session), MENU_ID));
   }
 
   /** 엑셀 다운로드 — 현재 검색/정렬 조건의 전체(모든 페이지) 데이터. 목적(purpose)은 감사 remark 로 기록. */

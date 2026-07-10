@@ -39,7 +39,7 @@
   </sql>
 
   <select id="selectList" parameterType="AirPort.model.CommonSearchParam" resultType="TbCommon">
-    SELECT cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_ipnut, use_yn
+    SELECT cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_input, use_yn
     FROM tb_common
     <include refid="searchWhere"/>
     <include refid="orderBy"/>
@@ -48,7 +48,7 @@
 
   <!-- 엑셀 다운로드용: 동일 검색/정렬, 페이징 없음(전체) -->
   <select id="selectListAll" parameterType="AirPort.model.CommonSearchParam" resultType="TbCommon">
-    SELECT cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_ipnut, use_yn
+    SELECT cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_input, use_yn
     FROM tb_common
     <include refid="searchWhere"/>
     <include refid="orderBy"/>
@@ -60,17 +60,17 @@
   </select>
 
   <select id="selectOne" resultType="TbCommon">
-    SELECT cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_ipnut, use_yn
+    SELECT cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_input, use_yn
     FROM tb_common
     WHERE cmm_id = #{cmmId} AND code_id = #{codeId}
   </select>
 
   <insert id="insert" parameterType="TbCommon">
     INSERT INTO tb_common
-      (cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_ipnut, use_yn)
+      (cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_input, use_yn)
     VALUES
       (#{cmmId}, #{cmmName}, #{codeId}, #{codeName}, #{codeTag}, #{codeRemark},
-       ISNULL(#{userIpnut}, 'N'), ISNULL(#{useYn}, 'Y'))
+       ISNULL(#{userInput}, 'N'), ISNULL(#{useYn}, 'Y'))
   </insert>
 
   <update id="update" parameterType="TbCommon">

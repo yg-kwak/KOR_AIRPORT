@@ -11,6 +11,6 @@ public class TbCommon {
   private String codeName;
   private String codeTag;
   private String codeRemark;
-  private String userIpnut; // 사용자등록여부 (설계 컬럼명 유지)
+  private String userInput; // 사용자등록여부
   private String useYn;
 }

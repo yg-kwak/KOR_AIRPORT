@@ -29,10 +29,36 @@ public class CommonService {
     this.menuAuthService = menuAuthService;
   }
 
-  public PageResult<TbCommon> list(CommonSearchParam param) {
+  /** 목록 조회 — 검색조건·결과 건수를 감사 이력(READ)으로 남긴다. */
+  public PageResult<TbCommon> list(CommonSearchParam param, TbLoginUser actor, Integer menuId) {
     long total = commonMapper.selectCount(param);
+    auditService.log(
+        actor, AuditService.READ, menuId, "공통코드 목록 조회 (" + searchSummary(param, total) + ")");
     return new PageResult<>(
         commonMapper.selectList(param), total, param.getPage(), param.getSize());
+  }
+
+  /** 감사용 검색조건 요약 문자열. */
+  private String searchSummary(CommonSearchParam param, long total) {
+    StringBuilder sb = new StringBuilder();
+    if (param.getKeyword() != null && !param.getKeyword().isBlank()) {
+      sb.append("검색어=").append(param.getSearchType()).append(':').append(param.getKeyword());
+    } else {
+      sb.append("검색어=없음");
+    }
+    if (param.getUseYn() != null && !param.getUseYn().isEmpty()) {
+      sb.append(", 사용여부=").append(param.getUseYn());
+    }
+    sb.append(", 정렬=")
+        .append(param.getSort() == null ? "기본" : param.getSort())
+        .append(' ')
+        .append(param.getDir())
+        .append(", 페이지=")
+        .append(param.getPage())
+        .append(", 결과 ")
+        .append(total)
+        .append("건");
+    return sb.toString();
   }
 
   /** 엑셀 다운로드용 전체 목록(동일 검색/정렬, 페이징 없음). 목적(purpose)은 감사 remark 로 기록. */

@@ -45,12 +45,16 @@ public class LoginController {
     }
     HttpSession session = request.getSession(true);
     session.setAttribute(SessionKeys.LOGIN_USER, user);
-    auditService.log(user, AuditService.MENU, null, "로그인");
+    auditService.log(user, AuditService.LOGIN, null, "로그인");
     return "redirect:/";
   }
 
   @GetMapping("/logout")
   public String logout(HttpSession session) {
+    Object u = session.getAttribute(SessionKeys.LOGIN_USER);
+    if (u instanceof TbLoginUser loginUser) {
+      auditService.log(loginUser, AuditService.LOGOUT, null, "로그아웃");
+    }
     session.invalidate();
     return "redirect:/login";
   }

@@ -20,6 +20,8 @@ public class AuditService {
   public static final String UPDATE = "UPDATE";
   public static final String DELETE = "DELETE";
   public static final String DOWNLOAD = "DOWNLOAD";
+  public static final String LOGIN = "LOGIN";
+  public static final String LOGOUT = "LOGOUT";
 
   private final TbSystemLogMapper systemLogMapper;
 

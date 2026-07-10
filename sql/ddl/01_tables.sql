@@ -70,7 +70,7 @@ CREATE TABLE dbo.tb_common (
   code_name   nvarchar(100) NULL,
   code_tag    nvarchar(50)  NULL,
   code_remark nvarchar(100) NULL,
-  user_ipnut  nchar(1)      NULL DEFAULT 'N',
+  user_input  nchar(1)      NULL DEFAULT 'N',
   use_yn      nchar(1)      NOT NULL DEFAULT 'Y',
   CONSTRAINT PK_tb_common PRIMARY KEY (cmm_id, code_id),
   CONSTRAINT CHK_tb_common_use_yn CHECK (use_yn IN ('Y','N'))

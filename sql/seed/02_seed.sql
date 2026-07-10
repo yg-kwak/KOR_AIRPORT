@@ -10,7 +10,9 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
   ('AT', N'감사유형', 'CREATE', N'등록',     'Y'),
   ('AT', N'감사유형', 'UPDATE', N'수정',     'Y'),
   ('AT', N'감사유형', 'DELETE', N'삭제',     'Y'),
-  ('AT', N'감사유형', 'DOWNLOAD', N'다운로드', 'Y');
+  ('AT', N'감사유형', 'DOWNLOAD', N'다운로드', 'Y'),
+  ('AT', N'감사유형', 'LOGIN',  N'로그인',  'Y'),
+  ('AT', N'감사유형', 'LOGOUT', N'로그아웃', 'Y');
 
 /* 공통코드: 근무지역(LO) 예시 */
 INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES

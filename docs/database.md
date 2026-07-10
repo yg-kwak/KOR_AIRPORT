@@ -97,7 +97,7 @@ PK: `cmm_id` + `code_id` (복합). 코드구분(`cmm_id`) 아래에 코드(`code
 | code_name | nvarchar(100) | | 코드명 |
 | code_tag | nvarchar(50) | | 코드 기타 |
 | code_remark | nvarchar(100) | | 메모 |
-| user_ipnut | nchar(1) | | 사용자등록여부 *(설계상 컬럼명; 오타 아님으로 유지)* |
+| user_input | nchar(1) | | 사용자등록여부 *(설계서 오타 user_ipnut 를 정정)* |
 | use_yn | nchar(1) | | 사용여부 (기본 'Y', CHK Y/N) |
 
 ### tb_system — 시스템 설정 (BiostarX 연동정보, 단일 행)
