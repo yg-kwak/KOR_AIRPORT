@@ -30,7 +30,7 @@
   }
 
   function renderTotal(total) {
-    $('totalInfo').textContent = `총 ${total.toLocaleString()}건`;
+    $('totalInfo').textContent = `조회결과 ${total.toLocaleString()}`;
   }
 
   function renderSortIndicators() {
@@ -84,6 +84,17 @@
     load();
   }
 
+  function reset() {
+    $('searchType').value = 'all';
+    $('useYnFilter').value = '';
+    $('keyword').value = '';
+    $('pageSize').value = '30';
+    Object.assign(state, {
+      page: 1, size: 30, keyword: '', searchType: 'all', useYn: '', sort: 'cmmId', dir: 'asc',
+    });
+    load();
+  }
+
   function toggleSort(col) {
     if (state.sort === col) {
       state.dir = state.dir === 'asc' ? 'desc' : 'asc';
@@ -133,6 +144,7 @@
 
   function bind() {
     $('btnSearch').addEventListener('click', search);
+    $('btnReset').addEventListener('click', reset);
     $('keyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
     $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
     $('btnNew').addEventListener('click', () => openModal('create', null));

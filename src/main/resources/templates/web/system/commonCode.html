@@ -10,35 +10,44 @@
 
     <!-- 검색 -->
     <section class="search-section">
-      <select id="searchType" class="input w-160">
-        <option value="all">전체</option>
-        <option value="cmmId">코드구분ID</option>
-        <option value="cmmName">코드구분명</option>
-        <option value="codeId">코드ID</option>
-        <option value="codeName">코드명</option>
-      </select>
-      <input type="text" id="keyword" class="input w-300" placeholder="검색어"/>
-      <select id="useYnFilter" class="input w-120">
-        <option value="">사용여부(전체)</option>
-        <option value="Y">사용</option>
-        <option value="N">미사용</option>
-      </select>
+      <div class="search-field">
+        <label>사용여부</label>
+        <select id="useYnFilter" class="input w-120">
+          <option value="">전체</option>
+          <option value="Y">사용</option>
+          <option value="N">미사용</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>검색어</label>
+        <div class="search-keyword">
+          <select id="searchType" class="input w-120">
+            <option value="all">전체</option>
+            <option value="cmmId">코드구분ID</option>
+            <option value="cmmName">코드구분명</option>
+            <option value="codeId">코드ID</option>
+            <option value="codeName">코드명</option>
+          </select>
+          <input type="text" id="keyword" class="input w-300" placeholder="검색어를 입력해주세요"/>
+        </div>
+      </div>
       <button class="btn btn-primary" id="btnSearch">검색</button>
-      <button class="btn" id="btnNew">신규</button>
+      <button class="btn" id="btnReset">초기화</button>
     </section>
 
     <!-- 목록 -->
     <section class="content-card">
       <div class="grid-toolbar">
         <span class="grid-total" id="totalInfo"></span>
-        <label class="grid-pagesize">페이지당
+        <div class="grid-actions">
+          <button class="btn" id="btnNew">신규</button>
           <select id="pageSize" class="input">
-            <option value="30">30</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-            <option value="200">200</option>
+            <option value="30">30개씩 보기</option>
+            <option value="50">50개씩 보기</option>
+            <option value="100">100개씩 보기</option>
+            <option value="200">200개씩 보기</option>
           </select>
-        </label>
+        </div>
       </div>
       <table class="grid">
         <thead>
