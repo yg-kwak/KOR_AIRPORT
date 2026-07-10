@@ -17,6 +17,7 @@
 MyBatis(`mybatis-spring-boot-starter`), Thymeleaf(+layout-dialect), Validation, Lombok, MSSQL JDBC(`mssql-jdbc`), Apache POI(엑셀), commons-lang3, Jasypt(프로퍼티 암호화), WebSocket(필요 시). **JPA/MariaDB 드라이버는 넣지 않는다.**
 
 ## 계층별 작성 규칙
+> Controller/Service/Mapper 의 **메소드·변수·endpoint 명명과 표준 흐름은 `conventions.md` §4~§7 이 원천**. 아래는 경계 규칙 요약.
 - **Controller**: 요청/응답 매핑·검증만. 세션 체크는 `AuthInterceptor` 에 위임. 비즈니스 로직·SQL 금지.
 - **Service**: `@Service` 구체 클래스. 도메인 로직·트랜잭션 경계. 암호화(ARIA)·감사 기록도 여기서. 외부 SDK 직접 호출 금지(→ `adapter`).
 - **mapper**: MyBatis 인터페이스(`Tb*Mapper`) + XML. SQL 은 XML 에만. (`database.md`)

@@ -22,6 +22,7 @@
 - 테이블: `tb_` 접두 + 소문자 스네이크. 컬럼: 소문자 스네이크.
 - 공통 감사 컬럼: `reg_dt`(입력일자), `mod_dt`(수정일자).
 - 코드값은 하드코딩 대신 `tb_common`(코드구분 `cmm_id` + 코드 `code_id`)을 참조.
+- Mapper 인터페이스/XML/SQL 명명·작성 규칙(표준 메소드 세트, searchWhere/orderBy 조각, 정렬 화이트리스트)은 **`conventions.md` §6** 이 원천.
 
 ---
 

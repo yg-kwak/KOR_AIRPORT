@@ -49,6 +49,7 @@ src/main/resources/
 - **templates 와 js 는 같은 트리(web/kiosk → 도메인/components)로 미러링**한다 — 화면과 스크립트를 1:1로 찾기 위함.
 
 ## 화면 작성 관례
+- **HTML id/class·JS 함수/변수 명명과 호출 흐름은 `conventions.md` §2·§3 이 원천**(여기서 반복하지 않는다).
 - 새 화면: `templates/web/{도메인}/{화면}.html` + `static/js/web/{도메인}/{화면}.js` (kiosk 는 `kiosk/` 하위).
 - 페이지는 `fragments/`(head/main/sidebar)를 조합해 구성. 모달/팝업은 `components/` 조각을 재사용(복제 금지).
 - 시각 컴포넌트 룩·토큰은 `design.md` 를 따른다.

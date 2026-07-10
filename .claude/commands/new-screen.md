@@ -9,6 +9,7 @@ allowed-tools: Read, Grep, Glob, Write, Edit, Bash(*gradlew*)
 스캐폴딩만 하고 도메인 로직은 최소로 둔다. 관례는 문서가 진실 원천이다.
 
 ## 먼저 읽을 문서 (해당하는 것만)
+- **명명 규칙·전개 흐름(필독)**: `docs/conventions.md` — HTML id/class, JS 함수/흐름, Controller/Service/Mapper 명명, 표준 CRUD 순서(§7)
 - 화면 구조/파일 위치: `docs/frontend.md`
 - 화면 시각 규칙(색·타이포·컴포넌트): `docs/design.md`
 - 백엔드 계층/패키지 관례: `docs/architecture.md`, `docs/backend.md`
