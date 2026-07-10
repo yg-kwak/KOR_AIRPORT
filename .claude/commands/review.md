@@ -1,7 +1,7 @@
 ---
-description: 현재 변경을 AGENTS.md 불변식 기준으로 검토한다
+description: 현재 변경을 AGENTS.md 불변식 기준으로 검토하고 docs/reviews/ 에 기록한다
 argument-hint: [선택: 특정 파일/디렉터리]
-allowed-tools: Bash(git*), Read, Grep, Glob
+allowed-tools: Bash(git*), Read, Grep, Glob, Write
 ---
 
 ## 목표
@@ -23,6 +23,12 @@ allowed-tools: Bash(git*), Read, Grep, Glob
 - 🟡 **권고** — 고치면 좋음
 - 🟢 **양호** — 잘 지킨 점
 - 각 항목은 `파일:라인` 으로 클릭 가능하게.
+
+## 기록 (필수 — 리뷰 이력은 저장소에 남긴다)
+검토 결과를 **`docs/reviews/{YYYY-MM-DD}_{주제}.md`** 로 저장한다 (형식: `docs/reviews/README.md`).
+- 머리에 검토 대상(브랜치/커밋 범위), 검토자(git user), 결과 요약(🔴n/🟡n) 기재.
+- 🔴 이 있어 수정 후 재검토했다면 같은 파일 하단에 "재검토" 섹션을 **추가**한다(파일을 새로 만들지 않음).
+- 리포트 파일은 해당 작업 커밋(또는 후속 커밋)에 포함한다.
 
 ## 하지 말 것
 - 코드를 직접 수정하지 않는다 (검토만). 수정은 사용자 승인 후 별도 진행.
