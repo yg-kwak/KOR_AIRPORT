@@ -1,0 +1,3 @@
+# 셸 스크립트는 어떤 OS 체크아웃에서도 LF 유지 (CRLF 면 bash 가 '\r' 오류로 깨짐)
+*.sh text eol=lf
+gradlew text eol=lf
