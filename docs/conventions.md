@@ -41,6 +41,7 @@
 - 서버 → JS 전역 전달은 `window.PAGE_*` (예: `PAGE_PERM`) 인라인 스크립트로.
 - **의존 선택 패턴**(선택값에 따라 다른 필드 자동): 부모는 `<select>`(서버가 허용 목록 제공), 자식은 `readonly` 입력 + `change` 시 자동 채움. 서버가 파생값을 재검증·재설정한다(클라이언트 값 불신). 예: 공통코드 등록의 코드구분ID→코드구분명.
 - 공통 모달 등 재사용 조각은 `fragments/components/`, 화면 전용은 `web|kiosk/components/`. (`frontend.md`)
+- **입력 자동완성/입력이력 금지(전 페이지)**: 브라우저의 이전 입력값 드롭다운을 노출하지 않는다. 별도 작업 불필요 — 공통 `head` fragment 가 `core/no-autofill.js` 를 로드해 모든 `input`/`textarea`(동적 추가분 포함)에 `autocomplete=off` 를 자동 적용한다. 예외적으로 자격증명 입력은 템플릿에 `autocomplete` 를 명시하고(아이디 `off`, 비밀번호 `new-password`), 그 경우 스크립트가 값을 보존한다.
 
 ## 3. JavaScript — 명명 규칙 · 호출 흐름
 **파일**: 화면당 1개, 템플릿과 **미러 경로**(`templates/web/system/commonCode.html` ↔ `static/js/web/system/commonCode.js`). 전체를 IIFE `(function(){ ... })()` 로 감싼다(전역 오염 방지).
