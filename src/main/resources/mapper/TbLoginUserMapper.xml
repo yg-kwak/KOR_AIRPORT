@@ -55,7 +55,7 @@
     u.reg_dt, u.mod_dt, a.auth_name AS auth_name
   </sql>
 
-  <select id="selectList" parameterType="AirPort.model.UserSearchParam" resultType="TbLoginUser">
+  <select id="selectList" parameterType="AirPort.model.LoginUserSearchParam" resultType="TbLoginUser">
     SELECT <include refid="listColumns"/>
     FROM tb_login_user u
     LEFT JOIN tb_menu_auth a ON a.auth_id = u.auth_id
@@ -64,7 +64,7 @@
     OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
   </select>
 
-  <select id="selectListAll" parameterType="AirPort.model.UserSearchParam" resultType="TbLoginUser">
+  <select id="selectListAll" parameterType="AirPort.model.LoginUserSearchParam" resultType="TbLoginUser">
     SELECT <include refid="listColumns"/>
     FROM tb_login_user u
     LEFT JOIN tb_menu_auth a ON a.auth_id = u.auth_id
@@ -72,7 +72,7 @@
     <include refid="orderBy"/>
   </select>
 
-  <select id="selectCount" parameterType="AirPort.model.UserSearchParam" resultType="long">
+  <select id="selectCount" parameterType="AirPort.model.LoginUserSearchParam" resultType="long">
     SELECT COUNT(*)
     FROM tb_login_user u
     <include refid="searchWhere"/>

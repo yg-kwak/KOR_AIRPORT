@@ -4,7 +4,7 @@
 > 이 하네스(AGENTS.md + docs/ + .claude/)를 다른 프로젝트에 복제해도 이 문서가 규칙의 원천이다.
 > "불변식은 강제, 구현은 자유" — 강제 규칙은 `AGENTS.md §4`, 여기는 **모두가 따르는 관례**.
 > 기준 구현(골든 샘플): 공통코드관리 — `CommonController`/`CommonService`/`TbCommonMapper`(+XML),
-> `templates/web/system/commonCode.html`, `static/js/web/system/commonCode.js`.
+> `templates/web/system/common.html`, `static/js/web/system/common.js`.
 
 ## 0. 신규 패턴 등록 — 이 문서는 살아있는 대장이다 (자동 축적)
 새 명명·패턴·경우의수가 생기면 **그 작업 안에서 이 문서에 등록하고 같이 커밋한다**. 등록을 빼먹지 않도록 3중 장치:
@@ -18,8 +18,17 @@
 
 ## 1. 패키지/구조
 - **역할별 평면 구조**: `controller / service / mapper / model / adapter / config / security / common / util`. 도메인별 하위 폴더 금지. (구조 원천: `architecture.md`)
-- 도메인 구분은 **클래스명 접두사**: `Common*`, `User*`, `Visitor*`, `AcGroup*`, `Menu*`, `System*` …
-  - `User*` = 사용자관리(tb_login_user) 화면 CRUD. 로그인 인증은 `LoginService`(별개).
+- **네이밍 앵커 = 테이블 어간(stem).** 한 기능의 모든 이름은 테이블명 `tb_{stem}` 의 `stem`(camelCase)에서 파생한다 — 토큰을 하나로 통일해 혼동을 없앤다.
+  - 예: `tb_common` → `common`, `tb_login_user` → `loginUser`.
+
+  | 계층 | 규칙 | `tb_common` | `tb_login_user` |
+  |---|---|---|---|
+  | Mapper / Model | `Tb{Stem}` (PascalCase) | `TbCommon`, `TbCommonMapper` | `TbLoginUser`, `TbLoginUserMapper` |
+  | Controller / Service / SearchParam | `{Stem}*` (PascalCase) | `CommonController/Service`, `CommonSearchParam` | `LoginUserController/Service`, `LoginUserSearchParam` |
+  | 라우트 · 화면(html/js) | `{stem}` (camelCase) | `/system/common`, `common.html/js` | `/system/loginUser`, `loginUser.html/js` |
+
+  - **한 테이블에 화면이 여러 개**면 그때만 `{stem}{구분}` 으로 분기하고(예: `commonCode`, `commonGroup`) 이 예외를 여기 등록한다. 기본은 1테이블=1토큰.
+  - 로그인 인증 로직은 화면 CRUD 와 별개인 `LoginService`(그대로 유지).
 - 패키지명 소문자. 클래스만 PascalCase.
 - 공통(범용) 코드 위치: 응답/페이징/예외=`common`, 인증·암호화=`security`, 엑셀 등 유틸=`util`.
 
@@ -45,7 +54,7 @@
 - **입력 자동완성/입력이력 금지(전 페이지)**: 브라우저의 이전 입력값 드롭다운을 노출하지 않는다. 별도 작업 불필요 — 공통 `head` fragment 가 `core/no-autofill.js` 를 로드해 모든 `input`/`textarea`(동적 추가분 포함)에 `autocomplete=off` 를 자동 적용한다. 예외적으로 자격증명 입력은 템플릿에 `autocomplete` 를 명시하고(아이디 `off`, 비밀번호 `new-password`), 그 경우 스크립트가 값을 보존한다.
 
 ## 3. JavaScript — 명명 규칙 · 호출 흐름
-**파일**: 화면당 1개, 템플릿과 **미러 경로**(`templates/web/system/commonCode.html` ↔ `static/js/web/system/commonCode.js`). 전체를 IIFE `(function(){ ... })()` 로 감싼다(전역 오염 방지).
+**파일**: 화면당 1개, 템플릿과 **미러 경로**(`templates/web/system/common.html` ↔ `static/js/web/system/common.js`). 파일명=테이블 어간(§1). 전체를 IIFE `(function(){ ... })()` 로 감싼다(전역 오염 방지).
 
 **명명**
 | 대상 | 규칙 | 예시 |
@@ -75,7 +84,7 @@ DOMContentLoaded → bind()  → load()
 - 목록 쿼리 파라미터 이름은 백엔드 `PageParam` 과 동일: `page/size/keyword/searchType/sort/dir`(+도메인 필터).
 
 ## 4. Controller — 명명 · endpoint 규칙
-- 클래스: `{도메인}Controller`, 라우팅은 **클래스 상단** `@RequestMapping("/{영역}/{기능}")` (예: `/system/commonCode`). 영역=메뉴 상위(system 등).
+- 클래스: `{Stem}Controller`, 라우팅은 **클래스 상단** `@RequestMapping("/{영역}/{stem}")` (예: `/system/common`). 영역=메뉴 상위(system 등), stem=테이블 어간(§1).
 - 상수: `MENU_ID` — 화면의 tb_menu id(권한·감사에 사용).
 - 메소드(표준 세트):
 

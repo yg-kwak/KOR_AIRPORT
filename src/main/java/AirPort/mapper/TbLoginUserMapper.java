@@ -1,8 +1,8 @@
 package AirPort.mapper;
 
+import AirPort.model.LoginUserSearchParam;
 import AirPort.model.TbCommon;
 import AirPort.model.TbLoginUser;
-import AirPort.model.UserSearchParam;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,12 +14,12 @@ public interface TbLoginUserMapper {
   int updateLoginFailCnt(@Param("userId") String userId, @Param("cnt") int cnt);
 
   // ── 사용자관리 화면 CRUD ──────────────────────────────────────
-  List<TbLoginUser> selectList(UserSearchParam param);
+  List<TbLoginUser> selectList(LoginUserSearchParam param);
 
   /** 엑셀 다운로드용 — 동일 검색/정렬, 페이징 없음(전체). */
-  List<TbLoginUser> selectListAll(UserSearchParam param);
+  List<TbLoginUser> selectListAll(LoginUserSearchParam param);
 
-  long selectCount(UserSearchParam param);
+  long selectCount(LoginUserSearchParam param);
 
   int insert(TbLoginUser row);
 

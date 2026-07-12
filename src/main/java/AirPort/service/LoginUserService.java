@@ -6,9 +6,9 @@ import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbLoginUserMapper;
 import AirPort.mapper.TbMenuAuthMapper;
 import AirPort.mapper.TbMenuMapper;
+import AirPort.model.LoginUserSearchParam;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbMenu;
-import AirPort.model.UserSearchParam;
 import AirPort.security.ARIAUtil;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 않는다. 쓰기는 메뉴 권한(tb_menu_auth_detail)을 서버에서 재검증한다.
  */
 @Service
-public class UserService {
+public class LoginUserService {
 
   private final TbLoginUserMapper userMapper;
   private final TbMenuAuthMapper menuAuthMapper;
@@ -31,7 +31,7 @@ public class UserService {
   private final AuditService auditService;
   private final MenuAuthService menuAuthService;
 
-  public UserService(
+  public LoginUserService(
       TbLoginUserMapper userMapper,
       TbMenuAuthMapper menuAuthMapper,
       TbMenuMapper menuMapper,
@@ -45,7 +45,8 @@ public class UserService {
   }
 
   /** 목록 조회 — 성명 복호화(표시용) + 검색조건·결과 건수 감사(READ). */
-  public PageResult<TbLoginUser> list(UserSearchParam param, TbLoginUser actor, Integer menuId) {
+  public PageResult<TbLoginUser> list(
+      LoginUserSearchParam param, TbLoginUser actor, Integer menuId) {
     long total = userMapper.selectCount(param);
     List<TbLoginUser> rows = userMapper.selectList(param);
     rows.forEach(r -> r.setUserName(ARIAUtil.ariaDecrypt(r.getUserName())));
@@ -54,7 +55,7 @@ public class UserService {
     return new PageResult<>(rows, total, param.getPage(), param.getSize());
   }
 
-  private String searchSummary(UserSearchParam param, long total) {
+  private String searchSummary(LoginUserSearchParam param, long total) {
     StringBuilder sb = new StringBuilder();
     if (param.getKeyword() != null && !param.getKeyword().isBlank()) {
       sb.append("검색어=").append(param.getSearchType()).append(':').append(param.getKeyword());
@@ -78,7 +79,7 @@ public class UserService {
 
   /** 엑셀 다운로드용 전체 목록(동일 검색/정렬). 목적(purpose)은 감사 remark 로 기록. */
   public List<TbLoginUser> listAllForExcel(
-      UserSearchParam param, TbLoginUser actor, Integer menuId, String purpose) {
+      LoginUserSearchParam param, TbLoginUser actor, Integer menuId, String purpose) {
     menuAuthService.requireRead(actor, menuId);
     if (purpose == null || purpose.isBlank()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "다운로드 목적을 입력해주세요.");

@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
  * <p>화면(GET) 과 데이터(AJAX, @ResponseBody) 를 한 컨트롤러에서 구분. 라우팅은 클래스 상단 프리픽스로 정의(docs/architecture.md).
  */
 @Controller
-@RequestMapping("/system/commonCode")
+@RequestMapping("/system/common")
 public class CommonController {
 
   private static final int MENU_ID = 301; // tb_menu 의 공통코드관리 menu_id (seed)
@@ -59,7 +59,7 @@ public class CommonController {
     }
     model.addAttribute("menus", menuService.tree());
     model.addAttribute("perm", perm);
-    return "web/system/commonCode";
+    return "web/system/common";
   }
 
   /** 목록 (AJAX) */

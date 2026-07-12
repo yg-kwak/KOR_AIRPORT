@@ -3,12 +3,12 @@ package AirPort.controller;
 import AirPort.common.ApiResponse;
 import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
+import AirPort.model.LoginUserSearchParam;
 import AirPort.model.MenuPermission;
 import AirPort.model.TbLoginUser;
-import AirPort.model.UserSearchParam;
+import AirPort.service.LoginUserService;
 import AirPort.service.MenuAuthService;
 import AirPort.service.MenuService;
-import AirPort.service.UserService;
 import AirPort.util.ExcelUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -34,17 +34,17 @@ import org.springframework.web.bind.annotation.ResponseBody;
  * <p>화면(GET)과 데이터(AJAX, @ResponseBody)를 한 컨트롤러에서 구분. 라우팅은 클래스 상단 프리픽스로 정의(docs/architecture.md).
  */
 @Controller
-@RequestMapping("/system/user")
-public class UserController {
+@RequestMapping("/system/loginUser")
+public class LoginUserController {
 
   private static final int MENU_ID = 303; // tb_menu 의 사용자관리 menu_id (seed)
 
-  private final UserService userService;
+  private final LoginUserService userService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
 
-  public UserController(
-      UserService userService, MenuService menuService, MenuAuthService menuAuthService) {
+  public LoginUserController(
+      LoginUserService userService, MenuService menuService, MenuAuthService menuAuthService) {
     this.userService = userService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
@@ -59,13 +59,14 @@ public class UserController {
     }
     model.addAttribute("menus", menuService.tree());
     model.addAttribute("perm", perm);
-    return "web/system/user";
+    return "web/system/loginUser";
   }
 
   /** 목록 (AJAX) */
   @GetMapping("/list")
   @ResponseBody
-  public ApiResponse<PageResult<TbLoginUser>> list(UserSearchParam param, HttpSession session) {
+  public ApiResponse<PageResult<TbLoginUser>> list(
+      LoginUserSearchParam param, HttpSession session) {
     menuAuthService.requireRead(actor(session), MENU_ID);
     return ApiResponse.ok(userService.list(param, actor(session), MENU_ID));
   }
@@ -80,7 +81,7 @@ public class UserController {
   /** 엑셀 다운로드 — 현재 검색/정렬 조건의 전체 데이터. 목적(purpose)은 감사 remark 로 기록. */
   @GetMapping("/excel")
   public void excel(
-      UserSearchParam param,
+      LoginUserSearchParam param,
       @RequestParam String purpose,
       HttpSession session,
       HttpServletResponse response)

@@ -1,14 +1,15 @@
-/* 공통코드관리 화면 — 골든 샘플. 신규 CRUD 화면 스크립트는 이 구조를 따른다.
-   목록 공통 기능: 검색조건 + 사용여부 필터 + 페이지크기 + 컬럼 정렬(오름/내림). */
+/* 사용자관리 화면 — 골든 샘플(common) 구조를 따른다.
+   목록 공통: 검색조건 + 사용여부 필터 + 페이지크기 + 컬럼 정렬. 등록/수정은 참조 select(권한/시작메뉴/근무지역) 사용.
+   성명·비밀번호는 서버에서 ARIA 암호화. 비밀번호는 수정 시 빈 값이면 유지. */
 (function () {
-  const BASE = '/system/commonCode';
+  const BASE = '/system/loginUser';
   const state = {
     page: 1,
     size: 30,
     keyword: '',
     searchType: 'all',
     useYn: '',
-    sort: 'cmmId',
+    sort: 'userId',
     dir: 'asc',
   };
 
@@ -19,31 +20,25 @@
   // 메뉴 권한(서버 렌더 시 주입). 버튼 숨김은 1차 방어 — 서버가 생성/수정/삭제를 재검증한다.
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
-  // 사용자 추가 허용 코드구분 { cmmId: cmmName }. 등록 모달 select 에 사용(서버가 재검증).
-  const groupNames = {};
+  // 참조 옵션(권한/시작메뉴/근무지역) — 등록/수정 모달 select 에 사용.
+  const refs = { auths: [], menus: [], locations: [] };
 
-  async function loadGroups() {
-    if (!PERM.canCreate) return; // 등록 권한 없으면 불필요
-    const list = await api.get(BASE + '/groups');
-    (list || []).forEach((g) => { groupNames[g.cmmId] = g.cmmName || ''; });
+  async function loadRefs() {
+    if (!PERM.canCreate) return; // 등록/수정 권한 없으면 불필요
+    const data = await api.get(BASE + '/refs');
+    refs.auths = data.auths || [];
+    refs.menus = data.menus || [];
+    refs.locations = data.locations || [];
+    fillSelect('authId', refs.auths.map((a) => ({ v: a.authId, t: a.authName })));
+    fillSelect('startMenuId', refs.menus.map((m) => ({ v: m.menuId, t: m.menuName })));
+    fillSelect('workLocationCode', refs.locations.map((c) => ({ v: c.codeId, t: c.codeName })));
   }
 
-  // 등록 모달 select 옵션 구성. lockedCmmId 가 있으면(수정) 그 값만 표시하고 잠근다.
-  function fillGroupSelect(lockedCmmId) {
-    const sel = $('cmmId');
-    if (lockedCmmId != null) {
-      sel.innerHTML = `<option value="${esc(lockedCmmId)}">${esc(lockedCmmId)}</option>`;
-      sel.value = lockedCmmId;
-      sel.disabled = true;
-      return;
-    }
-    sel.disabled = false;
+  function fillSelect(id, opts) {
+    const sel = $(id);
     sel.innerHTML =
       '<option value="">선택</option>' +
-      Object.keys(groupNames)
-        .map((id) => `<option value="${esc(id)}">${esc(id)}</option>`)
-        .join('');
-    sel.value = '';
+      opts.map((o) => `<option value="${esc(o.v)}">${esc(o.t)}</option>`).join('');
   }
 
   async function load() {
@@ -79,21 +74,21 @@
   function renderRows(rows) {
     const body = $('gridBody');
     if (!rows || rows.length === 0) {
-      body.innerHTML = '<tr><td colspan="6" class="empty">조회 결과가 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" class="empty">조회 결과가 없습니다.</td></tr>';
       return;
     }
-    // 목록은 사용자 코드(user_input='Y')만 조회된다 — 시스템 코드는 서버에서 제외. 모두 편집 대상.
     body.innerHTML = rows.map((r) => {
       const actions = PERM.canDelete
-        ? `<button class="btn btn-sm btn-danger" data-act="del" data-cmm="${esc(r.cmmId)}" data-code="${esc(r.codeId)}">삭제</button>`
+        ? `<button class="btn btn-sm btn-danger" data-act="del" data-id="${esc(r.userId)}">삭제</button>`
         : '-';
       return `
       <tr${PERM.canCreate ? ' class="row-click" data-json=\'' + esc(JSON.stringify(r)) + '\'' : ''}>
-        <td>${esc(r.cmmId)}</td>
-        <td>${esc(r.cmmName)}</td>
-        <td>${esc(r.codeId)}</td>
-        <td>${esc(r.codeName)}</td>
+        <td>${esc(r.userId)}</td>
+        <td>${esc(r.userName)}</td>
+        <td>${esc(r.deptName)}</td>
+        <td>${esc(r.authName)}</td>
         <td>${r.useYn === 'Y' ? '사용' : '미사용'}</td>
+        <td>${r.rootYn === 'Y' ? '관리자' : '일반'}</td>
         <td>${actions}</td>
       </tr>`;
     }).join('');
@@ -123,7 +118,7 @@
     $('keyword').value = '';
     $('pageSize').value = '30';
     Object.assign(state, {
-      page: 1, size: 30, keyword: '', searchType: 'all', useYn: '', sort: 'cmmId', dir: 'asc',
+      page: 1, size: 30, keyword: '', searchType: 'all', useYn: '', sort: 'userId', dir: 'asc',
     });
     load();
   }
@@ -153,24 +148,30 @@
       `&searchType=${state.searchType}&useYn=${state.useYn}` +
       `&sort=${state.sort}&dir=${state.dir}` +
       `&purpose=${encodeURIComponent(purpose)}`;
-    location.href = BASE + '/excel' + q; // 브라우저 다운로드
+    location.href = BASE + '/excel' + q;
   }
 
   // ---- 등록/수정 모달 ----
   function openModal(mode, row) {
     $('mode').value = mode;
-    $('modalTitle').textContent = mode === 'create' ? '공통코드 등록' : '공통코드 수정';
-    if (mode === 'create') {
-      fillGroupSelect(null); // 허용 구분 목록 select
-      $('cmmName').value = '';
-    } else {
-      fillGroupSelect(row.cmmId); // 수정: 구분 잠금
-      $('cmmName').value = row.cmmName || '';
-    }
-    $('codeId').value = row ? row.codeId : '';
-    $('codeName').value = row ? row.codeName || '' : '';
+    $('modalTitle').textContent = mode === 'create' ? '사용자 등록' : '사용자 수정';
+    const isEdit = mode === 'edit';
+    $('userId').value = row ? row.userId : '';
+    $('userId').readOnly = isEdit; // PK 는 수정 불가
+    $('userName').value = row ? row.userName || '' : '';
+    $('deptName').value = row ? row.deptName || '' : '';
+    $('authId').value = row && row.authId != null ? String(row.authId) : '';
+    $('startMenuId').value = row && row.startMenuId != null ? String(row.startMenuId) : '';
+    $('workLocationCode').value = row ? row.workLocationCode || '' : '';
+    $('workType').value = row ? row.workType || '' : '';
+    $('deskIp').value = row ? row.deskIp || '' : '';
+    $('devId').value = row ? row.devId || '' : '';
     $('useYn').value = row ? row.useYn || 'Y' : 'Y';
-    $('codeId').readOnly = mode === 'edit';
+    $('rootYn').value = row ? row.rootYn || 'N' : 'N';
+    // 비밀번호: 등록=필수, 수정=변경 시에만 입력
+    $('password').value = '';
+    $('pwHint').textContent = isEdit ? '(변경 시에만 입력)' : '(필수)';
+    $('password').placeholder = isEdit ? '변경하지 않으려면 비워두세요' : '';
     $('editModal').classList.add('open');
   }
   function closeModal() { $('editModal').classList.remove('open'); }
@@ -178,29 +179,40 @@
   async function save() {
     if (!PERM.canCreate) return;
     const payload = {
-      cmmId: $('cmmId').value.trim(),
-      cmmName: $('cmmName').value.trim(),
-      codeId: $('codeId').value.trim(),
-      codeName: $('codeName').value.trim(),
+      userId: $('userId').value.trim(),
+      userName: $('userName').value.trim(),
+      password: $('password').value, // 빈 값이면 수정 시 유지
+      deptName: $('deptName').value.trim(),
+      authId: $('authId').value ? Number($('authId').value) : null,
+      startMenuId: $('startMenuId').value ? Number($('startMenuId').value) : null,
+      workLocationCode: $('workLocationCode').value || null,
+      workType: $('workType').value.trim(),
+      deskIp: $('deskIp').value.trim(),
+      devId: $('devId').value.trim(),
       useYn: $('useYn').value,
+      rootYn: $('rootYn').value,
     };
-    if (!payload.cmmId || !payload.codeId) { toast.warning('코드구분ID와 코드ID는 필수입니다.'); return; }
-    if (!payload.codeName) { toast.warning('코드명을 입력해주세요.'); return; }
-    if ($('mode').value === 'create') await api.post(BASE, payload);
-    else await api.put(BASE, payload);
+    if (!payload.userId) { toast.warning('사용자ID는 필수입니다.'); return; }
+    if (!payload.userName) { toast.warning('성명은 필수입니다.'); return; }
+    if ($('mode').value === 'create') {
+      if (!payload.password) { toast.warning('비밀번호는 필수입니다.'); return; }
+      await api.post(BASE, payload);
+    } else {
+      await api.put(BASE, payload);
+    }
     closeModal();
     load();
   }
 
-  async function remove(cmmId, codeId) {
+  async function remove(userId) {
     if (!PERM.canDelete) return;
     const ok = await confirmModal.open({
       title: '삭제 확인',
-      message: `선택한 공통코드(${cmmId}/${codeId})를 삭제하시겠습니까?`,
+      message: `선택한 사용자(${userId})를 삭제하시겠습니까?`,
       confirmText: '삭제',
     });
     if (!ok) return;
-    await api.del(`${BASE}?cmmId=${encodeURIComponent(cmmId)}&codeId=${encodeURIComponent(codeId)}`);
+    await api.del(`${BASE}?userId=${encodeURIComponent(userId)}`);
     load();
   }
 
@@ -209,14 +221,11 @@
     $('btnReset').addEventListener('click', reset);
     $('keyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
     $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
-    // 등록 버튼은 create 권한이 없으면 서버 렌더에서 제외됨(th:if)
     if ($('btnNew')) $('btnNew').addEventListener('click', () => openModal('create', null));
     $('btnExcel').addEventListener('click', excelDownload);
     $('btnSave').addEventListener('click', save);
     $('btnCancel').addEventListener('click', closeModal);
     $('modalClose').addEventListener('click', closeModal);
-    // 코드구분ID 선택 → 코드구분명 자동(읽기전용)
-    $('cmmId').addEventListener('change', (e) => { $('cmmName').value = groupNames[e.target.value] || ''; });
 
     document.querySelectorAll('th.sortable').forEach((th) =>
       th.addEventListener('click', () => toggleSort(th.dataset.sort)));
@@ -224,11 +233,9 @@
     $('gridBody').addEventListener('click', (e) => {
       const btn = e.target.closest('button');
       if (btn) {
-        // 버튼 클릭은 행 클릭(수정 진입)과 분리
-        if (btn.dataset.act === 'del') remove(btn.dataset.cmm, btn.dataset.code);
+        if (btn.dataset.act === 'del') remove(btn.dataset.id);
         return;
       }
-      // 행 클릭 → 수정 모달 (create 권한 필요)
       const tr = e.target.closest('tr[data-json]');
       if (tr && PERM.canCreate) openModal('edit', JSON.parse(tr.dataset.json));
     });
@@ -238,5 +245,5 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => { bind(); loadGroups(); load(); });
+  document.addEventListener('DOMContentLoaded', () => { bind(); loadRefs(); load(); });
 })();
