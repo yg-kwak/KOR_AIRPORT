@@ -15,4 +15,110 @@
     UPDATE tb_login_user SET login_fail_cnt = #{cnt} WHERE user_id = #{userId}
   </update>
 
+  <!-- ══════════ 사용자관리 화면 CRUD ══════════ -->
+
+  <!-- 검색: user_name 은 ARIA 암호문이라 부분검색 불가 → 사용자ID/부서명만 LIKE 대상 -->
+  <sql id="searchWhere">
+    <where>
+      <if test="keyword != null and keyword != ''">
+        <choose>
+          <when test="searchType == 'userId'">u.user_id LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'deptName'">u.dept_name LIKE '%' + #{keyword} + '%'</when>
+          <otherwise>
+            (u.user_id LIKE '%' + #{keyword} + '%'
+             OR u.dept_name LIKE '%' + #{keyword} + '%')
+          </otherwise>
+        </choose>
+      </if>
+      <if test="useYn != null and useYn != ''">
+        AND u.use_yn = #{useYn}
+      </if>
+    </where>
+  </sql>
+
+  <!-- 정렬: 화이트리스트만(SQL 인젝션 방지). user_name 은 암호문이라 정렬 대상 제외 -->
+  <sql id="orderBy">
+    ORDER BY
+    <choose>
+      <when test="sort == 'deptName'">u.dept_name <if test="desc">DESC</if>, u.user_id</when>
+      <when test="sort == 'useYn'">u.use_yn <if test="desc">DESC</if>, u.user_id</when>
+      <when test="sort == 'rootYn'">u.root_yn <if test="desc">DESC</if>, u.user_id</when>
+      <when test="sort == 'authName'">a.auth_name <if test="desc">DESC</if>, u.user_id</when>
+      <otherwise>u.user_id <if test="desc">DESC</if></otherwise>
+    </choose>
+  </sql>
+
+  <!-- password 는 화면으로 절대 내리지 않는다 -->
+  <sql id="listColumns">
+    u.user_id, u.user_name, u.dept_name, u.use_yn, u.root_yn, u.auth_id,
+    u.start_menu_id, u.work_location_code, u.work_type, u.desk_ip, u.dev_id,
+    u.reg_dt, u.mod_dt, a.auth_name AS auth_name
+  </sql>
+
+  <select id="selectList" parameterType="AirPort.model.UserSearchParam" resultType="TbLoginUser">
+    SELECT <include refid="listColumns"/>
+    FROM tb_login_user u
+    LEFT JOIN tb_menu_auth a ON a.auth_id = u.auth_id
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="selectListAll" parameterType="AirPort.model.UserSearchParam" resultType="TbLoginUser">
+    SELECT <include refid="listColumns"/>
+    FROM tb_login_user u
+    LEFT JOIN tb_menu_auth a ON a.auth_id = u.auth_id
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+  </select>
+
+  <select id="selectCount" parameterType="AirPort.model.UserSearchParam" resultType="long">
+    SELECT COUNT(*)
+    FROM tb_login_user u
+    <include refid="searchWhere"/>
+  </select>
+
+  <insert id="insert" parameterType="TbLoginUser">
+    INSERT INTO tb_login_user
+      (user_id, user_name, password, dept_name, use_yn, root_yn, auth_id,
+       start_menu_id, work_location_code, work_type, desk_ip, dev_id, password_change_dt)
+    VALUES
+      (#{userId}, #{userName}, #{password}, #{deptName}, ISNULL(#{useYn}, 'Y'),
+       ISNULL(#{rootYn}, 'N'), #{authId}, #{startMenuId}, #{workLocationCode},
+       #{workType}, #{deskIp}, #{devId}, getdate())
+  </insert>
+
+  <!-- password 는 값이 있을 때만 갱신(빈 값=유지). 변경 시 password_change_dt 갱신 -->
+  <update id="update" parameterType="TbLoginUser">
+    UPDATE tb_login_user
+    SET user_name = #{userName},
+        dept_name = #{deptName},
+        use_yn = #{useYn},
+        root_yn = #{rootYn},
+        auth_id = #{authId},
+        start_menu_id = #{startMenuId},
+        work_location_code = #{workLocationCode},
+        work_type = #{workType},
+        desk_ip = #{deskIp},
+        dev_id = #{devId},
+        <if test="password != null and password != ''">
+          password = #{password},
+          password_change_dt = getdate(),
+        </if>
+        mod_dt = getdate()
+    WHERE user_id = #{userId}
+  </update>
+
+  <delete id="delete">
+    DELETE FROM tb_login_user WHERE user_id = #{userId}
+  </delete>
+
+  <!-- 근무지역 코드(tb_common cmm_id='LO') — 시스템 코드라 user_input 무관하게 사용중(use_yn='Y')만 -->
+  <select id="selectLocationOptions" resultType="TbCommon">
+    SELECT code_id, code_name
+    FROM tb_common
+    WHERE cmm_id = 'LO' AND use_yn = 'Y'
+    ORDER BY code_id
+  </select>
+
 </mapper>

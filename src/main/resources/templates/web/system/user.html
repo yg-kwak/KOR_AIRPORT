@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('사용자관리')}"></head>
+<body>
+<div th:replace="~{fragments/main :: header}"></div>
+<div class="layout-container">
+  <div th:replace="~{fragments/sidebar :: sidebar(${menus})}"></div>
+  <main class="layout-content">
+    <h2>사용자관리</h2>
+
+    <!-- 검색 -->
+    <section class="search-section">
+      <div class="search-field">
+        <label>사용여부</label>
+        <select id="useYnFilter" class="input w-120">
+          <option value="">전체</option>
+          <option value="Y">사용</option>
+          <option value="N">미사용</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>검색어</label>
+        <div class="search-keyword">
+          <select id="searchType" class="input w-120">
+            <option value="all">전체</option>
+            <option value="userId">사용자ID</option>
+            <option value="deptName">부서명</option>
+          </select>
+          <input type="text" id="keyword" class="input w-300" placeholder="검색어를 입력해주세요"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnSearch">검색</button>
+      <button class="btn" id="btnReset">초기화</button>
+    </section>
+
+    <!-- 목록 -->
+    <section class="content-card">
+      <div class="grid-toolbar">
+        <span class="grid-total" id="totalInfo"></span>
+        <div class="grid-actions">
+          <button class="btn" id="btnNew" th:if="${perm.canCreate}">등록</button>
+          <button class="btn" id="btnExcel">엑셀 다운로드</button>
+          <select id="pageSize" class="input">
+            <option value="30">30개씩 보기</option>
+            <option value="50">50개씩 보기</option>
+            <option value="100">100개씩 보기</option>
+            <option value="200">200개씩 보기</option>
+          </select>
+        </div>
+      </div>
+      <table class="grid">
+        <thead>
+        <tr>
+          <th class="w-160 sortable" data-sort="userId">사용자ID<span class="sort-ind"></span></th>
+          <th>성명</th>
+          <th class="sortable" data-sort="deptName">소속부서<span class="sort-ind"></span></th>
+          <th class="w-120 sortable" data-sort="authName">권한<span class="sort-ind"></span></th>
+          <th class="w-80 sortable" data-sort="useYn">사용<span class="sort-ind"></span></th>
+          <th class="w-80 sortable" data-sort="rootYn">관리자<span class="sort-ind"></span></th>
+          <th class="w-120">관리</th>
+        </tr>
+        </thead>
+        <tbody id="gridBody">
+        <tr><td colspan="7" class="empty">조회 결과가 없습니다.</td></tr>
+        </tbody>
+      </table>
+      <div class="paging" id="paging"></div>
+    </section>
+  </main>
+</div>
+
+<!-- 등록/수정 모달 -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-container wide">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">사용자 등록</h2>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="editForm">
+        <input type="hidden" id="mode" value="create"/>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>사용자ID</label>
+            <input type="text" id="userId" name="userId" class="input" required/>
+          </div>
+          <div class="form-group">
+            <label>성명</label>
+            <input type="text" id="userName" name="userName" class="input" required/>
+          </div>
+          <div class="form-group">
+            <label>비밀번호 <span class="form-hint" id="pwHint">(필수)</span></label>
+            <input type="password" id="password" name="password" class="input"/>
+          </div>
+          <div class="form-group">
+            <label>소속부서</label>
+            <input type="text" id="deptName" name="deptName" class="input"/>
+          </div>
+          <div class="form-group">
+            <label>권한</label>
+            <select id="authId" name="authId" class="input">
+              <option value="">선택</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>시작메뉴</label>
+            <select id="startMenuId" name="startMenuId" class="input">
+              <option value="">선택</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>근무지역</label>
+            <select id="workLocationCode" name="workLocationCode" class="input">
+              <option value="">선택</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>근무유형</label>
+            <input type="text" id="workType" name="workType" class="input"/>
+          </div>
+          <div class="form-group">
+            <label>IP</label>
+            <input type="text" id="deskIp" name="deskIp" class="input"/>
+          </div>
+          <div class="form-group">
+            <label>장치ID</label>
+            <input type="text" id="devId" name="devId" class="input"/>
+          </div>
+          <div class="form-group">
+            <label>사용여부</label>
+            <select id="useYn" name="useYn" class="input">
+              <option value="Y">사용</option>
+              <option value="N">미사용</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>관리자여부</label>
+            <select id="rootYn" name="rootYn" class="input">
+              <option value="N">일반</option>
+              <option value="Y">관리자</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="btnCancel">취소</button>
+      <button class="btn btn-primary" id="btnSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 공통 확인/입력 모달 (fragments/components — 제목/내용은 JS 로 주입) -->
+<div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
+<div th:replace="~{fragments/components/prompt-modal :: promptModal}"></div>
+
+<!-- 메뉴 권한 → JS 전달 (행 버튼 노출 제어. 서버가 2차로 강제하므로 조작해도 실행 불가) -->
+<script th:inline="javascript">
+  window.PAGE_PERM = {
+    canCreate: [[${perm.canCreate}]],
+    canDelete: [[${perm.canDelete}]]
+  };
+</script>
+<script src="/js/web/system/user.js" defer></script>
+</body>
+</html>

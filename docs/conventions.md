@@ -18,7 +18,8 @@
 
 ## 1. 패키지/구조
 - **역할별 평면 구조**: `controller / service / mapper / model / adapter / config / security / common / util`. 도메인별 하위 폴더 금지. (구조 원천: `architecture.md`)
-- 도메인 구분은 **클래스명 접두사**: `Common*`, `Visitor*`, `AcGroup*`, `Menu*`, `System*` …
+- 도메인 구분은 **클래스명 접두사**: `Common*`, `User*`, `Visitor*`, `AcGroup*`, `Menu*`, `System*` …
+  - `User*` = 사용자관리(tb_login_user) 화면 CRUD. 로그인 인증은 `LoginService`(별개).
 - 패키지명 소문자. 클래스만 PascalCase.
 - 공통(범용) 코드 위치: 응답/페이징/예외=`common`, 인증·암호화=`security`, 엑셀 등 유틸=`util`.
 

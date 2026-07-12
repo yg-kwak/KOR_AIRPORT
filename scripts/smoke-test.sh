@@ -74,6 +74,22 @@ check "설정 저장" 200 "$(A -H 'Content-Type: application/json' -X POST --dat
 # 연결 테스트: 실제 BiostarX 없으면 실패(success=false, HTTP 200) — 엔드포인트 동작만 확인
 check "연결 테스트 응답(HTTP 200)" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"biostarIp":"192.168.0.250","biostarId":"admin","biostarPw":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/system/test")"
 
+echo "== 사용자관리(tb_login_user) =="
+A -X DELETE -o /dev/null "$BASE_URL/system/user?userId=smokeusr" || true
+check "사용자 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/system/user")"
+check "사용자 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/user/list?size=5")"
+check "참조 데이터(refs)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/user/refs")"
+# 본문에 비ASCII(한글)를 쓰지 않는다 — Windows Git Bash 가 인자를 CP949 로 넘겨 UTF-8 파싱이 깨짐(브라우저 UTF-8 요청은 정상)
+check "등록" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"userId":"smokeusr","userName":"SmokeUser","password":"pw123","deptName":"OpsTeam","authId":1,"useYn":"Y","rootYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/user")"
+check "목록에 성명 노출(ARIA 복호화)" 0 "$(A "$BASE_URL/system/user/list?searchType=userId&keyword=smokeusr&size=5" | grep -q '"userName":"SmokeUser"' && echo 0 || echo 1)"
+check "비밀번호 미노출(응답에 password 키 없음)" 0 "$(A "$BASE_URL/system/user/list?searchType=userId&keyword=smokeusr&size=5" | grep -q '"password"' && echo 1 || echo 0)"
+check "중복 등록 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"userId":"smokeusr","userName":"dup","password":"x","useYn":"Y","rootYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/user")"
+check "수정(비번 빈값=유지)" 200 "$(A -H 'Content-Type: application/json' -X PUT --data '{"userId":"smokeusr","userName":"SmokeUser2","password":"","deptName":"SecTeam","authId":1,"useYn":"N","rootYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/user")"
+check "관리자여부 부여는 root만(admin=허용 200)" 200 "$(A -H 'Content-Type: application/json' -X PUT --data '{"userId":"smokeusr","userName":"SmokeUser2","password":"","useYn":"N","rootYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/user")"
+check "엑셀 다운로드" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/user/excel?searchType=userId&keyword=smokeusr&purpose=smoke-test")"
+check "본인 삭제 차단(400)" 400 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/user?userId=admin")"
+check "삭제" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/user?userId=smokeusr")"
+
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
 VCODE=$(curl -s -m 2 -c "$CK_V" -o /dev/null -w "%{http_code}" --data "userId=viewer&password=viewer123" "$BASE_URL/login" 2>/dev/null)
 if [ "$VCODE" = "302" ]; then
@@ -81,6 +97,8 @@ if [ "$VCODE" = "302" ]; then
   check "viewer 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode/list?size=1")"
   check "viewer 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"cmmId":"HK","codeId":"X","useYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode")"
   check "viewer 삭제 403"  403 "$(V -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/commonCode?cmmId=AT&codeId=READ")"
+  check "viewer 사용자 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/system/user/list?size=1")"
+  check "viewer 사용자 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"userId":"x","userName":"x","password":"x","useYn":"Y","rootYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/user")"
 else
   bad "viewer 로그인 실패($VCODE) — seed 확인 필요"
 fi
