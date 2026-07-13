@@ -129,6 +129,7 @@ a { color: inherit; text-decoration: none; }
 .lnb-menu { list-style: none; margin: 0; padding: 6px 8px; }
 .lnb-group { position: relative; margin-bottom: 2px; }
 .lnb-group-btn {
+  position: relative; /* active 점(::before)을 그룹 '버튼' 기준으로 고정(하위 펼쳐도 유지) */
   width: 100%; display: flex; align-items: center; gap: 12px;
   background: none; border: none; color: var(--sidebar-text-strong); cursor: pointer;
   padding: 10px 12px; border-radius: var(--radius); font-size: 14px;
