@@ -1,6 +1,7 @@
 package AirPort.controller;
 
 import AirPort.common.ApiResponse;
+import AirPort.common.CurrentMenu;
 import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
 import AirPort.model.MenuNode;
@@ -31,24 +32,32 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequestMapping("/system/systemLog")
 public class SystemLogController {
 
-  private static final int MENU_ID = 305; // tb_menu 의 감사추적 menu_id (seed)
   private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   private final SystemLogService systemLogService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
+  private final CurrentMenu currentMenu; // 요청 URL 로 해석된 menu_id (하드코딩 대체)
 
   public SystemLogController(
-      SystemLogService systemLogService, MenuService menuService, MenuAuthService menuAuthService) {
+      SystemLogService systemLogService,
+      MenuService menuService,
+      MenuAuthService menuAuthService,
+      CurrentMenu currentMenu) {
     this.systemLogService = systemLogService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
+    this.currentMenu = currentMenu;
+  }
+
+  private Integer menuId() {
+    return currentMenu.getMenuId();
   }
 
   /** 화면 */
   @GetMapping
   public String page(Model model, HttpSession session, HttpServletResponse response) {
-    MenuPermission perm = menuAuthService.permissionFor(actor(session), MENU_ID);
+    MenuPermission perm = menuAuthService.permissionFor(actor(session), menuId());
     if (!perm.isCanRead()) {
       response.setStatus(HttpServletResponse.SC_FORBIDDEN);
       return "error/forbidden";
@@ -63,22 +72,22 @@ public class SystemLogController {
   @ResponseBody
   public ApiResponse<PageResult<TbSystemLog>> list(
       SystemLogSearchParam param, HttpSession session) {
-    menuAuthService.requireRead(actor(session), MENU_ID);
-    return ApiResponse.ok(systemLogService.list(param, actor(session), MENU_ID));
+    menuAuthService.requireRead(actor(session), menuId());
+    return ApiResponse.ok(systemLogService.list(param, actor(session), menuId()));
   }
 
   /** 유형 필터 옵션 (AJAX) */
   @GetMapping("/types")
   @ResponseBody
   public ApiResponse<List<TbCommon>> types(HttpSession session) {
-    return ApiResponse.ok(systemLogService.actionTypes(actor(session), MENU_ID));
+    return ApiResponse.ok(systemLogService.actionTypes(actor(session), menuId()));
   }
 
   /** 메뉴 필터 옵션 — 본인 권한 메뉴만 (AJAX) */
   @GetMapping("/menus")
   @ResponseBody
   public ApiResponse<List<MenuNode>> menus(HttpSession session) {
-    return ApiResponse.ok(systemLogService.menuOptions(actor(session), MENU_ID));
+    return ApiResponse.ok(systemLogService.menuOptions(actor(session), menuId()));
   }
 
   /** 엑셀 다운로드 — 현재 검색조건 전체. 목적(purpose)은 감사 remark. */
@@ -90,7 +99,7 @@ public class SystemLogController {
       HttpServletResponse response)
       throws IOException {
     List<TbSystemLog> rows =
-        systemLogService.listAllForExcel(param, actor(session), MENU_ID, purpose);
+        systemLogService.listAllForExcel(param, actor(session), menuId(), purpose);
     String[] headers = {"일시", "사용자ID", "사용자명", "유형", "메뉴", "내용", "비고"};
     List<String[]> data =
         rows.stream()

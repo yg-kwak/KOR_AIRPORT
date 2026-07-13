@@ -1,6 +1,7 @@
 package AirPort.controller;
 
 import AirPort.common.ApiResponse;
+import AirPort.common.CurrentMenu;
 import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
 import AirPort.model.CommonSearchParam;
@@ -37,23 +38,30 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequestMapping("/system/common")
 public class CommonController {
 
-  private static final int MENU_ID = 301; // tb_menu 의 공통코드관리 menu_id (seed)
-
   private final CommonService commonService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
+  private final CurrentMenu currentMenu; // 요청 URL 로 해석된 menu_id (하드코딩 대체)
 
   public CommonController(
-      CommonService commonService, MenuService menuService, MenuAuthService menuAuthService) {
+      CommonService commonService,
+      MenuService menuService,
+      MenuAuthService menuAuthService,
+      CurrentMenu currentMenu) {
     this.commonService = commonService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
+    this.currentMenu = currentMenu;
+  }
+
+  private Integer menuId() {
+    return currentMenu.getMenuId();
   }
 
   /** 화면 — 메뉴 권한(perm)을 내려 버튼 노출을 제어한다(1차 방어). */
   @GetMapping
   public String page(Model model, HttpSession session, HttpServletResponse response) {
-    MenuPermission perm = menuAuthService.permissionFor(actor(session), MENU_ID);
+    MenuPermission perm = menuAuthService.permissionFor(actor(session), menuId());
     if (!perm.isCanRead()) {
       response.setStatus(HttpServletResponse.SC_FORBIDDEN);
       return "error/forbidden"; // 무권한 URL 직접 접근 → 권한 없음 페이지
@@ -67,15 +75,15 @@ public class CommonController {
   @GetMapping("/list")
   @ResponseBody
   public ApiResponse<PageResult<TbCommon>> list(CommonSearchParam param, HttpSession session) {
-    menuAuthService.requireRead(actor(session), MENU_ID);
-    return ApiResponse.ok(commonService.list(param, actor(session), MENU_ID));
+    menuAuthService.requireRead(actor(session), menuId());
+    return ApiResponse.ok(commonService.list(param, actor(session), menuId()));
   }
 
   /** 코드구분 select 목록 — 사용자 추가 허용 구분(user_input='Y')만. (AJAX) */
   @GetMapping("/groups")
   @ResponseBody
   public ApiResponse<java.util.List<TbCommon>> groups(HttpSession session) {
-    return ApiResponse.ok(commonService.addableGroups(actor(session), MENU_ID));
+    return ApiResponse.ok(commonService.addableGroups(actor(session), menuId()));
   }
 
   /** 코드 선택 팝업용 조회 — 로그인 사용자 공용(특정 메뉴 권한 불요). 다른 화면이 tb_common(근무지역 등)을 참조할 때 사용. (AJAX) */
@@ -96,7 +104,7 @@ public class CommonController {
       HttpSession session,
       HttpServletResponse response)
       throws IOException {
-    List<TbCommon> rows = commonService.listAllForExcel(param, actor(session), MENU_ID, purpose);
+    List<TbCommon> rows = commonService.listAllForExcel(param, actor(session), menuId(), purpose);
     String[] headers = {"코드구분ID", "코드구분명", "코드ID", "코드명", "사용여부"};
     List<String[]> data =
         rows.stream()
@@ -121,7 +129,7 @@ public class CommonController {
   @PostMapping
   @ResponseBody
   public ApiResponse<Void> create(@RequestBody TbCommon row, HttpSession session) {
-    commonService.create(row, actor(session), MENU_ID);
+    commonService.create(row, actor(session), menuId());
     return ApiResponse.okMessage("등록되었습니다.");
   }
 
@@ -129,7 +137,7 @@ public class CommonController {
   @PutMapping
   @ResponseBody
   public ApiResponse<Void> update(@RequestBody TbCommon row, HttpSession session) {
-    commonService.update(row, actor(session), MENU_ID);
+    commonService.update(row, actor(session), menuId());
     return ApiResponse.okMessage("수정되었습니다.");
   }
 
@@ -138,7 +146,7 @@ public class CommonController {
   @ResponseBody
   public ApiResponse<Void> delete(
       @RequestParam String cmmId, @RequestParam String codeId, HttpSession session) {
-    commonService.delete(cmmId, codeId, actor(session), MENU_ID);
+    commonService.delete(cmmId, codeId, actor(session), menuId());
     return ApiResponse.okMessage("삭제되었습니다.");
   }
 

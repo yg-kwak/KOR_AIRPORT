@@ -93,8 +93,8 @@ DOMContentLoaded → bind()  → load()
 - **기간(날짜 범위) 필터는 공통 `period`(core/period.js)** — 프리셋 select(`1m/3m/6m/1y/custom`) + 직접입력 시에만 date input 노출. `const ctl = period.attach(sel, rangeBox, startEl, endEl)` → `ctl.value()`(=`{start,end}`), `ctl.reset('1m')`. 기본 1개월, 초기화 시 1개월 복귀·date input 숨김. (마크업: select `#periodType` + `#dateRange`(hidden) 안에 `#startDate`~`#endDate`)
 
 ## 4. Controller — 명명 · endpoint 규칙
-- 클래스: `{Stem}Controller`, 라우팅은 **클래스 상단** `@RequestMapping("/{영역}/{stem}")` (예: `/system/common`). 영역=메뉴 상위(system 등), stem=테이블 어간(§1).
-- 상수: `MENU_ID` — 화면의 tb_menu id(권한·감사에 사용).
+- 클래스: `{Stem}Controller`, 라우팅은 **클래스 상단** `@RequestMapping("/{영역}/{stem}")` (예: `/system/common`). 영역=메뉴 상위(system 등), stem=테이블 어간(§1). **이 매핑 경로 == `tb_menu.menu_url`** 이어야 한다(메뉴 해석의 근거).
+- **menu_id 는 하드코딩하지 않는다.** `MenuAccessInterceptor` 가 요청 URL(=menu_url)을 역조회해 요청 스코프 `CurrentMenu` 에 넣는다. 컨트롤러는 `private Integer menuId() { return currentMenu.getMenuId(); }` 로 받아 권한·감사에 쓴다. → 메뉴 번호가 순수 데이터가 되어 tb_menu 만 바꾸면 됨(권한 menu_id 는 서버가 결정=안전). 페이지 접속(MENU) 감사는 인터셉터가 자동 기록. (`security.md`)
 - 메소드(표준 세트):
 
 | 메소드 | HTTP·경로 | 역할 |

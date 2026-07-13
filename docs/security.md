@@ -21,6 +21,8 @@
 - 민감 작업(권한 부여, 출입그룹 매핑, 설정 변경)은 서버에서 권한을 **재검증**한다(화면 제어만 믿지 않음).
 - **사이드바(LNB)는 read 권한 있는 메뉴만 노출**한다(`MenuService.tree(actor)` — root 는 전체, 하위가 모두 걸러진 그룹은 숨김).
 - **무권한 메뉴 URL 직접 접근** 시 메인 리다이렉트가 아니라 **403 + 권한없음 페이지**(`error/forbidden`)를 보여준다. (AJAX 는 `GlobalExceptionHandler` 가 403 JSON)
+- **menu_id 는 서버가 URL 로 결정**한다(클라이언트가 보내지 않음 = 권한 우회 방지). `MenuAccessInterceptor` 가 요청 URI(=`tb_menu.menu_url`)를 역조회(`MenuService.resolveMenuId`)해 요청 스코프 `CurrentMenu` 에 넣고, 컨트롤러는 그 값을 권한·감사에 쓴다. 메뉴 번호 하드코딩 없음 → tb_menu 데이터만 바꾸면 됨.
+- **메뉴 접속(MENU) 감사**는 인터셉터가 자동 기록한다(정상 200 페이지 GET). 데이터 조회/입력/수정/삭제/다운로드는 서비스가 각각 기록.
 
 ## 암호화 — ARIA (표준 구현 패턴, 불변식)
 개인정보/비밀번호는 **ARIA-256** 으로 암호화하여 저장한다. 참조 구현: `visitor.security.ARIAEngine`, `ARIAUtil` (ROKA 프로젝트에서 이식).

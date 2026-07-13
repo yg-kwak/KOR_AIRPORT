@@ -121,6 +121,9 @@ check "감사추적 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_co
 check "감사 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/list?size=5")"
 check "유형 옵션" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/types")"
 check "유형 옵션에 READ 포함" 0 "$(A "$BASE_URL/system/systemLog/types" | grep -q '"codeId":"READ"' && echo 0 || echo 1)"
+# 메뉴 접속 감사(MENU): 페이지 GET 후 감사로그에 MENU 유형이 남는지(인터셉터가 menu_id 해석)
+curl -s -b "$CK_A" -o /dev/null "$BASE_URL/system/common"  # 메뉴 접속 유발
+check "메뉴 접속 감사(MENU) 기록" 0 "$(A "$BASE_URL/system/systemLog/list?actionType=MENU&size=5" | grep -q '"actionType":"MENU"' && echo 0 || echo 1)"
 check "유형 필터 조회(READ)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/list?actionType=READ&size=5")"
 check "메뉴 옵션(본인 권한)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/menus")"
 check "메뉴 필터 조회(305)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/list?menuId=305&size=5")"

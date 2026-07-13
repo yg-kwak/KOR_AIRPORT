@@ -1,6 +1,7 @@
 package AirPort.controller;
 
 import AirPort.common.ApiResponse;
+import AirPort.common.CurrentMenu;
 import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
 import AirPort.model.LoginUserSearchParam;
@@ -37,23 +38,30 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequestMapping("/system/loginUser")
 public class LoginUserController {
 
-  private static final int MENU_ID = 303; // tb_menu 의 사용자관리 menu_id (seed)
-
   private final LoginUserService userService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
+  private final CurrentMenu currentMenu; // 요청 URL 로 해석된 menu_id (하드코딩 대체)
 
   public LoginUserController(
-      LoginUserService userService, MenuService menuService, MenuAuthService menuAuthService) {
+      LoginUserService userService,
+      MenuService menuService,
+      MenuAuthService menuAuthService,
+      CurrentMenu currentMenu) {
     this.userService = userService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
+    this.currentMenu = currentMenu;
+  }
+
+  private Integer menuId() {
+    return currentMenu.getMenuId();
   }
 
   /** 화면 — 메뉴 권한(perm)을 내려 버튼 노출을 제어한다(1차 방어). */
   @GetMapping
   public String page(Model model, HttpSession session, HttpServletResponse response) {
-    MenuPermission perm = menuAuthService.permissionFor(actor(session), MENU_ID);
+    MenuPermission perm = menuAuthService.permissionFor(actor(session), menuId());
     if (!perm.isCanRead()) {
       response.setStatus(HttpServletResponse.SC_FORBIDDEN);
       return "error/forbidden"; // 무권한 URL 직접 접근 → 권한 없음 페이지
@@ -68,15 +76,15 @@ public class LoginUserController {
   @ResponseBody
   public ApiResponse<PageResult<TbLoginUser>> list(
       LoginUserSearchParam param, HttpSession session) {
-    menuAuthService.requireRead(actor(session), MENU_ID);
-    return ApiResponse.ok(userService.list(param, actor(session), MENU_ID));
+    menuAuthService.requireRead(actor(session), menuId());
+    return ApiResponse.ok(userService.list(param, actor(session), menuId()));
   }
 
   /** 등록/수정 참조 데이터(권한/시작메뉴/근무지역 select). (AJAX) */
   @GetMapping("/refs")
   @ResponseBody
   public ApiResponse<Map<String, Object>> refs(HttpSession session) {
-    return ApiResponse.ok(userService.refs(actor(session), MENU_ID));
+    return ApiResponse.ok(userService.refs(actor(session), menuId()));
   }
 
   /** 엑셀 다운로드 — 현재 검색/정렬 조건의 전체 데이터. 목적(purpose)은 감사 remark 로 기록. */
@@ -87,7 +95,7 @@ public class LoginUserController {
       HttpSession session,
       HttpServletResponse response)
       throws IOException {
-    List<TbLoginUser> rows = userService.listAllForExcel(param, actor(session), MENU_ID, purpose);
+    List<TbLoginUser> rows = userService.listAllForExcel(param, actor(session), menuId(), purpose);
     String[] headers = {"사용자ID", "성명", "소속부서", "권한", "사용여부", "관리자여부"};
     List<String[]> data =
         rows.stream()
@@ -111,7 +119,7 @@ public class LoginUserController {
   @PostMapping
   @ResponseBody
   public ApiResponse<Void> create(@RequestBody TbLoginUser row, HttpSession session) {
-    userService.create(row, actor(session), MENU_ID);
+    userService.create(row, actor(session), menuId());
     return ApiResponse.okMessage("등록되었습니다.");
   }
 
@@ -119,7 +127,7 @@ public class LoginUserController {
   @PutMapping
   @ResponseBody
   public ApiResponse<Void> update(@RequestBody TbLoginUser row, HttpSession session) {
-    userService.update(row, actor(session), MENU_ID);
+    userService.update(row, actor(session), menuId());
     return ApiResponse.okMessage("수정되었습니다.");
   }
 
@@ -127,7 +135,7 @@ public class LoginUserController {
   @DeleteMapping
   @ResponseBody
   public ApiResponse<Void> delete(@RequestParam String userId, HttpSession session) {
-    userService.delete(userId, actor(session), MENU_ID);
+    userService.delete(userId, actor(session), menuId());
     return ApiResponse.okMessage("삭제되었습니다.");
   }
 

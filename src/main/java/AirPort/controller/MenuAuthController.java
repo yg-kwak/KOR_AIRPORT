@@ -1,6 +1,7 @@
 package AirPort.controller;
 
 import AirPort.common.ApiResponse;
+import AirPort.common.CurrentMenu;
 import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
 import AirPort.model.MenuAuthForm;
@@ -35,20 +36,25 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequestMapping("/system/menuAuth")
 public class MenuAuthController {
 
-  private static final int MENU_ID = 304; // tb_menu 의 권한메뉴관리 menu_id (seed)
-
   private final MenuAuthService menuAuthService;
   private final MenuService menuService;
+  private final CurrentMenu currentMenu; // 요청 URL 로 해석된 menu_id (하드코딩 대체)
 
-  public MenuAuthController(MenuAuthService menuAuthService, MenuService menuService) {
+  public MenuAuthController(
+      MenuAuthService menuAuthService, MenuService menuService, CurrentMenu currentMenu) {
     this.menuAuthService = menuAuthService;
     this.menuService = menuService;
+    this.currentMenu = currentMenu;
+  }
+
+  private Integer menuId() {
+    return currentMenu.getMenuId();
   }
 
   /** 화면 */
   @GetMapping
   public String page(Model model, HttpSession session, HttpServletResponse response) {
-    MenuPermission perm = menuAuthService.permissionFor(actor(session), MENU_ID);
+    MenuPermission perm = menuAuthService.permissionFor(actor(session), menuId());
     if (!perm.isCanRead()) {
       response.setStatus(HttpServletResponse.SC_FORBIDDEN);
       return "error/forbidden";
@@ -62,22 +68,22 @@ public class MenuAuthController {
   @GetMapping("/list")
   @ResponseBody
   public ApiResponse<PageResult<TbMenuAuth>> list(MenuAuthSearchParam param, HttpSession session) {
-    menuAuthService.requireRead(actor(session), MENU_ID);
-    return ApiResponse.ok(menuAuthService.list(param, actor(session), MENU_ID));
+    menuAuthService.requireRead(actor(session), menuId());
+    return ApiResponse.ok(menuAuthService.list(param, actor(session), menuId()));
   }
 
   /** 권한 선택 트리가 될 전체 메뉴 트리 (AJAX) */
   @GetMapping("/menus")
   @ResponseBody
   public ApiResponse<List<MenuNode>> menus(HttpSession session) {
-    return ApiResponse.ok(menuAuthService.menuTree(actor(session), MENU_ID));
+    return ApiResponse.ok(menuAuthService.menuTree(actor(session), menuId()));
   }
 
   /** 특정 권한의 메뉴권한 상세 (AJAX) */
   @GetMapping("/detail")
   @ResponseBody
   public ApiResponse<List<TbMenuAuthDetail>> detail(@RequestParam int authId, HttpSession session) {
-    return ApiResponse.ok(menuAuthService.detail(authId, actor(session), MENU_ID));
+    return ApiResponse.ok(menuAuthService.detail(authId, actor(session), menuId()));
   }
 
   /** 엑셀 다운로드 — 권한 목록. 목적(purpose)은 감사 remark. */
@@ -89,7 +95,7 @@ public class MenuAuthController {
       HttpServletResponse response)
       throws IOException {
     List<TbMenuAuth> rows =
-        menuAuthService.listAllForExcel(param, actor(session), MENU_ID, purpose);
+        menuAuthService.listAllForExcel(param, actor(session), menuId(), purpose);
     String[] headers = {"권한ID", "권한명", "메뉴권한수"};
     List<String[]> data =
         rows.stream()
@@ -110,7 +116,7 @@ public class MenuAuthController {
   @PostMapping
   @ResponseBody
   public ApiResponse<Void> create(@RequestBody MenuAuthForm form, HttpSession session) {
-    menuAuthService.create(form, actor(session), MENU_ID);
+    menuAuthService.create(form, actor(session), menuId());
     return ApiResponse.okMessage("등록되었습니다.");
   }
 
@@ -118,7 +124,7 @@ public class MenuAuthController {
   @PutMapping
   @ResponseBody
   public ApiResponse<Void> update(@RequestBody MenuAuthForm form, HttpSession session) {
-    menuAuthService.update(form, actor(session), MENU_ID);
+    menuAuthService.update(form, actor(session), menuId());
     return ApiResponse.okMessage("수정되었습니다.");
   }
 
@@ -126,7 +132,7 @@ public class MenuAuthController {
   @DeleteMapping
   @ResponseBody
   public ApiResponse<Void> delete(@RequestParam int authId, HttpSession session) {
-    menuAuthService.delete(authId, actor(session), MENU_ID);
+    menuAuthService.delete(authId, actor(session), menuId());
     return ApiResponse.okMessage("삭제되었습니다.");
   }
 

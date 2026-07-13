@@ -48,10 +48,10 @@ public class MenuAuthService {
 
   // ── 권한 판정·강제(런타임) ───────────────────────────────────
 
-  /** 사용자의 해당 메뉴 권한을 조회한다. 권한 매핑이 없으면 NONE. */
-  public MenuPermission permissionFor(TbLoginUser user, int menuId) {
-    if (user == null) {
-      return MenuPermission.NONE;
+  /** 사용자의 해당 메뉴 권한을 조회한다. 사용자/메뉴가 없거나 권한 매핑이 없으면 NONE. */
+  public MenuPermission permissionFor(TbLoginUser user, Integer menuId) {
+    if (user == null || menuId == null) {
+      return MenuPermission.NONE; // 메뉴 미해석(예: tb_menu 에 URL 없음) → 거부(안전)
     }
     if (user.isRoot()) {
       return MenuPermission.ALL;
@@ -67,20 +67,20 @@ public class MenuAuthService {
         "Y".equals(d.getReadAuth()), "Y".equals(d.getCreateAuth()), "Y".equals(d.getDeleteAuth()));
   }
 
-  public void requireRead(TbLoginUser user, int menuId) {
+  public void requireRead(TbLoginUser user, Integer menuId) {
     if (!permissionFor(user, menuId).isCanRead()) {
       throw new BusinessException(ErrorCode.FORBIDDEN, "조회 권한이 없습니다.");
     }
   }
 
   /** 등록·수정 공통(정책: create_auth 로 판정). */
-  public void requireCreate(TbLoginUser user, int menuId) {
+  public void requireCreate(TbLoginUser user, Integer menuId) {
     if (!permissionFor(user, menuId).isCanCreate()) {
       throw new BusinessException(ErrorCode.FORBIDDEN, "등록/수정 권한이 없습니다.");
     }
   }
 
-  public void requireDelete(TbLoginUser user, int menuId) {
+  public void requireDelete(TbLoginUser user, Integer menuId) {
     if (!permissionFor(user, menuId).isCanDelete()) {
       throw new BusinessException(ErrorCode.FORBIDDEN, "삭제 권한이 없습니다.");
     }

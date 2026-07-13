@@ -8,26 +8,33 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-  private final AuthInterceptor authInterceptor;
+  private static final String[] EXCLUDES = {
+    "/login",
+    "/logout",
+    "/error",
+    "/favicon.ico",
+    "/css/**",
+    "/js/**",
+    "/ic/**",
+    "/images/**",
+    "/font/**"
+  };
 
-  public WebConfig(AuthInterceptor authInterceptor) {
+  private final AuthInterceptor authInterceptor;
+  private final MenuAccessInterceptor menuAccessInterceptor;
+
+  public WebConfig(AuthInterceptor authInterceptor, MenuAccessInterceptor menuAccessInterceptor) {
     this.authInterceptor = authInterceptor;
+    this.menuAccessInterceptor = menuAccessInterceptor;
   }
 
   @Override
   public void addInterceptors(InterceptorRegistry registry) {
+    // 인증 먼저, 그 다음 메뉴 해석/접속감사(인증된 요청만 대상)
+    registry.addInterceptor(authInterceptor).addPathPatterns("/**").excludePathPatterns(EXCLUDES);
     registry
-        .addInterceptor(authInterceptor)
+        .addInterceptor(menuAccessInterceptor)
         .addPathPatterns("/**")
-        .excludePathPatterns(
-            "/login",
-            "/logout",
-            "/error",
-            "/favicon.ico",
-            "/css/**",
-            "/js/**",
-            "/ic/**",
-            "/images/**",
-            "/font/**");
+        .excludePathPatterns(EXCLUDES);
   }
 }

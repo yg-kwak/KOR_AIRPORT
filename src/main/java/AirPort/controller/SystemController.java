@@ -2,6 +2,7 @@ package AirPort.controller;
 
 import AirPort.adapter.BiostarResult;
 import AirPort.common.ApiResponse;
+import AirPort.common.CurrentMenu;
 import AirPort.common.SessionKeys;
 import AirPort.model.MenuPermission;
 import AirPort.model.TbLoginUser;
@@ -24,30 +25,37 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequestMapping("/system/system")
 public class SystemController {
 
-  private static final int MENU_ID = 302; // tb_menu 의 설정관리 menu_id (seed)
-
   private final SystemService systemService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
+  private final CurrentMenu currentMenu; // 요청 URL 로 해석된 menu_id (하드코딩 대체)
 
   public SystemController(
-      SystemService systemService, MenuService menuService, MenuAuthService menuAuthService) {
+      SystemService systemService,
+      MenuService menuService,
+      MenuAuthService menuAuthService,
+      CurrentMenu currentMenu) {
     this.systemService = systemService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
+    this.currentMenu = currentMenu;
+  }
+
+  private Integer menuId() {
+    return currentMenu.getMenuId();
   }
 
   /** 화면 */
   @GetMapping
   public String page(Model model, HttpSession session, HttpServletResponse response) {
-    MenuPermission perm = menuAuthService.permissionFor(actor(session), MENU_ID);
+    MenuPermission perm = menuAuthService.permissionFor(actor(session), menuId());
     if (!perm.isCanRead()) {
       response.setStatus(HttpServletResponse.SC_FORBIDDEN);
       return "error/forbidden"; // 무권한 URL 직접 접근 → 권한 없음 페이지
     }
     model.addAttribute("menus", menuService.tree(actor(session)));
     model.addAttribute("perm", perm);
-    model.addAttribute("system", systemService.getForView(actor(session), MENU_ID));
+    model.addAttribute("system", systemService.getForView(actor(session), menuId()));
     return "web/system/system";
   }
 
@@ -55,7 +63,7 @@ public class SystemController {
   @PostMapping
   @ResponseBody
   public ApiResponse<Void> save(@RequestBody TbSystem input, HttpSession session) {
-    systemService.save(input, actor(session), MENU_ID);
+    systemService.save(input, actor(session), menuId());
     return ApiResponse.okMessage("저장되었습니다.");
   }
 
@@ -63,7 +71,7 @@ public class SystemController {
   @PostMapping("/test")
   @ResponseBody
   public ApiResponse<Void> test(@RequestBody TbSystem input, HttpSession session) {
-    BiostarResult result = systemService.testConnection(input, actor(session), MENU_ID);
+    BiostarResult result = systemService.testConnection(input, actor(session), menuId());
     return result.success()
         ? ApiResponse.okMessage("BiostarX 연결에 성공했습니다.")
         : ApiResponse.fail("BIOSTAR_TEST", "BiostarX 연결 실패: " + result.message());

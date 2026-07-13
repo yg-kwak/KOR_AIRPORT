@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] menu_id 하드코딩 제거 — 요청 URL(=menu_url) 서버 역조회로 menu_id 결정(MenuAccessInterceptor+CurrentMenu). 컨트롤러 MENU_ID 상수 삭제, 메뉴 접속(MENU) 감사 자동화(누락분 해결) — yg-kwak, 2026-07-13
 - [x] 공통화: 윈도우형 페이징(core/pager.js)·기간 프리셋(core/period.js)을 core 컴포넌트로 추출, 전 목록화면(공통코드·사용자·감사추적) 적용 + conventions/frontend 규칙 등록 — yg-kwak, 2026-07-13
 - [x] 감사추적(tb_system_log) 조회 전용 페이지 — 기간·유형·검색어 필터, 유형/메뉴 조인 표시, 엑셀(목적 감사), 최신순 기본 정렬. 조회/엑셀도 자체 감사 기록 — yg-kwak, 2026-07-13
 - [x] 권한메뉴관리 트리에 메뉴별 조회/입력·수정/삭제 체크 추가 — 선택=조회, 미선택 시 입력·수정/삭제 해제·비활성. smoke 가드(시드 권한 auth_id≤2 update/delete 금지) — yg-kwak, 2026-07-13
