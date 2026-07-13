@@ -17,13 +17,14 @@
   - web·kiosk **양쪽 공용**이면 → `templates/fragments/components/`
   - **web 전용**이면 → `templates/web/components/`, **kiosk 전용**이면 → `templates/kiosk/components/`
 - 화면에서 모달을 새로 복제하지 말고 위 조각을 `th:replace` 로 불러 쓴다.
+- **모달 조각 파일명은 `{이름}-modal.html`**, 짝이 되는 스크립트는 **`static/js/core/components/{이름}-modal.js`**(공용) 로 둔다. 예: `confirm-modal` · `prompt-modal` · `code-picker-modal`. 컴포넌트 스크립트는 `js/core/` 루트가 아니라 **`js/core/components/`** 아래에 모은다.
 
 ## 디렉터리 구조 (리소스 내부)
 ```
 src/main/resources/
 ├── templates/
 │   ├── fragments/            전역 레이아웃 조각: head, main(레이아웃), sidebar
-│   │   └── components/       (선택) web·kiosk 공용 모달/팝업
+│   │   └── components/       web·kiosk 공용 모달/팝업 — 파일명 {이름}-modal.html (confirm-modal, prompt-modal, code-picker-modal)
 │   ├── login.html
 │   ├── web/                  관리자 웹
 │   │   ├── {도메인}/          system, visitor, ... 도메인별 화면
@@ -38,7 +39,8 @@ src/main/resources/
     ├── images/
     └── js/
         ├── common.js, common/    공용 라이브러리
-        ├── core/                 app.js(fetch), toast, confirm/prompt-modal, code-picker(코드 팝업), sidebar(계층·접기·플라이아웃), no-autofill(입력이력 차단), password-toggle(비번 표시) 등 공통 뼈대
+        ├── core/                 공통 뼈대: app.js(fetch), toast, sidebar(계층·접기·플라이아웃), no-autofill(입력이력 차단), password-toggle(비번 표시)
+        │   └── components/       공용 모달/팝업 컴포넌트 스크립트(fragments/components 와 1:1): {이름}-modal.js (confirm-modal, prompt-modal, code-picker-modal)
         ├── web/
         │   ├── {도메인}/          화면별 스크립트
         │   └── components/       조각별 스크립트

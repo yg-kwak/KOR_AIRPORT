@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <!-- 공통 코드 선택 팝업(tb_common 참조). 코드구분(cmmId)·검색어로 조회 후 한 건 선택.
-     사용: <div th:replace="~{fragments/components/code-picker :: codePicker}"></div>
+     사용: <div th:replace="~{fragments/components/code-picker-modal :: codePicker}"></div>
           const sel = await codePicker.open({ cmmId:'LO', cmmName:'근무지역' }); // {codeId, codeName} 또는 null -->
 <div th:fragment="codePicker" class="modal-overlay code-picker-overlay" id="codePickerModal">
   <div class="modal-container wide">

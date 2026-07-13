@@ -1,4 +1,4 @@
-/* 공통 코드 선택 팝업 (fragments/components/code-picker.html 과 한 쌍).
+/* 공통 코드 선택 팝업 (fragments/components/code-picker-modal.html 과 한 쌍).
    const sel = await codePicker.open({ cmmId, cmmName });  // 선택 시 {codeId, codeName}, 닫으면 null
    tb_common 참조를 select 대신 팝업으로 조회하는 화면에서 공용으로 사용한다. */
 window.codePicker = (function () {

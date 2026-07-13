@@ -55,8 +55,9 @@
 - **필수 입력 표시**: 필수 항목 라벨 뒤에 `<span class="req">*</span>`(붉은 별). 서버가 반드시 재검증한다(화면 표시는 안내일 뿐).
   - **신규 메뉴/화면을 만들 때 필수값에는 빠짐없이 `*` 를 넣는다.** 사용자가 어떤 항목이 필수인지 지정하지 않으면 **AI 가 도메인·검증 로직으로 판단해 표기**한다(예: PK·이름·자격/권한 등). `*` 를 붙인 항목은 클라이언트 + 서버 양쪽에서 필수 검증을 건다(표기와 검증 일치).
 - **비밀번호 입력**: `type=password` 면 표시/숨김(눈) 토글이 자동 부착된다(`core/password-toggle.js`, 전 페이지·동적 추가분 포함). 별도 마크업 불필요.
-- **코드(tb_common) 참조 = 코드 팝업**: 다른 화면에서 tb_common 코드를 고를 때는 `<select>` 대신 **공통 코드 팝업**을 쓴다. 마크업은 코드ID(`type=hidden`) + 코드명(`.input.picker-field` readonly, 클릭 시 팝업, `data-target="{hidden id}"`). 팝업 조각 `fragments/components/code-picker` 포함 후 `const sel = await codePicker.open({cmmId, cmmName})`(선택=`{codeId,codeName}`, 닫힘=`null`). 서버 조회는 `GET /system/common/picker?cmmId=&keyword=`(로그인만 필요, 특정 메뉴 권한 불요, 참조라 감사 미기록).
-- **클릭 선택 필드는 '삭제' 버튼 필수**: `.picker-field`(클릭해서 값을 채우는 입력)는 값을 비울 수 있도록 우측에 삭제 버튼을 둔다. **별도 마크업 불필요** — `core/code-picker.js` 가 모든 `.picker-field` 우측에 삭제 버튼을 자동 부착하고, 클릭 시 표시값과 `data-target` 의 hidden(코드값)을 함께 비운다.
+- **코드(tb_common) 참조 = 코드 팝업**: 다른 화면에서 tb_common 코드를 고를 때는 `<select>` 대신 **공통 코드 팝업**을 쓴다. 마크업은 코드ID(`type=hidden`) + 코드명(`.input.picker-field` readonly, 클릭 시 팝업, `data-target="{hidden id}"`). 팝업 조각 `fragments/components/code-picker-modal` 포함 후 `const sel = await codePicker.open({cmmId, cmmName})`(선택=`{codeId,codeName}`, 닫힘=`null`). 서버 조회는 `GET /system/common/picker?cmmId=&keyword=`(로그인만 필요, 특정 메뉴 권한 불요, 참조라 감사 미기록).
+- **클릭 선택 필드는 '삭제' 버튼 필수**: `.picker-field`(클릭해서 값을 채우는 입력)는 값을 비울 수 있도록 우측에 삭제 버튼을 둔다. **별도 마크업 불필요** — `core/components/code-picker-modal.js` 가 모든 `.picker-field` 우측에 삭제 버튼을 자동 부착하고, 클릭 시 표시값과 `data-target` 의 hidden(코드값)을 함께 비운다.
+- **공용 모달/팝업 컴포넌트 네이밍·위치**: 조각은 `templates/fragments/components/{이름}-modal.html`, 짝 스크립트는 `static/js/core/components/{이름}-modal.js`(`js/core` 루트가 아닌 `core/components/` 아래). 예: `confirm-modal` · `prompt-modal` · `code-picker-modal`. (`frontend.md`)
 
 ## 3. JavaScript — 명명 규칙 · 호출 흐름
 **파일**: 화면당 1개, 템플릿과 **미러 경로**(`templates/web/system/common.html` ↔ `static/js/web/system/common.js`). 파일명=테이블 어간(§1). 전체를 IIFE `(function(){ ... })()` 로 감싼다(전역 오염 방지).
