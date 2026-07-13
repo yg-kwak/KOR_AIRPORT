@@ -254,11 +254,16 @@ a { color: inherit; text-decoration: none; }
 /* 우측 메뉴 선택 트리 */
 .perm-tree-head { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 6px; }
 .perm-tree-btns { display: flex; gap: 6px; }
-.perm-tree { border: 1px solid var(--color-tertiary-active); border-radius: var(--radius-sm); padding: 8px 6px; max-height: 460px; overflow: auto; }
-.tree-row { padding: 5px 8px; border-radius: var(--radius-sm); }
+.perm-tree { border: 1px solid var(--color-tertiary-active); border-radius: var(--radius-sm); max-height: 460px; overflow: auto; }
+.tree-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 10px; }
 .tree-row:hover { background: var(--color-tertiary-hover); }
-.tree-label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; }
+.tree-label { flex: 1; min-width: 0; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; }
 .tree-branch { color: var(--neutral-500); margin-right: 2px; }
+.tree-crud { display: flex; flex-shrink: 0; }
+.crud-cell { width: 84px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; color: var(--neutral-700); }
+.crud-cell input { cursor: pointer; }
+.tree-head { position: sticky; top: 0; z-index: 1; background: var(--color-tertiary-hover); font-weight: 700; border-bottom: 1px solid var(--color-tertiary-active); }
+.tree-head .tree-label, .tree-head .crud-cell { color: var(--neutral-700); }
 @media (max-width: 1024px) { .perm-layout { flex-direction: column; } .perm-left { width: 100%; } }
 
 /* 필드 많은 폼(사용자 등) — 2열 그리드. .full 은 한 줄 전체 차지 */

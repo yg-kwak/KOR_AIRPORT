@@ -100,15 +100,21 @@ check "권한 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "
 check "권한 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/list?size=5")"
 check "권한 메뉴 트리" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/menus")"
 check "권한 상세(admin auth=1)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/detail?authId=1")"
-# 등록: 권한명 + 매트릭스(메뉴 301 조회만)
+# 등록: 권한명 + 메뉴 301(조회만). 시드 권한(auth_id<=2)은 절대 update/delete 하지 않는다.
 SMOKE_AUTH="$(A -H 'Content-Type: application/json' -X POST --data '{"authName":"SmokeAuth","details":[{"menuId":301,"readAuth":"Y","createAuth":"N","deleteAuth":"N"}]}' "$BASE_URL/system/menuAuth")"
 check "권한 등록" 0 "$(case "$SMOKE_AUTH" in *'"success":true'*) echo 0;; *) echo 1;; esac)"
-NEW_AUTH_ID="$(A "$BASE_URL/system/menuAuth/list?keyword=SmokeAuth&size=5" | grep -o '"authId":[0-9]*' | head -1 | grep -o '[0-9]*')"
+# 방금 만든 SmokeAuth 의 authId = keyword 필터 결과 중 최대값(SIGPIPE 회피 위해 head 대신 sort|tail)
+NEW_AUTH_ID="$(A "$BASE_URL/system/menuAuth/list?keyword=SmokeAuth&size=50" | grep -o '"authId":[0-9]*' | grep -o '[0-9]*' | sort -n | tail -1)"
+[ -z "$NEW_AUTH_ID" ] && NEW_AUTH_ID=0
 check "권한명 누락 등록 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"authName":"","details":[]}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth")"
-check "권한 수정" 200 "$(A -H 'Content-Type: application/json' -X PUT --data "{\"authId\":${NEW_AUTH_ID:-0},\"authName\":\"SmokeAuth2\",\"details\":[{\"menuId\":301,\"readAuth\":\"Y\",\"createAuth\":\"Y\",\"deleteAuth\":\"N\"}]}" -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth")"
 check "권한 엑셀" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/excel?keyword=SmokeAuth&purpose=smoke-test")"
 check "사용중 권한 삭제 차단(admin auth=1, 400)" 400 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth?authId=1")"
-check "권한 삭제(미사용)" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth?authId=${NEW_AUTH_ID:-0}")"
+if [ "$NEW_AUTH_ID" -gt 2 ]; then
+  check "권한 수정" 200 "$(A -H 'Content-Type: application/json' -X PUT --data "{\"authId\":${NEW_AUTH_ID},\"authName\":\"SmokeAuth2\",\"details\":[{\"menuId\":301,\"readAuth\":\"Y\",\"createAuth\":\"Y\",\"deleteAuth\":\"N\"}]}" -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth")"
+  check "권한 삭제(미사용)" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth?authId=${NEW_AUTH_ID}")"
+else
+  bad "SmokeAuth authId 추출 실패($NEW_AUTH_ID) — 시드 권한 보호 위해 수정/삭제 건너뜀"
+fi
 
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
 VCODE=$(curl -s -m 2 -c "$CK_V" -o /dev/null -w "%{http_code}" --data "userId=viewer&password=viewer123" "$BASE_URL/login" 2>/dev/null)
