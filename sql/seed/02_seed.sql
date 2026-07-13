@@ -29,7 +29,8 @@ INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_leve
   (300, N'시스템관리',   NULL, NULL,                 1, 1, 'settings', 'Y'),
   (301, N'공통코드관리', 300,  '/system/common',     2, 1, NULL,       'Y'),
   (302, N'설정관리',     300,  '/system/system',     2, 2, NULL,       'Y'),
-  (303, N'사용자관리',   300,  '/system/loginUser',  2, 3, NULL,       'Y');
+  (303, N'사용자관리',   300,  '/system/loginUser',  2, 3, NULL,       'Y'),
+  (304, N'권한메뉴관리', 300,  '/system/menuAuth',   2, 4, NULL,       'Y');
 
 /* 관리자 권한 + 공통코드관리 전권 + 관리자 계정 */
 INSERT INTO dbo.tb_menu_auth (auth_name) VALUES (N'관리자');
@@ -37,7 +38,8 @@ DECLARE @authId int = SCOPE_IDENTITY();
 
 INSERT INTO dbo.tb_menu_auth_detail (auth_id, menu_id, read_auth, create_auth, update_auth, delete_auth)
 VALUES (@authId, 301, 'Y', 'Y', 'Y', 'Y'),
-       (@authId, 303, 'Y', 'Y', 'Y', 'Y');
+       (@authId, 303, 'Y', 'Y', 'Y', 'Y'),
+       (@authId, 304, 'Y', 'Y', 'Y', 'Y');
 
 /* 관리자 계정: 아이디 admin / 비밀번호 admin123 (ARIA 암호문) */
 INSERT INTO dbo.tb_login_user
@@ -54,7 +56,8 @@ DECLARE @viewerAuthId int = SCOPE_IDENTITY();
 
 INSERT INTO dbo.tb_menu_auth_detail (auth_id, menu_id, read_auth, create_auth, update_auth, delete_auth)
 VALUES (@viewerAuthId, 301, 'Y', 'N', 'N', 'N'),
-       (@viewerAuthId, 303, 'Y', 'N', 'N', 'N');
+       (@viewerAuthId, 303, 'Y', 'N', 'N', 'N'),
+       (@viewerAuthId, 304, 'Y', 'N', 'N', 'N');
 
 INSERT INTO dbo.tb_login_user
   (user_id, user_name, password, dept_name, use_yn, root_yn, auth_id, start_menu_id, work_location_code)

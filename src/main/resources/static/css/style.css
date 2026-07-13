@@ -233,6 +233,12 @@ a { color: inherit; text-decoration: none; }
 .form-group label { font-size: 13px; color: var(--neutral-900); }
 .form-hint { font-size: 11px; color: var(--neutral-500); font-weight: 400; }
 
+/* 권한 매트릭스(메뉴 × CRUD 체크박스) — 스크롤 + sticky 헤더 */
+.form-group-label { display: block; font-size: 13px; font-weight: 700; color: var(--neutral-900); margin: 4px 0 6px; }
+.matrix-wrap { max-height: 320px; overflow: auto; border: 1px solid var(--color-tertiary-active); border-radius: var(--radius-sm); }
+.matrix-grid th { position: sticky; top: 0; z-index: 1; }
+.matrix-all { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; font-weight: 700; }
+
 /* 필드 많은 폼(사용자 등) — 2열 그리드. .full 은 한 줄 전체 차지 */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 .form-grid .full { grid-column: 1 / -1; }

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('권한메뉴관리')}"></head>
+<body>
+<div th:replace="~{fragments/main :: header}"></div>
+<div class="layout-container">
+  <div th:replace="~{fragments/sidebar :: sidebar(${menus})}"></div>
+  <main class="layout-content">
+    <h2>권한메뉴관리</h2>
+
+    <!-- 검색 -->
+    <section class="search-section">
+      <div class="search-field">
+        <label>검색어</label>
+        <input type="text" id="keyword" class="input w-300" placeholder="권한명을 입력해주세요"/>
+      </div>
+      <button class="btn btn-primary" id="btnSearch">검색</button>
+      <button class="btn" id="btnReset">초기화</button>
+    </section>
+
+    <!-- 목록 -->
+    <section class="content-card">
+      <div class="grid-toolbar">
+        <span class="grid-total" id="totalInfo"></span>
+        <div class="grid-actions">
+          <button class="btn" id="btnNew" th:if="${perm.canCreate}">등록</button>
+          <button class="btn" id="btnExcel">엑셀 다운로드</button>
+          <select id="pageSize" class="input">
+            <option value="30">30개씩 보기</option>
+            <option value="50">50개씩 보기</option>
+            <option value="100">100개씩 보기</option>
+            <option value="200">200개씩 보기</option>
+          </select>
+        </div>
+      </div>
+      <table class="grid">
+        <thead>
+        <tr>
+          <th class="w-120 sortable" data-sort="authId">권한ID<span class="sort-ind"></span></th>
+          <th class="sortable" data-sort="authName">권한명<span class="sort-ind"></span></th>
+          <th class="w-120">메뉴권한수</th>
+          <th class="w-120">관리</th>
+        </tr>
+        </thead>
+        <tbody id="gridBody">
+        <tr><td colspan="4" class="empty">조회 결과가 없습니다.</td></tr>
+        </tbody>
+      </table>
+      <div class="paging" id="paging"></div>
+    </section>
+  </main>
+</div>
+
+<!-- 등록/수정 모달 (권한명 + 메뉴 권한 매트릭스) -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-container wide">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">권한 등록</h2>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="editForm">
+        <input type="hidden" id="mode" value="create"/>
+        <input type="hidden" id="authId"/>
+        <div class="form-group">
+          <label>권한명 <span class="req">*</span></label>
+          <input type="text" id="authName" name="authName" class="input" required/>
+        </div>
+        <label class="form-group-label">메뉴 권한</label>
+        <div class="matrix-wrap">
+          <table class="grid matrix-grid">
+            <thead>
+            <tr>
+              <th style="text-align:left">메뉴</th>
+              <th class="w-80"><label class="matrix-all"><input type="checkbox" data-all="read"/> 조회</label></th>
+              <th class="w-80"><label class="matrix-all"><input type="checkbox" data-all="create"/> 등록·수정</label></th>
+              <th class="w-80"><label class="matrix-all"><input type="checkbox" data-all="del"/> 삭제</label></th>
+            </tr>
+            </thead>
+            <tbody id="matrixBody"></tbody>
+          </table>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="btnCancel">취소</button>
+      <button class="btn btn-primary" id="btnSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
+<div th:replace="~{fragments/components/prompt-modal :: promptModal}"></div>
+
+<script th:inline="javascript">
+  window.PAGE_PERM = { canCreate: [[${perm.canCreate}]], canDelete: [[${perm.canDelete}]] };
+</script>
+<script src="/js/web/system/menuAuth.js" defer></script>
+</body>
+</html>

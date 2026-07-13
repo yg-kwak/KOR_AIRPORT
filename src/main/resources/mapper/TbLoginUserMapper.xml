@@ -117,4 +117,8 @@
     DELETE FROM tb_login_user WHERE user_id = #{userId}
   </delete>
 
+  <select id="countByAuthId" resultType="int">
+    SELECT COUNT(*) FROM tb_login_user WHERE auth_id = #{authId}
+  </select>
+
 </mapper>

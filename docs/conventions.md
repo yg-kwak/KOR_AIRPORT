@@ -29,6 +29,7 @@
 
   - **한 테이블에 화면이 여러 개**면 그때만 `{stem}{구분}` 으로 분기하고(예: `commonCode`, `commonGroup`) 이 예외를 여기 등록한다. 기본은 1테이블=1토큰.
   - 로그인 인증 로직은 화면 CRUD 와 별개인 `LoginService`(그대로 유지).
+  - `MenuAuthService`(stem `menuAuth`, tb_menu_auth)는 **런타임 권한 판정(`permissionFor`/`require*`)과 권한메뉴관리 화면 CRUD 를 함께** 담당한다(한 도메인). 메뉴권한 상세=tb_menu_auth_detail, `update_auth` 는 `create_auth` 와 동일 저장(정책상 등록=수정).
 - 패키지명 소문자. 클래스만 PascalCase.
 - 공통(범용) 코드 위치: 응답/페이징/예외=`common`, 인증·암호화=`security`, 엑셀 등 유틸=`util`.
 

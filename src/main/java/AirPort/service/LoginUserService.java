@@ -90,7 +90,7 @@ public class LoginUserService {
   public Map<String, Object> refs(TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
     Map<String, Object> refs = new LinkedHashMap<>();
-    refs.put("auths", menuAuthMapper.selectList());
+    refs.put("auths", menuAuthMapper.selectOptions());
     return refs;
   }
 

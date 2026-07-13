@@ -26,4 +26,7 @@ public interface TbLoginUserMapper {
   int update(TbLoginUser row);
 
   int delete(@Param("userId") String userId);
+
+  /** 특정 권한을 쓰는 사용자 수(권한 삭제 가드용). */
+  int countByAuthId(@Param("authId") int authId);
 }

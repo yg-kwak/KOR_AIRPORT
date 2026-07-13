@@ -9,4 +9,20 @@
     WHERE auth_id = #{authId} AND menu_id = #{menuId}
   </select>
 
+  <select id="selectByAuthId" resultType="TbMenuAuthDetail">
+    SELECT auth_id, menu_id, read_auth, create_auth, update_auth, delete_auth
+    FROM tb_menu_auth_detail
+    WHERE auth_id = #{authId}
+  </select>
+
+  <delete id="deleteByAuthId">
+    DELETE FROM tb_menu_auth_detail WHERE auth_id = #{authId}
+  </delete>
+
+  <insert id="insert" parameterType="TbMenuAuthDetail">
+    INSERT INTO tb_menu_auth_detail (auth_id, menu_id, read_auth, create_auth, update_auth, delete_auth)
+    VALUES (#{authId}, #{menuId}, ISNULL(#{readAuth},'N'), ISNULL(#{createAuth},'N'),
+            ISNULL(#{updateAuth},'N'), ISNULL(#{deleteAuth},'N'))
+  </insert>
+
 </mapper>

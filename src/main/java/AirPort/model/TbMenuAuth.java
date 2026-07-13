@@ -10,4 +10,6 @@ public class TbMenuAuth {
   private String authName;
   private LocalDateTime regDt;
   private LocalDateTime modDt;
+
+  private Integer menuCount; // 목록 표시용(부여된 메뉴 권한 수) — 저장 컬럼 아님
 }

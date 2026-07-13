@@ -95,6 +95,21 @@ check "엑셀 다운로드" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/s
 check "본인 삭제 차단(400)" 400 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser?userId=admin")"
 check "삭제" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser?userId=smokeusr")"
 
+echo "== 권한메뉴관리(tb_menu_auth) =="
+check "권한 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth")"
+check "권한 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/list?size=5")"
+check "매트릭스용 메뉴 목록" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/menus")"
+check "권한 상세(admin auth=1)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/detail?authId=1")"
+# 등록: 권한명 + 매트릭스(메뉴 301 조회만)
+SMOKE_AUTH="$(A -H 'Content-Type: application/json' -X POST --data '{"authName":"SmokeAuth","details":[{"menuId":301,"readAuth":"Y","createAuth":"N","deleteAuth":"N"}]}' "$BASE_URL/system/menuAuth")"
+check "권한 등록" 0 "$(case "$SMOKE_AUTH" in *'"success":true'*) echo 0;; *) echo 1;; esac)"
+NEW_AUTH_ID="$(A "$BASE_URL/system/menuAuth/list?keyword=SmokeAuth&size=5" | grep -o '"authId":[0-9]*' | head -1 | grep -o '[0-9]*')"
+check "권한명 누락 등록 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"authName":"","details":[]}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth")"
+check "권한 수정" 200 "$(A -H 'Content-Type: application/json' -X PUT --data "{\"authId\":${NEW_AUTH_ID:-0},\"authName\":\"SmokeAuth2\",\"details\":[{\"menuId\":301,\"readAuth\":\"Y\",\"createAuth\":\"Y\",\"deleteAuth\":\"N\"}]}" -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth")"
+check "권한 엑셀" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/excel?keyword=SmokeAuth&purpose=smoke-test")"
+check "사용중 권한 삭제 차단(admin auth=1, 400)" 400 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth?authId=1")"
+check "권한 삭제(미사용)" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth?authId=${NEW_AUTH_ID:-0}")"
+
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
 VCODE=$(curl -s -m 2 -c "$CK_V" -o /dev/null -w "%{http_code}" --data "userId=viewer&password=viewer123" "$BASE_URL/login" 2>/dev/null)
 if [ "$VCODE" = "302" ]; then
@@ -112,6 +127,8 @@ if [ "$VCODE" = "302" ]; then
   check "viewer 무권한 URL 403"      403 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/system/system")"
   FP_V="$(V "$BASE_URL/system/system")"
   check "무권한 페이지 렌더"          0 "$(case "$FP_V" in *'id="forbiddenPage"'*) echo 0;; *) echo 1;; esac)"
+  check "viewer 권한목록 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/list?size=1")"
+  check "viewer 권한 등록 403"      403 "$(V -H 'Content-Type: application/json' -X POST --data '{"authName":"x","details":[]}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth")"
 else
   bad "viewer 로그인 실패($VCODE) — seed 확인 필요"
 fi

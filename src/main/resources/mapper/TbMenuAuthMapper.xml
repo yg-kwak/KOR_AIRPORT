@@ -3,10 +3,71 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="AirPort.mapper.TbMenuAuthMapper">
 
-  <select id="selectList" resultType="TbMenuAuth">
+  <!-- 다른 화면 select 옵션용(사용자관리 권한 드롭다운 등) -->
+  <select id="selectOptions" resultType="TbMenuAuth">
     SELECT auth_id, auth_name
     FROM tb_menu_auth
     ORDER BY auth_id
   </select>
+
+  <!-- ══════════ 권한메뉴관리 화면 CRUD ══════════ -->
+
+  <sql id="searchWhere">
+    <where>
+      <if test="keyword != null and keyword != ''">
+        auth_name LIKE '%' + #{keyword} + '%'
+      </if>
+    </where>
+  </sql>
+
+  <sql id="orderBy">
+    ORDER BY
+    <choose>
+      <when test="sort == 'authName'">auth_name <if test="desc">DESC</if>, auth_id</when>
+      <otherwise>auth_id <if test="desc">DESC</if></otherwise>
+    </choose>
+  </sql>
+
+  <!-- menu_count: 부여된 메뉴 권한 수(표시용) -->
+  <sql id="listColumns">
+    auth_id, auth_name, reg_dt, mod_dt,
+    (SELECT COUNT(*) FROM tb_menu_auth_detail d WHERE d.auth_id = a.auth_id) AS menu_count
+  </sql>
+
+  <select id="selectList" parameterType="AirPort.model.MenuAuthSearchParam" resultType="TbMenuAuth">
+    SELECT <include refid="listColumns"/>
+    FROM tb_menu_auth a
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="selectListAll" parameterType="AirPort.model.MenuAuthSearchParam" resultType="TbMenuAuth">
+    SELECT <include refid="listColumns"/>
+    FROM tb_menu_auth a
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+  </select>
+
+  <select id="selectCount" parameterType="AirPort.model.MenuAuthSearchParam" resultType="long">
+    SELECT COUNT(*) FROM tb_menu_auth a
+    <include refid="searchWhere"/>
+  </select>
+
+  <select id="selectById" resultType="TbMenuAuth">
+    SELECT auth_id, auth_name, reg_dt, mod_dt FROM tb_menu_auth WHERE auth_id = #{authId}
+  </select>
+
+  <insert id="insert" parameterType="TbMenuAuth" useGeneratedKeys="true" keyProperty="authId">
+    INSERT INTO tb_menu_auth (auth_name) VALUES (#{authName})
+  </insert>
+
+  <update id="update" parameterType="TbMenuAuth">
+    UPDATE tb_menu_auth SET auth_name = #{authName}, mod_dt = getdate() WHERE auth_id = #{authId}
+  </update>
+
+  <delete id="delete">
+    DELETE FROM tb_menu_auth WHERE auth_id = #{authId}
+  </delete>
 
 </mapper>
