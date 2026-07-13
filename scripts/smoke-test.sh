@@ -80,8 +80,9 @@ check "사용자 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}
 check "사용자 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser/list?size=5")"
 check "참조 데이터(refs)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser/refs")"
 # 본문에 비ASCII(한글)를 쓰지 않는다 — Windows Git Bash 가 인자를 CP949 로 넘겨 UTF-8 파싱이 깨짐(브라우저 UTF-8 요청은 정상)
-check "등록" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"userId":"smokeusr","userName":"SmokeUser","password":"pw123","deptName":"OpsTeam","authId":1,"useYn":"Y","rootYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser")"
+check "등록" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"userId":"smokeusr","userName":"SmokeUser","password":"pw123","deptName":"OpsTeam","authId":1,"workLocationCode":"T1","useYn":"Y","rootYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser")"
 check "목록에 성명 노출(ARIA 복호화)" 0 "$(A "$BASE_URL/system/loginUser/list?searchType=userId&keyword=smokeusr&size=5" | grep -q '"userName":"SmokeUser"' && echo 0 || echo 1)"
+check "근무지역명 조인(코드명 표시)" 0 "$(A "$BASE_URL/system/loginUser/list?searchType=userId&keyword=smokeusr&size=5" | grep -q '"workLocationName":"' && echo 0 || echo 1)"
 check "비밀번호 미노출(응답에 password 키 없음)" 0 "$(A "$BASE_URL/system/loginUser/list?searchType=userId&keyword=smokeusr&size=5" | grep -q '"password"' && echo 1 || echo 0)"
 check "중복 등록 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"userId":"smokeusr","userName":"dup","password":"x","useYn":"Y","rootYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser")"
 check "수정(비번 빈값=유지)" 200 "$(A -H 'Content-Type: application/json' -X PUT --data '{"userId":"smokeusr","userName":"SmokeUser2","password":"","deptName":"SecTeam","authId":1,"useYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser")"

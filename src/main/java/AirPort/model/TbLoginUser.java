@@ -33,6 +33,7 @@ public class TbLoginUser {
   private LocalDateTime modDt;
 
   private String authName; // 목록 표시용(tb_menu_auth 조인) — 저장 컬럼 아님
+  private String workLocationName; // 목록/수정 표시용(tb_common LO 조인) — 저장 컬럼 아님
 
   public boolean isRoot() {
     return "Y".equals(rootYn);

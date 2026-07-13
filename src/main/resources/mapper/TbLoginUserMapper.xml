@@ -48,17 +48,23 @@
     </choose>
   </sql>
 
-  <!-- password 는 화면으로 절대 내리지 않는다 -->
+  <!-- password 는 화면으로 절대 내리지 않는다. 근무지역명은 tb_common(LO) 조인으로 표시 -->
   <sql id="listColumns">
     u.user_id, u.user_name, u.dept_name, u.use_yn, u.root_yn, u.auth_id,
     u.start_menu_id, u.work_location_code, u.work_type, u.desk_ip, u.dev_id,
-    u.reg_dt, u.mod_dt, a.auth_name AS auth_name
+    u.reg_dt, u.mod_dt, a.auth_name AS auth_name, lo.code_name AS work_location_name
+  </sql>
+
+  <!-- 표시용 조인(권한명·근무지역명). 검색/정렬은 u/a 별칭만 사용 -->
+  <sql id="listJoins">
+    FROM tb_login_user u
+    LEFT JOIN tb_menu_auth a ON a.auth_id = u.auth_id
+    LEFT JOIN tb_common lo ON lo.cmm_id = 'LO' AND lo.code_id = u.work_location_code
   </sql>
 
   <select id="selectList" parameterType="AirPort.model.LoginUserSearchParam" resultType="TbLoginUser">
     SELECT <include refid="listColumns"/>
-    FROM tb_login_user u
-    LEFT JOIN tb_menu_auth a ON a.auth_id = u.auth_id
+    <include refid="listJoins"/>
     <include refid="searchWhere"/>
     <include refid="orderBy"/>
     OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
@@ -66,8 +72,7 @@
 
   <select id="selectListAll" parameterType="AirPort.model.LoginUserSearchParam" resultType="TbLoginUser">
     SELECT <include refid="listColumns"/>
-    FROM tb_login_user u
-    LEFT JOIN tb_menu_auth a ON a.auth_id = u.auth_id
+    <include refid="listJoins"/>
     <include refid="searchWhere"/>
     <include refid="orderBy"/>
   </select>

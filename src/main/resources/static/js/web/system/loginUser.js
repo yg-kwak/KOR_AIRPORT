@@ -158,7 +158,7 @@
     $('deptName').value = row ? row.deptName || '' : '';
     $('authId').value = row && row.authId != null ? String(row.authId) : '';
     $('workLocationCode').value = row ? row.workLocationCode || '' : '';
-    $('workLocationName').value = row && row.workLocationCode ? row.workLocationCode : '';
+    $('workLocationName').value = row ? row.workLocationName || '' : ''; // 코드명 표시(조인)
     $('workType').value = row ? row.workType || '' : '';
     $('deskIp').value = row ? row.deskIp || '' : '';
     $('devId').value = row ? row.devId || '' : '';
