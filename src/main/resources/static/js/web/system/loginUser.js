@@ -91,13 +91,7 @@
   }
 
   function renderPaging(page, totalPages) {
-    const box = $('paging');
-    if (!totalPages || totalPages <= 1) { box.innerHTML = ''; return; }
-    let html = '';
-    for (let i = 1; i <= totalPages; i++) {
-      html += `<button data-page="${i}" class="${i === page ? 'active' : ''}">${i}</button>`;
-    }
-    box.innerHTML = html;
+    pager.render($('paging'), page, totalPages, (p) => { state.page = p; load(); });
   }
 
   function search() {
@@ -242,10 +236,6 @@
       }
       const tr = e.target.closest('tr[data-json]');
       if (tr && PERM.canCreate) openModal('edit', JSON.parse(tr.dataset.json));
-    });
-    $('paging').addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (btn) { state.page = Number(btn.dataset.page); load(); }
     });
   }
 

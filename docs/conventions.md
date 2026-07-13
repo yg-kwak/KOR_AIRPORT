@@ -89,6 +89,8 @@ DOMContentLoaded → bind()  → load()
 - **안내 메시지는 서버 return 우선**: 성공은 컨트롤러가 `ApiResponse.okMessage("...")` 로 내려주면 `api` 래퍼가 자동 `toast.success`. 서버 오류는 `api` 래퍼가 자동 `toast.error`. 클라 검증 실패만 화면에서 `toast.warning`.
 - 이벤트 바인딩은 `bind()` 한 곳에. 권한 없는 버튼은 서버 렌더에서 빠지므로 `if ($('btnNew'))` 가드.
 - 목록 쿼리 파라미터 이름은 백엔드 `PageParam` 과 동일: `page/size/keyword/searchType/sort/dir`(+도메인 필터).
+- **페이징은 공통 `pager`(core/pager.js)만 사용** — 화면에서 페이지 번호를 직접 그리지 않는다. `renderPaging` 은 `pager.render($('paging'), page, totalPages, (p)=>{ state.page=p; load(); })` 한 줄. 처음«/이전‹/번호(최대5)/다음›/마지막» + 양끝 비활성·클릭 위임을 컴포넌트가 처리(별도 클릭 핸들러 금지).
+- **기간(날짜 범위) 필터는 공통 `period`(core/period.js)** — 프리셋 select(`1m/3m/6m/1y/custom`) + 직접입력 시에만 date input 노출. `const ctl = period.attach(sel, rangeBox, startEl, endEl)` → `ctl.value()`(=`{start,end}`), `ctl.reset('1m')`. 기본 1개월, 초기화 시 1개월 복귀·date input 숨김. (마크업: select `#periodType` + `#dateRange`(hidden) 안에 `#startDate`~`#endDate`)
 
 ## 4. Controller — 명명 · endpoint 규칙
 - 클래스: `{Stem}Controller`, 라우팅은 **클래스 상단** `@RequestMapping("/{영역}/{stem}")` (예: `/system/common`). 영역=메뉴 상위(system 등), stem=테이블 어간(§1).

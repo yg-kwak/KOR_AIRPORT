@@ -39,7 +39,7 @@ src/main/resources/
     ├── images/
     └── js/
         ├── common.js, common/    공용 라이브러리
-        ├── core/                 공통 뼈대: app.js(fetch), toast, sidebar(계층·접기·플라이아웃), no-autofill(입력이력 차단), password-toggle(비번 표시)
+        ├── core/                 공통 뼈대: app.js(fetch), toast, sidebar(계층·접기·플라이아웃), pager(윈도우 페이징), period(기간 프리셋), no-autofill(입력이력 차단), password-toggle(비번 표시)
         │   └── components/       공용 모달/팝업 컴포넌트 스크립트(fragments/components 와 1:1): {이름}-modal.js (confirm-modal, prompt-modal, code-picker-modal)
         ├── web/
         │   ├── {도메인}/          화면별 스크립트
