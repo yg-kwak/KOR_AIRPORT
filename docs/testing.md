@@ -12,8 +12,9 @@
 - **adapter(BiostarX)**: 외부는 목/스텁으로 격리. 실장비 테스트는 별도 표시.
 - **암호화(ARIA)**: `ariaEncrypt`↔`ariaDecrypt` 왕복, 암호문이 평문 미노출인지 검증. (`security.md`)
 - **감사**: 민감 경로(입력/수정/삭제/조회 진입)에서 `tb_system_log` 적재를 검증. (`security.md`)
+- **순수 로직 단위 테스트(구현됨)**: `MenuServiceTest`(menu_url→menu_id 경로경계 매칭), `MenuNodeTest`(트리 조립). DB/Spring 없이 빠르게 회귀 검증 — smoke(부팅비용) 보완. 순수 함수/서비스는 여기부터 추가.
 - **계층 경계·네이밍(구현됨)**: `src/test/java/AirPort/ArchitectureTest.java`(ArchUnit) — controller→service→mapper 단방향, model 순수성, `*Controller/*Service/*Mapper` 네이밍을 `gradlew test` 에서 강제. 위반 메시지의 because 절이 교정 방향을 알려준다.
-- **E2E 스모크**: `scripts/smoke-test.sh` — 앱 부팅 후 로그인/CRUD/권한(403)/엑셀 13개 체크. 기능 작업 후 커밋 전 실행.
+- **E2E 스모크**: `scripts/smoke-test.sh` — 앱 부팅 후 로그인/CRUD/권한(403)/사이드바필터/메뉴접속감사/엑셀 등 **67개 체크**. 시드 권한(auth_id≤2)은 건드리지 않고 잔여 테스트데이터를 매 실행 정리(격리). 기능 작업 후 커밋 전 실행.
 
 ## 관례
 - given-when-then 구조. 테스트명은 한글 또는 서술형 허용.

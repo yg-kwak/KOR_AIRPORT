@@ -24,12 +24,15 @@ allowed-tools: Read, Grep, Glob, Write, Edit, Bash(*gradlew*)
    - 스크립트: `static/js/web/{도메인}/{화면}.js` (템플릿과 미러 경로).
    - 모달/팝업은 새로 만들지 말고 `components/` 공통 조각을 재사용.
    - 공통 CSS/컴포넌트(토큰·버튼·테이블·모달)를 재사용. 시각 규칙은 `docs/design.md`.
-4. **백엔드**: 역할별 평면 패키지에 `{도메인}Controller` → `{도메인}Service` → `Tb{Table}Mapper` + mapper XML 스텁 생성.
+4. **백엔드**: 역할별 평면 패키지에 `{Stem}Controller` → `{Stem}Service` → `Tb{Table}Mapper` + mapper XML 스텁 생성.
    - Controller 는 요청/응답 매핑만. 로직은 Service. SQL 은 mapper XML(`#{}`).
-   - 도메인 구분은 클래스명 접두사로. (`docs/conventions.md`)
+   - stem·클래스명 접두사·라우트는 §1 규칙(테이블 어간). **`@RequestMapping` 은 `tb_menu.menu_url` 과 일치**시킨다.
+   - **menu_id 는 하드코딩하지 않는다.** `private Integer menuId() { return currentMenu.getMenuId(); }`(CurrentMenu 주입) 로 받아 권한·감사에 쓴다. (`docs/architecture.md §6`)
+   - 무권한 페이지 GET 은 403 + `error/forbidden` 반환(골든 page() 참고).
 5. **암호화/감사 확인**:
-   - 개인정보(성명/비밀번호 등) 저장 시 ARIA 암호화. (`docs/security.md`)
-   - 조회/입력/수정/삭제 경로면 `tb_system_log` 감사 기록 포함.
+   - 개인정보(성명/비밀번호 등) 저장 시 ARIA 암호화(Service 계층). (`docs/security.md`)
+   - **메뉴 접속(MENU) 감사는 인터셉터가 자동** — 컨트롤러/서비스에서 중복 기록하지 않는다.
+   - **데이터 조회·입력·수정·삭제·다운로드**는 Service 가 `auditService.log(...)` 로 남긴다.
 6. `--read-only` 면 조회 전용으로만 스캐폴딩(쓰기 엔드포인트 생략).
 7. 컴파일 확인: `gradlew.bat compileJava`.
 8. 생성한 파일 목록과 다음 할 일(TODO)을 요약한다.

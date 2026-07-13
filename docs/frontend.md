@@ -59,6 +59,16 @@ src/main/resources/
 - 권한별 메뉴/버튼 노출은 서버가 내려준 권한(`tb_menu_auth_detail`)에 따른다. (`security.md`)
 - 감사 대상 화면(조회/입력/수정/삭제)은 서버에서 이력을 남긴다. (`security.md`)
 
+## 공통 UI 컴포넌트·동작 (전 화면 공통)
+> 아래는 `head` fragment 가 로드하는 core 컴포넌트로 **전 화면에 자동/공통** 적용된다. 화면마다 새로 만들지 않는다. (명명 규칙은 `conventions.md`)
+- **페이징**: 공통 `pager`(core/pager.js)만 사용 — `pager.render($('paging'), page, totalPages, (p)=>{ state.page=p; load(); })`. 처음«/이전‹/번호(최대5)/다음›/마지막» + 양끝 비활성·클릭 위임 내장. **페이지 번호를 직접 그리지 않는다**(code-lint 강제).
+- **기간(날짜 범위) 필터**: 공통 `period`(core/period.js) — 프리셋 select(`1m/3m/6m/1y/custom`) + 직접입력 시에만 date input 노출. `const ctl = period.attach(sel, rangeBox, startEl, endEl)` → `ctl.value()`(=`{start,end}`), `ctl.reset('1m')`. 기본 1개월. (마크업: `#periodType` + `#dateRange`(hidden) 안에 `#startDate`~`#endDate`)
+- **입력 자동완성/입력이력 금지(전 페이지)**: `core/no-autofill.js` 가 모든 `input`/`textarea`(동적 추가분 포함)에 `autocomplete=off` 자동 적용. 예외로 자격증명은 템플릿에 `autocomplete` 명시(아이디 `off`, 비밀번호 `new-password`)하면 값 보존.
+- **필수 입력 표시**: 필수 항목 라벨 뒤 `<span class="req">*</span>`(붉은 별). **신규 화면 필수값에는 빠짐없이** 붙이고(미지정 시 AI 가 도메인·검증으로 판단), `*` 항목은 **클라+서버 양쪽 검증**과 일치.
+- **비밀번호 입력**: `type=password` 면 표시/숨김(눈) 토글 자동 부착(`core/password-toggle.js`). 별도 마크업 불필요.
+- **코드(tb_common) 참조 = 코드 팝업**: `<select>` 대신 공통 코드 팝업. 마크업=코드ID(`type=hidden`)+코드명(`.input.picker-field` readonly, `data-target="{hidden id}"`). 조각 `fragments/components/code-picker-modal` 포함 후 `const sel = await codePicker.open({cmmId, cmmName})`. 서버 조회 `GET /system/common/picker?cmmId=&keyword=`(로그인만 필요). `.picker-field` 는 우측 '삭제' 버튼이 자동 부착됨.
+- **공용 모달/팝업 컴포넌트**: 조각 `fragments/components/{이름}-modal.html`, 짝 스크립트 `static/js/core/components/{이름}-modal.js`. 예: `confirm-modal`·`prompt-modal`·`code-picker-modal`.
+
 ## 더 나은 구성 제안
 - **플레이스홀더 이름 확정**: `{공통조각}` 대신 `components/`(또는 `_partials/`) 로 통일 — 도메인 폴더와 시각적으로 구분되고 예측 가능.
 - **공용/전용 모달의 승격 규칙**: 처음엔 `web/components/` 에 두고, kiosk 와 공유가 생기면 `fragments/components/` 로 승격. "중복 발견 시 상위로 올린다" 를 관례로.

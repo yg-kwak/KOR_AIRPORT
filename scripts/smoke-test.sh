@@ -100,6 +100,10 @@ check "권한 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "
 check "권한 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/list?size=5")"
 check "권한 메뉴 트리" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/menus")"
 check "권한 상세(admin auth=1)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/detail?authId=1")"
+# 이전 실행에서 남은 SmokeAuth 정리(누적/오염 방지 — 시드 auth_id<=2 는 건드리지 않음)
+for lid in $(A "$BASE_URL/system/menuAuth/list?keyword=SmokeAuth&size=50" | grep -oE '"authId":[0-9]+' | grep -oE '[0-9]+'); do
+  [ "$lid" -gt 2 ] && A -X DELETE -o /dev/null "$BASE_URL/system/menuAuth?authId=$lid"
+done
 # 등록: 권한명 + 메뉴 301(조회만). 시드 권한(auth_id<=2)은 절대 update/delete 하지 않는다.
 SMOKE_AUTH="$(A -H 'Content-Type: application/json' -X POST --data '{"authName":"SmokeAuth","details":[{"menuId":301,"readAuth":"Y","createAuth":"N","deleteAuth":"N"}]}' "$BASE_URL/system/menuAuth")"
 check "권한 등록" 0 "$(case "$SMOKE_AUTH" in *'"success":true'*) echo 0;; *) echo 1;; esac)"

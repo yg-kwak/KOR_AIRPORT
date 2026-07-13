@@ -52,6 +52,7 @@ docs/                   상세 지식 (아래 §5 문서 지도 참고) · revie
 - **JPA 미사용**: `@Entity`/JpaRepository 도입 금지. 퍼시스턴스는 MyBatis 로 통일.
 - **개인정보 암호화**: 성명·비밀번호 등 지정 컬럼은 ARIA 로 암호화 저장. (`docs/security.md`, 대상=`docs/database.md`)
 - **감사 대상**: 사용자의 메뉴 접속, 데이터 조회, 입력, 수정, 삭제는 `tb_system_log` 에 이력을 남긴다. (`docs/security.md`)
+- **메뉴 접근통제**: 화면 노출(사이드바)·URL 접근·CRUD 는 `tb_menu_auth_detail` 권한으로 통제한다. **menu_id 는 서버가 요청 URL 로 결정**(하드코딩·클라이언트 전달 금지), 무권한 접근은 403. Controller `@RequestMapping` == `tb_menu.menu_url`. (`docs/security.md`, `docs/architecture.md §6`)
 - **외부 연동 격리**: BiostarX, 카드 프린트, 주차 등 외부 연동은 전용 `adapter` 계층으로만. (`docs/integration.md`)
 - **커밋 위생**: 빌드/포맷 통과 후 커밋. Conventional Commits. (`/commit`)
 

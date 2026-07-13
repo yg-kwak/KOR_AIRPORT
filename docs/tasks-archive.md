@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 하네스 점검 반영(OpenAI 원칙 대조): 강제공백 메움(code-lint에 MENU_ID금지·수동페이징금지·@RequestMapping↔menu_url), AGENTS §4 메뉴접근통제 불변식, new-screen 갱신, UI규칙 conventions→frontend 이관, 순수로직 단위테스트(MenuService/MenuNode)+smoke 격리 — yg-kwak, 2026-07-13
 - [x] menu_id 하드코딩 제거 — 요청 URL(=menu_url) 서버 역조회로 menu_id 결정(MenuAccessInterceptor+CurrentMenu). 컨트롤러 MENU_ID 상수 삭제, 메뉴 접속(MENU) 감사 자동화(누락분 해결) — yg-kwak, 2026-07-13
 - [x] 공통화: 윈도우형 페이징(core/pager.js)·기간 프리셋(core/period.js)을 core 컴포넌트로 추출, 전 목록화면(공통코드·사용자·감사추적) 적용 + conventions/frontend 규칙 등록 — yg-kwak, 2026-07-13
 - [x] 감사추적(tb_system_log) 조회 전용 페이지 — 기간·유형·검색어 필터, 유형/메뉴 조인 표시, 엑셀(목적 감사), 최신순 기본 정렬. 조회/엑셀도 자체 감사 기록 — yg-kwak, 2026-07-13

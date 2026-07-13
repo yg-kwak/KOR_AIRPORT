@@ -27,4 +27,30 @@ check_size src/main/java java 500
 check_size src/main/resources/static/js js 400
 [ "$FAIL" -eq 0 ] && echo "  ✅ 초과 파일 없음"
 
+# ── 패턴 강제(문서만 두지 않고 grep 으로 검사) ────────────────────────────
+echo "== [2] menu_id 하드코딩 금지 (MenuAccessInterceptor 가 URL 로 해석) =="
+if grep -rnE 'static final int MENU_ID|int +MENU_ID *=' src/main/java/AirPort/controller >/dev/null 2>&1; then
+  grep -rnE 'static final int MENU_ID|int +MENU_ID *=' src/main/java/AirPort/controller
+  echo "  ❌ 컨트롤러에 MENU_ID 상수 금지 → currentMenu.getMenuId() 사용. (docs/security.md, conventions §4)"
+  FAIL=1
+else echo "  ✅ MENU_ID 하드코딩 없음"; fi
+
+echo "== [3] 목록 페이징은 공통 pager 사용 (수동 번호 렌더 금지) =="
+if grep -rn 'for (let i = 1; i <= totalPages' src/main/resources/static/js >/dev/null 2>&1; then
+  grep -rn 'for (let i = 1; i <= totalPages' src/main/resources/static/js
+  echo "  ❌ 수동 페이징 루프 금지 → pager.render(\$('paging'), page, totalPages, onGo). (docs/frontend.md)"
+  FAIL=1
+else echo "  ✅ 수동 페이징 없음"; fi
+
+echo "== [4] 컨트롤러 @RequestMapping(/system/*) ↔ tb_menu.menu_url 일치 =="
+SEED="sql/seed/02_seed.sql"; MAP_FAIL=0
+while IFS= read -r path; do
+  [ -z "$path" ] && continue
+  if ! grep -q "'$path'" "$SEED"; then
+    echo "  ❌ $path — seed 의 menu_url 에 없음. tb_menu 에 등록하거나 @RequestMapping 을 menu_url 과 일치시키세요(메뉴 해석·권한 근거). (docs/architecture.md §5)"
+    FAIL=1; MAP_FAIL=1
+  fi
+done < <(grep -rhoE '@RequestMapping\("/system/[a-zA-Z]+"\)' src/main/java/AirPort/controller | grep -oE '/system/[a-zA-Z]+')
+[ "$MAP_FAIL" -eq 0 ] && echo "  ✅ 매핑↔menu_url 일치"
+
 exit $FAIL

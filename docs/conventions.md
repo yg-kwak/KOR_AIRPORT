@@ -52,13 +52,7 @@
 - 서버 → JS 전역 전달은 `window.PAGE_*` (예: `PAGE_PERM`) 인라인 스크립트로.
 - **의존 선택 패턴**(선택값에 따라 다른 필드 자동): 부모는 `<select>`(서버가 허용 목록 제공), 자식은 `readonly` 입력 + `change` 시 자동 채움. 서버가 파생값을 재검증·재설정한다(클라이언트 값 불신). 예: 공통코드 등록의 코드구분ID→코드구분명.
 - 공통 모달 등 재사용 조각은 `fragments/components/`, 화면 전용은 `web|kiosk/components/`. (`frontend.md`)
-- **입력 자동완성/입력이력 금지(전 페이지)**: 브라우저의 이전 입력값 드롭다운을 노출하지 않는다. 별도 작업 불필요 — 공통 `head` fragment 가 `core/no-autofill.js` 를 로드해 모든 `input`/`textarea`(동적 추가분 포함)에 `autocomplete=off` 를 자동 적용한다. 예외적으로 자격증명 입력은 템플릿에 `autocomplete` 를 명시하고(아이디 `off`, 비밀번호 `new-password`), 그 경우 스크립트가 값을 보존한다.
-- **필수 입력 표시**: 필수 항목 라벨 뒤에 `<span class="req">*</span>`(붉은 별). 서버가 반드시 재검증한다(화면 표시는 안내일 뿐).
-  - **신규 메뉴/화면을 만들 때 필수값에는 빠짐없이 `*` 를 넣는다.** 사용자가 어떤 항목이 필수인지 지정하지 않으면 **AI 가 도메인·검증 로직으로 판단해 표기**한다(예: PK·이름·자격/권한 등). `*` 를 붙인 항목은 클라이언트 + 서버 양쪽에서 필수 검증을 건다(표기와 검증 일치).
-- **비밀번호 입력**: `type=password` 면 표시/숨김(눈) 토글이 자동 부착된다(`core/password-toggle.js`, 전 페이지·동적 추가분 포함). 별도 마크업 불필요.
-- **코드(tb_common) 참조 = 코드 팝업**: 다른 화면에서 tb_common 코드를 고를 때는 `<select>` 대신 **공통 코드 팝업**을 쓴다. 마크업은 코드ID(`type=hidden`) + 코드명(`.input.picker-field` readonly, 클릭 시 팝업, `data-target="{hidden id}"`). 팝업 조각 `fragments/components/code-picker-modal` 포함 후 `const sel = await codePicker.open({cmmId, cmmName})`(선택=`{codeId,codeName}`, 닫힘=`null`). 서버 조회는 `GET /system/common/picker?cmmId=&keyword=`(로그인만 필요, 특정 메뉴 권한 불요, 참조라 감사 미기록).
-- **클릭 선택 필드는 '삭제' 버튼 필수**: `.picker-field`(클릭해서 값을 채우는 입력)는 값을 비울 수 있도록 우측에 삭제 버튼을 둔다. **별도 마크업 불필요** — `core/components/code-picker-modal.js` 가 모든 `.picker-field` 우측에 삭제 버튼을 자동 부착하고, 클릭 시 표시값과 `data-target` 의 hidden(코드값)을 함께 비운다.
-- **공용 모달/팝업 컴포넌트 네이밍·위치**: 조각은 `templates/fragments/components/{이름}-modal.html`, 짝 스크립트는 `static/js/core/components/{이름}-modal.js`(`js/core` 루트가 아닌 `core/components/` 아래). 예: `confirm-modal` · `prompt-modal` · `code-picker-modal`. (`frontend.md`)
+- **공통 UI 컴포넌트·동작(필수표기 `*`·자동완성 차단·비번 토글·코드 팝업·삭제버튼·모달 네이밍)은 `frontend.md`「공통 UI 컴포넌트·동작」이 원천** — 여기서 반복하지 않는다.
 
 ## 3. JavaScript — 명명 규칙 · 호출 흐름
 **파일**: 화면당 1개, 템플릿과 **미러 경로**(`templates/web/system/common.html` ↔ `static/js/web/system/common.js`). 파일명=테이블 어간(§1). 전체를 IIFE `(function(){ ... })()` 로 감싼다(전역 오염 방지).
@@ -89,8 +83,7 @@ DOMContentLoaded → bind()  → load()
 - **안내 메시지는 서버 return 우선**: 성공은 컨트롤러가 `ApiResponse.okMessage("...")` 로 내려주면 `api` 래퍼가 자동 `toast.success`. 서버 오류는 `api` 래퍼가 자동 `toast.error`. 클라 검증 실패만 화면에서 `toast.warning`.
 - 이벤트 바인딩은 `bind()` 한 곳에. 권한 없는 버튼은 서버 렌더에서 빠지므로 `if ($('btnNew'))` 가드.
 - 목록 쿼리 파라미터 이름은 백엔드 `PageParam` 과 동일: `page/size/keyword/searchType/sort/dir`(+도메인 필터).
-- **페이징은 공통 `pager`(core/pager.js)만 사용** — 화면에서 페이지 번호를 직접 그리지 않는다. `renderPaging` 은 `pager.render($('paging'), page, totalPages, (p)=>{ state.page=p; load(); })` 한 줄. 처음«/이전‹/번호(최대5)/다음›/마지막» + 양끝 비활성·클릭 위임을 컴포넌트가 처리(별도 클릭 핸들러 금지).
-- **기간(날짜 범위) 필터는 공통 `period`(core/period.js)** — 프리셋 select(`1m/3m/6m/1y/custom`) + 직접입력 시에만 date input 노출. `const ctl = period.attach(sel, rangeBox, startEl, endEl)` → `ctl.value()`(=`{start,end}`), `ctl.reset('1m')`. 기본 1개월, 초기화 시 1개월 복귀·date input 숨김. (마크업: select `#periodType` + `#dateRange`(hidden) 안에 `#startDate`~`#endDate`)
+- 페이징·기간 필터는 **공통 컴포넌트**(`pager`/`period`)만 사용 — 상세는 `frontend.md`「공통 UI 컴포넌트·동작」. (page 번호 직접 렌더 금지 = code-lint 강제)
 
 ## 4. Controller — 명명 · endpoint 규칙
 - 클래스: `{Stem}Controller`, 라우팅은 **클래스 상단** `@RequestMapping("/{영역}/{stem}")` (예: `/system/common`). 영역=메뉴 상위(system 등), stem=테이블 어간(§1). **이 매핑 경로 == `tb_menu.menu_url`** 이어야 한다(메뉴 해석의 근거).
