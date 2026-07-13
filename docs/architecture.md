@@ -31,7 +31,8 @@ AirPort
 ├── mapper       MyBatis 매퍼 인터페이스 (Tb*Mapper)
 ├── model        DTO/VO (Tb* — 테이블 1:1 매핑)
 ├── adapter      Biostar, 카드프린터, 주차 등 외부 API 연동
-├── config       WebConfig, AuthInterceptor, FileUploadConfig, RestTemplateConfig
+├── config       WebConfig, AuthInterceptor, MenuAccessInterceptor(요청 URL→menu_id 해석·메뉴접속 감사) 등
+├── common       공통: ApiResponse, PageParam/PageResult, SessionKeys, CurrentMenu(요청 스코프 menu_id), exception
 ├── security     ARIA 암호화 유틸 (ARIAEngine, ARIAUtil)
 └── util         엑셀 다운로드, IP 조회, 페이징, 로그 유틸
 ```
@@ -57,9 +58,23 @@ AirPort
 ## 5. 라우팅/URL 규칙
 - URL 경로는 **각 Controller 파일에** `@RequestMapping`/`@GetMapping` 등으로 정의한다(중앙 라우팅 테이블 없음).
 - 경로 프리픽스는 도메인 기준으로 Controller 클래스 상단에 둔다(예: `@RequestMapping("/system/loginUser")`).
+- **Controller 프리픽스 == `tb_menu.menu_url`.** 이 일치가 메뉴 해석(§6)의 근거다.
 - 화면 반환(Thymeleaf 뷰)과 데이터 응답(`@ResponseBody`)을 한 Controller 안에서 구분해 명확히 한다.
 
-## 6. TODO (채워야 할 결정)
+## 6. 요청 처리 흐름 (인터셉터 → menu_id 해석)
+`WebConfig` 가 인터셉터를 **순서대로** 건다(등록 누락 = 보안 회귀).
+
+```
+요청 → [AuthInterceptor] 세션 인증(미인증: AJAX 401 / 화면 login 리다이렉트)
+     → [MenuAccessInterceptor] 요청 URI(=menu_url) → menu_id 역조회 → 요청 스코프 CurrentMenu 주입
+                                (정상 200 페이지 GET 이면 "메뉴 접속(MENU)" 감사 자동 기록)
+     → Controller  menuId() = currentMenu.getMenuId()  → 권한 판정·감사에 사용(하드코딩 없음)
+     → Service → Mapper
+```
+- **menu_id 는 서버가 URL 로 결정**한다(클라이언트가 보내지 않음 = 권한 우회 방지). 역조회는 `MenuService.resolveMenuId`(menu_url 이 경로 경계로 최장 접두사인 것).
+- 효과: **메뉴 번호가 순수 데이터** → `tb_menu` 만 바꾸면 사이드바·권한·감사가 따라옴(컨트롤러 상수 수정 불필요). 단, `@RequestMapping` 은 `menu_url` 과 계속 일치해야 하고, 새 화면은 여전히 컨트롤러가 필요. (상세: `security.md`, `conventions.md §4`)
+
+## 7. TODO (채워야 할 결정)
 - TODO: 트랜잭션 전파 정책.
 - TODO: 미설계 도메인(임시/정규카드, 기관, 차량) 테이블 확정.
 
