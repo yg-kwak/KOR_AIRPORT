@@ -10,4 +10,83 @@
       (#{userId}, #{userName}, #{actionType}, #{menuId}, #{actionDetail}, #{remark})
   </insert>
 
+  <!-- ══════════ 감사추적 화면(조회 전용) ══════════ -->
+
+  <sql id="searchWhere">
+    <where>
+      <if test="actionType != null and actionType != ''">
+        AND l.action_type = #{actionType}
+      </if>
+      <if test="startDate != null and startDate != ''">
+        AND l.reg_dt &gt;= CAST(#{startDate} AS datetime2)
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND l.reg_dt &lt; DATEADD(DAY, 1, CAST(#{endDate} AS datetime2))
+      </if>
+      <if test="keyword != null and keyword != ''">
+        AND
+        <choose>
+          <when test="searchType == 'userId'">l.user_id LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'userName'">l.user_name LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'detail'">l.action_detail LIKE '%' + #{keyword} + '%'</when>
+          <otherwise>
+            (l.user_id LIKE '%' + #{keyword} + '%'
+             OR l.user_name LIKE '%' + #{keyword} + '%'
+             OR l.action_detail LIKE '%' + #{keyword} + '%')
+          </otherwise>
+        </choose>
+      </if>
+    </where>
+  </sql>
+
+  <!-- 정렬: 화이트리스트. 기본은 최신순(reg_dt DESC) -->
+  <sql id="orderBy">
+    ORDER BY
+    <choose>
+      <when test="sort == 'userId'">l.user_id <if test="desc">DESC</if>, l.log_id DESC</when>
+      <when test="sort == 'actionType'">l.action_type <if test="desc">DESC</if>, l.log_id DESC</when>
+      <when test="sort == 'regDt'">l.reg_dt <if test="desc">DESC</if>, l.log_id DESC</when>
+      <otherwise>l.reg_dt DESC, l.log_id DESC</otherwise>
+    </choose>
+  </sql>
+
+  <sql id="listColumns">
+    l.log_id, l.user_id, l.user_name, l.action_type, l.menu_id, l.action_detail, l.remark, l.reg_dt,
+    c.code_name AS action_type_name, m.menu_name AS menu_name
+  </sql>
+
+  <sql id="listJoins">
+    FROM tb_system_log l
+    LEFT JOIN tb_common c ON c.cmm_id = 'AT' AND c.code_id = l.action_type
+    LEFT JOIN tb_menu m ON m.menu_id = l.menu_id
+  </sql>
+
+  <select id="selectList" parameterType="AirPort.model.SystemLogSearchParam" resultType="TbSystemLog">
+    SELECT <include refid="listColumns"/>
+    <include refid="listJoins"/>
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="selectListAll" parameterType="AirPort.model.SystemLogSearchParam" resultType="TbSystemLog">
+    SELECT <include refid="listColumns"/>
+    <include refid="listJoins"/>
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+  </select>
+
+  <select id="selectCount" parameterType="AirPort.model.SystemLogSearchParam" resultType="long">
+    SELECT COUNT(*)
+    FROM tb_system_log l
+    <include refid="searchWhere"/>
+  </select>
+
+  <select id="selectActionTypes" resultType="TbCommon">
+    SELECT code_id, code_name
+    FROM tb_common
+    WHERE cmm_id = 'AT' AND use_yn = 'Y'
+    ORDER BY code_id
+  </select>
+
 </mapper>

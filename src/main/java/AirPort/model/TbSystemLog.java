@@ -14,4 +14,7 @@ public class TbSystemLog {
   private String actionDetail;
   private String remark;
   private LocalDateTime regDt;
+
+  private String actionTypeName; // 목록 표시용(tb_common AT 조인) — 저장 컬럼 아님
+  private String menuName; // 목록 표시용(tb_menu 조인) — 저장 컬럼 아님
 }

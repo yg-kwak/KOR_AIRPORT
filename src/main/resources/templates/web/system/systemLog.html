@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('감사추적')}"></head>
+<body>
+<div th:replace="~{fragments/main :: header}"></div>
+<div class="layout-container">
+  <div th:replace="~{fragments/sidebar :: sidebar(${menus})}"></div>
+  <main class="layout-content">
+    <h2>감사추적</h2>
+
+    <!-- 검색 -->
+    <section class="search-section">
+      <div class="search-field">
+        <label>기간</label>
+        <div class="search-keyword">
+          <input type="date" id="startDate" class="input w-160"/>
+          <span class="date-sep">~</span>
+          <input type="date" id="endDate" class="input w-160"/>
+        </div>
+      </div>
+      <div class="search-field">
+        <label>유형</label>
+        <select id="actionTypeFilter" class="input w-120">
+          <option value="">전체</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>검색어</label>
+        <div class="search-keyword">
+          <select id="searchType" class="input w-120">
+            <option value="all">전체</option>
+            <option value="userId">사용자ID</option>
+            <option value="userName">사용자명</option>
+            <option value="detail">내용</option>
+          </select>
+          <input type="text" id="keyword" class="input w-300" placeholder="검색어를 입력해주세요"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnSearch">검색</button>
+      <button class="btn" id="btnReset">초기화</button>
+    </section>
+
+    <!-- 목록 -->
+    <section class="content-card">
+      <div class="grid-toolbar">
+        <span class="grid-total" id="totalInfo"></span>
+        <div class="grid-actions">
+          <button class="btn" id="btnExcel">엑셀 다운로드</button>
+          <select id="pageSize" class="input">
+            <option value="30">30개씩 보기</option>
+            <option value="50">50개씩 보기</option>
+            <option value="100">100개씩 보기</option>
+            <option value="200">200개씩 보기</option>
+          </select>
+        </div>
+      </div>
+      <table class="grid">
+        <thead>
+        <tr>
+          <th class="w-160 sortable" data-sort="regDt">일시<span class="sort-ind"></span></th>
+          <th class="w-120 sortable" data-sort="userId">사용자ID<span class="sort-ind"></span></th>
+          <th class="w-120">사용자명</th>
+          <th class="w-100 sortable" data-sort="actionType">유형<span class="sort-ind"></span></th>
+          <th class="w-120">메뉴</th>
+          <th>내용</th>
+          <th class="w-160">비고</th>
+        </tr>
+        </thead>
+        <tbody id="gridBody">
+        <tr><td colspan="7" class="empty">조회 결과가 없습니다.</td></tr>
+        </tbody>
+      </table>
+      <div class="paging" id="paging"></div>
+    </section>
+  </main>
+</div>
+
+<div th:replace="~{fragments/components/prompt-modal :: promptModal}"></div>
+
+<script src="/js/web/system/systemLog.js" defer></script>
+</body>
+</html>
