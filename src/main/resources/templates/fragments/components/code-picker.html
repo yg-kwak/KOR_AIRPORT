@@ -5,7 +5,7 @@
      사용: <div th:replace="~{fragments/components/code-picker :: codePicker}"></div>
           const sel = await codePicker.open({ cmmId:'LO', cmmName:'근무지역' }); // {codeId, codeName} 또는 null -->
 <div th:fragment="codePicker" class="modal-overlay code-picker-overlay" id="codePickerModal">
-  <div class="modal-container">
+  <div class="modal-container wide">
     <div class="modal-header">
       <h2 class="modal-title">코드 선택</h2>
       <button class="modal-close" id="codePickerClose" aria-label="닫기">&times;</button>
@@ -14,12 +14,12 @@
       <section class="search-section">
         <div class="search-field">
           <label>코드구분</label>
-          <input type="text" id="codePickerGroup" class="input w-200" readonly/>
+          <input type="text" id="codePickerGroup" class="input w-160" readonly/>
         </div>
         <div class="search-field">
           <label>검색어</label>
           <div class="search-keyword">
-            <input type="text" id="codePickerKeyword" class="input w-200" placeholder="코드/코드명 검색"/>
+            <input type="text" id="codePickerKeyword" class="input w-160" placeholder="코드/코드명 검색"/>
             <button class="btn btn-primary" id="codePickerSearch">검색</button>
           </div>
         </div>
