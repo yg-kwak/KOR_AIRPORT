@@ -79,12 +79,14 @@
   function renderRows(rows) {
     const body = $('gridBody');
     if (!rows || rows.length === 0) {
-      body.innerHTML = '<tr><td colspan="6" class="empty">조회 결과가 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" class="empty">조회 결과가 없습니다.</td></tr>';
       return;
     }
-    // 목록은 사용자 코드(user_input='Y')만 조회된다 — 시스템 코드는 서버에서 제외. 모두 편집 대상.
+    // 구분: user_input='Y'=사용자(전체 편집/삭제), 'N'=시스템(삭제 불가, 이름·사용유무만 수정)
     body.innerHTML = rows.map((r) => {
-      const actions = PERM.canDelete
+      const isUser = r.userInput === 'Y';
+      const gubun = isUser ? '사용자' : '시스템';
+      const actions = (PERM.canDelete && isUser)
         ? `<button class="btn btn-sm btn-danger" data-act="del" data-cmm="${esc(r.cmmId)}" data-code="${esc(r.codeId)}">삭제</button>`
         : '-';
       return `
@@ -93,6 +95,7 @@
         <td>${esc(r.cmmName)}</td>
         <td>${esc(r.codeId)}</td>
         <td>${esc(r.codeName)}</td>
+        <td>${gubun}</td>
         <td>${r.useYn === 'Y' ? '사용' : '미사용'}</td>
         <td>${actions}</td>
       </tr>`;

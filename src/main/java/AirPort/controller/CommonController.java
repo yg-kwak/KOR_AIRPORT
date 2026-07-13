@@ -79,11 +79,11 @@ public class CommonController {
     return ApiResponse.ok(commonService.list(param, actor(session), menuId()));
   }
 
-  /** 코드구분 select 목록 — 사용자 추가 허용 구분(user_input='Y')만. (AJAX) */
+  /** 코드구분 select 목록 — 전체 코드구분(cmm_id). (AJAX) */
   @GetMapping("/groups")
   @ResponseBody
   public ApiResponse<java.util.List<TbCommon>> groups(HttpSession session) {
-    return ApiResponse.ok(commonService.addableGroups(actor(session), menuId()));
+    return ApiResponse.ok(commonService.groups(actor(session), menuId()));
   }
 
   /** 코드 선택 팝업용 조회 — 로그인 사용자 공용(특정 메뉴 권한 불요). 다른 화면이 tb_common(근무지역 등)을 참조할 때 사용. (AJAX) */
@@ -105,7 +105,7 @@ public class CommonController {
       HttpServletResponse response)
       throws IOException {
     List<TbCommon> rows = commonService.listAllForExcel(param, actor(session), menuId(), purpose);
-    String[] headers = {"코드구분ID", "코드구분명", "코드ID", "코드명", "사용여부"};
+    String[] headers = {"코드구분ID", "코드구분명", "코드ID", "코드명", "구분", "사용여부"};
     List<String[]> data =
         rows.stream()
             .map(
@@ -115,6 +115,7 @@ public class CommonController {
                       r.getCmmName(),
                       r.getCodeId(),
                       r.getCodeName(),
+                      "Y".equals(r.getUserInput()) ? "사용자" : "시스템",
                       "Y".equals(r.getUseYn()) ? "사용" : "미사용"
                     })
             .toList();

@@ -3,10 +3,9 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="AirPort.mapper.TbCommonMapper">
 
-  <!-- 검색 조건: 시스템 코드(user_input='N')는 화면 조회에서 완전히 제외 + searchType + 사용여부 필터 -->
+  <!-- 검색 조건: 전체(시스템 N + 사용자 Y) 노출. 구분은 user_input 으로 화면 표기 + searchType + 사용여부 필터 -->
   <sql id="searchWhere">
     <where>
-      user_input = 'Y'
       <if test="keyword != null and keyword != ''">
         AND
         <choose>
@@ -35,6 +34,7 @@
       <when test="sort == 'cmmName'">cmm_name <if test="desc">DESC</if>, cmm_id, code_id</when>
       <when test="sort == 'codeId'">code_id <if test="desc">DESC</if>, cmm_id</when>
       <when test="sort == 'codeName'">code_name <if test="desc">DESC</if>, cmm_id, code_id</when>
+      <when test="sort == 'userInput'">user_input <if test="desc">DESC</if>, cmm_id, code_id</when>
       <when test="sort == 'useYn'">use_yn <if test="desc">DESC</if>, cmm_id, code_id</when>
       <otherwise>cmm_id <if test="desc">DESC</if>, code_id</otherwise>
     </choose>
@@ -67,19 +67,18 @@
     WHERE cmm_id = #{cmmId} AND code_id = #{codeId}
   </select>
 
-  <!-- 사용자 추가 허용 구분: user_input='Y' 인 행이 있는 코드구분 (등록 화면 select 용) -->
-  <select id="selectAddableGroups" resultType="TbCommon">
+  <!-- 코드구분(cmm_id) 전체 목록 (등록 화면 select 용). 시스템/사용자 무관 전체 그룹 -->
+  <select id="selectGroups" resultType="TbCommon">
     SELECT cmm_id, MAX(cmm_name) AS cmm_name
     FROM tb_common
-    WHERE user_input = 'Y' AND use_yn = 'Y'
     GROUP BY cmm_id
     ORDER BY cmm_id
   </select>
 
-  <select id="selectAddableGroupName" resultType="string">
+  <select id="selectGroupName" resultType="string">
     SELECT MAX(cmm_name)
     FROM tb_common
-    WHERE cmm_id = #{cmmId} AND user_input = 'Y'
+    WHERE cmm_id = #{cmmId}
   </select>
 
   <!-- 코드 선택 팝업: cmm_id 의 사용중 코드(코드/코드명), 검색어는 코드ID/코드명 LIKE. user_input 무관(시스템 코드 LO 등도 조회) -->
@@ -101,17 +100,15 @@
        ISNULL(#{userInput}, 'N'), ISNULL(#{useYn}, 'Y'))
   </insert>
 
-  <!-- user_input='Y' 가드: 시스템 코드(N)는 화면 경로로 절대 변경되지 않게 SQL 에서도 차단 -->
+  <!-- 시스템/사용자 코드 모두 이름·사용유무만 수정(코드ID/구분ID/구분값은 불변). 기존 tag/remark 보존 -->
   <update id="update" parameterType="TbCommon">
     UPDATE tb_common
-    SET cmm_name = #{cmmName},
-        code_name = #{codeName},
-        code_tag = #{codeTag},
-        code_remark = #{codeRemark},
+    SET code_name = #{codeName},
         use_yn = #{useYn}
-    WHERE cmm_id = #{cmmId} AND code_id = #{codeId} AND user_input = 'Y'
+    WHERE cmm_id = #{cmmId} AND code_id = #{codeId}
   </update>
 
+  <!-- 삭제는 사용자 코드(user_input='Y')만. 시스템 코드(N)는 SQL 에서도 차단 -->
   <delete id="delete">
     DELETE FROM tb_common
     WHERE cmm_id = #{cmmId} AND code_id = #{codeId} AND user_input = 'Y'

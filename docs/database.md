@@ -99,16 +99,15 @@ PK: `cmm_id` + `code_id` (복합). 코드구분(`cmm_id`) 아래에 코드(`code
 | code_name | nvarchar(100) | | 코드명 |
 | code_tag | nvarchar(50) | | 코드 기타 |
 | code_remark | nvarchar(100) | | 메모 |
-| user_input | nchar(1) | | 사용자등록여부 *(설계서 오타 user_ipnut 를 정정)* |
+| user_input | nchar(1) | | 구분: `N`=시스템 코드, `Y`=사용자 코드 *(설계서 오타 user_ipnut 정정)* |
 | use_yn | nchar(1) | | 사용여부 (기본 'Y', CHK Y/N) |
 
-> **시스템 코드 보호 규칙**: `user_input='N'` 은 시스템이 참조하는 코드(AT 감사유형 등) — **화면 목록/엑셀에서
-> 아예 조회되지 않는다**(공통 `searchWhere` 에 `user_input='Y'` 고정). 변경은 개발자/관리자가 DB 에서 직접.
-> 화면에서 등록한 코드는 항상 `user_input='Y'` 로 저장되며, update/delete 도 SQL `AND user_input='Y'` 가드(직접 API 방어).
+> **구분(user_input) 규칙**: 화면 목록/엑셀에 **전체 노출**하고 `구분` 컬럼으로 표기한다 — `N`=**[시스템]**(AT 감사유형·LO 근무지역 등 시스템 참조 코드), `Y`=**[사용자]**.
+> - **시스템 코드(N)**: 화면에서 **삭제 불가**, **이름(code_name)·사용유무(use_yn)만 수정** 가능. delete SQL `AND user_input='Y'` 가드로 삭제 차단.
+> - **사용자 코드(Y)**: 전체 편집/삭제. 화면에서 등록한 코드는 항상 `user_input='Y'` 로 저장.
+> - update SQL 은 `code_name`·`use_yn` 만 변경(코드ID/구분ID/구분값 불변, tag/remark 보존) — 시스템·사용자 공통.
 >
-> **코드구분 선택 규칙**: 화면 등록 시 `cmm_id` 는 자유입력이 아니라 **select** — `user_input='Y'` 인 행이
-> 있는 코드구분(=사용자 추가 허용 구분)만 노출된다. `cmm_name` 은 선택한 구분에서 서버가 파생(사용자 입력/수정 불가).
-> 관리자/개발자가 사용자-추가 허용 구분을 개설하려면 그 구분에 `user_input='Y'` 코드를 1개 이상 seed 한다(예: VR 방문사유).
+> **코드구분 선택 규칙**: 화면 등록 시 `cmm_id` 는 자유입력이 아니라 **select** — **전체 코드구분(cmm_id)** 이 노출된다(기존 코드가 있는 구분에만 코드 추가). `cmm_name` 은 선택한 구분에서 서버가 파생(사용자 입력/수정 불가).
 
 ### tb_system — 시스템 설정 (BiostarX 연동정보, 단일 행)
 PK 없음(설정 1행 운영).

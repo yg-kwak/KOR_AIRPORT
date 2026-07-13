@@ -82,10 +82,10 @@ public class CommonService {
     return row;
   }
 
-  /** 등록 화면 코드구분 select 용 — 사용자 추가가 허용된 구분(user_input='Y')만. */
-  public java.util.List<TbCommon> addableGroups(TbLoginUser actor, Integer menuId) {
+  /** 등록 화면 코드구분 select 용 — 전체 코드구분(cmm_id). */
+  public java.util.List<TbCommon> groups(TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
-    return commonMapper.selectAddableGroups();
+    return commonMapper.selectGroups();
   }
 
   /**
@@ -105,8 +105,8 @@ public class CommonService {
   @Transactional
   public void create(TbCommon row, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
-    // 허용 구분만 등록 가능. cmm_name 은 클라이언트 값을 믿지 않고 서버에서 파생(사용자 입력/수정 불가).
-    String groupName = commonMapper.selectAddableGroupName(row.getCmmId());
+    // 기존 코드구분에만 코드 추가. cmm_name 은 클라이언트 값을 믿지 않고 서버에서 파생.
+    String groupName = commonMapper.selectGroupName(row.getCmmId());
     if (groupName == null) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "선택할 수 없는 코드구분입니다.");
     }
@@ -120,10 +120,10 @@ public class CommonService {
         actor, AuditService.CREATE, menuId, "공통코드 등록: " + row.getCmmId() + "/" + row.getCodeId());
   }
 
+  /** 수정 — 시스템(N)·사용자(Y) 모두 이름·사용유무만 변경(코드ID/구분 불변, mapper 가 필드 제한). */
   @Transactional
   public void update(TbCommon row, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId); // 정책: 등록/수정은 create_auth 로 판정
-    requireUserCode(row.getCmmId(), row.getCodeId());
     if (commonMapper.update(row) == 0) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
@@ -131,27 +131,20 @@ public class CommonService {
         actor, AuditService.UPDATE, menuId, "공통코드 수정: " + row.getCmmId() + "/" + row.getCodeId());
   }
 
+  /** 삭제 — 사용자 코드(user_input='Y')만. 시스템 코드(N)는 차단(다른 데이터 파급 방지). */
   @Transactional
   public void delete(String cmmId, String codeId, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireDelete(actor, menuId);
-    requireUserCode(cmmId, codeId);
-    if (commonMapper.delete(cmmId, codeId) == 0) {
-      throw new BusinessException(ErrorCode.NOT_FOUND);
-    }
-    auditService.log(actor, AuditService.DELETE, menuId, "공통코드 삭제: " + cmmId + "/" + codeId);
-  }
-
-  /**
-   * 시스템 코드 보호 — user_input='N' 은 시스템이 참조하는 코드라 화면 수정/삭제를 차단한다(다른 데이터 파급 방지). 시스템 코드 변경은 개발자/관리자가 DB
-   * 에서 직접 수행한다. (docs/database.md tb_common)
-   */
-  private void requireUserCode(String cmmId, String codeId) {
     TbCommon existing = commonMapper.selectOne(cmmId, codeId);
     if (existing == null) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
     if (!"Y".equals(existing.getUserInput())) {
-      throw new BusinessException(ErrorCode.FORBIDDEN, "시스템 코드는 화면에서 수정/삭제할 수 없습니다. (DB 관리 대상)");
+      throw new BusinessException(ErrorCode.FORBIDDEN, "시스템 코드는 삭제할 수 없습니다.");
     }
+    if (commonMapper.delete(cmmId, codeId) == 0) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    auditService.log(actor, AuditService.DELETE, menuId, "공통코드 삭제: " + cmmId + "/" + codeId);
   }
 }
