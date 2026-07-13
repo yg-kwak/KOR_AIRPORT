@@ -243,12 +243,13 @@ a { color: inherit; text-decoration: none; }
 .card-title { font-size: 16px; font-weight: 700; }
 .perm-actions { display: flex; gap: 8px; }
 .btn-danger-solid { background: var(--nt-red); color: var(--color-white); border-color: var(--nt-red); }
-.btn-danger-solid:hover { filter: brightness(0.94); }
+/* hover 에도 빨강 배경 유지(기본 .btn:hover 가 회색으로 덮는 것 방지) */
+.btn-danger-solid:hover { background: var(--nt-red); border-color: var(--nt-red); filter: brightness(0.92); }
 
-/* 좌측 권한 목록 행 */
+/* 좌측 권한 목록 행 — 선택 행은 hover 해도 색 유지(.grid tbody tr:hover 보다 우선) */
 .auth-row { cursor: pointer; }
-.auth-row:hover { background: var(--color-tertiary-hover); }
-.auth-row.active { background: var(--sidebar-active-bg); }
+.grid tbody tr.auth-row.active,
+.grid tbody tr.auth-row.active:hover { background: var(--sidebar-active-bg); }
 .auth-gear { color: var(--neutral-500); width: 40px; }
 
 /* 우측 메뉴 선택 트리 */
