@@ -16,6 +16,7 @@
     if (!PERM.canCreate) return;
     const p = payload();
     if (!p.biostarIp) { toast.warning('BiostarX IP를 입력해주세요.'); return; }
+    if (!p.biostarId) { toast.warning('BiostarX ID를 입력해주세요.'); return; }
     await api.post(BASE, p); // 성공 시 서버 메시지 자동 토스트
     $('biostarPw').value = ''; // 저장 후 비밀번호 필드 비움
   }
@@ -23,6 +24,7 @@
   async function test() {
     const p = payload();
     if (!p.biostarIp) { toast.warning('BiostarX IP를 입력해주세요.'); return; }
+    if (!p.biostarId) { toast.warning('BiostarX ID를 입력해주세요.'); return; }
     const btn = $('btnTest');
     btn.disabled = true;
     const label = btn.textContent;

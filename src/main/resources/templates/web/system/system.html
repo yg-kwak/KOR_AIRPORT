@@ -11,12 +11,12 @@
     <section class="content-card">
       <div class="setting-form">
         <div class="form-group wide">
-          <label>BiostarX IP</label>
+          <label>BiostarX IP <span class="req">*</span></label>
           <input type="text" id="biostarIp" class="input" placeholder="예: 192.168.0.10"
                  th:value="${system != null} ? ${system.biostarIp} : ''"/>
         </div>
         <div class="form-group">
-          <label>BiostarX ID</label>
+          <label>BiostarX ID <span class="req">*</span></label>
           <input type="text" id="biostarId" class="input" autocomplete="off"
                  th:value="${system != null} ? ${system.biostarId} : ''"/>
         </div>

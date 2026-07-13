@@ -252,9 +252,12 @@ a { color: inherit; text-decoration: none; }
 }
 .pw-toggle:hover { color: var(--neutral-900); }
 
-/* 코드 팝업 트리거 필드(읽기전용이지만 클릭해서 팝업 여는 입력) */
+/* 코드 팝업 트리거 필드(읽기전용이지만 클릭해서 팝업 여는 입력) + 우측 삭제 버튼(code-picker.js 가 감싼다) */
 .input.picker-field { background: var(--color-white); color: var(--color-black); cursor: pointer; }
 .input.picker-field:hover { border-color: var(--color-primary-default); }
+.picker-wrap { display: flex; gap: 6px; }
+.picker-wrap > .input { flex: 1; min-width: 0; }
+.picker-clear { flex-shrink: 0; }
 /* 코드 선택 팝업은 편집 모달 위에 뜬다 */
 .code-picker-overlay { z-index: 2600; }
 

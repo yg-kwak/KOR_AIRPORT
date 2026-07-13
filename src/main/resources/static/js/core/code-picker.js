@@ -50,7 +50,29 @@ window.codePicker = (function () {
     return new Promise((resolve) => { resolver = resolve; });
   }
 
+  // .picker-field(클릭 선택 필드) 우측에 '삭제' 버튼을 자동 부착 — 선택값을 비운다.
+  // data-target 에 연결된 hidden 입력(코드값)도 함께 비운다.
+  function attachClear(inp) {
+    if (!inp || inp.dataset.pickerClear) return;
+    inp.dataset.pickerClear = '1';
+    const wrap = document.createElement('div');
+    wrap.className = 'picker-wrap';
+    inp.parentNode.insertBefore(wrap, inp);
+    wrap.appendChild(inp);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn picker-clear';
+    btn.textContent = '삭제';
+    btn.addEventListener('click', () => {
+      inp.value = '';
+      const t = inp.dataset.target;
+      if (t) { const h = el(t); if (h) h.value = ''; }
+    });
+    wrap.appendChild(btn);
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.picker-field').forEach(attachClear);
     const m = el('codePickerModal');
     if (!m) return; // fragment 미포함 화면에서는 no-op
     el('codePickerSearch').addEventListener('click', search);
