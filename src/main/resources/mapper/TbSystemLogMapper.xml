@@ -17,6 +17,9 @@
       <if test="actionType != null and actionType != ''">
         AND l.action_type = #{actionType}
       </if>
+      <if test="menuId != null">
+        AND l.menu_id = #{menuId}
+      </if>
       <if test="startDate != null and startDate != ''">
         AND l.reg_dt &gt;= CAST(#{startDate} AS datetime2)
       </if>

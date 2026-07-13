@@ -6,8 +6,17 @@ import AirPort.common.PageParam;
 public class SystemLogSearchParam extends PageParam {
 
   private String actionType; // "" (전체) | tb_common AT code_id
+  private Integer menuId; // null (전체) | tb_menu.menu_id
   private String startDate; // yyyy-MM-dd
   private String endDate; // yyyy-MM-dd
+
+  public Integer getMenuId() {
+    return menuId;
+  }
+
+  public void setMenuId(Integer menuId) {
+    this.menuId = menuId;
+  }
 
   public String getActionType() {
     return actionType;

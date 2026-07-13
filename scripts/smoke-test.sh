@@ -122,6 +122,8 @@ check "감사 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/
 check "유형 옵션" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/types")"
 check "유형 옵션에 READ 포함" 0 "$(A "$BASE_URL/system/systemLog/types" | grep -q '"codeId":"READ"' && echo 0 || echo 1)"
 check "유형 필터 조회(READ)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/list?actionType=READ&size=5")"
+check "메뉴 옵션(본인 권한)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/menus")"
+check "메뉴 필터 조회(305)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/list?menuId=305&size=5")"
 check "기간 필터 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/list?startDate=2000-01-01&endDate=2999-12-31&size=5")"
 check "엑셀 다운로드" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/excel?actionType=READ&purpose=smoke-test")"
 check "엑셀 purpose 누락 400" 400 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/excel?size=1")"

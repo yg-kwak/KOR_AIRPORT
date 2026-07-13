@@ -3,6 +3,7 @@ package AirPort.controller;
 import AirPort.common.ApiResponse;
 import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
+import AirPort.model.MenuNode;
 import AirPort.model.MenuPermission;
 import AirPort.model.SystemLogSearchParam;
 import AirPort.model.TbCommon;
@@ -71,6 +72,13 @@ public class SystemLogController {
   @ResponseBody
   public ApiResponse<List<TbCommon>> types(HttpSession session) {
     return ApiResponse.ok(systemLogService.actionTypes(actor(session), MENU_ID));
+  }
+
+  /** 메뉴 필터 옵션 — 본인 권한 메뉴만 (AJAX) */
+  @GetMapping("/menus")
+  @ResponseBody
+  public ApiResponse<List<MenuNode>> menus(HttpSession session) {
+    return ApiResponse.ok(systemLogService.menuOptions(actor(session), MENU_ID));
   }
 
   /** 엑셀 다운로드 — 현재 검색조건 전체. 목적(purpose)은 감사 remark. */

@@ -4,6 +4,7 @@ import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbSystemLogMapper;
+import AirPort.model.MenuNode;
 import AirPort.model.SystemLogSearchParam;
 import AirPort.model.TbCommon;
 import AirPort.model.TbLoginUser;
@@ -22,12 +23,17 @@ public class SystemLogService {
   private final TbSystemLogMapper logMapper;
   private final AuditService auditService;
   private final MenuAuthService menuAuthService;
+  private final MenuService menuService;
 
   public SystemLogService(
-      TbSystemLogMapper logMapper, AuditService auditService, MenuAuthService menuAuthService) {
+      TbSystemLogMapper logMapper,
+      AuditService auditService,
+      MenuAuthService menuAuthService,
+      MenuService menuService) {
     this.logMapper = logMapper;
     this.auditService = auditService;
     this.menuAuthService = menuAuthService;
+    this.menuService = menuService;
   }
 
   /** 목록 조회 — 검색조건·건수 감사(READ). */
@@ -73,5 +79,11 @@ public class SystemLogService {
   public List<TbCommon> actionTypes(TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
     return logMapper.selectActionTypes();
+  }
+
+  /** 메뉴 필터 옵션 — 로그인 사용자가 read 권한을 가진 메뉴만. */
+  public List<MenuNode> menuOptions(TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireRead(actor, menuId);
+    return menuService.readableLeaves(actor);
   }
 }

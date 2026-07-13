@@ -4,7 +4,7 @@
   const BASE = '/system/systemLog';
   const state = {
     page: 1, size: 30, keyword: '', searchType: 'all',
-    actionType: '', startDate: '', endDate: '', sort: 'regDt', dir: 'desc',
+    actionType: '', menuId: '', startDate: '', endDate: '', sort: 'regDt', dir: 'desc',
   };
 
   const $ = (id) => document.getElementById(id);
@@ -25,11 +25,17 @@
       (list || []).map((c) => `<option value="${esc(c.codeId)}">${esc(c.codeName)}</option>`).join(''));
   }
 
+  async function loadMenus() {
+    const list = await api.get(BASE + '/menus'); // 본인 권한 메뉴만
+    $('menuFilter').insertAdjacentHTML('beforeend',
+      (list || []).map((m) => `<option value="${esc(m.menuId)}">${esc(m.menuName)}</option>`).join(''));
+  }
+
   async function load() {
     const q =
       `?page=${state.page}&size=${state.size}` +
       `&keyword=${encodeURIComponent(state.keyword)}&searchType=${state.searchType}` +
-      `&actionType=${encodeURIComponent(state.actionType)}` +
+      `&actionType=${encodeURIComponent(state.actionType)}&menuId=${state.menuId}` +
       `&startDate=${state.startDate}&endDate=${state.endDate}` +
       `&sort=${state.sort}&dir=${state.dir}`;
     const data = await api.get(BASE + '/list' + q);
@@ -78,6 +84,7 @@
     state.keyword = $('keyword').value.trim();
     state.searchType = $('searchType').value;
     state.actionType = $('actionTypeFilter').value;
+    state.menuId = $('menuFilter').value;
     applyPeriod();
     state.page = 1;
     load();
@@ -87,11 +94,12 @@
     $('keyword').value = '';
     $('searchType').value = 'all';
     $('actionTypeFilter').value = '';
+    $('menuFilter').value = '';
     periodCtl.reset('1m'); // 다시 1개월, date input 숨김
     $('pageSize').value = '30';
     Object.assign(state, {
       page: 1, size: 30, keyword: '', searchType: 'all',
-      actionType: '', sort: 'regDt', dir: 'desc',
+      actionType: '', menuId: '', sort: 'regDt', dir: 'desc',
     });
     applyPeriod(); // state 에 1개월 범위 반영
     load();
@@ -112,7 +120,7 @@
     if (!purpose) return;
     const q =
       `?keyword=${encodeURIComponent(state.keyword)}&searchType=${state.searchType}` +
-      `&actionType=${encodeURIComponent(state.actionType)}` +
+      `&actionType=${encodeURIComponent(state.actionType)}&menuId=${state.menuId}` +
       `&startDate=${state.startDate}&endDate=${state.endDate}` +
       `&sort=${state.sort}&dir=${state.dir}&purpose=${encodeURIComponent(purpose)}`;
     location.href = BASE + '/excel' + q;
@@ -133,6 +141,7 @@
     periodCtl = period.attach($('periodType'), $('dateRange'), $('startDate'), $('endDate'));
     applyPeriod(); // 기본 1개월 범위를 state 에 반영
     loadTypes();
+    loadMenus();
     load();
   });
 })();

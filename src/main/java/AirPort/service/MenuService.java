@@ -38,6 +38,22 @@ public class MenuService {
     return MenuNode.buildTree(menuMapper.selectUseList());
   }
 
+  /** 로그인 사용자가 read 권한을 가진 화면(URL 있는) 메뉴 목록(평면) — 감사추적 메뉴 필터 등에 쓴다. */
+  public List<MenuNode> readableLeaves(TbLoginUser actor) {
+    List<MenuNode> out = new ArrayList<>();
+    collectLeaves(tree(actor), out);
+    return out;
+  }
+
+  private void collectLeaves(List<MenuNode> nodes, List<MenuNode> out) {
+    for (MenuNode n : nodes) {
+      if (n.getMenuUrl() != null) {
+        out.add(n);
+      }
+      collectLeaves(n.getChildren(), out);
+    }
+  }
+
   /**
    * 권한 필터 — 화면(menu_url 있는) 메뉴는 read 권한이 있을 때만, 상위 그룹은 노출할 하위가 하나라도 있을 때만 남긴다. root 는 {@link
    * MenuAuthService#permissionFor}가 전권을 돌려줘 전부 통과한다.
