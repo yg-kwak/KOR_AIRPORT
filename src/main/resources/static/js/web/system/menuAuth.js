@@ -1,212 +1,156 @@
-/* 권한메뉴관리 화면 — 골든 샘플 구조 + 메뉴 권한 매트릭스(조회/등록·수정/삭제).
-   권한(tb_menu_auth) 목록 CRUD, 편집 모달에서 메뉴별 CRUD 권한을 체크박스로 관리한다. */
+/* 권한메뉴관리 — 좌: 권한 목록(tb_menu_auth), 우: 권한 설정(전체 메뉴 트리 체크 = tb_menu_auth_detail).
+   권한을 선택하면 상세에 따라 트리가 체크되고, 수정완료로 저장한다. 체크된 메뉴 = 접근 허용(read/create/delete 부여). */
 (function () {
   const BASE = '/system/menuAuth';
-  const state = { page: 1, size: 30, keyword: '', sort: 'authId', dir: 'asc' };
-
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
 
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
+  const EDITABLE = PERM.canCreate;
 
-  let leafMenus = []; // [{menuId, menuName}] — 매트릭스 행
+  let selectedId = null; // null = 신규(등록) 모드
+  const nodesById = {};  // menuId → { id, name, parentId, childIds:[] }
+  let order = [];        // DFS 순서 menuId 배열(렌더/수집용)
 
-  async function loadMenus() {
-    if (!PERM.canCreate) return;
-    leafMenus = (await api.get(BASE + '/menus')) || [];
+  // ---- 좌측: 권한 목록 ----
+  async function loadAuths(selectId) {
+    const data = await api.get(BASE + '/list?page=1&size=1000&sort=authId&dir=asc');
+    renderAuthList(data.content || []);
+    if (selectId != null) {
+      const row = data.content.find((r) => r.authId === selectId);
+      if (row) selectAuth(row.authId, row.authName);
+    }
   }
 
-  async function load() {
-    const q =
-      `?page=${state.page}&size=${state.size}` +
-      `&keyword=${encodeURIComponent(state.keyword)}&sort=${state.sort}&dir=${state.dir}`;
-    const data = await api.get(BASE + '/list' + q);
-    renderRows(data.content);
-    renderPaging(data.page, data.totalPages);
-    $('totalInfo').textContent = `조회결과 ${data.total.toLocaleString()}`;
-    renderSortIndicators();
-  }
-
-  function renderSortIndicators() {
-    document.querySelectorAll('th.sortable').forEach((th) => {
-      const ind = th.querySelector('.sort-ind');
-      if (th.dataset.sort === state.sort) {
-        ind.textContent = state.dir === 'asc' ? ' ▲' : ' ▼';
-        th.classList.add('sorted');
-      } else {
-        ind.textContent = '';
-        th.classList.remove('sorted');
-      }
-    });
-  }
-
-  function renderRows(rows) {
-    const body = $('gridBody');
-    if (!rows || rows.length === 0) {
-      body.innerHTML = '<tr><td colspan="4" class="empty">조회 결과가 없습니다.</td></tr>';
+  function renderAuthList(rows) {
+    const body = $('authList');
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="2" class="empty">등록된 권한이 없습니다.</td></tr>';
       return;
     }
-    body.innerHTML = rows.map((r) => {
-      const actions = PERM.canDelete
-        ? `<button class="btn btn-sm btn-danger" data-act="del" data-id="${esc(r.authId)}">삭제</button>`
-        : '-';
-      return `
-      <tr${PERM.canCreate ? ' class="row-click" data-json=\'' + esc(JSON.stringify(r)) + '\'' : ''}>
-        <td>${esc(r.authId)}</td>
-        <td>${esc(r.authName)}</td>
-        <td>${esc(r.menuCount != null ? r.menuCount : 0)}</td>
-        <td>${actions}</td>
-      </tr>`;
-    }).join('');
+    body.innerHTML = rows.map((r) => `
+      <tr class="auth-row${r.authId === selectedId ? ' active' : ''}" data-id="${esc(r.authId)}" data-name="${esc(r.authName)}">
+        <td style="text-align:left">${esc(r.authName)}</td>
+        <td class="auth-gear">⚙</td>
+      </tr>`).join('');
   }
 
-  function renderPaging(page, totalPages) {
-    const box = $('paging');
-    if (!totalPages || totalPages <= 1) { box.innerHTML = ''; return; }
-    let html = '';
-    for (let i = 1; i <= totalPages; i++) {
-      html += `<button data-page="${i}" class="${i === page ? 'active' : ''}">${i}</button>`;
+  // ---- 우측: 메뉴 트리 ----
+  async function loadTree() {
+    const roots = (await api.get(BASE + '/menus')) || [];
+    order = [];
+    Object.keys(nodesById).forEach((k) => delete nodesById[k]);
+    const rowsHtml = [];
+    const walk = (node, depth, parentId) => {
+      nodesById[node.menuId] = { id: node.menuId, name: node.menuName, parentId, childIds: [] };
+      if (parentId != null) nodesById[parentId].childIds.push(node.menuId);
+      order.push(node.menuId);
+      rowsHtml.push(`
+        <div class="tree-row" style="padding-left:${depth * 22}px">
+          <label class="tree-label">
+            ${depth > 0 ? '<span class="tree-branch">└</span>' : ''}
+            <input type="checkbox" data-id="${esc(node.menuId)}"${EDITABLE ? '' : ' disabled'}/>
+            <span>${esc(node.menuName)}</span>
+          </label>
+        </div>`);
+      (node.children || []).forEach((c) => walk(c, depth + 1, node.menuId));
+    };
+    roots.forEach((r) => walk(r, 0, null));
+    $('permTree').innerHTML = rowsHtml.join('') || '<div class="empty">메뉴가 없습니다.</div>';
+  }
+
+  const box = (id) => $('permTree').querySelector(`input[data-id="${id}"]`);
+
+  function setSubtree(id, on) {
+    const b = box(id);
+    if (b) b.checked = on;
+    (nodesById[id].childIds || []).forEach((c) => setSubtree(c, on));
+  }
+  function refreshAncestors(id) {
+    let p = nodesById[id].parentId;
+    while (p != null) {
+      const any = nodesById[p].childIds.some((c) => box(c) && box(c).checked);
+      const pb = box(p);
+      if (pb) pb.checked = any;
+      p = nodesById[p].parentId;
     }
-    box.innerHTML = html;
+  }
+  function setAll(on) { order.forEach((id) => { if (nodesById[id].parentId == null) setSubtree(id, on); }); }
+  function checkedMenuIds() { return order.filter((id) => box(id) && box(id).checked); }
+
+  // ---- 선택/신규/저장/삭제 ----
+  async function selectAuth(id, name) {
+    selectedId = id;
+    $('authName').value = name || '';
+    markActive();
+    setAll(false);
+    const list = await api.get(BASE + '/detail?authId=' + encodeURIComponent(id));
+    (list || []).forEach((d) => { const b = box(d.menuId); if (b) b.checked = true; });
   }
 
-  function search() {
-    state.keyword = $('keyword').value.trim();
-    state.page = 1;
-    load();
-  }
-  function reset() {
-    $('keyword').value = '';
-    $('pageSize').value = '30';
-    Object.assign(state, { page: 1, size: 30, keyword: '', sort: 'authId', dir: 'asc' });
-    load();
-  }
-  function toggleSort(col) {
-    if (state.sort === col) state.dir = state.dir === 'asc' ? 'desc' : 'asc';
-    else { state.sort = col; state.dir = 'asc'; }
-    state.page = 1;
-    load();
+  function markActive() {
+    document.querySelectorAll('#authList .auth-row').forEach((tr) =>
+      tr.classList.toggle('active', Number(tr.dataset.id) === selectedId));
   }
 
-  async function excelDownload() {
-    const purpose = await promptModal.open({
-      title: '엑셀 다운로드', label: '다운로드 목적',
-      placeholder: '다운로드 목적을 입력해주세요', confirmText: '다운로드',
-    });
-    if (!purpose) return;
-    location.href = BASE + '/excel'
-      + `?keyword=${encodeURIComponent(state.keyword)}&sort=${state.sort}&dir=${state.dir}`
-      + `&purpose=${encodeURIComponent(purpose)}`;
-  }
-
-  // ---- 매트릭스 ----
-  function buildMatrix(detailMap) {
-    // detailMap: { menuId: {read, create, del} } — 편집 시 기존값, 등록 시 빈 객체
-    $('matrixBody').innerHTML = leafMenus.map((m) => {
-      const d = detailMap[m.menuId] || {};
-      const chk = (col, on) =>
-        `<input type="checkbox" data-menu="${esc(m.menuId)}" data-col="${col}"${on ? ' checked' : ''}/>`;
-      return `
-      <tr>
-        <td style="text-align:left">${esc(m.menuName)}</td>
-        <td>${chk('read', d.read)}</td>
-        <td>${chk('create', d.create)}</td>
-        <td>${chk('del', d.del)}</td>
-      </tr>`;
-    }).join('');
-    document.querySelectorAll('.matrix-all input').forEach((c) => (c.checked = false));
-  }
-
-  function openModal(mode, row) {
-    $('mode').value = mode;
-    $('modalTitle').textContent = mode === 'create' ? '권한 등록' : '권한 수정';
-    $('authId').value = row ? row.authId : '';
-    $('authName').value = row ? row.authName || '' : '';
-    if (mode === 'edit' && row) {
-      api.get(BASE + '/detail?authId=' + encodeURIComponent(row.authId)).then((list) => {
-        const map = {};
-        (list || []).forEach((d) => {
-          map[d.menuId] = { read: d.readAuth === 'Y', create: d.createAuth === 'Y', del: d.deleteAuth === 'Y' };
-        });
-        buildMatrix(map);
-      });
-    } else {
-      buildMatrix({});
-    }
-    $('editModal').classList.add('open');
-  }
-  function closeModal() { $('editModal').classList.remove('open'); }
-
-  function collectDetails() {
-    return leafMenus.map((m) => {
-      const q = (col) => document.querySelector(`#matrixBody input[data-menu="${m.menuId}"][data-col="${col}"]`);
-      return {
-        menuId: m.menuId,
-        readAuth: q('read').checked ? 'Y' : 'N',
-        createAuth: q('create').checked ? 'Y' : 'N',
-        deleteAuth: q('del').checked ? 'Y' : 'N',
-      };
-    });
+  function newAuth() {
+    selectedId = null;
+    $('authName').value = '';
+    setAll(false);
+    markActive();
+    $('authName').focus();
   }
 
   async function save() {
-    if (!PERM.canCreate) return;
-    const payload = {
-      authId: $('authId').value ? Number($('authId').value) : null,
-      authName: $('authName').value.trim(),
-      details: collectDetails(),
-    };
-    if (!payload.authName) { toast.warning('권한명은 필수입니다.'); return; }
-    if ($('mode').value === 'create') await api.post(BASE, payload);
+    if (!EDITABLE) return;
+    const authName = $('authName').value.trim();
+    if (!authName) { toast.warning('권한명은 필수입니다.'); return; }
+    const details = checkedMenuIds().map((menuId) => ({
+      menuId, readAuth: 'Y', createAuth: 'Y', deleteAuth: 'Y', // 체크 = 해당 메뉴 접근 허용
+    }));
+    const payload = { authId: selectedId, authName, details };
+    if (selectedId == null) await api.post(BASE, payload);
     else await api.put(BASE, payload);
-    closeModal();
-    load();
+    loadAuths(selectedId); // 등록이면 목록 갱신(신규 모드 유지), 수정이면 재선택
   }
 
-  async function remove(authId) {
+  async function removeAuth() {
     if (!PERM.canDelete) return;
+    if (selectedId == null) { toast.warning('삭제할 권한을 선택해주세요.'); return; }
     const ok = await confirmModal.open({
-      title: '삭제 확인', message: `선택한 권한(ID ${authId})을 삭제하시겠습니까?`, confirmText: '삭제',
+      title: '권한 삭제', message: `선택한 권한(${$('authName').value})을 삭제하시겠습니까?`, confirmText: '삭제',
     });
     if (!ok) return;
-    await api.del(`${BASE}?authId=${encodeURIComponent(authId)}`);
-    load();
+    await api.del(`${BASE}?authId=${encodeURIComponent(selectedId)}`);
+    newAuth();
+    loadAuths();
   }
 
   function bind() {
-    $('btnSearch').addEventListener('click', search);
-    $('btnReset').addEventListener('click', reset);
-    $('keyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
-    $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
-    if ($('btnNew')) $('btnNew').addEventListener('click', () => openModal('create', null));
-    $('btnExcel').addEventListener('click', excelDownload);
-    $('btnSave').addEventListener('click', save);
-    $('btnCancel').addEventListener('click', closeModal);
-    $('modalClose').addEventListener('click', closeModal);
-
-    // 컬럼 전체 토글
-    document.querySelectorAll('.matrix-all input').forEach((all) => {
-      all.addEventListener('change', (e) => {
-        const col = e.target.dataset.all;
-        document.querySelectorAll(`#matrixBody input[data-col="${col}"]`).forEach((c) => (c.checked = e.target.checked));
-      });
+    $('authList').addEventListener('click', (e) => {
+      const tr = e.target.closest('tr.auth-row');
+      if (tr) selectAuth(Number(tr.dataset.id), tr.dataset.name);
     });
+    $('btnCancel').addEventListener('click', newAuth);
+    if ($('btnNew')) $('btnNew').addEventListener('click', newAuth);
+    if ($('btnSave')) $('btnSave').addEventListener('click', save);
+    if ($('btnDelete')) $('btnDelete').addEventListener('click', removeAuth);
+    if ($('btnCheckAll')) $('btnCheckAll').addEventListener('click', () => setAll(true));
+    if ($('btnUncheckAll')) $('btnUncheckAll').addEventListener('click', () => setAll(false));
 
-    document.querySelectorAll('th.sortable').forEach((th) =>
-      th.addEventListener('click', () => toggleSort(th.dataset.sort)));
-
-    $('gridBody').addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (btn) { if (btn.dataset.act === 'del') remove(btn.dataset.id); return; }
-      const tr = e.target.closest('tr[data-json]');
-      if (tr && PERM.canCreate) openModal('edit', JSON.parse(tr.dataset.json));
-    });
-    $('paging').addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (btn) { state.page = Number(btn.dataset.page); load(); }
+    $('permTree').addEventListener('change', (e) => {
+      const b = e.target.closest('input[type="checkbox"]');
+      if (!b) return;
+      const id = Number(b.dataset.id);
+      setSubtree(id, b.checked);
+      refreshAncestors(id);
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => { bind(); loadMenus(); load(); });
+  document.addEventListener('DOMContentLoaded', async () => {
+    bind();
+    await loadTree();
+    await loadAuths();
+  });
 })();

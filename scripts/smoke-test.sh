@@ -98,7 +98,7 @@ check "삭제" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/syst
 echo "== 권한메뉴관리(tb_menu_auth) =="
 check "권한 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth")"
 check "권한 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/list?size=5")"
-check "매트릭스용 메뉴 목록" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/menus")"
+check "권한 메뉴 트리" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/menus")"
 check "권한 상세(admin auth=1)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/detail?authId=1")"
 # 등록: 권한명 + 매트릭스(메뉴 301 조회만)
 SMOKE_AUTH="$(A -H 'Content-Type: application/json' -X POST --data '{"authName":"SmokeAuth","details":[{"menuId":301,"readAuth":"Y","createAuth":"N","deleteAuth":"N"}]}' "$BASE_URL/system/menuAuth")"

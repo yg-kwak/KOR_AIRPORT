@@ -5,9 +5,7 @@ import AirPort.model.MenuNode;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbMenu;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import org.springframework.stereotype.Service;
 
 /** 메뉴 조회(사이드바 등). 사이드바는 로그인 사용자의 read 권한 메뉴만 노출한다(root 는 전체). */
@@ -32,22 +30,12 @@ public class MenuService {
    * <p>로그인 사용자의 read 권한이 있는 메뉴만 남긴다(root 는 전권이라 전체 노출). 하위가 모두 걸러진 상위 그룹은 숨긴다.
    */
   public List<MenuNode> tree(TbLoginUser actor) {
-    List<TbMenu> all = menuMapper.selectUseList(); // level/order 정렬됨
-    Map<Integer, MenuNode> byId = new LinkedHashMap<>();
-    for (TbMenu m : all) {
-      byId.put(m.getMenuId(), new MenuNode(m));
-    }
-    List<MenuNode> roots = new ArrayList<>();
-    for (TbMenu m : all) {
-      MenuNode node = byId.get(m.getMenuId());
-      MenuNode parent = (m.getParentMenuId() == null) ? null : byId.get(m.getParentMenuId());
-      if (parent == null) {
-        roots.add(node);
-      } else {
-        parent.getChildren().add(node);
-      }
-    }
-    return filterByPermission(roots, actor);
+    return filterByPermission(MenuNode.buildTree(menuMapper.selectUseList()), actor);
+  }
+
+  /** 전체 메뉴 트리(권한 필터 없음) — 권한메뉴관리 등 관리 화면의 선택 트리에 쓴다. */
+  public List<MenuNode> fullTree() {
+    return MenuNode.buildTree(menuMapper.selectUseList());
   }
 
   /**

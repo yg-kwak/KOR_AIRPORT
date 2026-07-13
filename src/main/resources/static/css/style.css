@@ -233,11 +233,33 @@ a { color: inherit; text-decoration: none; }
 .form-group label { font-size: 13px; color: var(--neutral-900); }
 .form-hint { font-size: 11px; color: var(--neutral-500); font-weight: 400; }
 
-/* 권한 매트릭스(메뉴 × CRUD 체크박스) — 스크롤 + sticky 헤더 */
 .form-group-label { display: block; font-size: 13px; font-weight: 700; color: var(--neutral-900); margin: 4px 0 6px; }
-.matrix-wrap { max-height: 320px; overflow: auto; border: 1px solid var(--color-tertiary-active); border-radius: var(--radius-sm); }
-.matrix-grid th { position: sticky; top: 0; z-index: 1; }
-.matrix-all { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; font-weight: 700; }
+
+/* 권한메뉴관리 — 좌: 권한 목록 / 우: 설정(메뉴 트리) 2패널 */
+.perm-layout { display: flex; gap: 16px; align-items: flex-start; }
+.perm-left { width: 360px; flex-shrink: 0; }
+.perm-right { flex: 1; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.card-title { font-size: 16px; font-weight: 700; }
+.perm-actions { display: flex; gap: 8px; }
+.btn-danger-solid { background: var(--nt-red); color: var(--color-white); border-color: var(--nt-red); }
+.btn-danger-solid:hover { filter: brightness(0.94); }
+
+/* 좌측 권한 목록 행 */
+.auth-row { cursor: pointer; }
+.auth-row:hover { background: var(--color-tertiary-hover); }
+.auth-row.active { background: var(--sidebar-active-bg); }
+.auth-gear { color: var(--neutral-500); width: 40px; }
+
+/* 우측 메뉴 선택 트리 */
+.perm-tree-head { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 6px; }
+.perm-tree-btns { display: flex; gap: 6px; }
+.perm-tree { border: 1px solid var(--color-tertiary-active); border-radius: var(--radius-sm); padding: 8px 6px; max-height: 460px; overflow: auto; }
+.tree-row { padding: 5px 8px; border-radius: var(--radius-sm); }
+.tree-row:hover { background: var(--color-tertiary-hover); }
+.tree-label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; }
+.tree-branch { color: var(--neutral-500); margin-right: 2px; }
+@media (max-width: 1024px) { .perm-layout { flex-direction: column; } .perm-left { width: 100%; } }
 
 /* 필드 많은 폼(사용자 등) — 2열 그리드. .full 은 한 줄 전체 차지 */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }

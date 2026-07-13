@@ -5,9 +5,9 @@ import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
 import AirPort.model.MenuAuthForm;
 import AirPort.model.MenuAuthSearchParam;
+import AirPort.model.MenuNode;
 import AirPort.model.MenuPermission;
 import AirPort.model.TbLoginUser;
-import AirPort.model.TbMenu;
 import AirPort.model.TbMenuAuth;
 import AirPort.model.TbMenuAuthDetail;
 import AirPort.service.MenuAuthService;
@@ -66,11 +66,11 @@ public class MenuAuthController {
     return ApiResponse.ok(menuAuthService.list(param, actor(session), MENU_ID));
   }
 
-  /** 권한 매트릭스 행이 될 메뉴 목록 (AJAX) */
+  /** 권한 선택 트리가 될 전체 메뉴 트리 (AJAX) */
   @GetMapping("/menus")
   @ResponseBody
-  public ApiResponse<List<TbMenu>> menus(HttpSession session) {
-    return ApiResponse.ok(menuAuthService.leafMenus(actor(session), MENU_ID));
+  public ApiResponse<List<MenuNode>> menus(HttpSession session) {
+    return ApiResponse.ok(menuAuthService.menuTree(actor(session), MENU_ID));
   }
 
   /** 특정 권한의 메뉴권한 상세 (AJAX) */

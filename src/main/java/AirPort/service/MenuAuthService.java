@@ -9,9 +9,9 @@ import AirPort.mapper.TbMenuAuthMapper;
 import AirPort.mapper.TbMenuMapper;
 import AirPort.model.MenuAuthForm;
 import AirPort.model.MenuAuthSearchParam;
+import AirPort.model.MenuNode;
 import AirPort.model.MenuPermission;
 import AirPort.model.TbLoginUser;
-import AirPort.model.TbMenu;
 import AirPort.model.TbMenuAuth;
 import AirPort.model.TbMenuAuthDetail;
 import java.util.List;
@@ -126,10 +126,10 @@ public class MenuAuthService {
     return rows;
   }
 
-  /** 권한 매트릭스 행이 될 화면(URL 있는) 메뉴 목록. */
-  public List<TbMenu> leafMenus(TbLoginUser actor, Integer menuId) {
+  /** 권한 선택 트리가 될 전체 메뉴 트리(계층 구조, 권한 필터 없음). */
+  public List<MenuNode> menuTree(TbLoginUser actor, Integer menuId) {
     requireRead(actor, menuId);
-    return menuMapper.selectUseList().stream().filter(m -> m.getMenuUrl() != null).toList();
+    return MenuNode.buildTree(menuMapper.selectUseList());
   }
 
   /** 권한의 메뉴권한 목록(편집 로드용). */
