@@ -46,6 +46,9 @@ A() { curl -s -b "$CK_A" -H "X-Requested-With: XMLHttpRequest" "$@"; }
 
 echo "== 화면/조회 =="
 check "공통코드 화면"  200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/system/common")"
+# 사이드바 HTML 은 크고 매치가 앞쪽이라 `grep -q` 는 SIGPIPE(pipefail) 로 오탐 → 변수에 담아 case 로 판정
+SB_A="$(A "$BASE_URL/system/common")"
+check "admin(root) 사이드바 302 노출" 0 "$(case "$SB_A" in *"/system/system"*) echo 0;; *) echo 1;; esac)"
 check "목록 조회"      200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/common/list?size=5")"
 check "미인증 AJAX 401" 401 "$(curl -s -H 'X-Requested-With: XMLHttpRequest' -o /dev/null -w '%{http_code}' "$BASE_URL/system/common/list")"
 # 시스템 코드(AT=N)는 목록에 나오지 않아야 함
@@ -101,6 +104,14 @@ if [ "$VCODE" = "302" ]; then
   check "viewer 삭제 403"  403 "$(V -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/common?cmmId=AT&codeId=READ")"
   check "viewer 사용자 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser/list?size=1")"
   check "viewer 사용자 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"userId":"x","userName":"x","password":"x","useYn":"Y","rootYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser")"
+  # 사이드바 권한 필터: viewer 는 302(설정관리) 미노출, 303(사용자관리)은 노출 (case 매칭 — SIGPIPE 회피)
+  SB_V="$(V "$BASE_URL/system/common")"
+  check "viewer 사이드바 302 미노출" 0 "$(case "$SB_V" in *"/system/system"*) echo 1;; *) echo 0;; esac)"
+  check "viewer 사이드바 303 노출"   0 "$(case "$SB_V" in *"/system/loginUser"*) echo 0;; *) echo 1;; esac)"
+  # 무권한 URL 직접 접근 → 403 권한없음 페이지
+  check "viewer 무권한 URL 403"      403 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/system/system")"
+  FP_V="$(V "$BASE_URL/system/system")"
+  check "무권한 페이지 렌더"          0 "$(case "$FP_V" in *'id="forbiddenPage"'*) echo 0;; *) echo 1;; esac)"
 else
   bad "viewer 로그인 실패($VCODE) — seed 확인 필요"
 fi

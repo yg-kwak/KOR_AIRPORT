@@ -9,6 +9,7 @@ import AirPort.model.TbSystem;
 import AirPort.service.MenuAuthService;
 import AirPort.service.MenuService;
 import AirPort.service.SystemService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -38,12 +39,13 @@ public class SystemController {
 
   /** 화면 */
   @GetMapping
-  public String page(Model model, HttpSession session) {
+  public String page(Model model, HttpSession session, HttpServletResponse response) {
     MenuPermission perm = menuAuthService.permissionFor(actor(session), MENU_ID);
     if (!perm.isCanRead()) {
-      return "redirect:/";
+      response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+      return "error/forbidden"; // 무권한 URL 직접 접근 → 권한 없음 페이지
     }
-    model.addAttribute("menus", menuService.tree());
+    model.addAttribute("menus", menuService.tree(actor(session)));
     model.addAttribute("perm", perm);
     model.addAttribute("system", systemService.getForView(actor(session), MENU_ID));
     return "web/system/system";

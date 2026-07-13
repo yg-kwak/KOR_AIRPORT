@@ -19,6 +19,8 @@
 - 메뉴 단위 CRUD 권한. `tb_menu_auth`(권한) → `tb_menu_auth_detail`(메뉴별 read/create/update/delete) 로 판정. (`database.md`)
 - 관리자(`root_yn='Y'`)는 전체 접근. 그 외는 권한 매핑에 따름.
 - 민감 작업(권한 부여, 출입그룹 매핑, 설정 변경)은 서버에서 권한을 **재검증**한다(화면 제어만 믿지 않음).
+- **사이드바(LNB)는 read 권한 있는 메뉴만 노출**한다(`MenuService.tree(actor)` — root 는 전체, 하위가 모두 걸러진 그룹은 숨김).
+- **무권한 메뉴 URL 직접 접근** 시 메인 리다이렉트가 아니라 **403 + 권한없음 페이지**(`error/forbidden`)를 보여준다. (AJAX 는 `GlobalExceptionHandler` 가 403 JSON)
 
 ## 암호화 — ARIA (표준 구현 패턴, 불변식)
 개인정보/비밀번호는 **ARIA-256** 으로 암호화하여 저장한다. 참조 구현: `visitor.security.ARIAEngine`, `ARIAUtil` (ROKA 프로젝트에서 이식).

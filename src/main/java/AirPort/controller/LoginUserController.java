@@ -52,12 +52,13 @@ public class LoginUserController {
 
   /** 화면 — 메뉴 권한(perm)을 내려 버튼 노출을 제어한다(1차 방어). */
   @GetMapping
-  public String page(Model model, HttpSession session) {
+  public String page(Model model, HttpSession session, HttpServletResponse response) {
     MenuPermission perm = menuAuthService.permissionFor(actor(session), MENU_ID);
     if (!perm.isCanRead()) {
-      return "redirect:/";
+      response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+      return "error/forbidden"; // 무권한 URL 직접 접근 → 권한 없음 페이지
     }
-    model.addAttribute("menus", menuService.tree());
+    model.addAttribute("menus", menuService.tree(actor(session)));
     model.addAttribute("perm", perm);
     return "web/system/loginUser";
   }

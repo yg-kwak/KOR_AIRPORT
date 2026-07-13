@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('접근 권한 없음')}"></head>
+<body class="login-body">
+<div class="login-card" id="forbiddenPage" style="text-align:center">
+  <div style="display:flex;justify-content:center;margin-bottom:12px;color:var(--color-error)">
+    <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  </div>
+  <h1 class="login-title">접근 권한 없음</h1>
+  <p style="color:var(--neutral-700);margin:0 0 20px;line-height:1.6">
+    해당 메뉴에 대한 권한이 없습니다.<br/>필요 시 관리자에게 문의하세요.
+  </p>
+  <a href="/" class="btn btn-primary btn-block">메인으로</a>
+</div>
+</body>
+</html>
