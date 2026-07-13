@@ -81,38 +81,32 @@
         <input type="hidden" id="mode" value="create"/>
         <div class="form-grid">
           <div class="form-group">
-            <label>사용자ID</label>
+            <label>사용자ID <span class="req">*</span></label>
             <input type="text" id="userId" name="userId" class="input" required/>
           </div>
           <div class="form-group">
-            <label>성명</label>
+            <label>성명 <span class="req">*</span></label>
             <input type="text" id="userName" name="userName" class="input" required/>
           </div>
           <div class="form-group">
-            <label>비밀번호 <span class="form-hint" id="pwHint">(필수)</span></label>
+            <label>비밀번호 <span class="req">*</span> <span class="form-hint" id="pwHint">(필수)</span></label>
             <input type="password" id="password" name="password" class="input"/>
+          </div>
+          <div class="form-group">
+            <label>권한 <span class="req">*</span></label>
+            <select id="authId" name="authId" class="input">
+              <option value="">선택</option>
+            </select>
           </div>
           <div class="form-group">
             <label>소속부서</label>
             <input type="text" id="deptName" name="deptName" class="input"/>
           </div>
           <div class="form-group">
-            <label>권한</label>
-            <select id="authId" name="authId" class="input">
-              <option value="">선택</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>시작메뉴</label>
-            <select id="startMenuId" name="startMenuId" class="input">
-              <option value="">선택</option>
-            </select>
-          </div>
-          <div class="form-group">
             <label>근무지역</label>
-            <select id="workLocationCode" name="workLocationCode" class="input">
-              <option value="">선택</option>
-            </select>
+            <input type="hidden" id="workLocationCode" name="workLocationCode"/>
+            <input type="text" id="workLocationName" class="input picker-field" readonly
+                   placeholder="클릭하여 선택" autocomplete="off"/>
           </div>
           <div class="form-group">
             <label>근무유형</label>
@@ -133,13 +127,6 @@
               <option value="N">미사용</option>
             </select>
           </div>
-          <div class="form-group">
-            <label>관리자여부</label>
-            <select id="rootYn" name="rootYn" class="input">
-              <option value="N">일반</option>
-              <option value="Y">관리자</option>
-            </select>
-          </div>
         </div>
       </form>
     </div>
@@ -153,6 +140,7 @@
 <!-- 공통 확인/입력 모달 (fragments/components — 제목/내용은 JS 로 주입) -->
 <div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
 <div th:replace="~{fragments/components/prompt-modal :: promptModal}"></div>
+<div th:replace="~{fragments/components/code-picker :: codePicker}"></div>
 
 <!-- 메뉴 권한 → JS 전달 (행 버튼 노출 제어. 서버가 2차로 강제하므로 조작해도 실행 불가) -->
 <script th:inline="javascript">

@@ -88,15 +88,14 @@
        #{workType}, #{deskIp}, #{devId}, getdate())
   </insert>
 
-  <!-- password 는 값이 있을 때만 갱신(빈 값=유지). 변경 시 password_change_dt 갱신 -->
+  <!-- password 는 값이 있을 때만 갱신(빈 값=유지). 변경 시 password_change_dt 갱신.
+       root_yn·start_menu_id 는 화면에서 편집하지 않으므로 갱신 대상에서 제외(기존값 보존) -->
   <update id="update" parameterType="TbLoginUser">
     UPDATE tb_login_user
     SET user_name = #{userName},
         dept_name = #{deptName},
         use_yn = #{useYn},
-        root_yn = #{rootYn},
         auth_id = #{authId},
-        start_menu_id = #{startMenuId},
         work_location_code = #{workLocationCode},
         work_type = #{workType},
         desk_ip = #{deskIp},
@@ -112,13 +111,5 @@
   <delete id="delete">
     DELETE FROM tb_login_user WHERE user_id = #{userId}
   </delete>
-
-  <!-- 근무지역 코드(tb_common cmm_id='LO') — 시스템 코드라 user_input 무관하게 사용중(use_yn='Y')만 -->
-  <select id="selectLocationOptions" resultType="TbCommon">
-    SELECT code_id, code_name
-    FROM tb_common
-    WHERE cmm_id = 'LO' AND use_yn = 'Y'
-    ORDER BY code_id
-  </select>
 
 </mapper>

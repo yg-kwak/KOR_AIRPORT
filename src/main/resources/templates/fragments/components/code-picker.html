@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 공통 코드 선택 팝업(tb_common 참조). 코드구분(cmmId)·검색어로 조회 후 한 건 선택.
+     사용: <div th:replace="~{fragments/components/code-picker :: codePicker}"></div>
+          const sel = await codePicker.open({ cmmId:'LO', cmmName:'근무지역' }); // {codeId, codeName} 또는 null -->
+<div th:fragment="codePicker" class="modal-overlay code-picker-overlay" id="codePickerModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2 class="modal-title">코드 선택</h2>
+      <button class="modal-close" id="codePickerClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <section class="search-section">
+        <div class="search-field">
+          <label>코드구분</label>
+          <input type="text" id="codePickerGroup" class="input w-200" readonly/>
+        </div>
+        <div class="search-field">
+          <label>검색어</label>
+          <div class="search-keyword">
+            <input type="text" id="codePickerKeyword" class="input w-200" placeholder="코드/코드명 검색"/>
+            <button class="btn btn-primary" id="codePickerSearch">검색</button>
+          </div>
+        </div>
+      </section>
+      <table class="grid">
+        <thead>
+        <tr>
+          <th class="w-160">코드</th>
+          <th>코드명</th>
+          <th class="w-80">선택</th>
+        </tr>
+        </thead>
+        <tbody id="codePickerBody">
+        <tr><td colspan="3" class="empty">검색 결과가 없습니다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

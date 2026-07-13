@@ -38,7 +38,7 @@ src/main/resources/
     ├── images/
     └── js/
         ├── common.js, common/    공용 라이브러리
-        ├── core/                 app.js(fetch), toast, confirm/prompt-modal, sidebar(계층·접기·플라이아웃), no-autofill(입력이력 차단) 등 공통 뼈대
+        ├── core/                 app.js(fetch), toast, confirm/prompt-modal, code-picker(코드 팝업), sidebar(계층·접기·플라이아웃), no-autofill(입력이력 차단), password-toggle(비번 표시) 등 공통 뼈대
         ├── web/
         │   ├── {도메인}/          화면별 스크립트
         │   └── components/       조각별 스크립트

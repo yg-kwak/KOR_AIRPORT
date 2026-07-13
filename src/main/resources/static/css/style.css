@@ -238,6 +238,26 @@ a { color: inherit; text-decoration: none; }
 .form-grid .full { grid-column: 1 / -1; }
 @media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } }
 
+/* 필수 표시(*) */
+.req { color: var(--color-error); font-weight: 700; margin-left: 2px; }
+
+/* 비밀번호 표시/숨김 토글 (core/password-toggle.js 가 감싼다) */
+.pw-wrap { position: relative; display: block; }
+.pw-wrap > .input { width: 100%; padding-right: 40px; }
+.pw-toggle {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0; border: none; background: none;
+  color: var(--neutral-500); cursor: pointer;
+}
+.pw-toggle:hover { color: var(--neutral-900); }
+
+/* 코드 팝업 트리거 필드(읽기전용이지만 클릭해서 팝업 여는 입력) */
+.input.picker-field { background: var(--color-white); color: var(--color-black); cursor: pointer; }
+.input.picker-field:hover { border-color: var(--color-primary-default); }
+/* 코드 선택 팝업은 편집 모달 위에 뜬다 */
+.code-picker-overlay { z-index: 2600; }
+
 /* 단일 폼(설정 등) — 항목 가로 배치, 버튼 우측 끝 */
 .setting-form { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-end; gap: 12px 12px; }
 .setting-form .form-group { width: 220px; margin: 0; }

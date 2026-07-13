@@ -77,6 +77,16 @@ public class CommonController {
     return ApiResponse.ok(commonService.addableGroups(actor(session), MENU_ID));
   }
 
+  /** 코드 선택 팝업용 조회 — 로그인 사용자 공용(특정 메뉴 권한 불요). 다른 화면이 tb_common(근무지역 등)을 참조할 때 사용. (AJAX) */
+  @GetMapping("/picker")
+  @ResponseBody
+  public ApiResponse<List<TbCommon>> picker(
+      @RequestParam String cmmId,
+      @RequestParam(required = false) String keyword,
+      HttpSession session) {
+    return ApiResponse.ok(commonService.pickerCodes(cmmId, keyword, actor(session)));
+  }
+
   /** 엑셀 다운로드 — 현재 검색/정렬 조건의 전체(모든 페이지) 데이터. 목적(purpose)은 감사 remark 로 기록. */
   @GetMapping("/excel")
   public void excel(

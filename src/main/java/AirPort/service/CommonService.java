@@ -88,6 +88,20 @@ public class CommonService {
     return commonMapper.selectAddableGroups();
   }
 
+  /**
+   * 코드 선택 팝업용 조회 — 로그인 사용자면 사용 가능(특정 메뉴 CRUD 권한 불요). 다른 화면(근무지역 등)이 tb_common 을 참조할 때 공용. 참조 조회라 감사
+   * 로그는 남기지 않는다(드롭다운 로딩과 동일 취급).
+   */
+  public java.util.List<TbCommon> pickerCodes(String cmmId, String keyword, TbLoginUser actor) {
+    if (actor == null) {
+      throw new BusinessException(ErrorCode.UNAUTHORIZED);
+    }
+    if (cmmId == null || cmmId.isBlank()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "코드구분이 필요합니다.");
+    }
+    return commonMapper.selectCodesForPicker(cmmId, keyword);
+  }
+
   @Transactional
   public void create(TbCommon row, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);

@@ -52,6 +52,9 @@
 - **의존 선택 패턴**(선택값에 따라 다른 필드 자동): 부모는 `<select>`(서버가 허용 목록 제공), 자식은 `readonly` 입력 + `change` 시 자동 채움. 서버가 파생값을 재검증·재설정한다(클라이언트 값 불신). 예: 공통코드 등록의 코드구분ID→코드구분명.
 - 공통 모달 등 재사용 조각은 `fragments/components/`, 화면 전용은 `web|kiosk/components/`. (`frontend.md`)
 - **입력 자동완성/입력이력 금지(전 페이지)**: 브라우저의 이전 입력값 드롭다운을 노출하지 않는다. 별도 작업 불필요 — 공통 `head` fragment 가 `core/no-autofill.js` 를 로드해 모든 `input`/`textarea`(동적 추가분 포함)에 `autocomplete=off` 를 자동 적용한다. 예외적으로 자격증명 입력은 템플릿에 `autocomplete` 를 명시하고(아이디 `off`, 비밀번호 `new-password`), 그 경우 스크립트가 값을 보존한다.
+- **필수 입력 표시**: 필수 항목 라벨 뒤에 `<span class="req">*</span>`(붉은 별). 서버가 반드시 재검증한다(화면 표시는 안내일 뿐).
+- **비밀번호 입력**: `type=password` 면 표시/숨김(눈) 토글이 자동 부착된다(`core/password-toggle.js`, 전 페이지·동적 추가분 포함). 별도 마크업 불필요.
+- **코드(tb_common) 참조 = 코드 팝업**: 다른 화면에서 tb_common 코드를 고를 때는 `<select>` 대신 **공통 코드 팝업**을 쓴다. 마크업은 코드ID(`type=hidden`) + 코드명(`.input.picker-field` readonly, 클릭 시 팝업). 팝업 조각 `fragments/components/code-picker` 포함 후 `const sel = await codePicker.open({cmmId, cmmName})`(선택=`{codeId,codeName}`, 닫힘=`null`). 서버 조회는 `GET /system/common/picker?cmmId=&keyword=`(로그인만 필요, 특정 메뉴 권한 불요, 참조라 감사 미기록).
 
 ## 3. JavaScript — 명명 규칙 · 호출 흐름
 **파일**: 화면당 1개, 템플릿과 **미러 경로**(`templates/web/system/common.html` ↔ `static/js/web/system/common.js`). 파일명=테이블 어간(§1). 전체를 IIFE `(function(){ ... })()` 로 감싼다(전역 오염 방지).

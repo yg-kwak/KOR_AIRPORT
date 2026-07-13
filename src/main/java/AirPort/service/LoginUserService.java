@@ -5,10 +5,8 @@ import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbLoginUserMapper;
 import AirPort.mapper.TbMenuAuthMapper;
-import AirPort.mapper.TbMenuMapper;
 import AirPort.model.LoginUserSearchParam;
 import AirPort.model.TbLoginUser;
-import AirPort.model.TbMenu;
 import AirPort.security.ARIAUtil;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,19 +25,16 @@ public class LoginUserService {
 
   private final TbLoginUserMapper userMapper;
   private final TbMenuAuthMapper menuAuthMapper;
-  private final TbMenuMapper menuMapper;
   private final AuditService auditService;
   private final MenuAuthService menuAuthService;
 
   public LoginUserService(
       TbLoginUserMapper userMapper,
       TbMenuAuthMapper menuAuthMapper,
-      TbMenuMapper menuMapper,
       AuditService auditService,
       MenuAuthService menuAuthService) {
     this.userMapper = userMapper;
     this.menuAuthMapper = menuAuthMapper;
-    this.menuMapper = menuMapper;
     this.auditService = auditService;
     this.menuAuthService = menuAuthService;
   }
@@ -91,16 +86,11 @@ public class LoginUserService {
     return rows;
   }
 
-  /** 등록/수정 화면 참조 데이터 — 권한/시작메뉴/근무지역 select 옵션. */
+  /** 등록/수정 화면 참조 데이터 — 권한(auth) select 옵션. (근무지역은 코드 팝업으로 조회) */
   public Map<String, Object> refs(TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
-    // 시작메뉴는 실제 화면(URL 있는 메뉴)만 후보로.
-    List<TbMenu> menus =
-        menuMapper.selectUseList().stream().filter(m -> m.getMenuUrl() != null).toList();
     Map<String, Object> refs = new LinkedHashMap<>();
     refs.put("auths", menuAuthMapper.selectList());
-    refs.put("menus", menus);
-    refs.put("locations", userMapper.selectLocationOptions());
     return refs;
   }
 
@@ -155,6 +145,9 @@ public class LoginUserService {
     }
     if (row.getUserName() == null || row.getUserName().isBlank()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "성명은 필수입니다.");
+    }
+    if (row.getAuthId() == null) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "권한은 필수입니다.");
     }
     if (isCreate && (row.getPassword() == null || row.getPassword().isBlank())) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "비밀번호는 필수입니다.");

@@ -20,18 +20,14 @@
   // 메뉴 권한(서버 렌더 시 주입). 버튼 숨김은 1차 방어 — 서버가 생성/수정/삭제를 재검증한다.
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
-  // 참조 옵션(권한/시작메뉴/근무지역) — 등록/수정 모달 select 에 사용.
-  const refs = { auths: [], menus: [], locations: [] };
+  // 참조 옵션(권한) — 등록/수정 모달 select 에 사용. (근무지역은 코드 팝업으로 조회)
+  const refs = { auths: [] };
 
   async function loadRefs() {
     if (!PERM.canCreate) return; // 등록/수정 권한 없으면 불필요
     const data = await api.get(BASE + '/refs');
     refs.auths = data.auths || [];
-    refs.menus = data.menus || [];
-    refs.locations = data.locations || [];
     fillSelect('authId', refs.auths.map((a) => ({ v: a.authId, t: a.authName })));
-    fillSelect('startMenuId', refs.menus.map((m) => ({ v: m.menuId, t: m.menuName })));
-    fillSelect('workLocationCode', refs.locations.map((c) => ({ v: c.codeId, t: c.codeName })));
   }
 
   function fillSelect(id, opts) {
@@ -161,13 +157,12 @@
     $('userName').value = row ? row.userName || '' : '';
     $('deptName').value = row ? row.deptName || '' : '';
     $('authId').value = row && row.authId != null ? String(row.authId) : '';
-    $('startMenuId').value = row && row.startMenuId != null ? String(row.startMenuId) : '';
     $('workLocationCode').value = row ? row.workLocationCode || '' : '';
+    $('workLocationName').value = row && row.workLocationCode ? row.workLocationCode : '';
     $('workType').value = row ? row.workType || '' : '';
     $('deskIp').value = row ? row.deskIp || '' : '';
     $('devId').value = row ? row.devId || '' : '';
     $('useYn').value = row ? row.useYn || 'Y' : 'Y';
-    $('rootYn').value = row ? row.rootYn || 'N' : 'N';
     // 비밀번호: 등록=필수, 수정=변경 시에만 입력
     $('password').value = '';
     $('pwHint').textContent = isEdit ? '(변경 시에만 입력)' : '(필수)';
@@ -184,16 +179,16 @@
       password: $('password').value, // 빈 값이면 수정 시 유지
       deptName: $('deptName').value.trim(),
       authId: $('authId').value ? Number($('authId').value) : null,
-      startMenuId: $('startMenuId').value ? Number($('startMenuId').value) : null,
       workLocationCode: $('workLocationCode').value || null,
       workType: $('workType').value.trim(),
       deskIp: $('deskIp').value.trim(),
       devId: $('devId').value.trim(),
       useYn: $('useYn').value,
-      rootYn: $('rootYn').value,
+      // startMenuId·rootYn 은 화면에서 다루지 않는다(시작메뉴=헤더에서 처리 예정, 관리자여부=시스템 계정만)
     };
     if (!payload.userId) { toast.warning('사용자ID는 필수입니다.'); return; }
     if (!payload.userName) { toast.warning('성명은 필수입니다.'); return; }
+    if (!payload.authId) { toast.warning('권한은 필수입니다.'); return; }
     if ($('mode').value === 'create') {
       if (!payload.password) { toast.warning('비밀번호는 필수입니다.'); return; }
       await api.post(BASE, payload);
@@ -222,6 +217,15 @@
     $('keyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
     $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
     if ($('btnNew')) $('btnNew').addEventListener('click', () => openModal('create', null));
+
+    // 근무지역: 코드 팝업(tb_common 'LO')으로 선택 → 코드/코드명 채움
+    $('workLocationName').addEventListener('click', async () => {
+      const sel = await codePicker.open({ cmmId: 'LO', cmmName: '근무지역' });
+      if (sel) {
+        $('workLocationCode').value = sel.codeId;
+        $('workLocationName').value = sel.codeName;
+      }
+    });
     $('btnExcel').addEventListener('click', excelDownload);
     $('btnSave').addEventListener('click', save);
     $('btnCancel').addEventListener('click', closeModal);

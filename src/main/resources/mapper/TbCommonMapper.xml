@@ -82,6 +82,17 @@
     WHERE cmm_id = #{cmmId} AND user_input = 'Y'
   </select>
 
+  <!-- 코드 선택 팝업: cmm_id 의 사용중 코드(코드/코드명), 검색어는 코드ID/코드명 LIKE. user_input 무관(시스템 코드 LO 등도 조회) -->
+  <select id="selectCodesForPicker" resultType="TbCommon">
+    SELECT cmm_id, cmm_name, code_id, code_name
+    FROM tb_common
+    WHERE cmm_id = #{cmmId} AND use_yn = 'Y'
+    <if test="keyword != null and keyword != ''">
+      AND (code_id LIKE '%' + #{keyword} + '%' OR code_name LIKE '%' + #{keyword} + '%')
+    </if>
+    ORDER BY code_id
+  </select>
+
   <insert id="insert" parameterType="TbCommon">
     INSERT INTO tb_common
       (cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_input, use_yn)

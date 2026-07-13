@@ -1,7 +1,6 @@
 package AirPort.mapper;
 
 import AirPort.model.LoginUserSearchParam;
-import AirPort.model.TbCommon;
 import AirPort.model.TbLoginUser;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
@@ -27,7 +26,4 @@ public interface TbLoginUserMapper {
   int update(TbLoginUser row);
 
   int delete(@Param("userId") String userId);
-
-  /** 근무지역 코드 목록(tb_common cmm_id='LO'). 등록 화면 select 용. codeId/codeName 만 채워짐. */
-  List<TbCommon> selectLocationOptions();
 }
