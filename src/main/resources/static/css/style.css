@@ -101,12 +101,39 @@ a { color: inherit; text-decoration: none; }
 }
 .header-title { font-size: 16px; font-weight: 700; }
 .header-buttons { display: flex; align-items: center; gap: 12px; }
-.header-user { font-size: 14px; color: var(--header-muted); }
-.btn-logout {
-  padding: 6px 12px; background: transparent; color: var(--header-text);
-  border: 1px solid var(--header-border); border-radius: var(--radius-sm); font-size: 13px;
+
+/* 헤더 사용자 메뉴(드롭다운) */
+.user-menu { position: relative; }
+.user-menu-btn {
+  display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+  background: var(--nt-on-dark); color: var(--header-text);
+  border: 1px solid var(--nt-on-dark-border); border-radius: var(--radius-sm);
+  font-size: 13px; cursor: pointer;
 }
-.btn-logout:hover { background: var(--color-primary-default); border-color: var(--color-primary-default); }
+.user-menu-btn:hover { background: var(--nt-on-dark-hover); }
+.user-menu-btn svg { width: 16px; height: 16px; }
+.user-menu-divider { width: 1px; height: 14px; background: var(--nt-on-dark-border); }
+.user-menu-name { font-weight: 600; }
+.user-menu-dropdown {
+  display: none; position: absolute; top: calc(100% + 8px); right: 0; min-width: 200px;
+  background: var(--color-white); border: 1px solid var(--nt-border);
+  border-radius: var(--radius); box-shadow: 0 8px 28px var(--nt-shadow); padding: 6px; z-index: 1100;
+}
+.user-menu-dropdown.open { display: block; }
+.user-menu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px;
+  background: transparent; border: 0; border-radius: var(--radius-sm);
+  font-size: 14px; color: var(--nt-text); cursor: pointer; text-align: left;
+}
+.user-menu-item:hover { background: var(--nt-hover); }
+.user-menu-item svg { width: 16px; height: 16px; color: var(--neutral-500); flex: none; }
+.user-menu-sep { height: 1px; background: var(--nt-border); margin: 6px 4px; }
+
+/* 시작메뉴 선택 리스트(모달) */
+.start-menu-list { max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; margin-top: 8px; }
+.start-menu-list .empty { text-align: center; color: var(--neutral-500); padding: 20px; }
+.start-menu-opt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; }
+.start-menu-opt:hover { background: var(--nt-hover); }
 
 /* 레이아웃 */
 .layout-container { display: flex; padding-top: 60px; min-height: 100vh; }

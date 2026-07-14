@@ -68,6 +68,7 @@ src/main/resources/
 - **비밀번호 입력**: `type=password` 면 표시/숨김(눈) 토글 자동 부착(`core/password-toggle.js`). 별도 마크업 불필요.
 - **코드(tb_common) 참조 = 코드 팝업**: `<select>` 대신 공통 코드 팝업. 마크업=코드ID(`type=hidden`)+코드명(`.input.picker-field` readonly, `data-target="{hidden id}"`). 조각 `fragments/components/code-picker-modal` 포함 후 `const sel = await codePicker.open({cmmId, cmmName})`. 서버 조회 `GET /system/common/picker?cmmId=&keyword=`(로그인만 필요). `.picker-field` 는 우측 '삭제' 버튼이 자동 부착됨.
 - **공용 모달/팝업 컴포넌트**: 조각 `fragments/components/{이름}-modal.html`, 짝 스크립트 `static/js/core/components/{이름}-modal.js`. 예: `confirm-modal`·`prompt-modal`·`code-picker-modal`.
+- **헤더 계정 메뉴(전 화면 공통)**: `fragments/main :: header`(th:block) 안에 사용자명 드롭다운 + 계정 모달(시작메뉴 변경/비밀번호 변경/로그아웃 확인)을 함께 담고, `core/header-user.js` 가 동작을 붙인다. 서버는 `AccountController`(`/account/menus`·`/startMenu`·`/password`, 자가서비스=로그인만). 시작메뉴는 `tb_login_user.start_menu_id` 에 저장되어 다음 로그인 시 `MenuService.startMenuTarget` 이 그 화면으로 바로 진입시킨다. 모달 id 는 페이지 조각과 충돌하지 않도록 `hdr*` 접두사.
 
 ## 더 나은 구성 제안
 - **플레이스홀더 이름 확정**: `{공통조각}` 대신 `components/`(또는 `_partials/`) 로 통일 — 도메인 폴더와 시각적으로 구분되고 예측 가능.

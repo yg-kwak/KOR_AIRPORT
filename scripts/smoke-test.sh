@@ -81,6 +81,15 @@ check "설정 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "
 # 연결 테스트: 실제 BiostarX 없으면 실패(success=false, HTTP 200) — 엔드포인트 동작만 확인
 check "연결 테스트 응답(HTTP 200)" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"biostarIp":"192.168.0.250","biostarId":"admin","biostarPw":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/system/test")"
 
+echo "== 계정 자가서비스(헤더 사용자 메뉴) =="
+# 비파괴 검증만: 목록 조회 + 가드(잘못된 값 400). 비밀번호/시작메뉴 실제 변경은 admin 계정을 훼손하므로 제외.
+check "시작메뉴 후보 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/account/menus")"
+check "시작메뉴 목록에 메뉴명 노출" 0 "$(A "$BASE_URL/account/menus" | grep -q '"menuName"' && echo 0 || echo 1)"
+check "무권한 메뉴 시작메뉴 지정 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"startMenuId":999999}' -o /dev/null -w '%{http_code}' "$BASE_URL/account/startMenu")"
+check "이전 비밀번호 불일치 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"oldPassword":"wrongwrong","newPassword":"newpw123","confirmPassword":"newpw123"}' -o /dev/null -w '%{http_code}' "$BASE_URL/account/password")"
+check "변경 비밀번호 불일치 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"oldPassword":"admin123","newPassword":"newpw123","confirmPassword":"mismatch9"}' -o /dev/null -w '%{http_code}' "$BASE_URL/account/password")"
+check "미인증 계정 API 401" 401 "$(curl -s -H 'X-Requested-With: XMLHttpRequest' -o /dev/null -w '%{http_code}' "$BASE_URL/account/menus")"
+
 echo "== 사용자관리(tb_login_user) =="
 A -X DELETE -o /dev/null "$BASE_URL/system/loginUser?userId=smokeusr" || true
 check "사용자 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser")"

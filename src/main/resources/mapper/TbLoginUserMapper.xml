@@ -15,6 +15,20 @@
     UPDATE tb_login_user SET login_fail_cnt = #{cnt} WHERE user_id = #{userId}
   </update>
 
+  <!-- 헤더 계정 메뉴: 시작메뉴 변경 -->
+  <update id="updateStartMenu">
+    UPDATE tb_login_user
+    SET start_menu_id = #{startMenuId}, mod_dt = getdate()
+    WHERE user_id = #{userId}
+  </update>
+
+  <!-- 헤더 계정 메뉴: 비밀번호 변경(암호문). 변경 시각 갱신 -->
+  <update id="updatePassword">
+    UPDATE tb_login_user
+    SET password = #{password}, password_change_dt = getdate(), mod_dt = getdate()
+    WHERE user_id = #{userId}
+  </update>
+
   <!-- ══════════ 사용자관리 화면 CRUD ══════════ -->
 
   <!-- 검색: user_name 은 ARIA 암호문이라 부분검색 불가 → 사용자ID/부서명만 LIKE 대상 -->

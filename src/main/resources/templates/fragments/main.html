@@ -1,15 +1,112 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- 상단 헤더 바 -->
-<header th:fragment="header" class="layout-header">
-  <div class="header-logo-section">
-    <span class="header-title">청주공항 출입관리시스템</span>
+<!-- 상단 헤더 바 + 계정 자가서비스 모달(시작메뉴/비밀번호/로그아웃). 모든 화면 공통(fragments/main :: header). -->
+<th:block th:fragment="header">
+  <header class="layout-header">
+    <div class="header-logo-section">
+      <span class="header-title">청주공항 출입관리시스템</span>
+    </div>
+    <div class="header-buttons" th:if="${currentUser != null}">
+      <div class="user-menu" id="hdrUserMenu">
+        <button type="button" class="user-menu-btn" id="hdrUserBtn" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span class="user-menu-divider"></span>
+          <span class="user-menu-name" th:text="${currentUser.userName}">사용자</span>
+        </button>
+        <div class="user-menu-dropdown" id="hdrUserDropdown" role="menu">
+          <button type="button" class="user-menu-item" data-act="startMenu" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+            시작메뉴 변경
+          </button>
+          <button type="button" class="user-menu-item" data-act="password" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2m-4 0 4 4m-7 3 3 3"/>
+            </svg>
+            비밀번호 변경
+          </button>
+          <div class="user-menu-sep"></div>
+          <button type="button" class="user-menu-item" data-act="logout" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            로그아웃
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 시작메뉴 변경 -->
+  <div class="modal-overlay" id="hdrStartMenuModal">
+    <div class="modal-container small">
+      <div class="modal-header">
+        <h2 class="modal-title">시작메뉴 변경</h2>
+        <button class="modal-close" id="hdrStartMenuClose" aria-label="닫기">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="form-hint">로그인 후 처음 진입할 메뉴를 선택하세요.</p>
+        <div class="start-menu-list" id="hdrStartMenuList">
+          <div class="empty">불러오는 중...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="hdrStartMenuCancel">취소</button>
+        <button class="btn btn-primary" id="hdrStartMenuSave">변경하기</button>
+      </div>
+    </div>
   </div>
-  <div class="header-buttons">
-    <span class="header-user" th:if="${currentUser != null}" th:text="${currentUser.userName}">사용자</span>
-    <a class="btn-logout" href="/logout">로그아웃</a>
+
+  <!-- 비밀번호 변경 -->
+  <div class="modal-overlay" id="hdrPwModal">
+    <div class="modal-container small">
+      <div class="modal-header">
+        <h2 class="modal-title">비밀번호 변경</h2>
+        <button class="modal-close" id="hdrPwClose" aria-label="닫기">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="hdrPwForm" autocomplete="off">
+          <div class="form-group">
+            <label>이전 비밀번호 <span class="req">*</span></label>
+            <input type="password" id="hdrPwOld" class="input" autocomplete="current-password"/>
+          </div>
+          <div class="form-group">
+            <label>변경 비밀번호 <span class="req">*</span></label>
+            <input type="password" id="hdrPwNew" class="input" autocomplete="new-password"/>
+          </div>
+          <div class="form-group">
+            <label>변경 비밀번호 확인 <span class="req">*</span></label>
+            <input type="password" id="hdrPwConfirm" class="input" autocomplete="new-password"/>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="hdrPwCancel">취소</button>
+        <button class="btn btn-primary" id="hdrPwSave">변경</button>
+      </div>
+    </div>
   </div>
-</header>
+
+  <!-- 로그아웃 확인 -->
+  <div class="modal-overlay" id="hdrLogoutModal">
+    <div class="modal-container confirm">
+      <div class="modal-header">
+        <h2 class="modal-title">로그아웃</h2>
+        <button class="modal-close" id="hdrLogoutClose" aria-label="닫기">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="confirm-message">로그아웃을 하시겠습니까?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="hdrLogoutCancel">취소</button>
+        <button class="btn btn-primary" id="hdrLogoutOk">확인</button>
+      </div>
+    </div>
+  </div>
+</th:block>
 </body>
 </html>

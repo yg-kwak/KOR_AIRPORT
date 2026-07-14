@@ -12,6 +12,12 @@ public interface TbLoginUserMapper {
 
   int updateLoginFailCnt(@Param("userId") String userId, @Param("cnt") int cnt);
 
+  /** 시작메뉴 변경(헤더 계정 메뉴). */
+  int updateStartMenu(@Param("userId") String userId, @Param("startMenuId") Integer startMenuId);
+
+  /** 비밀번호 변경(ARIA 암호문). password_change_dt 갱신. */
+  int updatePassword(@Param("userId") String userId, @Param("password") String password);
+
   // ── 사용자관리 화면 CRUD ──────────────────────────────────────
   List<TbLoginUser> selectList(LoginUserSearchParam param);
 

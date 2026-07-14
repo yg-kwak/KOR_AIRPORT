@@ -4,6 +4,7 @@ import AirPort.common.SessionKeys;
 import AirPort.model.TbLoginUser;
 import AirPort.service.AuditService;
 import AirPort.service.LoginService;
+import AirPort.service.MenuService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -18,10 +19,13 @@ public class LoginController {
 
   private final LoginService loginService;
   private final AuditService auditService;
+  private final MenuService menuService;
 
-  public LoginController(LoginService loginService, AuditService auditService) {
+  public LoginController(
+      LoginService loginService, AuditService auditService, MenuService menuService) {
     this.loginService = loginService;
     this.auditService = auditService;
+    this.menuService = menuService;
   }
 
   @GetMapping("/login")
@@ -46,7 +50,7 @@ public class LoginController {
     HttpSession session = request.getSession(true);
     session.setAttribute(SessionKeys.LOGIN_USER, user);
     auditService.log(user, AuditService.LOGIN, null, "로그인");
-    return "redirect:/";
+    return "redirect:" + menuService.startMenuTarget(user); // 시작메뉴 설정 시 해당 화면으로 바로 진입
   }
 
   @GetMapping("/logout")

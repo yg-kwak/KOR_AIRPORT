@@ -66,6 +66,39 @@ public class MenuService {
     return urlMap().containsKey(uri);
   }
 
+  private volatile Map<Integer, String> idToUrl; // menu_id → menu_url 캐시(역방향)
+
+  private Map<Integer, String> idUrlMap() {
+    Map<Integer, String> m = idToUrl;
+    if (m == null) {
+      m = new LinkedHashMap<>();
+      for (TbMenu menu : menuMapper.selectUseList()) {
+        if (menu.getMenuUrl() != null) {
+          m.put(menu.getMenuId(), menu.getMenuUrl());
+        }
+      }
+      idToUrl = m;
+    }
+    return m;
+  }
+
+  /**
+   * 로그인 직후 진입 경로 — 사용자의 시작메뉴(start_menu_id)가 있고 그 메뉴에 read 권한이 있으면 해당 URL, 아니면 {@code "/"}.
+   *
+   * <p>권한이 사라진 시작메뉴로의 진입을 막기 위해 권한을 재확인한다(설정 후 권한 회수 가능).
+   */
+  public String startMenuTarget(TbLoginUser actor) {
+    if (actor == null || actor.getStartMenuId() == null) {
+      return "/";
+    }
+    Integer sm = actor.getStartMenuId();
+    String url = idUrlMap().get(sm);
+    if (url == null || !menuAuthService.permissionFor(actor, sm).isCanRead()) {
+      return "/";
+    }
+    return url;
+  }
+
   /**
    * 사이드바용 메뉴 트리 — level 1(parent 없음)을 루트로, 하위를 parent_menu_id 로 연결.
    *
