@@ -11,6 +11,12 @@ spring.datasource.password=CHANGE_ME
 # ARIA 개발 키(32자). seed 의 관리자 비밀번호(admin123)와 동일 키여야 로그인됨.
 app.crypto.aria-key=01234567890123456789012345678901
 
+# BiostarX 실제 접속정보 — local 부팅 시 BiostarLocalSeeder 가 tb_system 에 시드(설정관리 UI 대체).
+# ip 를 비우면 시드하지 않는다(실제 기기 없이 UI/엔드포인트만 볼 때). 비밀번호는 평문으로 두면 시더가 ARIA 암호화해 저장한다.
+app.biostar.ip=192.168.0.250
+app.biostar.id=admin
+app.biostar.pw=CHANGE_ME
+
 # 개발 편의
 server.port=8080
 server.ssl.enabled=false

@@ -32,6 +32,7 @@
   - `MenuAuthService`(stem `menuAuth`, tb_menu_auth)는 **런타임 권한 판정(`permissionFor`/`require*`)과 권한메뉴관리 화면 CRUD 를 함께** 담당한다(한 도메인). 메뉴권한 상세=tb_menu_auth_detail, `update_auth` 는 `create_auth` 와 동일 저장(정책상 등록=수정).
 - 패키지명 소문자. 클래스만 PascalCase.
 - 공통(범용) 코드 위치: 응답/페이징/예외=`common`, 인증·암호화=`security`, 엑셀 등 유틸=`util`.
+- **로컬 전용 부팅 시더**는 `config` 에 `@Profile("local")` `ApplicationRunner` 로 둔다(운영 미로드). 비밀값은 `application-local.properties`(git-ignore)에서 `@Value` 주입, 커밋 금지. 예: `BiostarLocalSeeder`(tb_system 시드). (`integration.md`)
 
 ## 2. HTML — id/class 명명 규칙
 | 대상 | 규칙 | 예시(골든 샘플) |

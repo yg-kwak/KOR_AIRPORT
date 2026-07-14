@@ -22,6 +22,12 @@
   - `BiostarAdapter` 는 `session.post(base, loginId, pw, path, body)` 로만 인증 호출한다(직접 로그인 금지).
 - 세션ID/비밀번호는 로그에 남기지 않는다. (`security.md`)
 
+## 로컬 개발(dev) 접속정보 시드
+- BiostarX 연동정보는 **DB(`tb_system`)** 에서 읽는다 — properties 가 아니다. 그래서 dev 에서 tb_system 이 비면 연동 메뉴가 동작하지 않는다.
+- 해결: `application-local.properties`(git-ignore, 커밋 금지)에 `app.biostar.ip/id/pw` 를 두면 **`config.BiostarLocalSeeder`(@Profile("local"))** 가 로컬 부팅 시 tb_system 에 upsert(비밀번호는 ARIA 암호화). `ip` 가 비면 시드하지 않는다.
+- 운영 프로파일에는 이 시더가 로드되지 않는다 → tb_system 은 **설정관리 화면**으로만 관리. 템플릿: `application-local.properties.example`.
+- **smoke-test 는 실제 자격증명을 담지 않는다**(더미로 엔드포인트 200 만 확인). 실제 기기 검증은 로컬 시드 후 화면에서 한다.
+
 ## 주요 엔드포인트 (참조 구현 기준)
 | 기능 | 메서드 · 경로 |
 |------|---------------|

@@ -73,8 +73,10 @@ check "엑셀 purpose 누락 400" 400 "$(A -o /dev/null -w '%{http_code}' "$BASE
 check "삭제" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/common?cmmId=VR&codeId=SMKT1")"
 
 echo "== 설정관리(tb_system) =="
+# 실제 BiostarX 접속정보는 커밋하지 않는다 — application-local.properties(app.biostar.*)에 두면
+# local 부팅 시 BiostarLocalSeeder 가 tb_system 에 시드한다. 여기선 저장 엔드포인트 동작(200)만 더미로 확인.
 check "설정 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/system/system")"
-check "설정 저장" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"biostarIp":"192.168.0.250","biostarId":"admin","biostarPw":"testpw"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/system")"
+check "설정 저장" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"biostarIp":"192.168.0.250","biostarId":"admin","biostarPw":"dummy"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/system")"
 # 연결 테스트: 실제 BiostarX 없으면 실패(success=false, HTTP 200) — 엔드포인트 동작만 확인
 check "연결 테스트 응답(HTTP 200)" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"biostarIp":"192.168.0.250","biostarId":"admin","biostarPw":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/system/test")"
 
