@@ -270,6 +270,9 @@ a { color: inherit; text-decoration: none; }
 .crud-cell input { cursor: pointer; }
 .tree-head { position: sticky; top: 0; z-index: 1; background: var(--color-tertiary-hover); font-weight: 700; border-bottom: 1px solid var(--color-tertiary-active); }
 .tree-head .tree-label, .tree-head .crud-cell { color: var(--neutral-700); }
+/* 출입권한 트리 — 행 우측 액션 버튼 */
+.ac-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.ac-actions-head { flex-shrink: 0; color: var(--neutral-700); font-weight: 700; padding-right: 6px; }
 @media (max-width: 1024px) { .perm-layout { flex-direction: column; } .perm-left { width: 100%; } }
 
 /* 필드 많은 폼(사용자 등) — 2열 그리드. .full 은 한 줄 전체 차지 */

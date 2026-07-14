@@ -24,6 +24,11 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use
   ('VR', N'방문사유', 'MEETING', N'회의', 'Y', 'Y'),
   ('VR', N'방문사유', 'WORK',    N'공사', 'Y', 'Y');
 
+/* 출입구역(AR) — 출입권한관리 트리의 최상위(tb_ac_group 동기화 기준). code_id → ar_code */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use_yn) VALUES
+  ('AR', N'출입구역', 'GATE', N'게이트구역', 'Y', 'Y'),
+  ('AR', N'출입구역', 'RAMP', N'램프구역',   'Y', 'Y');
+
 /* 메뉴 (level 1 그룹은 menu_icon 지정 — 사이드바 아이콘) */
 INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn) VALUES
   (300, N'시스템관리',   NULL, NULL,                 1, 1, 'settings', 'Y'),
@@ -31,7 +36,8 @@ INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_leve
   (302, N'설정관리',     300,  '/system/system',     2, 2, NULL,       'Y'),
   (303, N'사용자관리',   300,  '/system/loginUser',  2, 3, NULL,       'Y'),
   (304, N'권한메뉴관리', 300,  '/system/menuAuth',   2, 4, NULL,       'Y'),
-  (305, N'감사추적',     300,  '/system/systemLog',  2, 5, NULL,       'Y');
+  (305, N'감사추적',     300,  '/system/systemLog',  2, 5, NULL,       'Y'),
+  (306, N'출입권한관리', 300,  '/system/acGroup',    2, 6, NULL,       'Y');
 
 /* 관리자 권한 + 공통코드관리 전권 + 관리자 계정 */
 INSERT INTO dbo.tb_menu_auth (auth_name) VALUES (N'관리자');
@@ -41,7 +47,8 @@ INSERT INTO dbo.tb_menu_auth_detail (auth_id, menu_id, read_auth, create_auth, u
 VALUES (@authId, 301, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 303, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 304, 'Y', 'Y', 'Y', 'Y'),
-       (@authId, 305, 'Y', 'Y', 'Y', 'Y');
+       (@authId, 305, 'Y', 'Y', 'Y', 'Y'),
+       (@authId, 306, 'Y', 'Y', 'Y', 'Y');
 
 /* 관리자 계정: 아이디 admin / 비밀번호 admin123 (ARIA 암호문) */
 INSERT INTO dbo.tb_login_user
@@ -60,7 +67,8 @@ INSERT INTO dbo.tb_menu_auth_detail (auth_id, menu_id, read_auth, create_auth, u
 VALUES (@viewerAuthId, 301, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 303, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 304, 'Y', 'N', 'N', 'N'),
-       (@viewerAuthId, 305, 'Y', 'N', 'N', 'N');
+       (@viewerAuthId, 305, 'Y', 'N', 'N', 'N'),
+       (@viewerAuthId, 306, 'Y', 'N', 'N', 'N');
 
 INSERT INTO dbo.tb_login_user
   (user_id, user_name, password, dept_name, use_yn, root_yn, auth_id, start_menu_id, work_location_code)

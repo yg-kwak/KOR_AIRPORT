@@ -91,6 +91,7 @@ CREATE TABLE dbo.tb_ac_group (
   ac_group_id        int IDENTITY(1,1) NOT NULL,
   ac_group_name      nvarchar(50) NULL,
   parent_ac_group_id int NULL,
+  ar_code            nvarchar(50) NULL,
   ac_group_level     int NULL,
   ac_group_order     int NULL,
   biostar_ac_id      int NULL,

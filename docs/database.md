@@ -122,16 +122,17 @@ PK 없음(설정 1행 운영).
 ### tb_ac_group — 출입권한 그룹 (BiostarX 매핑)
 PK: `ac_group_id` (IDENTITY)
 
-| 컬럼 | 타입 | PK | 설명 |
-|------|------|----|------|
-| ac_group_id | int | Y | 출입그룹ID |
-| ac_group_name | nvarchar(50) | | 출입그룹명 |
-| parent_ac_group_id | int | | 부모 출입그룹ID (트리) |
-| ac_group_level | int | | 출입그룹 레벨 |
-| ac_group_order | int | | 출입그룹 순서 |
-| biostar_ac_id | int | | BiostarX 출입그룹 ID (매핑) |
-| biostar_ac_name | nvarchar(50) | | BiostarX 출입그룹명 |
-| reg_dt / mod_dt | datetime2(0) | | 생성/수정일자 |
+| 컬럼 | 타입 | PK | 설명 | 비고                                 |
+|------|------|----|------|------------------------------------|
+| ac_group_id | int | Y | 출입그룹ID | |
+| ac_group_name | nvarchar(50) | | 출입그룹명 | |
+| parent_ac_group_id | int | | 부모 출입그룹ID (트리) | |
+| ar_code | nvarchar(50) | | 출입구역코드 | → `tb_common`(cmm_id='AR').code_id |
+| ac_group_level | int | | 출입그룹 레벨 | |
+| ac_group_order | int | | 출입그룹 순서 | |
+| biostar_ac_id | int | | BiostarX 출입그룹 ID (매핑) | |
+| biostar_ac_name | nvarchar(50) | | BiostarX 출입그룹명 | |
+| reg_dt / mod_dt | datetime2(0) | | 생성/수정일자 | |
 
 ### tb_system_log — 감사추적 (이력, 불변식)
 PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략히 적재**한다. 정책은 `security.md`.

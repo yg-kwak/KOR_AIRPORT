@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 출입권한관리(tb_ac_group) — tb_common(AR) 최상위 동기화(진입 시 insert/delete, ar_code 컬럼 추가), 트리, BiostarX 출입그룹(access_groups/search) 하위 매핑 추가/수정/삭제(최상위 삭제불가) — yg-kwak, 2026-07-14
 - [x] 공통코드관리: 구분 컬럼(N=시스템/Y=사용자) + 전체 노출, 시스템 코드는 삭제불가·이름/사용유무만 수정, 등록 모달 코드구분ID 전체 노출 — yg-kwak, 2026-07-13
 - [x] 하네스 점검 반영(OpenAI 원칙 대조): 강제공백 메움(code-lint에 MENU_ID금지·수동페이징금지·@RequestMapping↔menu_url), AGENTS §4 메뉴접근통제 불변식, new-screen 갱신, UI규칙 conventions→frontend 이관, 순수로직 단위테스트(MenuService/MenuNode)+smoke 격리 — yg-kwak, 2026-07-13
 - [x] menu_id 하드코딩 제거 — 요청 URL(=menu_url) 서버 역조회로 menu_id 결정(MenuAccessInterceptor+CurrentMenu). 컨트롤러 MENU_ID 상수 삭제, 메뉴 접속(MENU) 감사 자동화(누락분 해결) — yg-kwak, 2026-07-13

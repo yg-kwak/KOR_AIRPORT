@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbAcGroupMapper">
+
+  <sql id="cols">
+    ac_group_id, ac_group_name, parent_ac_group_id, ar_code,
+    ac_group_level, ac_group_order, biostar_ac_id, biostar_ac_name
+  </sql>
+
+  <select id="selectList" resultType="TbAcGroup">
+    SELECT <include refid="cols"/>
+    FROM tb_ac_group
+    ORDER BY ISNULL(ac_group_level, 0), ISNULL(ac_group_order, 0), ac_group_id
+  </select>
+
+  <select id="selectById" resultType="TbAcGroup">
+    SELECT <include refid="cols"/> FROM tb_ac_group WHERE ac_group_id = #{acGroupId}
+  </select>
+
+  <select id="selectTopArCodes" resultType="string">
+    SELECT ar_code FROM tb_ac_group WHERE parent_ac_group_id IS NULL AND ar_code IS NOT NULL
+  </select>
+
+  <insert id="insert" parameterType="TbAcGroup" useGeneratedKeys="true" keyProperty="acGroupId">
+    INSERT INTO tb_ac_group
+      (ac_group_name, parent_ac_group_id, ar_code, ac_group_level, ac_group_order,
+       biostar_ac_id, biostar_ac_name)
+    VALUES
+      (#{acGroupName}, #{parentAcGroupId}, #{arCode}, #{acGroupLevel}, #{acGroupOrder},
+       #{biostarAcId}, #{biostarAcName})
+  </insert>
+
+  <!-- 이름·biostar 매핑만 수정(트리 구조·ar_code 는 불변) -->
+  <update id="update" parameterType="TbAcGroup">
+    UPDATE tb_ac_group
+    SET ac_group_name = #{acGroupName},
+        biostar_ac_id = #{biostarAcId},
+        biostar_ac_name = #{biostarAcName},
+        mod_dt = getdate()
+    WHERE ac_group_id = #{acGroupId}
+  </update>
+
+  <!-- 동기화 삭제: tb_common(AR)에 없는 ar_code 행 제거(하위는 ar_code 상속으로 함께 제거). 목록 비면 전체 삭제 -->
+  <delete id="deleteOrphans">
+    DELETE FROM tb_ac_group
+    <where>
+      <choose>
+        <when test="arCodes != null and arCodes.size() > 0">
+          ar_code NOT IN
+          <foreach collection="arCodes" item="c" open="(" separator="," close=")">#{c}</foreach>
+        </when>
+        <otherwise>1 = 1</otherwise>
+      </choose>
+    </where>
+  </delete>
+
+  <!-- 노드 + 하위 전부 삭제(재귀 CTE) -->
+  <delete id="deleteSubtree">
+    WITH sub AS (
+      SELECT ac_group_id FROM tb_ac_group WHERE ac_group_id = #{acGroupId}
+      UNION ALL
+      SELECT g.ac_group_id FROM tb_ac_group g JOIN sub s ON g.parent_ac_group_id = s.ac_group_id
+    )
+    DELETE FROM tb_ac_group WHERE ac_group_id IN (SELECT ac_group_id FROM sub)
+  </delete>
+
+</mapper>

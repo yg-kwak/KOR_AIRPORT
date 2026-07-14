@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('출입권한관리')}"></head>
+<body>
+<div th:replace="~{fragments/main :: header}"></div>
+<div class="layout-container">
+  <div th:replace="~{fragments/sidebar :: sidebar(${menus})}"></div>
+  <main class="layout-content">
+    <h2>출입권한관리</h2>
+
+    <section class="content-card">
+      <div class="perm-tree-head">
+        <span class="form-group-label">출입권한 트리 <span class="form-hint">(최상위=출입구역 AR, 하위=BiostarX 출입그룹)</span></span>
+      </div>
+      <div class="perm-tree ac-tree">
+        <div class="tree-row tree-head">
+          <span class="tree-label">코드 / 이름</span>
+          <span class="ac-actions-head">관리</span>
+        </div>
+        <div id="acTree"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- BiostarX 출입그룹 선택 팝업 (하위 그룹 추가) -->
+<div class="modal-overlay code-picker-overlay" id="biostarModal">
+  <div class="modal-container wide">
+    <div class="modal-header">
+      <h2 class="modal-title">BiostarX 출입그룹 선택</h2>
+      <button class="modal-close" id="biostarClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-hint" id="biostarInfo">불러오는 중...</p>
+      <div class="matrix-wrap">
+        <table class="grid">
+          <thead>
+          <tr><th class="w-40"></th><th class="w-120">출입그룹ID</th><th style="text-align:left">출입그룹명</th></tr>
+          </thead>
+          <tbody id="biostarList">
+          <tr><td colspan="3" class="empty">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="biostarCancel">취소</button>
+      <button class="btn btn-primary" id="biostarConfirm">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 수정 모달 -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-container small">
+    <div class="modal-header">
+      <h2 class="modal-title">출입그룹 수정</h2>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="editForm">
+        <input type="hidden" id="acGroupId"/>
+        <input type="hidden" id="isTop"/>
+        <div class="form-group">
+          <label>그룹명 <span class="req">*</span></label>
+          <input type="text" id="acGroupName" class="input"/>
+        </div>
+        <div class="form-group">
+          <label>BiostarX 출입그룹ID</label>
+          <input type="text" id="biostarAcId" class="input"/>
+        </div>
+        <div class="form-group">
+          <label>BiostarX 출입그룹명</label>
+          <input type="text" id="biostarAcName" class="input"/>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="btnCancel">취소</button>
+      <button class="btn btn-danger-solid" id="btnDelete" th:if="${perm.canDelete}">삭제</button>
+      <button class="btn btn-primary" id="btnSave" th:if="${perm.canCreate}">저장</button>
+    </div>
+  </div>
+</div>
+
+<div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
+
+<script th:inline="javascript">
+  window.PAGE_PERM = { canCreate: [[${perm.canCreate}]], canDelete: [[${perm.canDelete}]] };
+</script>
+<script src="/js/web/system/acGroup.js" defer></script>
+</body>
+</html>
