@@ -306,7 +306,8 @@ a { color: inherit; text-decoration: none; }
 .picker-wrap > .input { flex: 1; min-width: 0; }
 .picker-clear { flex-shrink: 0; }
 /* 코드 선택 팝업은 편집 모달 위에 뜬다 */
-.code-picker-overlay { z-index: 2600; }
+/* 특이도 상향(.modal-overlay 뒤에 와도 z-index 가 이김) — 편집 모달 위에 팝업이 뜨도록 */
+.modal-overlay.code-picker-overlay { z-index: 2600; }
 
 /* 단일 폼(설정 등) — 항목 가로 배치, 버튼 우측 끝 */
 .setting-form { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-end; gap: 12px 12px; }

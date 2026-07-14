@@ -48,7 +48,6 @@
   async function openBiostar(mode, parentId) {
     biostarMode = mode;
     addParentId = parentId;
-    $('biostarConfirm').style.display = mode === 'multi' ? '' : 'none';
     $('biostarInfo').textContent = 'BiostarX 출입그룹을 불러오는 중...';
     $('biostarList').innerHTML = '<tr><td colspan="3" class="empty">불러오는 중...</td></tr>';
     $('biostarModal').classList.add('open');
@@ -60,26 +59,32 @@
     }
     const groups = res.groups || [];
     $('biostarInfo').textContent =
-      `총 ${groups.length}개 — ${mode === 'multi' ? '하위로 추가할 출입그룹을 선택' : '매핑할 출입그룹 한 건을 선택'}하세요.`;
+      `총 ${groups.length}개 — ${mode === 'multi' ? '하위로 추가할 출입그룹(다중)을 선택' : '매핑할 출입그룹 1건을 선택'}하고 확인하세요.`;
     if (!groups.length) {
       $('biostarList').innerHTML = '<tr><td colspan="3" class="empty">출입그룹이 없습니다.</td></tr>';
       return;
     }
-    $('biostarList').innerHTML = groups.map((g) => {
-      const cell = mode === 'multi'
-        ? `<input type="checkbox" data-id="${esc(g.id)}" data-name="${esc(g.name)}"/>`
-        : `<button class="btn btn-sm btn-primary" data-pick-id="${esc(g.id)}" data-pick-name="${esc(g.name)}">선택</button>`;
-      return `<tr><td>${cell}</td><td>${esc(g.id)}</td><td style="text-align:left">${esc(g.name)}</td></tr>`;
-    }).join('');
+    // 두 모드 모두 체크박스. single 은 change 시 1건만 유지(radio 처럼).
+    $('biostarList').innerHTML = groups.map((g) => `
+      <tr>
+        <td><input type="checkbox" data-id="${esc(g.id)}" data-name="${esc(g.name)}"/></td>
+        <td>${esc(g.id)}</td>
+        <td style="text-align:left">${esc(g.name)}</td>
+      </tr>`).join('');
   }
   function closeBiostar() { $('biostarModal').classList.remove('open'); }
 
   async function confirmBiostar() {
-    const groups = [];
-    $('biostarList').querySelectorAll('input[type="checkbox"]:checked').forEach((c) => {
-      groups.push({ biostarAcId: Number(c.dataset.id), biostarAcName: c.dataset.name });
-    });
-    if (!groups.length) { toast.warning('추가할 출입그룹을 선택해주세요.'); return; }
+    const checked = [...$('biostarList').querySelectorAll('input[type="checkbox"]:checked')];
+    if (!checked.length) { toast.warning('출입그룹을 선택해주세요.'); return; }
+    if (biostarMode === 'single') {
+      // 수정 매핑: 1건만 반영
+      $('biostarAcId').value = checked[0].dataset.id;
+      $('biostarAcName').value = checked[0].dataset.name;
+      closeBiostar();
+      return;
+    }
+    const groups = checked.map((c) => ({ biostarAcId: Number(c.dataset.id), biostarAcName: c.dataset.name }));
     await api.post(BASE + '/children', { parentId: addParentId, groups });
     closeBiostar();
     loadTree();
@@ -136,13 +141,13 @@
     $('biostarClose').addEventListener('click', closeBiostar);
     $('biostarCancel').addEventListener('click', closeBiostar);
     $('biostarConfirm').addEventListener('click', confirmBiostar);
-    // 단건 선택(수정 매핑) → 편집 폼에 반영
-    $('biostarList').addEventListener('click', (e) => {
-      const pick = e.target.closest('button[data-pick-id]');
-      if (!pick) return;
-      $('biostarAcId').value = pick.dataset.pickId;
-      $('biostarAcName').value = pick.dataset.pickName;
-      closeBiostar();
+    // single 모드: 체크는 1건만 유지(radio 처럼)
+    $('biostarList').addEventListener('change', (e) => {
+      const cb = e.target.closest('input[type="checkbox"]');
+      if (!cb || biostarMode !== 'single' || !cb.checked) return;
+      $('biostarList').querySelectorAll('input[type="checkbox"]').forEach((o) => {
+        if (o !== cb) o.checked = false;
+      });
     });
 
     // 수정 모달: BiostarX 출입그룹ID 클릭 → 단건 선택 팝업
