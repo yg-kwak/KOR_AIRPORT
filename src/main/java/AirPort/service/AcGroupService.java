@@ -120,9 +120,11 @@ public class AcGroupService {
     if (parent == null) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
+    java.util.Set<Integer> used = new java.util.HashSet<>(acGroupMapper.selectUsedBiostarIds());
     int order = 0;
     for (TbAcGroup g : form.getGroups()) {
-      if (g.getBiostarAcId() == null) {
+      // 이미 매핑된 출입그룹은 중복 추가하지 않는다(요청 내 중복도 방지)
+      if (g.getBiostarAcId() == null || !used.add(g.getBiostarAcId())) {
         continue;
       }
       TbAcGroup child = new TbAcGroup();

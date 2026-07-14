@@ -15,6 +15,9 @@ public interface TbAcGroupMapper {
   /** 최상위(동기화 대상) 노드의 ar_code 목록. */
   List<String> selectTopArCodes();
 
+  /** 이미 매핑된 biostar_ac_id 목록(중복 추가 방지용). */
+  List<Integer> selectUsedBiostarIds();
+
   int insert(TbAcGroup row); // useGeneratedKeys → acGroupId
 
   int update(TbAcGroup row); // 이름·biostar 매핑만

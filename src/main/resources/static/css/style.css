@@ -278,6 +278,9 @@ a { color: inherit; text-decoration: none; }
 .ac-caret-empty { display: inline-block; width: 16px; }
 .ac-node.collapsed > .tree-row .ac-caret { transform: rotate(-90deg); }
 .ac-node.collapsed > .ac-children { display: none; }
+.ac-tree { max-height: 70vh; } /* 트리 세로로 더 길게 */
+.tree-label.unmapped { color: var(--neutral-500); } /* biostar 미매핑 노드 흐리게 표시 */
+.ac-used td { color: var(--neutral-500); } /* 이미 추가된 출입그룹(비활성) */
 @media (max-width: 1024px) { .perm-layout { flex-direction: column; } .perm-left { width: 100%; } }
 
 /* 필드 많은 폼(사용자 등) — 2열 그리드. .full 은 한 줄 전체 차지 */

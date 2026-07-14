@@ -9,13 +9,23 @@
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
   let addParentId = null; // 하위 추가 대상 상위 노드
   let biostarMode = 'multi'; // 'multi'(하위추가) | 'single'(수정 매핑)
+  const usedBiostarIds = new Set(); // 이미 트리에 매핑된 biostar_ac_id
 
   // ---- 트리(중첩 + 접기/펼치기) ----
   async function loadTree() {
     const roots = (await api.get(BASE + '/tree')) || [];
+    usedBiostarIds.clear();
+    collectUsed(roots);
     $('acTree').innerHTML = roots.length
       ? roots.map((r) => nodeHtml(r, 0)).join('')
       : '<div class="empty">출입구역(AR) 코드가 없습니다. 공통코드관리에서 AR 코드를 등록하세요.</div>';
+  }
+
+  function collectUsed(nodes) {
+    (nodes || []).forEach((n) => {
+      if (n.biostarAcId != null) usedBiostarIds.add(Number(n.biostarAcId));
+      collectUsed(n.children);
+    });
   }
 
   function nodeHtml(n, depth) {
@@ -28,6 +38,7 @@
     const caret = hasChildren
       ? '<span class="ac-caret" data-toggle="1">▼</span>'
       : '<span class="ac-caret-empty"></span>';
+    const unmapped = n.biostarAcId == null ? ' unmapped' : ''; // biostar 미매핑 표시
     const addBtn = PERM.canCreate
       ? `<button class="btn btn-sm" data-act="add" data-id="${esc(n.acGroupId)}">하위 그룹 추가</button>` : '';
     const editBtn = PERM.canCreate
@@ -37,11 +48,18 @@
     return `
       <div class="ac-node">
         <div class="tree-row">
-          <span class="tree-label">${caret}${label}</span>
+          <span class="tree-label${unmapped}">${caret}${label}</span>
           <span class="ac-actions">${addBtn}${editBtn}</span>
         </div>
         ${childrenHtml}
       </div>`;
+  }
+
+  function toggleAll(collapsed) {
+    $('acTree').querySelectorAll('.ac-node').forEach((node) => {
+      const hasChildren = node.querySelector(':scope > .ac-children');
+      if (hasChildren) node.classList.toggle('collapsed', collapsed);
+    });
   }
 
   // ---- BiostarX 출입그룹 팝업 (multi=하위추가 / single=수정 매핑) ----
@@ -65,12 +83,13 @@
       return;
     }
     // 두 모드 모두 체크박스. single 은 change 시 1건만 유지(radio 처럼).
-    $('biostarList').innerHTML = groups.map((g) => `
-      <tr>
-        <td><input type="checkbox" data-id="${esc(g.id)}" data-name="${esc(g.name)}"/></td>
-        <td>${esc(g.id)}</td>
-        <td style="text-align:left">${esc(g.name)}</td>
-      </tr>`).join('');
+    // 하위추가(multi)에서 이미 매핑된 출입그룹은 비활성(중복 추가 방지).
+    $('biostarList').innerHTML = groups.map((g) => {
+      const used = biostarMode === 'multi' && usedBiostarIds.has(Number(g.id));
+      const cb = `<input type="checkbox" data-id="${esc(g.id)}" data-name="${esc(g.name)}"${used ? ' disabled' : ''}/>`;
+      const nameCell = used ? `${esc(g.name)} <span class="form-hint">(이미 추가됨)</span>` : esc(g.name);
+      return `<tr class="${used ? 'ac-used' : ''}"><td>${cb}</td><td>${esc(g.id)}</td><td style="text-align:left">${nameCell}</td></tr>`;
+    }).join('');
   }
   function closeBiostar() { $('biostarModal').classList.remove('open'); }
 
@@ -138,9 +157,18 @@
       else if (btn.dataset.act === 'edit') openEdit(JSON.parse(btn.dataset.json));
     });
 
+    $('btnExpandAll').addEventListener('click', () => toggleAll(false));
+    $('btnCollapseAll').addEventListener('click', () => toggleAll(true));
+
     $('biostarClose').addEventListener('click', closeBiostar);
     $('biostarCancel').addEventListener('click', closeBiostar);
     $('biostarConfirm').addEventListener('click', confirmBiostar);
+    // 행 클릭 → 체크 토글(체크박스 직접 클릭은 기본 동작)
+    $('biostarList').addEventListener('click', (e) => {
+      if (e.target.closest('input[type="checkbox"]')) return;
+      const box = e.target.closest('tr')?.querySelector('input[type="checkbox"]');
+      if (box && !box.disabled) { box.checked = !box.checked; box.dispatchEvent(new Event('change', { bubbles: true })); }
+    });
     // single 모드: 체크는 1건만 유지(radio 처럼)
     $('biostarList').addEventListener('change', (e) => {
       const cb = e.target.closest('input[type="checkbox"]');

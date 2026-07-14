@@ -22,6 +22,10 @@
     SELECT ar_code FROM tb_ac_group WHERE parent_ac_group_id IS NULL AND ar_code IS NOT NULL
   </select>
 
+  <select id="selectUsedBiostarIds" resultType="int">
+    SELECT biostar_ac_id FROM tb_ac_group WHERE biostar_ac_id IS NOT NULL
+  </select>
+
   <insert id="insert" parameterType="TbAcGroup" useGeneratedKeys="true" keyProperty="acGroupId">
     INSERT INTO tb_ac_group
       (ac_group_name, parent_ac_group_id, ar_code, ac_group_level, ac_group_order,
