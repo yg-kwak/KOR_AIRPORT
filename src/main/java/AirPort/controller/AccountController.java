@@ -32,13 +32,13 @@ public class AccountController {
     this.accountService = accountService;
   }
 
-  /** 시작메뉴 후보(본인 read 권한 메뉴) + 현재 시작메뉴. */
+  /** 시작메뉴 후보 트리(본인 read 권한 메뉴) + 현재 시작메뉴. */
   @GetMapping("/menus")
   public ApiResponse<Map<String, Object>> menus(HttpSession session) {
     TbLoginUser actor = actor(session);
-    List<MenuNode> items = accountService.myMenus(actor);
+    List<MenuNode> tree = accountService.myMenuTree(actor);
     Map<String, Object> data = new HashMap<>();
-    data.put("items", items);
+    data.put("items", tree);
     data.put("current", actor.getStartMenuId());
     return ApiResponse.ok(data);
   }

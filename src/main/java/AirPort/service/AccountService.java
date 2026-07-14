@@ -30,16 +30,17 @@ public class AccountService {
     this.auditService = auditService;
   }
 
-  /** 본인이 read 권한을 가진 화면 메뉴(시작메뉴 후보). */
-  public List<MenuNode> myMenus(TbLoginUser actor) {
-    return menuService.readableLeaves(actor);
+  /** 본인이 read 권한을 가진 메뉴 트리(시작메뉴 후보) — 그룹 → 하위 메뉴. 선택은 화면(URL) 있는 하위만. */
+  public List<MenuNode> myMenuTree(TbLoginUser actor) {
+    return menuService.tree(actor);
   }
 
-  /** 시작메뉴 변경 — 본인 접근 가능한 메뉴만 허용. 세션 사용자 객체도 갱신(다음 로그인 진입 반영). */
+  /** 시작메뉴 변경 — 본인 접근 가능한 화면(URL 있는 read 권한) 메뉴만 허용. 세션 사용자 객체도 갱신(다음 로그인 진입 반영). */
   @Transactional
   public void changeStartMenu(TbLoginUser actor, Integer startMenuId) {
     if (startMenuId == null
-        || myMenus(actor).stream().noneMatch(n -> startMenuId.equals(n.getMenuId()))) {
+        || menuService.readableLeaves(actor).stream()
+            .noneMatch(n -> startMenuId.equals(n.getMenuId()))) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "선택할 수 없는 메뉴입니다.");
     }
     loginUserMapper.updateStartMenu(actor.getUserId(), startMenuId);

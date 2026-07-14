@@ -15,22 +15,32 @@
     $('hdrUserBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
+  // 메뉴 트리 재귀 렌더 — 화면(menuUrl) 있는 하위만 라디오 선택, 그룹은 헤더(선택 불가). depth 로 들여쓰기.
+  function renderMenuNodes(nodes, current, depth) {
+    return (nodes || []).map((n) => {
+      const pad = 12 + depth * 18;
+      const children = (n.children || []).length ? renderMenuNodes(n.children, current, depth + 1) : '';
+      if (n.menuUrl != null) {
+        return `
+          <label class="start-menu-opt" style="padding-left:${pad}px">
+            <input type="radio" name="hdrStartMenu" value="${esc(n.menuId)}"${n.menuId === current ? ' checked' : ''}/>
+            <span>${esc(n.menuName)}</span>
+          </label>${children}`;
+      }
+      return `<div class="start-menu-group" style="padding-left:${pad}px">${esc(n.menuName)}</div>${children}`;
+    }).join('');
+  }
+
   // ── 시작메뉴 변경 ──
   async function openStartMenu() {
     toggleDropdown(false);
     openModal('hdrStartMenuModal');
     const list = $('hdrStartMenuList');
     list.innerHTML = '<div class="empty">불러오는 중...</div>';
-    const data = await api.get('/account/menus'); // {items, current}
-    const items = (data && data.items) || [];
-    const current = data && data.current;
-    list.innerHTML = items.length
-      ? items.map((m) => `
-        <label class="start-menu-opt">
-          <input type="radio" name="hdrStartMenu" value="${esc(m.menuId)}"${m.menuId === current ? ' checked' : ''}/>
-          <span>${esc(m.menuName)}</span>
-        </label>`).join('')
-      : '<div class="empty">선택 가능한 메뉴가 없습니다.</div>';
+    const data = await api.get('/account/menus'); // {items(트리), current}
+    const tree = (data && data.items) || [];
+    const html = renderMenuNodes(tree, data && data.current, 0);
+    list.innerHTML = html || '<div class="empty">선택 가능한 메뉴가 없습니다.</div>';
   }
   async function saveStartMenu() {
     const sel = $('hdrStartMenuList').querySelector('input[name="hdrStartMenu"]:checked');
