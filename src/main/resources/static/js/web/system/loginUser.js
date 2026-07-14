@@ -159,7 +159,7 @@
     $('useYn').value = row ? row.useYn || 'Y' : 'Y';
     // 비밀번호: 등록=필수, 수정=변경 시에만 입력
     $('password').value = '';
-    $('pwHint').textContent = isEdit ? '(변경 시에만 입력)' : '(필수)';
+    $('pwHint').textContent = isEdit ? '(변경 시에만 입력)' : '';
     $('password').placeholder = isEdit ? '변경하지 않으려면 비워두세요' : '';
     $('editModal').classList.add('open');
   }
