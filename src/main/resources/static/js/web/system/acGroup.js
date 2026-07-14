@@ -9,6 +9,7 @@
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
   let addParentId = null; // 하위 추가 대상 상위 노드
   let biostarMode = 'multi'; // 'multi'(하위추가) | 'single'(수정 매핑)
+  let singleExcludeId = null; // 수정 매핑 시 현재 노드 자신의 biostar_ac_id(비활성 제외)
   const usedBiostarIds = new Set(); // 이미 트리에 매핑된 biostar_ac_id
 
   // ---- 트리(중첩 + 접기/펼치기) ----
@@ -66,6 +67,8 @@
   async function openBiostar(mode, parentId) {
     biostarMode = mode;
     addParentId = parentId;
+    // 수정(single): 현재 노드가 이미 가진 매핑값은 비활성 제외(그대로 유지 가능)
+    singleExcludeId = mode === 'single' && $('biostarAcId').value ? Number($('biostarAcId').value) : null;
     $('biostarInfo').textContent = 'BiostarX 출입그룹을 불러오는 중...';
     $('biostarList').innerHTML = '<tr><td colspan="3" class="empty">불러오는 중...</td></tr>';
     $('biostarModal').classList.add('open');
@@ -83,9 +86,9 @@
       return;
     }
     // 두 모드 모두 체크박스. single 은 change 시 1건만 유지(radio 처럼).
-    // 하위추가(multi)에서 이미 매핑된 출입그룹은 비활성(중복 추가 방지).
+    // 이미 매핑된 출입그룹은 비활성(중복 방지). 단, 수정 중인 노드 자신의 매핑값은 예외.
     $('biostarList').innerHTML = groups.map((g) => {
-      const used = biostarMode === 'multi' && usedBiostarIds.has(Number(g.id));
+      const used = usedBiostarIds.has(Number(g.id)) && Number(g.id) !== singleExcludeId;
       const cb = `<input type="checkbox" data-id="${esc(g.id)}" data-name="${esc(g.name)}"${used ? ' disabled' : ''}/>`;
       const nameCell = used ? `${esc(g.name)} <span class="form-hint">(이미 추가됨)</span>` : esc(g.name);
       return `<tr class="${used ? 'ac-used' : ''}"><td>${cb}</td><td>${esc(g.id)}</td><td style="text-align:left">${nameCell}</td></tr>`;
