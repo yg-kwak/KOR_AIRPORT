@@ -14,9 +14,13 @@
 - 베이스 URL: `tb_system.biostar_ip` 기반(스킴 없으면 `https://` 부여).
 
 ## 인증 / 세션
-- 로그인: `POST /api/login` (body: 로그인 정보) → 성공 시 응답 헤더 **`bs-session-id`** 수신, 응답 바디 `Response.code == "0"` 확인.
+- 로그인: `POST /api/login` (body: 로그인 정보) → 성공 시 응답 헤더 **`bs-session-id`** 수신.
 - 이후 모든 요청은 헤더 `bs-session-id: {세션}` 를 실어 보낸다.
-- 세션은 어댑터에서 보관·유효성 검사 후 만료 시 재로그인(`ensureValidSession` 패턴). 세션ID/비밀번호는 로그에 남기지 않는다. (`security.md`)
+- 세션은 **`adapter.BiostarSession`** 이 캐시·갱신한다(API 호출마다 로그인하지 않는다):
+  - 캐시 세션이 없으면 로그인해 발급, IP/로그인ID 조합이 바뀌면 캐시 폐기 후 재로그인.
+  - 인증 API 응답이 **HTTP 401 + `Response.code == "10"`("Login required.")** 면 세션 만료로 보고 재로그인 후 **1회 재시도**.
+  - `BiostarAdapter` 는 `session.post(base, loginId, pw, path, body)` 로만 인증 호출한다(직접 로그인 금지).
+- 세션ID/비밀번호는 로그에 남기지 않는다. (`security.md`)
 
 ## 주요 엔드포인트 (참조 구현 기준)
 | 기능 | 메서드 · 경로 |
