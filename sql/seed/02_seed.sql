@@ -32,12 +32,13 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use
 /* 메뉴 (level 1 그룹은 menu_icon 지정 — 사이드바 아이콘) */
 INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn) VALUES
   (300, N'시스템관리',   NULL, NULL,                 1, 1, 'settings', 'Y'),
-  (301, N'공통코드관리', 300,  '/system/common',     2, 1, NULL,       'Y'),
-  (302, N'설정관리',     300,  '/system/system',     2, 2, NULL,       'Y'),
-  (303, N'사용자관리',   300,  '/system/loginUser',  2, 3, NULL,       'Y'),
-  (304, N'권한메뉴관리', 300,  '/system/menuAuth',   2, 4, NULL,       'Y'),
-  (305, N'감사추적',     300,  '/system/systemLog',  2, 5, NULL,       'Y'),
-  (306, N'출입권한관리', 300,  '/system/acGroup',    2, 6, NULL,       'Y');
+  (302, N'설정관리',     300,  '/system/system',     2, 1, NULL,       'Y'),
+  (301, N'공통코드관리', 300,  '/system/common',     2, 2, NULL,       'Y'),
+  (304, N'권한메뉴관리', 300,  '/system/menuAuth',   2, 3, NULL,       'Y'),
+  (303, N'사용자관리',   300,  '/system/loginUser',  2, 4, NULL,       'Y'),
+  (307, N'보안관리',     NULL, NULL,                 1, 2, 'guard',    'Y'),
+  (305, N'감사추적',     307,  '/system/systemLog',  2, 1, NULL,       'Y'),
+  (306, N'출입권한관리', 307,  '/system/acGroup',    2, 2, NULL,       'Y');
 
 /* 관리자 권한 + 공통코드관리 전권 + 관리자 계정 */
 INSERT INTO dbo.tb_menu_auth (auth_name) VALUES (N'관리자');
