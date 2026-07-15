@@ -39,8 +39,10 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    if ($('btnSave')) $('btnSave').addEventListener('click', save);
+  function bind() {
+    if ($('btnSave')) $('btnSave').addEventListener('click', save); // 권한 없으면 버튼 없음(가드)
     $('btnTest').addEventListener('click', test);
-  });
+  }
+
+  document.addEventListener('DOMContentLoaded', bind);
 })();

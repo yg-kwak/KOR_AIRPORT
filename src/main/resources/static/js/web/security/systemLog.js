@@ -41,8 +41,12 @@
     const data = await api.get(BASE + '/list' + q);
     renderRows(data.content);
     renderPaging(data.page, data.totalPages);
-    $('totalInfo').textContent = `조회결과 ${data.total.toLocaleString()}`;
+    renderTotal(data.total);
     renderSortIndicators();
+  }
+
+  function renderTotal(total) {
+    $('totalInfo').textContent = `조회결과 ${total.toLocaleString()}`;
   }
 
   function renderSortIndicators() {
