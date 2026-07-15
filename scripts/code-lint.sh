@@ -53,4 +53,28 @@ while IFS= read -r path; do
 done < <(grep -rhoE '@RequestMapping\("/(system|security)/[a-zA-Z]+"\)' src/main/java/AirPort/controller | grep -oE '/(system|security)/[a-zA-Z]+')
 [ "$MAP_FAIL" -eq 0 ] && echo "  ✅ 매핑↔menu_url 일치"
 
+echo "== [5] model 레코드/DTO 구분 — Tb*=영속 레코드, 그 외=역할 접미사 DTO =="
+MODEL_FAIL=0
+# 5-1) model 클래스명: 레코드는 Tb{어간}, 조회/가공 DTO 는 승인된 역할 접미사로 끝난다
+while IFS= read -r f; do
+  base=$(basename "$f" .java)
+  case "$base" in
+    Tb*|*SearchParam|*Form|*Node|*Permission|*Result) : ;;
+    *)
+      echo "  ❌ model/$base — 레코드는 Tb{어간}, 조회/가공 DTO 는 역할 접미사(SearchParam|Form|Node|Permission|Result)로 명명. (conventions §1)"
+      FAIL=1; MODEL_FAIL=1 ;;
+  esac
+done < <(find src/main/java/AirPort/model -name "*.java" 2>/dev/null)
+# 5-2) mapper resultType(조회 결과 행)은 영속 레코드(Tb*) 또는 원시타입만 — SearchParam/Form 을 결과로 쓰지 않는다
+while IFS= read -r rt; do
+  rt="${rt#AirPort.model.}"
+  case "$rt" in Tb*) continue ;; esac
+  case "$(echo "$rt" | tr '[:upper:]' '[:lower:]')" in
+    int|integer|long|string|boolean|double|float|map|hashmap|bigdecimal|date) continue ;;
+  esac
+  echo "  ❌ resultType=\"$rt\" — 조회 결과 행은 엔티티(Tb*) 또는 원시타입만. SearchParam/Form 을 결과로 쓰지 마세요. (conventions §1·§6)"
+  FAIL=1; MODEL_FAIL=1
+done < <(grep -rhoE 'resultType="[A-Za-z.]+"' src/main/resources/mapper | sed -E 's/.*resultType="([A-Za-z.]+)".*/\1/')
+[ "$MODEL_FAIL" -eq 0 ] && echo "  ✅ 레코드/DTO 구분 준수"
+
 exit $FAIL

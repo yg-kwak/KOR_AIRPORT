@@ -32,6 +32,10 @@
   - `MenuAuthService`(stem `menuAuth`, tb_menu_auth)는 **런타임 권한 판정(`permissionFor`/`require*`)과 권한메뉴관리 화면 CRUD 를 함께** 담당한다(한 도메인). 메뉴권한 상세=tb_menu_auth_detail, `update_auth` 는 `create_auth` 와 동일 저장(정책상 등록=수정).
 - 패키지명 소문자. 클래스만 PascalCase.
 - 공통(범용) 코드 위치: 응답/페이징/예외=`common`, 인증·암호화=`security`, 엑셀 등 유틸=`util`.
+- **model 은 두 계열 — 이름으로 레코드/DTO 를 구분한다** (code-lint [5] 강제):
+  - **`Tb{어간}` = 영속 레코드(엔티티)**: DB 컬럼 미러. mapper `resultType`/`parameterType` 전용이며 단순 CRUD 의 `@RequestBody` 로도 재사용. **조회 결과 행 타입은 항상 엔티티(`Tb*`)** — `SearchParam`/`Form` 을 `resultType` 으로 쓰지 않는다.
+  - **그 외 = 비영속 DTO/뷰모델**, 반드시 역할 접미사로 명명: `{어간}SearchParam`(목록 조회조건, `PageParam` 상속) · `{어간}Form`(쓰기 커맨드, 테이블과 비1:1) · `{어간}Node`·`{어간}Permission`·`{어간}Result`(계산·뷰). model 클래스는 `Tb*` 이거나 이 접미사 중 하나로 끝나야 한다.
+  - 이유: 관심사 분리(레코드 vs 조회/커맨드), `PageParam` 공통 재사용, 요청 바인딩 표면 축소(엔티티 mass-assignment 방지).
 - **로컬 전용 부팅 시더**는 `config` 에 `@Profile("local")` `ApplicationRunner` 로 둔다(운영 미로드). 비밀값은 `application-local.properties`(git-ignore)에서 `@Value` 주입, 커밋 금지. 예: `BiostarLocalSeeder`(tb_system 시드). (`integration.md`)
 
 ## 2. HTML — id/class 명명 규칙
