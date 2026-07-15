@@ -1,7 +1,7 @@
 /* 출입권한관리 — tb_common(AR) 동기화 트리(열고/닫기) + BiostarX 출입그룹 매핑.
    하위 그룹 추가(다중 선택) / 수정(그룹명·BiostarX 단건 선택) / 삭제(최상위 제외). */
 (function () {
-  const BASE = '/system/acGroup';
+  const BASE = '/security/acGroup';
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));

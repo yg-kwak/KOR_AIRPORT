@@ -1,7 +1,7 @@
 /* 감사추적(tb_system_log) 화면 — 조회 전용(입력/수정/삭제 없음).
    기간·유형·검색어 필터 + 정렬(기본 최신순) + 엑셀 다운로드. */
 (function () {
-  const BASE = '/system/systemLog';
+  const BASE = '/security/systemLog';
   const state = {
     page: 1, size: 30, keyword: '', searchType: 'all',
     actionType: '', menuId: '', startDate: '', endDate: '', sort: 'regDt', dir: 'desc',

@@ -36,9 +36,9 @@ INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_leve
   (301, N'공통코드관리', 300,  '/system/common',     2, 2, NULL,       'Y'),
   (304, N'권한메뉴관리', 300,  '/system/menuAuth',   2, 3, NULL,       'Y'),
   (303, N'사용자관리',   300,  '/system/loginUser',  2, 4, NULL,       'Y'),
-  (307, N'보안관리',     NULL, NULL,                 1, 2, 'guard',    'Y'),
-  (305, N'감사추적',     307,  '/system/systemLog',  2, 1, NULL,       'Y'),
-  (306, N'출입권한관리', 307,  '/system/acGroup',    2, 2, NULL,       'Y');
+  (500, N'보안관리',     NULL, NULL,                 1, 2, 'guard',    'Y'),
+  (501, N'감사추적',     500,  '/security/systemLog', 2, 1, NULL,      'Y'),
+  (502, N'출입권한관리', 500,  '/security/acGroup',   2, 2, NULL,      'Y');
 
 /* 관리자 권한 + 공통코드관리 전권 + 관리자 계정 */
 INSERT INTO dbo.tb_menu_auth (auth_name) VALUES (N'관리자');
@@ -48,8 +48,8 @@ INSERT INTO dbo.tb_menu_auth_detail (auth_id, menu_id, read_auth, create_auth, u
 VALUES (@authId, 301, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 303, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 304, 'Y', 'Y', 'Y', 'Y'),
-       (@authId, 305, 'Y', 'Y', 'Y', 'Y'),
-       (@authId, 306, 'Y', 'Y', 'Y', 'Y');
+       (@authId, 501, 'Y', 'Y', 'Y', 'Y'),
+       (@authId, 502, 'Y', 'Y', 'Y', 'Y');
 
 /* 관리자 계정: 아이디 admin / 비밀번호 admin123 (ARIA 암호문) */
 INSERT INTO dbo.tb_login_user
@@ -68,8 +68,8 @@ INSERT INTO dbo.tb_menu_auth_detail (auth_id, menu_id, read_auth, create_auth, u
 VALUES (@viewerAuthId, 301, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 303, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 304, 'Y', 'N', 'N', 'N'),
-       (@viewerAuthId, 305, 'Y', 'N', 'N', 'N'),
-       (@viewerAuthId, 306, 'Y', 'N', 'N', 'N');
+       (@viewerAuthId, 501, 'Y', 'N', 'N', 'N'),
+       (@viewerAuthId, 502, 'Y', 'N', 'N', 'N');
 
 INSERT INTO dbo.tb_login_user
   (user_id, user_name, password, dept_name, use_yn, root_yn, auth_id, start_menu_id, work_location_code)

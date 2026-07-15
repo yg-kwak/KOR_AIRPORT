@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
  * <p>화면 진입(page)에서 tb_common 기준 동기화를 수행한다.
  */
 @Controller
-@RequestMapping("/system/acGroup")
+@RequestMapping("/security/acGroup")
 public class AcGroupController {
 
   private final AcGroupService acGroupService;
@@ -65,7 +65,7 @@ public class AcGroupController {
     acGroupService.sync(actor(session), menuId()); // 열릴 때 동기화
     model.addAttribute("menus", menuService.tree(actor(session)));
     model.addAttribute("perm", perm);
-    return "web/system/acGroup";
+    return "web/security/acGroup";
   }
 
   /** 트리 (AJAX) */

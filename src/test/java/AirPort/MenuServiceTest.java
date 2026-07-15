@@ -35,13 +35,14 @@ class MenuServiceTest {
                 menu(300, null), // 그룹(url 없음)
                 menu(301, "/system/common"),
                 menu(302, "/system/system"),
-                menu(305, "/system/systemLog")));
+                menu(501, "/security/systemLog")));
 
     assertEquals(301, s.resolveMenuId("/system/common"));
     assertEquals(301, s.resolveMenuId("/system/common/list"));
     assertEquals(302, s.resolveMenuId("/system/system/test"));
-    // /system/systemLog 가 /system/system 의 '문자열' 접두사여도 경계 검사로 305 로 해석
-    assertEquals(305, s.resolveMenuId("/system/systemLog/menus"));
+    assertEquals(501, s.resolveMenuId("/security/systemLog/menus"));
+    // 경로 경계 검사: "/system/system" 이 "/system/systemLog" 의 '문자열' 접두사여도 경계(/)가 아니므로 오매칭하지 않음
+    assertNull(s.resolveMenuId("/system/systemLog"));
     assertNull(s.resolveMenuId("/login"));
     assertNull(s.resolveMenuId("/"));
   }

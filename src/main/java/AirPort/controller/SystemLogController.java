@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 /** 감사추적(tb_system_log) — 조회 전용(입력/수정/삭제 없음). */
 @Controller
-@RequestMapping("/system/systemLog")
+@RequestMapping("/security/systemLog")
 public class SystemLogController {
 
   private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -64,7 +64,7 @@ public class SystemLogController {
     }
     model.addAttribute("menus", menuService.tree(actor(session)));
     model.addAttribute("perm", perm);
-    return "web/system/systemLog";
+    return "web/security/systemLog";
   }
 
   /** 목록 (AJAX) */

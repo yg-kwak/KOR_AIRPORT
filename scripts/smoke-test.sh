@@ -134,32 +134,32 @@ else
 fi
 
 echo "== 감사추적(tb_system_log, 조회 전용) =="
-check "감사추적 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog")"
-check "감사 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/list?size=5")"
-check "유형 옵션" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/types")"
-check "유형 옵션에 READ 포함" 0 "$(A "$BASE_URL/system/systemLog/types" | grep -q '"codeId":"READ"' && echo 0 || echo 1)"
+check "감사추적 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/security/systemLog")"
+check "감사 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/security/systemLog/list?size=5")"
+check "유형 옵션" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/security/systemLog/types")"
+check "유형 옵션에 READ 포함" 0 "$(A "$BASE_URL/security/systemLog/types" | grep -q '"codeId":"READ"' && echo 0 || echo 1)"
 # 메뉴 접속 감사(MENU): 페이지 GET 후 감사로그에 MENU 유형이 남는지(인터셉터가 menu_id 해석)
 curl -s -b "$CK_A" -o /dev/null "$BASE_URL/system/common"  # 메뉴 접속 유발
-check "메뉴 접속 감사(MENU) 기록" 0 "$(A "$BASE_URL/system/systemLog/list?actionType=MENU&size=5" | grep -q '"actionType":"MENU"' && echo 0 || echo 1)"
-check "유형 필터 조회(READ)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/list?actionType=READ&size=5")"
-check "메뉴 옵션(본인 권한)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/menus")"
-check "메뉴 필터 조회(305)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/list?menuId=305&size=5")"
-check "기간 필터 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/list?startDate=2000-01-01&endDate=2999-12-31&size=5")"
-check "엑셀 다운로드" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/excel?actionType=READ&purpose=smoke-test")"
-check "엑셀 purpose 누락 400" 400 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/excel?size=1")"
+check "메뉴 접속 감사(MENU) 기록" 0 "$(A "$BASE_URL/security/systemLog/list?actionType=MENU&size=5" | grep -q '"actionType":"MENU"' && echo 0 || echo 1)"
+check "유형 필터 조회(READ)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/security/systemLog/list?actionType=READ&size=5")"
+check "메뉴 옵션(본인 권한)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/security/systemLog/menus")"
+check "메뉴 필터 조회(305)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/security/systemLog/list?menuId=501&size=5")"
+check "기간 필터 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/security/systemLog/list?startDate=2000-01-01&endDate=2999-12-31&size=5")"
+check "엑셀 다운로드" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/security/systemLog/excel?actionType=READ&purpose=smoke-test")"
+check "엑셀 purpose 누락 400" 400 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/security/systemLog/excel?size=1")"
 
 echo "== 출입권한관리(tb_ac_group) =="
-check "출입권한 화면(동기화)" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/system/acGroup")"
-check "트리 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/acGroup/tree")"
-check "동기화 최상위(AR) 존재" 0 "$(A "$BASE_URL/system/acGroup/tree" | grep -q '"arCode":"AR01"' && echo 0 || echo 1)"
-check "BiostarX 출입그룹 응답(HTTP 200)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/acGroup/biostarGroups")"
-TOP_AC=$(A "$BASE_URL/system/acGroup/tree" | grep -oE '"acGroupId":[0-9]+' | head -1 | grep -oE '[0-9]+')
-check "최상위 삭제 차단(403)" 403 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/acGroup?acGroupId=${TOP_AC:-0}")"
-check "하위 그룹 추가" 200 "$(A -H 'Content-Type: application/json' -X POST --data "{\"parentId\":${TOP_AC:-0},\"groups\":[{\"biostarAcId\":99999,\"biostarAcName\":\"SMOKEAC\"}]}" -o /dev/null -w '%{http_code}' "$BASE_URL/system/acGroup/children")"
-check "하위 트리 노출(SMOKEAC)" 0 "$(A "$BASE_URL/system/acGroup/tree" | grep -q '"biostarAcName":"SMOKEAC"' && echo 0 || echo 1)"
-CHILD_AC=$(A "$BASE_URL/system/acGroup/tree" | grep -oE '"acGroupId":[0-9]+,"acGroupName":"SMOKEAC"' | grep -oE '[0-9]+' | head -1)
-check "하위 수정(200)" 200 "$(A -H 'Content-Type: application/json' -X PUT --data "{\"acGroupId\":${CHILD_AC:-0},\"acGroupName\":\"SMOKEAC2\",\"biostarAcId\":99999,\"biostarAcName\":\"SMOKEAC\"}" -o /dev/null -w '%{http_code}' "$BASE_URL/system/acGroup")"
-check "하위 삭제(200)" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/system/acGroup?acGroupId=${CHILD_AC:-0}")"
+check "출입권한 화면(동기화)" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup")"
+check "트리 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup/tree")"
+check "동기화 최상위(AR) 존재" 0 "$(A "$BASE_URL/security/acGroup/tree" | grep -q '"arCode":"AR01"' && echo 0 || echo 1)"
+check "BiostarX 출입그룹 응답(HTTP 200)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup/biostarGroups")"
+TOP_AC=$(A "$BASE_URL/security/acGroup/tree" | grep -oE '"acGroupId":[0-9]+' | head -1 | grep -oE '[0-9]+')
+check "최상위 삭제 차단(403)" 403 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup?acGroupId=${TOP_AC:-0}")"
+check "하위 그룹 추가" 200 "$(A -H 'Content-Type: application/json' -X POST --data "{\"parentId\":${TOP_AC:-0},\"groups\":[{\"biostarAcId\":99999,\"biostarAcName\":\"SMOKEAC\"}]}" -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup/children")"
+check "하위 트리 노출(SMOKEAC)" 0 "$(A "$BASE_URL/security/acGroup/tree" | grep -q '"biostarAcName":"SMOKEAC"' && echo 0 || echo 1)"
+CHILD_AC=$(A "$BASE_URL/security/acGroup/tree" | grep -oE '"acGroupId":[0-9]+,"acGroupName":"SMOKEAC"' | grep -oE '[0-9]+' | head -1)
+check "하위 수정(200)" 200 "$(A -H 'Content-Type: application/json' -X PUT --data "{\"acGroupId\":${CHILD_AC:-0},\"acGroupName\":\"SMOKEAC2\",\"biostarAcId\":99999,\"biostarAcName\":\"SMOKEAC\"}" -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup")"
+check "하위 삭제(200)" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup?acGroupId=${CHILD_AC:-0}")"
 
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
 VCODE=$(curl -s -m 2 -c "$CK_V" -o /dev/null -w "%{http_code}" --data "userId=viewer&password=viewer123" "$BASE_URL/login" 2>/dev/null)
@@ -180,9 +180,9 @@ if [ "$VCODE" = "302" ]; then
   check "무권한 페이지 렌더"          0 "$(case "$FP_V" in *'id="forbiddenPage"'*) echo 0;; *) echo 1;; esac)"
   check "viewer 권한목록 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth/list?size=1")"
   check "viewer 권한 등록 403"      403 "$(V -H 'Content-Type: application/json' -X POST --data '{"authName":"x","details":[]}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/menuAuth")"
-  check "viewer 감사추적 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/system/systemLog/list?size=1")"
-  check "viewer 출입권한 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/system/acGroup/tree")"
-  check "viewer 하위 추가 403"     403 "$(V -H 'Content-Type: application/json' -X POST --data '{"parentId":1,"groups":[]}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/acGroup/children")"
+  check "viewer 감사추적 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/security/systemLog/list?size=1")"
+  check "viewer 출입권한 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup/tree")"
+  check "viewer 하위 추가 403"     403 "$(V -H 'Content-Type: application/json' -X POST --data '{"parentId":1,"groups":[]}' -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup/children")"
 else
   bad "viewer 로그인 실패($VCODE) — seed 확인 필요"
 fi

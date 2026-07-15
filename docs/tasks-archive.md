@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 보안 영역 분리 — 보안관리 menu_id 500번대(500/501/502), URL·뷰·JS 를 /system → /security 로 이동(web/security/), 컨트롤러 매핑·seed·권한·감사로그 menu_id 재지정. code-lint [4] security 영역 포함 — yg-kwak, 2026-07-14
 - [x] 메뉴 구성 재편 — 보안관리(guard) 그룹 신설, 감사추적·출입권한관리를 그 아래로 이동, 시스템관리 하위를 설정/공통코드/권한메뉴/사용자관리 순으로 재배치(tb_menu seed) — yg-kwak, 2026-07-14
 - [x] 헤더 계정 메뉴(자가서비스) — 사용자명 드롭다운(시작메뉴 변경/비밀번호 변경/로그아웃), 시작메뉴는 tb_login_user.start_menu_id 저장→다음 로그인 시 해당 화면 진입, 비밀번호는 이전값 확인 후 변경. AccountController(/account, 로그인만) + core/header-user.js — yg-kwak, 2026-07-14
 - [x] 출입권한관리(tb_ac_group) — tb_common(AR) 최상위 동기화(진입 시 insert/delete, ar_code 컬럼 추가), 트리, BiostarX 출입그룹(access_groups/search) 하위 매핑 추가/수정/삭제(최상위 삭제불가) — yg-kwak, 2026-07-14

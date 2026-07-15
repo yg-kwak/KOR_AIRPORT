@@ -42,7 +42,7 @@ if grep -rn 'for (let i = 1; i <= totalPages' src/main/resources/static/js >/dev
   FAIL=1
 else echo "  ✅ 수동 페이징 없음"; fi
 
-echo "== [4] 컨트롤러 @RequestMapping(/system/*) ↔ tb_menu.menu_url 일치 =="
+echo "== [4] 컨트롤러 @RequestMapping(/{system,security}/*) ↔ tb_menu.menu_url 일치 =="
 SEED="sql/seed/02_seed.sql"; MAP_FAIL=0
 while IFS= read -r path; do
   [ -z "$path" ] && continue
@@ -50,7 +50,7 @@ while IFS= read -r path; do
     echo "  ❌ $path — seed 의 menu_url 에 없음. tb_menu 에 등록하거나 @RequestMapping 을 menu_url 과 일치시키세요(메뉴 해석·권한 근거). (docs/architecture.md §5)"
     FAIL=1; MAP_FAIL=1
   fi
-done < <(grep -rhoE '@RequestMapping\("/system/[a-zA-Z]+"\)' src/main/java/AirPort/controller | grep -oE '/system/[a-zA-Z]+')
+done < <(grep -rhoE '@RequestMapping\("/(system|security)/[a-zA-Z]+"\)' src/main/java/AirPort/controller | grep -oE '/(system|security)/[a-zA-Z]+')
 [ "$MAP_FAIL" -eq 0 ] && echo "  ✅ 매핑↔menu_url 일치"
 
 exit $FAIL
