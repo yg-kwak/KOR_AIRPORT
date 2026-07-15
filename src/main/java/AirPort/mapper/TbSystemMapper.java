@@ -7,8 +7,6 @@ public interface TbSystemMapper {
 
   TbSystem selectOne();
 
-  int countAll();
-
   int insert(TbSystem row);
 
   int update(TbSystem row);

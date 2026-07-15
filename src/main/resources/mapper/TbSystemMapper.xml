@@ -8,10 +8,6 @@
     FROM tb_system
   </select>
 
-  <select id="countAll" resultType="int">
-    SELECT COUNT(*) FROM tb_system
-  </select>
-
   <insert id="insert" parameterType="TbSystem">
     INSERT INTO tb_system (biostar_ip, biostar_id, biostar_pw)
     VALUES (#{biostarIp}, #{biostarId}, #{biostarPw})
