@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 기관등록관리(tb_company) — 기관관리(700)/기관등록관리(701), /company/company 수직 슬라이스. PK=company_code 중복방지, 대표자(ceo_name) ARIA 암호화, 기관구분=공통코드 CO 코드팝업, 용역시작/종료일, use_yn 활성 + del_yn 소프트삭제. CO 코드 seed·building 아이콘 — yg-kwak, 2026-07-15
 - [x] 차량등록관리(tb_car) — 차량관리(600)/차량등록관리(601) 메뉴, /carInfo/car 수직 슬라이스(모델·매퍼·서비스·컨트롤러·html·js). 차량번호 중복 방지(del_yn='N' 기준), 차종=공통코드 CT 코드팝업, 소프트 삭제(del_yn), 관리자ID 추후. CT 코드 seed·사이드바 car 아이콘·code-lint [4] 영역 일반화 — yg-kwak, 2026-07-15
 - [x] 보안 영역 분리 — 보안관리 menu_id 500번대(500/501/502), URL·뷰·JS 를 /system → /security 로 이동(web/security/), 컨트롤러 매핑·seed·권한·감사로그 menu_id 재지정. code-lint [4] security 영역 포함 — yg-kwak, 2026-07-14
 - [x] 메뉴 구성 재편 — 보안관리(guard) 그룹 신설, 감사추적·출입권한관리를 그 아래로 이동, 시스템관리 하위를 설정/공통코드/권한메뉴/사용자관리 순으로 재배치(tb_menu seed) — yg-kwak, 2026-07-14

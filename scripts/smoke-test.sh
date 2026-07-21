@@ -182,6 +182,23 @@ check "삭제된 차량번호 재등록 허용(200)" 200 "$(A -H 'Content-Type: 
 NEW_CAR_ID=$(A "$BASE_URL/carInfo/car/list?searchType=carNo&keyword=SMOKE-CAR-1&size=5" | grep -oE '"carId":[0-9]+' | head -1 | grep -oE '[0-9]+')
 A -X DELETE -o /dev/null "$BASE_URL/carInfo/car?carId=${NEW_CAR_ID:-0}" || true
 
+echo "== 기관등록관리(tb_company) =="
+A -X DELETE -o /dev/null "$BASE_URL/company/company?companyCode=SMKCO1" || true
+check "기관 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
+check "기관 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/list?size=5")"
+check "기관구분 코드팝업(CO)" 0 "$(A "$BASE_URL/system/common/picker?cmmId=CO" | grep -q '"codeId":"44"' && echo 0 || echo 1)"
+check "기관 등록(대표자 ARIA)" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"companyCode":"SMKCO1","companyName":"SmokeOrg","companyType":"11","ceoName":"SmokeCeo","tel":"010","serviceStartDt":"2026-07-01","useYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
+check "기관코드 중복 등록 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"companyCode":"SMKCO1","companyName":"dup"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
+check "기관명 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"companyCode":"SMKCO2"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
+check "대표자 복호화 노출(SmokeCeo)" 0 "$(A "$BASE_URL/company/company/list?searchType=companyCode&keyword=SMKCO1&size=5" | grep -q '"ceoName":"SmokeCeo"' && echo 0 || echo 1)"
+check "기관구분명 조인 노출" 0 "$(A "$BASE_URL/company/company/list?searchType=companyCode&keyword=SMKCO1&size=5" | grep -q '"companyTypeName"' && echo 0 || echo 1)"
+check "기관 수정(200)" 200 "$(A -H 'Content-Type: application/json' -X PUT --data '{"companyCode":"SMKCO1","companyName":"SmokeOrg2","companyType":"44","useYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
+check "엑셀 다운로드" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/excel?searchType=companyCode&keyword=SMKCO1&purpose=smoke-test")"
+check "기관 삭제(소프트,200)" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/company/company?companyCode=SMKCO1")"
+check "삭제 후 목록 미노출" 0 "$(A "$BASE_URL/company/company/list?searchType=companyCode&keyword=SMKCO1&size=5" | grep -q '"companyCode":"SMKCO1"' && echo 1 || echo 0)"
+check "삭제된 기관코드 재등록 허용(200,되살리기)" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"companyCode":"SMKCO1","companyName":"reuse"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
+A -X DELETE -o /dev/null "$BASE_URL/company/company?companyCode=SMKCO1" || true
+
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
 VCODE=$(curl -s -m 2 -c "$CK_V" -o /dev/null -w "%{http_code}" --data "userId=viewer&password=viewer123" "$BASE_URL/login" 2>/dev/null)
 if [ "$VCODE" = "302" ]; then
@@ -206,6 +223,8 @@ if [ "$VCODE" = "302" ]; then
   check "viewer 하위 추가 403"     403 "$(V -H 'Content-Type: application/json' -X POST --data '{"parentId":1,"groups":[]}' -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup/children")"
   check "viewer 차량 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car/list?size=1")"
   check "viewer 차량 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"carNo":"VX-1"}' -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car")"
+  check "viewer 기관 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/list?size=1")"
+  check "viewer 기관 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"companyCode":"VXCO","companyName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
 else
   bad "viewer 로그인 실패($VCODE) — seed 확인 필요"
 fi

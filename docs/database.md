@@ -30,7 +30,7 @@
 
 ## 설계된 테이블 (공통관리·보안 도메인)
 
-> 아래 테이블은 현재 설계 완료. 나머지 도메인(임시/정규카드, 기관, 카드)은 설계 후 추가한다.
+> 아래 테이블은 현재 설계 완료. 나머지 도메인(임시/정규카드, 카드)은 설계 후 추가한다.
 > `Enc=Y` 컬럼은 **ARIA 암호화 대상**(저장 시 hex 대문자). 암호화 규약은 `security.md`.
 
 ### tb_login_user — 사용자등록 (로그인 계정)
@@ -151,6 +151,24 @@ PK: `car_id` (IDENTITY). 차량 1대에 관리자 1명(1:1). **삭제는 물리 
 
 > 삭제 로그는 `tb_system_log` 에 차량번호를 **스냅샷**(`action_detail`)으로 남긴다 — 차량 행 상태와 무관하게 이력이 보존되도록 조인 의존을 없앤다.
 
+### tb_company — 기관 (기관관리)
+PK: `company_code` (업무코드). **삭제는 물리 DELETE 금지 — `del_yn='Y'` 소프트 삭제.** `ceo_name` 은 ARIA 암호화 대상.
+
+| 컬럼 | 타입 | PK | Enc | 설명 | 비고 |
+|------|------|----|-----|------|------|
+| company_code | nvarchar(30) | Y | | 기관코드 | 업무코드(사람이 부여) |
+| company_type | nvarchar(50) | | | 기관구분 | → `tb_common`(cmm_id='CO').code_id |
+| company_name | nvarchar(100) | | | 기관명 | |
+| ceo_name | nvarchar(255) | | **Y** | 대표자 | ARIA 암호화 |
+| tel | nvarchar(30) | | | 연락처 | |
+| fax | nvarchar(30) | | | FAX | |
+| addr | nvarchar(200) | | | 주소 | |
+| service_start_dt | datetime2(0) | | | 용역시작일 | |
+| service_end_dt | datetime2(0) | | | 용역종료일 | |
+| use_yn | nchar(1) | | | 사용유무 | 기본 'Y', CHK Y/N (UI 활성/비활성) |
+| del_yn | nchar(1) | | | 삭제유무 | 기본 'N', CHK Y/N (소프트 삭제) |
+| reg_dt / mod_dt | datetime2(0) | | | 입력/수정일자 | 기본 getdate() |
+
 ### tb_system_log — 감사추적 (이력, 불변식)
 PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략히 적재**한다. 정책은 `security.md`.
 
@@ -173,6 +191,7 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 - `tb_system_log.action_type` → `tb_common`(cmm_id='AT'), `tb_system_log.menu_id` → `tb_menu`
 - `tb_ac_group.biostar_ac_id` → BiostarX 출입그룹 (외부, `integration.md`)
 - `tb_car.car_manager_id` → `tb_login_user.user_id` (논리 관계, FK 미강제. 관리자 삭제도 소프트 삭제 전제)
+- `tb_company.company_type` → `tb_common`(cmm_id='CO')
 
 ## 마이그레이션
 - 스키마 원천: `D:\작업\2026\청주공항\설계\table.xlsx` (설계) → 본 문서 → 실행 스크립트 `sql/`.

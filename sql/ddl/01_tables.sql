@@ -115,6 +115,26 @@ CREATE TABLE dbo.tb_car (
   CONSTRAINT CHK_tb_car_del_yn CHECK (del_yn IN ('Y','N'))
 );
 
+/* 기관 (기관관리) — PK 업무코드. 삭제=del_yn 소프트 삭제, 활성/비활성=use_yn */
+CREATE TABLE dbo.tb_company (
+  company_code     nvarchar(30)  NOT NULL,                -- 기관코드 (PK, 업무코드)
+  company_type     nvarchar(50)  NULL,                    -- 기관구분 → tb_common(cmm_id='CO').code_id
+  company_name     nvarchar(100) NULL,                    -- 기관명
+  ceo_name         nvarchar(255) NULL,                    -- 대표자 (ARIA 암호화)
+  tel              nvarchar(30)  NULL,                    -- 연락처
+  fax              nvarchar(30)  NULL,                    -- FAX
+  addr             nvarchar(200) NULL,                    -- 주소
+  service_start_dt datetime2(0)  NULL,                    -- 용역시작일
+  service_end_dt   datetime2(0)  NULL,                    -- 용역종료일
+  use_yn           nchar(1)      NOT NULL DEFAULT 'Y',    -- 사용유무 (UI 활성/비활성)
+  del_yn           nchar(1)      NOT NULL DEFAULT 'N',    -- 삭제유무 (소프트 삭제: 삭제 시 'Y')
+  reg_dt           datetime2(0)  NOT NULL DEFAULT getdate(),
+  mod_dt           datetime2(0)  NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_company PRIMARY KEY (company_code),
+  CONSTRAINT CHK_tb_company_use_yn CHECK (use_yn IN ('Y','N')),
+  CONSTRAINT CHK_tb_company_del_yn CHECK (del_yn IN ('Y','N'))
+);
+
 /* 감사추적 (이력) */
 CREATE TABLE dbo.tb_system_log (
   log_id        bigint IDENTITY(1,1) NOT NULL,

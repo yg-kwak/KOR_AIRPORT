@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbCompanyMapper">
+
+  <!-- 조회는 항상 del_yn='N'(소프트 삭제 제외). ceo_name 은 암호문이라 검색 대상 제외(기관코드/기관명만) -->
+  <sql id="searchWhere">
+    <where>
+      c.del_yn = 'N'
+      <if test="keyword != null and keyword != ''">
+        <choose>
+          <when test="searchType == 'companyCode'">AND c.company_code LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'companyName'">AND c.company_name LIKE '%' + #{keyword} + '%'</when>
+          <otherwise>
+            AND (c.company_code LIKE '%' + #{keyword} + '%'
+                 OR c.company_name LIKE '%' + #{keyword} + '%')
+          </otherwise>
+        </choose>
+      </if>
+      <if test="useYn != null and useYn != ''">
+        AND c.use_yn = #{useYn}
+      </if>
+    </where>
+  </sql>
+
+  <!-- 정렬: 화이트리스트만(SQL 인젝션 방지). ceo_name 은 암호문이라 정렬 제외 -->
+  <sql id="orderBy">
+    ORDER BY
+    <choose>
+      <when test="sort == 'companyName'">c.company_name <if test="desc">DESC</if>, c.company_code</when>
+      <when test="sort == 'companyType'">co.code_name <if test="desc">DESC</if>, c.company_code</when>
+      <when test="sort == 'useYn'">c.use_yn <if test="desc">DESC</if>, c.company_code</when>
+      <when test="sort == 'regDt'">c.reg_dt <if test="desc">DESC</if>, c.company_code</when>
+      <otherwise>c.company_code <if test="desc">DESC</if></otherwise>
+    </choose>
+  </sql>
+
+  <!-- 기관구분명은 tb_common(CO) 조인으로 표시. ceo_name 은 암호문 그대로 내려 서비스에서 복호화 -->
+  <sql id="listColumns">
+    c.company_code, c.company_type, c.company_name, c.ceo_name, c.tel, c.fax, c.addr,
+    CONVERT(varchar(10), c.service_start_dt, 23) AS service_start_dt,
+    CONVERT(varchar(10), c.service_end_dt, 23)   AS service_end_dt,
+    c.use_yn, c.del_yn, c.reg_dt, c.mod_dt, co.code_name AS company_type_name
+  </sql>
+
+  <sql id="listJoins">
+    FROM tb_company c
+    LEFT JOIN tb_common co ON co.cmm_id = 'CO' AND co.code_id = c.company_type
+  </sql>
+
+  <select id="selectList" parameterType="AirPort.model.CompanySearchParam" resultType="TbCompany">
+    SELECT <include refid="listColumns"/>
+    <include refid="listJoins"/>
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="selectListAll" parameterType="AirPort.model.CompanySearchParam" resultType="TbCompany">
+    SELECT <include refid="listColumns"/>
+    <include refid="listJoins"/>
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+  </select>
+
+  <select id="selectCount" parameterType="AirPort.model.CompanySearchParam" resultType="long">
+    SELECT COUNT(*) FROM tb_company c
+    <include refid="searchWhere"/>
+  </select>
+
+  <select id="selectById" resultType="TbCompany">
+    SELECT <include refid="listColumns"/>
+    <include refid="listJoins"/>
+    WHERE c.company_code = #{companyCode}
+  </select>
+
+  <insert id="insert" parameterType="TbCompany">
+    INSERT INTO tb_company
+      (company_code, company_type, company_name, ceo_name, tel, fax, addr,
+       service_start_dt, service_end_dt, use_yn)
+    VALUES
+      (#{companyCode}, #{companyType}, #{companyName}, #{ceoName}, #{tel}, #{fax}, #{addr},
+       #{serviceStartDt}, #{serviceEndDt}, ISNULL(#{useYn}, 'Y'))
+  </insert>
+
+  <!-- 소프트 삭제된 기관코드 재등록 — 전체 필드 갱신 + del_yn='N' 되살림(reg_dt 재설정) -->
+  <update id="reactivate" parameterType="TbCompany">
+    UPDATE tb_company
+    SET company_type = #{companyType},
+        company_name = #{companyName},
+        ceo_name = #{ceoName},
+        tel = #{tel},
+        fax = #{fax},
+        addr = #{addr},
+        service_start_dt = #{serviceStartDt},
+        service_end_dt = #{serviceEndDt},
+        use_yn = ISNULL(#{useYn}, 'Y'),
+        del_yn = 'N',
+        reg_dt = getdate(),
+        mod_dt = getdate()
+    WHERE company_code = #{companyCode}
+  </update>
+
+  <update id="update" parameterType="TbCompany">
+    UPDATE tb_company
+    SET company_type = #{companyType},
+        company_name = #{companyName},
+        ceo_name = #{ceoName},
+        tel = #{tel},
+        fax = #{fax},
+        addr = #{addr},
+        service_start_dt = #{serviceStartDt},
+        service_end_dt = #{serviceEndDt},
+        use_yn = #{useYn},
+        mod_dt = getdate()
+    WHERE company_code = #{companyCode}
+  </update>
+
+  <!-- 소프트 삭제 — 물리 DELETE 금지 -->
+  <update id="softDelete">
+    UPDATE tb_company SET del_yn = 'Y', mod_dt = getdate() WHERE company_code = #{companyCode}
+  </update>
+
+</mapper>
