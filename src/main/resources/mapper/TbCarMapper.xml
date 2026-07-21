@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbCarMapper">
+
+  <!-- 조회는 항상 del_yn='N'(소프트 삭제 제외) + 차량번호/차량명칭 LIKE -->
+  <sql id="searchWhere">
+    <where>
+      c.del_yn = 'N'
+      <if test="keyword != null and keyword != ''">
+        <choose>
+          <when test="searchType == 'carNo'">AND c.car_no LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'carName'">AND c.car_name LIKE '%' + #{keyword} + '%'</when>
+          <otherwise>
+            AND (c.car_no LIKE '%' + #{keyword} + '%'
+                 OR c.car_name LIKE '%' + #{keyword} + '%')
+          </otherwise>
+        </choose>
+      </if>
+    </where>
+  </sql>
+
+  <!-- 정렬: 화이트리스트만(SQL 인젝션 방지). 기본 최신 등록순 -->
+  <sql id="orderBy">
+    ORDER BY
+    <choose>
+      <when test="sort == 'carNo'">c.car_no <if test="desc">DESC</if>, c.car_id</when>
+      <when test="sort == 'carName'">c.car_name <if test="desc">DESC</if>, c.car_id</when>
+      <when test="sort == 'carType'">ct.code_name <if test="desc">DESC</if>, c.car_id</when>
+      <when test="sort == 'regDt'">c.reg_dt <if test="desc">DESC</if>, c.car_id</when>
+      <otherwise>c.car_id DESC</otherwise>
+    </choose>
+  </sql>
+
+  <!-- 차종명은 tb_common(CT) 조인으로 표시 -->
+  <sql id="listColumns">
+    c.car_id, c.car_no, c.car_name, c.car_type, c.car_manager_id,
+    c.del_yn, c.reg_dt, c.mod_dt, ct.code_name AS car_type_name
+  </sql>
+
+  <sql id="listJoins">
+    FROM tb_car c
+    LEFT JOIN tb_common ct ON ct.cmm_id = 'CT' AND ct.code_id = c.car_type
+  </sql>
+
+  <select id="selectList" parameterType="AirPort.model.CarSearchParam" resultType="TbCar">
+    SELECT <include refid="listColumns"/>
+    <include refid="listJoins"/>
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="selectListAll" parameterType="AirPort.model.CarSearchParam" resultType="TbCar">
+    SELECT <include refid="listColumns"/>
+    <include refid="listJoins"/>
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+  </select>
+
+  <select id="selectCount" parameterType="AirPort.model.CarSearchParam" resultType="long">
+    SELECT COUNT(*) FROM tb_car c
+    <include refid="searchWhere"/>
+  </select>
+
+  <select id="selectById" resultType="TbCar">
+    SELECT <include refid="listColumns"/>
+    <include refid="listJoins"/>
+    WHERE c.car_id = #{carId}
+  </select>
+
+  <!-- 차량번호 중복 검사(del_yn='N'). 수정 시 자기 car_id 제외 -->
+  <select id="existsByCarNo" resultType="int">
+    SELECT COUNT(*) FROM tb_car
+    WHERE del_yn = 'N' AND car_no = #{carNo}
+    <if test="excludeId != null">AND car_id &lt;&gt; #{excludeId}</if>
+  </select>
+
+  <insert id="insert" parameterType="TbCar" useGeneratedKeys="true" keyProperty="carId">
+    INSERT INTO tb_car (car_no, car_name, car_type, car_manager_id)
+    VALUES (#{carNo}, #{carName}, #{carType}, #{carManagerId})
+  </insert>
+
+  <update id="update" parameterType="TbCar">
+    UPDATE tb_car
+    SET car_no = #{carNo},
+        car_name = #{carName},
+        car_type = #{carType},
+        car_manager_id = #{carManagerId},
+        mod_dt = getdate()
+    WHERE car_id = #{carId}
+  </update>
+
+  <!-- 소프트 삭제 — 물리 DELETE 금지 -->
+  <update id="softDelete">
+    UPDATE tb_car SET del_yn = 'Y', mod_dt = getdate() WHERE car_id = #{carId}
+  </update>
+
+</mapper>

@@ -16,6 +16,8 @@
 - 자동 증가 PK: `IDENTITY(1,1)`.
 - 날짜: `datetime2(0)`, 기본값 `getdate()`.
 - 불리언성 플래그: `nchar(1)` + `Y`/`N` CHECK 제약. (예: `use_yn`, `root_yn`)
+  - **`use_yn`(사용여부)** = UI 활성/비활성 토글(운영 상태). `Y`=사용중, 기본 `'Y'`. 대부분 테이블.
+  - **`del_yn`(삭제여부)** = 소프트 삭제 표식(tombstone). `Y`=삭제됨, 기본 `'N'`, 조회는 `WHERE del_yn='N'`. 실제 삭제해도 이력/조인 보존이 필요한 테이블(예: `tb_car`). **두 컬럼은 극성이 반대이니 혼동 주의** — 같은 개념이 아니라 서로 다른 관심사(활성상태 vs 삭제표식)라 한 테이블에 공존 가능.
 - 문자열: `nvarchar`(유니코드). 아래 표의 길이는 **문자 수**(DDL 기준).
 
 ## 명명 규칙
@@ -28,7 +30,7 @@
 
 ## 설계된 테이블 (공통관리·보안 도메인)
 
-> 아래 8종은 현재 설계 완료. 나머지 도메인(임시/정규카드, 기관, 차량, 카드)은 설계 후 추가한다.
+> 아래 테이블은 현재 설계 완료. 나머지 도메인(임시/정규카드, 기관, 카드)은 설계 후 추가한다.
 > `Enc=Y` 컬럼은 **ARIA 암호화 대상**(저장 시 hex 대문자). 암호화 규약은 `security.md`.
 
 ### tb_login_user — 사용자등록 (로그인 계정)
@@ -134,6 +136,21 @@ PK: `ac_group_id` (IDENTITY)
 | biostar_ac_name | nvarchar(50) | | BiostarX 출입그룹명 | |
 | reg_dt / mod_dt | datetime2(0) | | 생성/수정일자 | |
 
+### tb_car — 차량
+PK: `car_id` (IDENTITY). 차량 1대에 관리자 1명(1:1). **삭제는 물리 DELETE 금지 — `del_yn='Y'` 소프트 삭제**로 이력/조인을 보존한다.
+
+| 컬럼 | 타입 | PK | Enc | 설명 | 비고                                   |
+|------|------|----|-----|------|--------------------------------------|
+| car_id | int | Y | | 차량ID | IDENTITY(1,1)                        |
+| car_no | nvarchar(20) | | | 차량번호 | 예: 12가3456 (개인정보 암호화 대상 여부 재검토 TODO) |
+| car_name | nvarchar(50) | | | 차량명칭 |                                      |
+| car_type | nvarchar(30) | | | 차종 | `tb_common`(cmm_id='CT').code_id     |
+| car_manager_id | nvarchar(30) | | | 관리자ID | → `tb_login_user.user_id` (FK 미강제)   |
+| del_yn | nchar(1) | | | 삭제여부 | 기본 'N', CHK Y/N. 삭제 시 'Y' (소프트 삭제)   |
+| reg_dt / mod_dt | datetime2(0) | | | 입력/수정일자 | 기본 getdate()                         |
+
+> 삭제 로그는 `tb_system_log` 에 차량번호를 **스냅샷**(`action_detail`)으로 남긴다 — 차량 행 상태와 무관하게 이력이 보존되도록 조인 의존을 없앤다.
+
 ### tb_system_log — 감사추적 (이력, 불변식)
 PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략히 적재**한다. 정책은 `security.md`.
 
@@ -155,6 +172,7 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 - `tb_login_user.work_location_code` → `tb_common`(cmm_id='LO')
 - `tb_system_log.action_type` → `tb_common`(cmm_id='AT'), `tb_system_log.menu_id` → `tb_menu`
 - `tb_ac_group.biostar_ac_id` → BiostarX 출입그룹 (외부, `integration.md`)
+- `tb_car.car_manager_id` → `tb_login_user.user_id` (논리 관계, FK 미강제. 관리자 삭제도 소프트 삭제 전제)
 
 ## 마이그레이션
 - 스키마 원천: `D:\작업\2026\청주공항\설계\table.xlsx` (설계) → 본 문서 → 실행 스크립트 `sql/`.

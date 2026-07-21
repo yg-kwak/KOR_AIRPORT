@@ -101,6 +101,20 @@ CREATE TABLE dbo.tb_ac_group (
   CONSTRAINT PK_tb_ac_group PRIMARY KEY (ac_group_id)
 );
 
+/* 차량 (1:1 — 차량마다 관리자 1명. FK 미강제: 기존 테이블과 동일하게 논리적 관계만 둔다) */
+CREATE TABLE dbo.tb_car (
+  car_id         int IDENTITY(1,1) NOT NULL,
+  car_no         nvarchar(20)  NOT NULL,               -- 차량번호 (예: 12가3456)
+  car_name       nvarchar(50)  NULL,                   -- 차량명칭
+  car_type       nvarchar(30)  NULL,                   -- 차종
+  car_manager_id nvarchar(30)  NULL,                   -- 관리자ID (→ tb_login_user.user_id, FK 미강제)
+  del_yn         nchar(1)      NOT NULL DEFAULT 'N',   -- 삭제여부(소프트 삭제): 삭제 시 'Y', 조회는 'N'
+  reg_dt         datetime2(0)  NOT NULL DEFAULT getdate(),
+  mod_dt         datetime2(0)  NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_car PRIMARY KEY (car_id),
+  CONSTRAINT CHK_tb_car_del_yn CHECK (del_yn IN ('Y','N'))
+);
+
 /* 감사추적 (이력) */
 CREATE TABLE dbo.tb_system_log (
   log_id        bigint IDENTITY(1,1) NOT NULL,

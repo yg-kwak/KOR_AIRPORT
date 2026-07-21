@@ -29,6 +29,14 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use
   ('AR', N'출입구역', 'GATE', N'게이트구역', 'Y', 'Y'),
   ('AR', N'출입구역', 'RAMP', N'램프구역',   'Y', 'Y');
 
+/* 공통코드: 차종(CT) — 차량등록관리에서 사용. 시스템 코드(user_input=N 기본) */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
+  ('CT', N'차종', '01', N'승용차', 'Y'),
+  ('CT', N'차종', '02', N'SUV',    'Y'),
+  ('CT', N'차종', '03', N'화물차', 'Y'),
+  ('CT', N'차종', '04', N'트럭',   'Y'),
+  ('CT', N'차종', '05', N'기타',   'Y');
+
 /* 메뉴 (level 1 그룹은 menu_icon 지정 — 사이드바 아이콘) */
 INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn) VALUES
   (300, N'시스템관리',   NULL, NULL,                 1, 1, 'settings', 'Y'),
@@ -38,7 +46,9 @@ INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_leve
   (303, N'사용자관리',   300,  '/system/loginUser',  2, 4, NULL,       'Y'),
   (500, N'보안관리',     NULL, NULL,                 1, 2, 'guard',    'Y'),
   (501, N'감사추적',     500,  '/security/systemLog', 2, 1, NULL,      'Y'),
-  (502, N'출입권한관리', 500,  '/security/acGroup',   2, 2, NULL,      'Y');
+  (502, N'출입권한관리', 500,  '/security/acGroup',   2, 2, NULL,      'Y'),
+  (600, N'차량관리',     NULL, NULL,                 1, 3, 'car',      'Y'),
+  (601, N'차량등록관리', 600,  '/carInfo/car',        2, 1, NULL,      'Y');
 
 /* 관리자 권한 + 공통코드관리 전권 + 관리자 계정 */
 INSERT INTO dbo.tb_menu_auth (auth_name) VALUES (N'관리자');
@@ -49,7 +59,8 @@ VALUES (@authId, 301, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 303, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 304, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 501, 'Y', 'Y', 'Y', 'Y'),
-       (@authId, 502, 'Y', 'Y', 'Y', 'Y');
+       (@authId, 502, 'Y', 'Y', 'Y', 'Y'),
+       (@authId, 601, 'Y', 'Y', 'Y', 'Y');
 
 /* 관리자 계정: 아이디 admin / 비밀번호 admin123 (ARIA 암호문) */
 INSERT INTO dbo.tb_login_user
@@ -69,7 +80,8 @@ VALUES (@viewerAuthId, 301, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 303, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 304, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 501, 'Y', 'N', 'N', 'N'),
-       (@viewerAuthId, 502, 'Y', 'N', 'N', 'N');
+       (@viewerAuthId, 502, 'Y', 'N', 'N', 'N'),
+       (@viewerAuthId, 601, 'Y', 'N', 'N', 'N');
 
 INSERT INTO dbo.tb_login_user
   (user_id, user_name, password, dept_name, use_yn, root_yn, auth_id, start_menu_id, work_location_code)

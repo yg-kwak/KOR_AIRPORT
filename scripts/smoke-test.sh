@@ -161,6 +161,25 @@ CHILD_AC=$(A "$BASE_URL/security/acGroup/tree" | grep -oE '"acGroupId":[0-9]+,"a
 check "하위 수정(200)" 200 "$(A -H 'Content-Type: application/json' -X PUT --data "{\"acGroupId\":${CHILD_AC:-0},\"acGroupName\":\"SMOKEAC2\",\"biostarAcId\":99999,\"biostarAcName\":\"SMOKEAC\"}" -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup")"
 check "하위 삭제(200)" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup?acGroupId=${CHILD_AC:-0}")"
 
+echo "== 차량등록관리(tb_car) =="
+check "차량 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car")"
+check "차량 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car/list?size=5")"
+check "차종 코드팝업(CT)" 0 "$(A "$BASE_URL/system/common/picker?cmmId=CT" | grep -q '"codeId":"02"' && echo 0 || echo 1)"
+# 본문 비ASCII 금지(Git Bash CP949 이슈) — 차량번호는 ASCII 로 검증
+check "차량 등록" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"carNo":"SMOKE-CAR-1","carName":"SmokeCar","carType":"01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car")"
+check "차량번호 중복 등록 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"carNo":"SMOKE-CAR-1","carName":"dup"}' -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car")"
+check "차량번호 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"carName":"nono"}' -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car")"
+check "목록 노출(SMOKE-CAR-1)" 0 "$(A "$BASE_URL/carInfo/car/list?searchType=carNo&keyword=SMOKE-CAR-1&size=5" | grep -q '"carNo":"SMOKE-CAR-1"' && echo 0 || echo 1)"
+check "차종명 조인 노출(SUV)" 0 "$(A "$BASE_URL/carInfo/car/list?searchType=carNo&keyword=SMOKE-CAR-1&size=5" | grep -q '"carTypeName"' && echo 0 || echo 1)"
+CAR_ID=$(A "$BASE_URL/carInfo/car/list?searchType=carNo&keyword=SMOKE-CAR-1&size=5" | grep -oE '"carId":[0-9]+' | head -1 | grep -oE '[0-9]+')
+check "차량 수정(200)" 200 "$(A -H 'Content-Type: application/json' -X PUT --data "{\"carId\":${CAR_ID:-0},\"carNo\":\"SMOKE-CAR-1\",\"carName\":\"SmokeCar2\",\"carType\":\"02\"}" -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car")"
+check "엑셀 다운로드" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car/excel?searchType=carNo&keyword=SMOKE-CAR-1&purpose=smoke-test")"
+check "차량 삭제(소프트,200)" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car?carId=${CAR_ID:-0}")"
+check "삭제 후 목록 미노출" 0 "$(A "$BASE_URL/carInfo/car/list?searchType=carNo&keyword=SMOKE-CAR-1&size=5" | grep -q '"carNo":"SMOKE-CAR-1"' && echo 1 || echo 0)"
+check "삭제된 차량번호 재등록 허용(200)" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"carNo":"SMOKE-CAR-1","carName":"reuse"}' -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car")"
+NEW_CAR_ID=$(A "$BASE_URL/carInfo/car/list?searchType=carNo&keyword=SMOKE-CAR-1&size=5" | grep -oE '"carId":[0-9]+' | head -1 | grep -oE '[0-9]+')
+A -X DELETE -o /dev/null "$BASE_URL/carInfo/car?carId=${NEW_CAR_ID:-0}" || true
+
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
 VCODE=$(curl -s -m 2 -c "$CK_V" -o /dev/null -w "%{http_code}" --data "userId=viewer&password=viewer123" "$BASE_URL/login" 2>/dev/null)
 if [ "$VCODE" = "302" ]; then
@@ -183,6 +202,8 @@ if [ "$VCODE" = "302" ]; then
   check "viewer 감사추적 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/security/systemLog/list?size=1")"
   check "viewer 출입권한 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup/tree")"
   check "viewer 하위 추가 403"     403 "$(V -H 'Content-Type: application/json' -X POST --data '{"parentId":1,"groups":[]}' -o /dev/null -w '%{http_code}' "$BASE_URL/security/acGroup/children")"
+  check "viewer 차량 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car/list?size=1")"
+  check "viewer 차량 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"carNo":"VX-1"}' -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car")"
 else
   bad "viewer 로그인 실패($VCODE) — seed 확인 필요"
 fi
