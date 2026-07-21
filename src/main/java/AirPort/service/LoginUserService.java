@@ -1,12 +1,16 @@
 package AirPort.service;
 
+import AirPort.adapter.BiostarAdapter;
+import AirPort.adapter.BiostarDevices;
 import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbLoginUserMapper;
 import AirPort.mapper.TbMenuAuthMapper;
+import AirPort.mapper.TbSystemMapper;
 import AirPort.model.LoginUserSearchParam;
 import AirPort.model.TbLoginUser;
+import AirPort.model.TbSystem;
 import AirPort.security.ARIAUtil;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,18 +29,35 @@ public class LoginUserService {
 
   private final TbLoginUserMapper userMapper;
   private final TbMenuAuthMapper menuAuthMapper;
+  private final TbSystemMapper systemMapper;
+  private final BiostarAdapter biostarAdapter;
   private final AuditService auditService;
   private final MenuAuthService menuAuthService;
 
   public LoginUserService(
       TbLoginUserMapper userMapper,
       TbMenuAuthMapper menuAuthMapper,
+      TbSystemMapper systemMapper,
+      BiostarAdapter biostarAdapter,
       AuditService auditService,
       MenuAuthService menuAuthService) {
     this.userMapper = userMapper;
     this.menuAuthMapper = menuAuthMapper;
+    this.systemMapper = systemMapper;
+    this.biostarAdapter = biostarAdapter;
     this.auditService = auditService;
     this.menuAuthService = menuAuthService;
+  }
+
+  /** BiostarX 장치 목록 — 저장된 설정(tb_system)으로 조회. 장치ID(dev_id) 선택 팝업용. */
+  public BiostarDevices biostarDevices(TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireRead(actor, menuId);
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      return BiostarDevices.fail("BiostarX 설정이 없습니다. 설정관리에서 등록하세요.");
+    }
+    String pw = cfg.getBiostarPw() == null ? "" : ARIAUtil.ariaDecrypt(cfg.getBiostarPw());
+    return biostarAdapter.searchDevices(cfg.getBiostarIp(), cfg.getBiostarId(), pw);
   }
 
   /** 목록 조회 — 성명 복호화(표시용) + 검색조건·결과 건수 감사(READ). */

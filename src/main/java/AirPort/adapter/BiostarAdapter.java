@@ -86,6 +86,45 @@ public class BiostarAdapter {
     }
   }
 
+  /**
+   * BiostarX 장치 목록 조회 — {@code POST /api/v2/devices/search}(feature_types=[card]). 세션은 {@link
+   * BiostarSession} 이 관리. 응답 {@code DeviceCollection.rows[].{id,name}} 를 파싱한다.
+   */
+  public BiostarDevices searchDevices(String ip, String loginId, String password) {
+    if (ip == null || ip.isBlank()) {
+      return BiostarDevices.fail("BiostarX IP가 설정되어 있지 않습니다. 설정관리에서 등록하세요.");
+    }
+    try {
+      HttpResponse<String> resp =
+          session.post(
+              baseUrl(ip), loginId, password, "/api/v2/devices/search", "{\"feature_types\":[\"card\"]}");
+      if (resp.statusCode() != 200) {
+        return BiostarDevices.fail("장치 조회 실패 (HTTP " + resp.statusCode() + ")");
+      }
+
+      JsonNode rows = objectMapper.readTree(resp.body()).path("DeviceCollection").path("rows");
+      List<BiostarDevice> devices = new ArrayList<>();
+      if (rows.isArray()) {
+        for (JsonNode n : rows) {
+          if (n.path("id").isMissingNode()) {
+            continue;
+          }
+          devices.add(new BiostarDevice(n.path("id").asLong(), n.path("name").asText(null)));
+        }
+      }
+      return BiostarDevices.ok(devices);
+    } catch (BiostarSessionException e) {
+      return BiostarDevices.fail(e.getMessage());
+    } catch (java.net.ConnectException e) {
+      return BiostarDevices.fail("BiostarX 서버에 연결할 수 없습니다. IP/포트를 확인하세요.");
+    } catch (java.net.http.HttpConnectTimeoutException e) {
+      return BiostarDevices.fail("연결 시간이 초과되었습니다.");
+    } catch (Exception e) {
+      log.warn("BiostarX 장치 조회 오류: {}", e.toString());
+      return BiostarDevices.fail(e.getClass().getSimpleName());
+    }
+  }
+
   /** IP(스킴 없으면 https 부여) → 베이스 URL. */
   private static String baseUrl(String ip) {
     return (ip.startsWith("http://") || ip.startsWith("https://")) ? ip : "https://" + ip;

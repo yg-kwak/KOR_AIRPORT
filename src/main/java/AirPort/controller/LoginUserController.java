@@ -1,5 +1,6 @@
 package AirPort.controller;
 
+import AirPort.adapter.BiostarDevices;
 import AirPort.common.ApiResponse;
 import AirPort.common.CurrentMenu;
 import AirPort.common.PageResult;
@@ -85,6 +86,13 @@ public class LoginUserController {
   @ResponseBody
   public ApiResponse<Map<String, Object>> refs(HttpSession session) {
     return ApiResponse.ok(userService.refs(actor(session), menuId()));
+  }
+
+  /** BiostarX 장치 목록 (AJAX) — 장치ID(dev_id) 선택 팝업용 */
+  @GetMapping("/biostarDevices")
+  @ResponseBody
+  public ApiResponse<BiostarDevices> biostarDevices(HttpSession session) {
+    return ApiResponse.ok(userService.biostarDevices(actor(session), menuId()));
   }
 
   /** 엑셀 다운로드 — 현재 검색/정렬 조건의 전체 데이터. 목적(purpose)은 감사 remark 로 기록. */

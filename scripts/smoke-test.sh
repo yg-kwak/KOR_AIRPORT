@@ -95,6 +95,8 @@ A -X DELETE -o /dev/null "$BASE_URL/system/loginUser?userId=smokeusr" || true
 check "사용자 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser")"
 check "사용자 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser/list?size=5")"
 check "참조 데이터(refs)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser/refs")"
+# BiostarX 장치 조회(장치ID 팝업): 실제 장치 없으면 success=false, HTTP 200 — 엔드포인트 동작만 확인
+check "BiostarX 장치 응답(HTTP 200)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser/biostarDevices")"
 # 본문에 비ASCII(한글)를 쓰지 않는다 — Windows Git Bash 가 인자를 CP949 로 넘겨 UTF-8 파싱이 깨짐(브라우저 UTF-8 요청은 정상)
 check "등록" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"userId":"smokeusr","userName":"SmokeUser","password":"pw123","deptName":"OpsTeam","authId":1,"workLocationCode":"T1","useYn":"Y","rootYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/system/loginUser")"
 check "목록에 성명 노출(ARIA 복호화)" 0 "$(A "$BASE_URL/system/loginUser/list?searchType=userId&keyword=smokeusr&size=5" | grep -q '"userName":"SmokeUser"' && echo 0 || echo 1)"
