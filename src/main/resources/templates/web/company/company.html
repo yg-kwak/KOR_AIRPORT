@@ -121,6 +121,11 @@
               <option value="N">미사용</option>
             </select>
           </div>
+          <div class="form-group">
+            <label>BiostarX 사용자그룹 <span class="form-hint">(미선택 시 기관명으로 생성)</span></label>
+            <input type="text" id="biostarGroupId" class="input picker-field" readonly
+                   placeholder="클릭하여 선택 (미선택 시 자동 생성)" autocomplete="off"/>
+          </div>
           <div class="form-group wide">
             <label>주소</label>
             <input type="text" id="addr" class="input" autocomplete="off"/>
@@ -131,6 +136,36 @@
     <div class="modal-footer">
       <button class="btn" id="btnCancel">취소</button>
       <button class="btn btn-primary" id="btnSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- BiostarX 사용자그룹 선택 팝업 (PTD01 하위만 조회) -->
+<div class="modal-overlay code-picker-overlay" id="groupModal">
+  <div class="modal-container wide">
+    <div class="modal-header">
+      <h2 class="modal-title">BiostarX 사용자그룹 선택</h2>
+      <button class="modal-close" id="groupClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="search-keyword" style="margin-bottom:10px">
+        <input type="text" id="groupFilter" class="input" placeholder="그룹ID 또는 그룹명으로 검색" autocomplete="off"/>
+      </div>
+      <p class="form-hint" id="groupInfo">불러오는 중...</p>
+      <div class="matrix-wrap">
+        <table class="grid">
+          <thead>
+          <tr><th class="w-40"></th><th class="w-160">그룹ID</th><th style="text-align:left">그룹명</th></tr>
+          </thead>
+          <tbody id="groupList">
+          <tr><td colspan="3" class="empty">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="groupCancel">취소</button>
+      <button class="btn btn-primary" id="groupConfirm">선택</button>
     </div>
   </div>
 </div>

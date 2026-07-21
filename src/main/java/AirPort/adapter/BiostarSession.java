@@ -55,15 +55,27 @@ public class BiostarSession {
    */
   public HttpResponse<String> post(
       String base, String loginId, String password, String path, String jsonBody) throws Exception {
+    return exchange("POST", base, loginId, password, path, jsonBody);
+  }
+
+  /** 인증된 PUT 호출(수정). post 와 동일하게 세션 캐시·만료 재시도를 적용한다. */
+  public HttpResponse<String> put(
+      String base, String loginId, String password, String path, String jsonBody) throws Exception {
+    return exchange("PUT", base, loginId, password, path, jsonBody);
+  }
+
+  private HttpResponse<String> exchange(
+      String method, String base, String loginId, String password, String path, String jsonBody)
+      throws Exception {
     HttpClient c = client();
     String key = sessionKey(base, loginId);
     String sid = acquire(c, base, loginId, password, key);
 
-    HttpResponse<String> resp = send(c, base, path, sid, jsonBody);
+    HttpResponse<String> resp = send(c, method, base, path, sid, jsonBody);
     if (isSessionExpired(resp)) {
       log.info("BiostarX 세션 만료 감지 — 재로그인 후 재시도");
       sid = refresh(c, base, loginId, password, key);
-      resp = send(c, base, path, sid, jsonBody);
+      resp = send(c, method, base, path, sid, jsonBody);
     }
     return resp;
   }
@@ -138,13 +150,15 @@ public class BiostarSession {
   }
 
   private HttpResponse<String> send(
-      HttpClient c, String base, String path, String sid, String jsonBody) throws Exception {
+      HttpClient c, String method, String base, String path, String sid, String jsonBody)
+      throws Exception {
     return c.send(
         HttpRequest.newBuilder(URI.create(base + path))
             .timeout(Duration.ofSeconds(10))
             .header("Content-Type", "application/json")
             .header(SESSION_HEADER, sid)
-            .POST(
+            .method(
+                method,
                 HttpRequest.BodyPublishers.ofString(
                     jsonBody == null ? "{}" : jsonBody, StandardCharsets.UTF_8))
             .build(),

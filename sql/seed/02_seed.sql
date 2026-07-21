@@ -45,6 +45,20 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
   ('CO', N'기관구분', '44', N'항공사', 'Y'),
   ('CO', N'기관구분', '55', N'업체',   'Y');
 
+/* 인원구분(PT) — code_tag = 대응하는 발급구분(PTD) 코드 */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_yn) VALUES
+  ('PT', N'인원구분', 'PT01', N'정규', 'PTD01', 'Y'),
+  ('PT', N'인원구분', 'PT02', N'임시', 'PTD02', 'Y'),
+  ('PT', N'인원구분', 'PT03', N'장기', 'PTD03', 'Y'),
+  ('PT', N'인원구분', 'PT04', N'상주', 'PTD03', 'Y');
+
+/* 발급구분(PTD) — code_tag = BiostarX 부모 사용자그룹 ID.
+   ⚠️ BiostarX 환경마다 다르므로 대상 서버의 실제 그룹 ID 로 교체할 것. (integration.md) */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_yn) VALUES
+  ('PTD', N'발급구분', 'PTD01', N'정규등록', '14227', 'Y'),
+  ('PTD', N'발급구분', 'PTD02', N'임시등록', '14236', 'Y'),
+  ('PTD', N'발급구분', 'PTD03', N'장기등록', '14231', 'Y');
+
 /* 메뉴 (level 1 그룹은 menu_icon 지정 — 사이드바 아이콘) */
 INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn) VALUES
   (300, N'시스템관리',   NULL, NULL,                 1, 1, 'settings', 'Y'),

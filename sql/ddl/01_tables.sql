@@ -126,6 +126,7 @@ CREATE TABLE dbo.tb_company (
   addr             nvarchar(200) NULL,                    -- 주소
   service_start_dt datetime2(0)  NULL,                    -- 용역시작일
   service_end_dt   datetime2(0)  NULL,                    -- 용역종료일
+  biostar_group_id int           NULL,                    -- BiostarX 사용자 그룹 ID (기관 ↔ user group 연동, integration.md)
   use_yn           nchar(1)      NOT NULL DEFAULT 'Y',    -- 사용유무 (UI 활성/비활성)
   del_yn           nchar(1)      NOT NULL DEFAULT 'N',    -- 삭제유무 (소프트 삭제: 삭제 시 'Y')
   reg_dt           datetime2(0)  NOT NULL DEFAULT getdate(),

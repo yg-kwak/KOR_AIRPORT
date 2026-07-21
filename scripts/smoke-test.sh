@@ -187,12 +187,15 @@ A -X DELETE -o /dev/null "$BASE_URL/company/company?companyCode=SMKCO1" || true
 check "기관 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
 check "기관 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/list?size=5")"
 check "기관구분 코드팝업(CO)" 0 "$(A "$BASE_URL/system/common/picker?cmmId=CO" | grep -q '"codeId":"44"' && echo 0 || echo 1)"
-check "기관 등록(대표자 ARIA)" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"companyCode":"SMKCO1","companyName":"SmokeOrg","companyType":"11","ceoName":"SmokeCeo","tel":"010","serviceStartDt":"2026-07-01","useYn":"Y"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
+# BiostarX 사용자그룹 조회(PTD01 하위): 실기기 없으면 success=false, HTTP 200 — 엔드포인트 동작만 확인(읽기 전용)
+check "BiostarX 사용자그룹 응답(HTTP 200)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/biostarGroups")"
+# 아래 등록/수정은 biostarGroupId 를 지정(선택 경로) — BiostarX 에 실제 그룹을 만들지 않는다(외부 부작용 방지)
+check "기관 등록(대표자 ARIA)" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"companyCode":"SMKCO1","companyName":"SmokeOrg","companyType":"11","ceoName":"SmokeCeo","tel":"010","serviceStartDt":"2026-07-01","useYn":"Y","biostarGroupId":99999}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
 check "기관코드 중복 등록 거절(400)" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"companyCode":"SMKCO1","companyName":"dup"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
 check "기관명 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"companyCode":"SMKCO2"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
 check "대표자 복호화 노출(SmokeCeo)" 0 "$(A "$BASE_URL/company/company/list?searchType=companyCode&keyword=SMKCO1&size=5" | grep -q '"ceoName":"SmokeCeo"' && echo 0 || echo 1)"
 check "기관구분명 조인 노출" 0 "$(A "$BASE_URL/company/company/list?searchType=companyCode&keyword=SMKCO1&size=5" | grep -q '"companyTypeName"' && echo 0 || echo 1)"
-check "기관 수정(200)" 200 "$(A -H 'Content-Type: application/json' -X PUT --data '{"companyCode":"SMKCO1","companyName":"SmokeOrg2","companyType":"44","useYn":"N"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
+check "기관 수정(200)" 200 "$(A -H 'Content-Type: application/json' -X PUT --data '{"companyCode":"SMKCO1","companyName":"SmokeOrg","companyType":"44","useYn":"N","biostarGroupId":99999}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
 check "엑셀 다운로드" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/excel?searchType=companyCode&keyword=SMKCO1&purpose=smoke-test")"
 check "기관 삭제(소프트,200)" 200 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/company/company?companyCode=SMKCO1")"
 check "삭제 후 목록 미노출" 0 "$(A "$BASE_URL/company/company/list?searchType=companyCode&keyword=SMKCO1&size=5" | grep -q '"companyCode":"SMKCO1"' && echo 1 || echo 0)"

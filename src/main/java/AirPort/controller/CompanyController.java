@@ -1,5 +1,6 @@
 package AirPort.controller;
 
+import AirPort.adapter.BiostarUserGroups;
 import AirPort.common.ApiResponse;
 import AirPort.common.CurrentMenu;
 import AirPort.common.PageResult;
@@ -107,20 +108,31 @@ public class CompanyController {
     ExcelUtil.download(response, filename, headers, data);
   }
 
-  /** 등록 (AJAX) */
+  /** BiostarX 사용자그룹 목록 (AJAX) — PTD01 하위만. 기관 등록 모달의 선택 팝업용 */
+  @GetMapping("/biostarGroups")
+  @ResponseBody
+  public ApiResponse<BiostarUserGroups> biostarGroups(HttpSession session) {
+    return ApiResponse.ok(companyService.biostarUserGroups(actor(session), menuId()));
+  }
+
+  /** 등록 (AJAX) — BiostarX 연동 실패 시에도 기관은 저장하고 경고를 메시지에 덧붙인다. */
   @PostMapping
   @ResponseBody
   public ApiResponse<Void> create(@RequestBody TbCompany row, HttpSession session) {
-    companyService.create(row, actor(session), menuId());
-    return ApiResponse.okMessage("등록되었습니다.");
+    String warn = companyService.create(row, actor(session), menuId());
+    return ApiResponse.okMessage(withWarning("등록되었습니다.", warn));
   }
 
-  /** 수정 (AJAX) */
+  /** 수정 (AJAX) — 기관명 변경 시 BiostarX 그룹명도 수정(실패는 경고). */
   @PutMapping
   @ResponseBody
   public ApiResponse<Void> update(@RequestBody TbCompany row, HttpSession session) {
-    companyService.update(row, actor(session), menuId());
-    return ApiResponse.okMessage("수정되었습니다.");
+    String warn = companyService.update(row, actor(session), menuId());
+    return ApiResponse.okMessage(withWarning("수정되었습니다.", warn));
+  }
+
+  private static String withWarning(String message, String warn) {
+    return warn == null ? message : message + " (BiostarX 사용자그룹 연동 실패: " + warn + ")";
   }
 
   /** 삭제 (AJAX) — 소프트 삭제 */

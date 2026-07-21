@@ -1,12 +1,20 @@
 package AirPort.service;
 
+import AirPort.adapter.BiostarAdapter;
+import AirPort.adapter.BiostarGroupResult;
+import AirPort.adapter.BiostarUserGroup;
+import AirPort.adapter.BiostarUserGroups;
 import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
+import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbCompanyMapper;
+import AirPort.mapper.TbSystemMapper;
 import AirPort.model.CompanySearchParam;
+import AirPort.model.TbCommon;
 import AirPort.model.TbCompany;
 import AirPort.model.TbLoginUser;
+import AirPort.model.TbSystem;
 import AirPort.security.ARIAUtil;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -21,15 +29,118 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class CompanyService {
 
+  /** 정규발급 구분 — 이 코드의 code_tag 가 BiostarX 부모 사용자그룹 ID. (tb_common cmm_id='PTD') */
+  private static final String PTD = "PTD";
+
+  private static final String PTD_REGULAR = "PTD01";
+
   private final TbCompanyMapper companyMapper;
+  private final TbCommonMapper commonMapper;
+  private final TbSystemMapper systemMapper;
+  private final BiostarAdapter biostarAdapter;
   private final AuditService auditService;
   private final MenuAuthService menuAuthService;
 
   public CompanyService(
-      TbCompanyMapper companyMapper, AuditService auditService, MenuAuthService menuAuthService) {
+      TbCompanyMapper companyMapper,
+      TbCommonMapper commonMapper,
+      TbSystemMapper systemMapper,
+      BiostarAdapter biostarAdapter,
+      AuditService auditService,
+      MenuAuthService menuAuthService) {
     this.companyMapper = companyMapper;
+    this.commonMapper = commonMapper;
+    this.systemMapper = systemMapper;
+    this.biostarAdapter = biostarAdapter;
     this.auditService = auditService;
     this.menuAuthService = menuAuthService;
+  }
+
+  // ── BiostarX 사용자그룹(=기관) 연동 ───────────────────────────────────────
+
+  /** PTD01(정규발급)의 code_tag = BiostarX 부모 사용자그룹 ID. 미설정이면 null. */
+  private Long parentGroupId() {
+    TbCommon ptd = commonMapper.selectOne(PTD, PTD_REGULAR);
+    if (ptd == null || ptd.getCodeTag() == null || ptd.getCodeTag().isBlank()) {
+      return null;
+    }
+    try {
+      return Long.valueOf(ptd.getCodeTag().trim());
+    } catch (NumberFormatException e) {
+      return null;
+    }
+  }
+
+  /**
+   * 기관 등록 모달용 — PTD01 하위(부모=code_tag)의 BiostarX 사용자그룹만 조회한다.
+   *
+   * @return 조회 실패 시 success=false + 메시지(화면에서 안내)
+   */
+  public BiostarUserGroups biostarUserGroups(TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireRead(actor, menuId);
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      return BiostarUserGroups.fail("BiostarX 설정이 없습니다. 설정관리에서 등록하세요.");
+    }
+    Long parent = parentGroupId();
+    if (parent == null) {
+      return BiostarUserGroups.fail("공통코드 PTD/PTD01 의 code_tag(BiostarX 사용자그룹 ID)가 없습니다.");
+    }
+    BiostarUserGroups all =
+        biostarAdapter.searchUserGroups(cfg.getBiostarIp(), cfg.getBiostarId(), biostarPw(cfg));
+    if (!all.success()) {
+      return all;
+    }
+    List<BiostarUserGroup> children =
+        all.groups().stream().filter(g -> parent.equals(g.parentId())).toList();
+    return BiostarUserGroups.ok(children);
+  }
+
+  private String biostarPw(TbSystem cfg) {
+    return cfg.getBiostarPw() == null ? "" : ARIAUtil.ariaDecrypt(cfg.getBiostarPw());
+  }
+
+  /**
+   * 기관명으로 BiostarX 사용자그룹 생성 후 연동 ID 저장. 실패해도 기관 등록은 유지하고 경고 메시지를 돌려준다(정책).
+   *
+   * @return 실패 사유(성공이면 null)
+   */
+  private String createBiostarGroup(TbCompany row) {
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      return "BiostarX 설정이 없습니다.";
+    }
+    Long parent = parentGroupId();
+    if (parent == null) {
+      return "공통코드 PTD/PTD01 의 code_tag 가 없습니다.";
+    }
+    BiostarGroupResult res =
+        biostarAdapter.createUserGroup(
+            cfg.getBiostarIp(), cfg.getBiostarId(), biostarPw(cfg), parent, row.getCompanyName());
+    if (!res.success()) {
+      return res.message();
+    }
+    if (res.id() == null) {
+      return "그룹은 생성됐으나 ID를 확인하지 못했습니다. 모달에서 선택해 연결하세요.";
+    }
+    companyMapper.updateBiostarGroupId(row.getCompanyCode(), res.id().intValue());
+    return null;
+  }
+
+  /** 기관명 변경 시 BiostarX 사용자그룹 이름도 수정. 실패는 경고만. */
+  private String renameBiostarGroup(TbCompany row) {
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      return "BiostarX 설정이 없습니다.";
+    }
+    BiostarGroupResult res =
+        biostarAdapter.updateUserGroupName(
+            cfg.getBiostarIp(),
+            cfg.getBiostarId(),
+            biostarPw(cfg),
+            row.getBiostarGroupId(),
+            row.getCompanyName());
+    return res.success() ? null : res.message();
   }
 
   /** 목록 조회 — 대표자 복호화(표시용) + 검색조건·결과 건수 감사(READ). */
@@ -77,8 +188,13 @@ public class CompanyService {
     return rows;
   }
 
+  /**
+   * 기관 등록. BiostarX 사용자그룹은 모달에서 선택했으면 그 ID 로 연결하고, 미선택이면 PTD01 하위에 기관명으로 새로 생성한다.
+   *
+   * @return BiostarX 연동 경고(성공이면 null) — 연동 실패해도 기관 등록은 유지한다(정책)
+   */
   @Transactional
-  public void create(TbCompany row, TbLoginUser actor, Integer menuId) {
+  public String create(TbCompany row, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
     validate(row);
     // company_code 는 업무 PK — 활성 행이 있으면 중복. 소프트 삭제(del_yn='Y') 행이면 되살려 재등록.
@@ -93,19 +209,30 @@ public class CompanyService {
       companyMapper.insert(row);
     }
     auditService.log(actor, AuditService.CREATE, menuId, "기관 등록: " + row.getCompanyCode());
+    return row.getBiostarGroupId() == null ? createBiostarGroup(row) : null;
   }
 
+  /**
+   * 기관 수정. 기관명이 바뀌고 연동된 사용자그룹이 있으면 BiostarX 그룹명도 함께 수정한다.
+   *
+   * @return BiostarX 연동 경고(성공이면 null)
+   */
   @Transactional
-  public void update(TbCompany row, TbLoginUser actor, Integer menuId) {
+  public String update(TbCompany row, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId); // 정책: 등록/수정은 create_auth 로 판정
     validate(row);
     TbCompany existing = companyMapper.selectById(row.getCompanyCode());
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
+    boolean nameChanged = !row.getCompanyName().equals(existing.getCompanyName());
     encryptCeo(row);
     companyMapper.update(row);
     auditService.log(actor, AuditService.UPDATE, menuId, "기관 수정: " + row.getCompanyCode());
+    if (row.getBiostarGroupId() == null) {
+      return null; // 연동된 그룹 없음
+    }
+    return nameChanged ? renameBiostarGroup(row) : null;
   }
 
   /** 소프트 삭제 — 기관코드를 감사 스냅샷으로 남긴다. */

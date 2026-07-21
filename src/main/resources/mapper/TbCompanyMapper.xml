@@ -40,7 +40,7 @@
     c.company_code, c.company_type, c.company_name, c.ceo_name, c.tel, c.fax, c.addr,
     CONVERT(varchar(10), c.service_start_dt, 23) AS service_start_dt,
     CONVERT(varchar(10), c.service_end_dt, 23)   AS service_end_dt,
-    c.use_yn, c.del_yn, c.reg_dt, c.mod_dt, co.code_name AS company_type_name
+    c.biostar_group_id, c.use_yn, c.del_yn, c.reg_dt, c.mod_dt, co.code_name AS company_type_name
   </sql>
 
   <sql id="listJoins">
@@ -77,10 +77,10 @@
   <insert id="insert" parameterType="TbCompany">
     INSERT INTO tb_company
       (company_code, company_type, company_name, ceo_name, tel, fax, addr,
-       service_start_dt, service_end_dt, use_yn)
+       service_start_dt, service_end_dt, biostar_group_id, use_yn)
     VALUES
       (#{companyCode}, #{companyType}, #{companyName}, #{ceoName}, #{tel}, #{fax}, #{addr},
-       #{serviceStartDt}, #{serviceEndDt}, ISNULL(#{useYn}, 'Y'))
+       #{serviceStartDt}, #{serviceEndDt}, #{biostarGroupId}, ISNULL(#{useYn}, 'Y'))
   </insert>
 
   <!-- 소프트 삭제된 기관코드 재등록 — 전체 필드 갱신 + del_yn='N' 되살림(reg_dt 재설정) -->
@@ -94,6 +94,7 @@
         addr = #{addr},
         service_start_dt = #{serviceStartDt},
         service_end_dt = #{serviceEndDt},
+        biostar_group_id = #{biostarGroupId},
         use_yn = ISNULL(#{useYn}, 'Y'),
         del_yn = 'N',
         reg_dt = getdate(),
@@ -111,8 +112,16 @@
         addr = #{addr},
         service_start_dt = #{serviceStartDt},
         service_end_dt = #{serviceEndDt},
+        biostar_group_id = #{biostarGroupId},
         use_yn = #{useYn},
         mod_dt = getdate()
+    WHERE company_code = #{companyCode}
+  </update>
+
+  <!-- BiostarX 사용자그룹 생성 성공 후 연동 ID 만 반영 -->
+  <update id="updateBiostarGroupId">
+    UPDATE tb_company
+    SET biostar_group_id = #{biostarGroupId}, mod_dt = getdate()
     WHERE company_code = #{companyCode}
   </update>
 

@@ -21,6 +21,7 @@ public class TbCompany {
   private String addr;
   private String serviceStartDt; // datetime2 (문자열 바인딩)
   private String serviceEndDt;
+  private Integer biostarGroupId; // BiostarX 사용자 그룹 ID (기관 ↔ user group, integration.md)
   private String useYn;
   private String delYn;
   private LocalDateTime regDt;

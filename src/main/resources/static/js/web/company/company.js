@@ -109,6 +109,51 @@
     location.href = BASE + '/excel' + q;
   }
 
+  // ---- BiostarX 사용자그룹(=기관) 선택 팝업 (PTD01 하위만) ----
+  let allGroups = []; // 조회된 전체 그룹(클라이언트 필터용)
+
+  async function openGroupModal() {
+    $('groupFilter').value = '';
+    $('groupInfo').textContent = 'BiostarX 사용자그룹을 불러오는 중...';
+    $('groupList').innerHTML = '<tr><td colspan="3" class="empty">불러오는 중...</td></tr>';
+    $('groupModal').classList.add('open');
+    const res = await api.get(BASE + '/biostarGroups'); // {success,message,groups}
+    if (!res || !res.success) {
+      $('groupInfo').textContent = (res && res.message) || 'BiostarX 사용자그룹 조회 실패';
+      $('groupList').innerHTML = '<tr><td colspan="3" class="empty">조회 실패</td></tr>';
+      allGroups = [];
+      return;
+    }
+    allGroups = res.groups || [];
+    $('groupInfo').textContent = `총 ${allGroups.length}개 — 그룹 1건을 선택하고 [선택]을 누르세요.`;
+    renderGroupList();
+  }
+
+  // 그룹ID/그룹명으로 클라이언트 필터
+  function renderGroupList() {
+    const kw = $('groupFilter').value.trim().toLowerCase();
+    const rows = kw
+      ? allGroups.filter((g) => String(g.id).includes(kw) || (g.name || '').toLowerCase().includes(kw))
+      : allGroups;
+    $('groupList').innerHTML = rows.length
+      ? rows.map((g) => `
+        <tr>
+          <td><input type="radio" name="groupPick" data-id="${esc(g.id)}"/></td>
+          <td>${esc(g.id)}</td>
+          <td style="text-align:left">${esc(g.name)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="3" class="empty">검색 결과가 없습니다.</td></tr>';
+  }
+
+  function closeGroupModal() { $('groupModal').classList.remove('open'); }
+
+  function confirmGroup() {
+    const sel = $('groupList').querySelector('input[name="groupPick"]:checked');
+    if (!sel) { toast.warning('사용자그룹을 선택해주세요.'); return; }
+    $('biostarGroupId').value = sel.dataset.id; // biostar_group_id = 그룹 id
+    closeGroupModal();
+  }
+
   // ---- 등록/수정 모달 ----
   function openModal(mode, row) {
     $('mode').value = mode;
@@ -126,6 +171,7 @@
     $('serviceStartDt').value = row ? row.serviceStartDt || '' : '';
     $('serviceEndDt').value = row ? row.serviceEndDt || '' : '';
     $('useYn').value = row ? row.useYn || 'Y' : 'Y';
+    $('biostarGroupId').value = row && row.biostarGroupId != null ? row.biostarGroupId : '';
     $('editModal').classList.add('open');
   }
   function closeModal() { $('editModal').classList.remove('open'); }
@@ -143,6 +189,8 @@
       serviceStartDt: $('serviceStartDt').value || null,
       serviceEndDt: $('serviceEndDt').value || null,
       useYn: $('useYn').value,
+      // 선택하면 그 그룹에 연결, 비우면 서버가 기관명으로 새 그룹 생성
+      biostarGroupId: $('biostarGroupId').value ? Number($('biostarGroupId').value) : null,
     };
     if (!payload.companyCode) { toast.warning('기관코드는 필수입니다.'); return; }
     if (!payload.companyName) { toast.warning('기관명은 필수입니다.'); return; }
@@ -177,6 +225,20 @@
         $('companyTypeName').value = sel.codeName;
       }
     });
+    // BiostarX 사용자그룹: 선택 팝업(PTD01 하위) → biostar_group_id 채움
+    $('biostarGroupId').addEventListener('click', openGroupModal);
+    $('groupClose').addEventListener('click', closeGroupModal);
+    $('groupCancel').addEventListener('click', closeGroupModal);
+    $('groupConfirm').addEventListener('click', confirmGroup);
+    $('groupFilter').addEventListener('input', renderGroupList);
+    $('groupModal').addEventListener('click', (e) => { if (e.target === $('groupModal')) closeGroupModal(); });
+    // 행 클릭 → 라디오 체크
+    $('groupList').addEventListener('click', (e) => {
+      if (e.target.closest('input[type="radio"]')) return;
+      const radio = e.target.closest('tr')?.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+    });
+
     $('btnExcel').addEventListener('click', excelDownload);
     $('btnSave').addEventListener('click', save);
     $('btnCancel').addEventListener('click', closeModal);

@@ -165,6 +165,7 @@ PK: `company_code` (업무코드). **삭제는 물리 DELETE 금지 — `del_yn=
 | addr | nvarchar(200) | | | 주소 | |
 | service_start_dt | datetime2(0) | | | 용역시작일 | |
 | service_end_dt | datetime2(0) | | | 용역종료일 | |
+| biostar_group_id | int | | | BiostarX 사용자그룹ID | 기관 ↔ BiostarX user group 연동 (`integration.md`) |
 | use_yn | nchar(1) | | | 사용유무 | 기본 'Y', CHK Y/N (UI 활성/비활성) |
 | del_yn | nchar(1) | | | 삭제유무 | 기본 'N', CHK Y/N (소프트 삭제) |
 | reg_dt / mod_dt | datetime2(0) | | | 입력/수정일자 | 기본 getdate() |

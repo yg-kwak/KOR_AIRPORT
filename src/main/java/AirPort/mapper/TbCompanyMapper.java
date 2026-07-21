@@ -25,6 +25,10 @@ public interface TbCompanyMapper {
 
   int update(TbCompany row);
 
+  /** BiostarX 사용자그룹 생성 성공 후 연동 ID 만 반영. */
+  int updateBiostarGroupId(
+      @Param("companyCode") String companyCode, @Param("biostarGroupId") Integer biostarGroupId);
+
   /** 소프트 삭제 — del_yn='Y'. */
   int softDelete(@Param("companyCode") String companyCode);
 }
