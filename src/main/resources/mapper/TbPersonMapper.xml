@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbPersonMapper">
+
+  <!-- 조회는 항상 del_yn='N'. person_name/birth_date/person_phone 은 ARIA 암호문이라 검색 대상 제외
+       (인원ID/주요업무 등 평문만 LIKE — docs/database.md 검색 제약) -->
+  <sql id="searchWhere">
+    <where>
+      p.del_yn = 'N'
+      <if test="personType != null and personType != ''">
+        AND p.person_type = #{personType}
+      </if>
+      <if test="keyword != null and keyword != ''">
+        <choose>
+          <when test="searchType == 'personId'">AND p.person_id LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'mainTask'">AND p.main_task LIKE '%' + #{keyword} + '%'</when>
+          <otherwise>
+            AND (p.person_id LIKE '%' + #{keyword} + '%'
+                 OR p.main_task LIKE '%' + #{keyword} + '%')
+          </otherwise>
+        </choose>
+      </if>
+      <if test="companyCode != null and companyCode != ''">
+        AND p.company_code = #{companyCode}
+      </if>
+      <if test="statusCode != null and statusCode != ''">
+        AND p.status_code = #{statusCode}
+      </if>
+    </where>
+  </sql>
+
+  <!-- 정렬: 화이트리스트만. 암호문(성명 등)은 정렬 제외 -->
+  <sql id="orderBy">
+    ORDER BY
+    <choose>
+      <when test="sort == 'companyName'">co.company_name <if test="desc">DESC</if>, p.person_id</when>
+      <when test="sort == 'statusCode'">ps.code_name <if test="desc">DESC</if>, p.person_id</when>
+      <when test="sort == 'accessEndDt'">p.access_end_dt <if test="desc">DESC</if>, p.person_id</when>
+      <when test="sort == 'regDt'">p.reg_dt <if test="desc">DESC</if>, p.person_id</when>
+      <otherwise>p.person_id <if test="desc">DESC</if></otherwise>
+    </choose>
+  </sql>
+
+  <!-- 사진(tb_person_photo)은 조인하지 않는다(행 크기·성능·생체정보 보호) -->
+  <sql id="listColumns">
+    p.person_id, p.person_name, p.birth_date, p.person_phone, p.company_code, p.title_code,
+    p.person_type, p.status_code, p.main_task, p.remark, p.biostar_user_id,
+    CONVERT(varchar(10), p.access_start_dt, 23) AS access_start_dt,
+    CONVERT(varchar(10), p.access_end_dt, 23)   AS access_end_dt,
+    p.use_yn, p.del_yn, p.reg_dt, p.mod_dt,
+    co.company_name AS company_name, ut.code_name AS title_name, ps.code_name AS status_name
+  </sql>
+
+  <sql id="listJoins">
+    FROM tb_person p
+    LEFT JOIN tb_company co ON co.company_code = p.company_code
+    LEFT JOIN tb_common ut ON ut.cmm_id = 'UT' AND ut.code_id = p.title_code
+    LEFT JOIN tb_common ps ON ps.cmm_id = 'PS' AND ps.code_id = p.status_code
+  </sql>
+
+  <select id="selectList" parameterType="AirPort.model.PersonSearchParam" resultType="TbPerson">
+    SELECT <include refid="listColumns"/>
+    <include refid="listJoins"/>
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="selectCount" parameterType="AirPort.model.PersonSearchParam" resultType="long">
+    SELECT COUNT(*) FROM tb_person p
+    <include refid="searchWhere"/>
+  </select>
+
+  <select id="selectById" resultType="TbPerson">
+    SELECT <include refid="listColumns"/>
+    <include refid="listJoins"/>
+    WHERE p.person_id = #{personId}
+  </select>
+
+  <insert id="insert" parameterType="TbPerson">
+    INSERT INTO tb_person
+      (person_id, person_name, birth_date, person_phone, company_code, title_code,
+       person_type, status_code, main_task, access_start_dt, access_end_dt, remark, use_yn)
+    VALUES
+      (#{personId}, #{personName}, #{birthDate}, #{personPhone}, #{companyCode}, #{titleCode},
+       #{personType}, #{statusCode}, #{mainTask}, #{accessStartDt}, #{accessEndDt}, #{remark},
+       ISNULL(#{useYn}, 'Y'))
+  </insert>
+
+  <update id="updateBiostarUserId">
+    UPDATE tb_person
+    SET biostar_user_id = #{biostarUserId}, mod_dt = getdate()
+    WHERE person_id = #{personId}
+  </update>
+
+</mapper>

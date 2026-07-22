@@ -129,6 +129,35 @@ a { color: inherit; text-decoration: none; }
 .user-menu-item svg { width: 16px; height: 16px; color: var(--neutral-500); flex: none; }
 .user-menu-sep { height: 1px; background: var(--nt-border); margin: 6px 4px; }
 
+/* 모달 탭 (정규인원등록: 사용자정보/사용자권한/카드정보) */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--nt-border); margin-bottom: 16px; }
+.tab-btn {
+  padding: 10px 16px; background: transparent; border: 0; border-bottom: 2px solid transparent;
+  font-size: 14px; color: var(--nt-text-2); cursor: pointer;
+}
+.tab-btn.active { color: var(--color-primary-default); border-bottom-color: var(--color-primary-default); font-weight: 700; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* 얼굴 등록(파일 업로드 / 장치 촬영) */
+.face-box { display: flex; gap: 16px; align-items: flex-start; }
+.face-preview {
+  width: 120px; height: 150px; border: 1px solid var(--nt-border); border-radius: var(--radius-sm);
+  object-fit: cover; background: var(--nt-bg-gray);
+}
+.face-actions { display: flex; flex-direction: column; gap: 8px; }
+.face-actions .form-hint { max-width: 260px; }
+
+/* 출입권한 선택 트리(인원 등록) */
+.ac-select-tree {
+  max-height: 45vh; overflow-y: auto; border: 1px solid var(--nt-border);
+  border-radius: var(--radius-sm); padding: 8px;
+}
+.ac-select-node { padding-left: 16px; }
+.ac-select-item { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: var(--radius-sm); }
+.ac-select-item:hover { background: var(--nt-hover); }
+.ac-select-item.group { font-weight: 700; color: var(--neutral-700); }
+
 /* 시작메뉴 선택 트리(모달) */
 .start-menu-list { max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; margin-top: 8px; }
 .start-menu-list .empty { text-align: center; color: var(--neutral-500); padding: 20px; }

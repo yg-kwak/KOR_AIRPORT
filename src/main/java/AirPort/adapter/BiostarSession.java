@@ -64,6 +64,12 @@ public class BiostarSession {
     return exchange("PUT", base, loginId, password, path, jsonBody);
   }
 
+  /** 인증된 GET 호출(조회). 본문 없이 전송한다. */
+  public HttpResponse<String> get(String base, String loginId, String password, String path)
+      throws Exception {
+    return exchange("GET", base, loginId, password, path, null);
+  }
+
   private HttpResponse<String> exchange(
       String method, String base, String loginId, String password, String path, String jsonBody)
       throws Exception {
@@ -159,8 +165,9 @@ public class BiostarSession {
             .header(SESSION_HEADER, sid)
             .method(
                 method,
-                HttpRequest.BodyPublishers.ofString(
-                    jsonBody == null ? "{}" : jsonBody, StandardCharsets.UTF_8))
+                jsonBody == null
+                    ? HttpRequest.BodyPublishers.noBody() // GET 등 본문 없는 호출
+                    : HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
             .build(),
         HttpResponse.BodyHandlers.ofString());
   }

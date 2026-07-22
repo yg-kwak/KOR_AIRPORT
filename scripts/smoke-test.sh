@@ -202,6 +202,16 @@ check "삭제 후 목록 미노출" 0 "$(A "$BASE_URL/company/company/list?searc
 check "삭제된 기관코드 재등록 허용(200,되살리기)" 200 "$(A -H 'Content-Type: application/json' -X POST --data '{"companyCode":"SMKCO1","companyName":"reuse"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
 A -X DELETE -o /dev/null "$BASE_URL/company/company?companyCode=SMKCO1" || true
 
+echo "== 정규인원등록(tb_person) =="
+# 등록 성공 경로는 BiostarX 에 실제 사용자를 생성하므로 smoke 에서 제외(외부 부작용 방지).
+# 읽기 전용 경로 + 입력 검증(외부 호출 전에 실패)만 확인한다.
+check "인원 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
+check "인원 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/list?size=5")"
+check "참조 데이터(기관)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/refs")"
+check "출입권한 트리" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/acGroups")"
+check "인원ID 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
+check "성명 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personId":"SMKP1"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
+
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
 VCODE=$(curl -s -m 2 -c "$CK_V" -o /dev/null -w "%{http_code}" --data "userId=viewer&password=viewer123" "$BASE_URL/login" 2>/dev/null)
 if [ "$VCODE" = "302" ]; then
@@ -227,6 +237,8 @@ if [ "$VCODE" = "302" ]; then
   check "viewer 차량 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car/list?size=1")"
   check "viewer 차량 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"carNo":"VX-1"}' -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car")"
   check "viewer 기관 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/list?size=1")"
+  check "viewer 인원 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/list?size=1")"
+  check "viewer 인원 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"personId":"VXP","personName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
   check "viewer 기관 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"companyCode":"VXCO","companyName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
 else
   bad "viewer 로그인 실패($VCODE) — seed 확인 필요"

@@ -18,6 +18,9 @@ public interface TbCompanyMapper {
   /** PK 단건 조회(del_yn 무관 — 중복/존재 판정용). */
   TbCompany selectById(@Param("companyCode") String companyCode);
 
+  /** 기관 select 옵션 — 사용중인 기관만(코드/기관명). */
+  List<TbCompany> selectOptions();
+
   int insert(TbCompany row);
 
   /** 소프트 삭제된 기관코드 재등록 — 전체 필드 갱신 + del_yn='N' 되살림. */

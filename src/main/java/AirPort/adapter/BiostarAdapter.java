@@ -144,7 +144,7 @@ public class BiostarAdapter {
       HttpResponse<String> resp =
           session.post(
               baseUrl(ip), loginId, password, "/api/v2/user_groups/search", USER_GROUP_SEARCH_BODY);
-      String err = responseError(resp);
+      String err = responseError(objectMapper, resp);
       if (err != null) {
         return BiostarUserGroups.fail("사용자그룹 조회 실패 (" + err + ")");
       }
@@ -191,7 +191,7 @@ public class BiostarAdapter {
                       "text", name)));
       HttpResponse<String> resp =
           session.post(baseUrl(ip), loginId, password, "/api/user_groups", body);
-      String err = responseError(resp);
+      String err = responseError(objectMapper, resp);
       if (err != null) {
         return BiostarGroupResult.fail(err);
       }
@@ -216,7 +216,7 @@ public class BiostarAdapter {
           objectMapper.writeValueAsString(Map.of("UserGroup", Map.of("id", groupId, "name", name)));
       HttpResponse<String> resp =
           session.put(baseUrl(ip), loginId, password, "/api/user_groups/" + groupId, body);
-      String err = responseError(resp);
+      String err = responseError(objectMapper, resp);
       return err != null ? BiostarGroupResult.fail(err) : BiostarGroupResult.ok(groupId);
     } catch (Exception e) {
       return BiostarGroupResult.fail(friendlyError(e, "사용자그룹 수정"));
@@ -255,13 +255,13 @@ public class BiostarAdapter {
         .orElse(null);
   }
 
-  /** BiostarX 표준 응답 판정 — {@code Response.code=="0"} 이면 성공(null 반환), 아니면 오류 메시지. */
-  private String responseError(HttpResponse<String> resp) {
+  /** BiostarX 표준 응답 판정 — {@code Response.code=="0"} 이면 성공(null 반환), 아니면 오류 메시지. 어댑터 공용. */
+  static String responseError(ObjectMapper mapper, HttpResponse<String> resp) {
     if (resp.statusCode() != 200) {
       return "HTTP " + resp.statusCode();
     }
     try {
-      JsonNode r = objectMapper.readTree(resp.body()).path("Response");
+      JsonNode r = mapper.readTree(resp.body()).path("Response");
       String code = r.path("code").asText("");
       if (code.isEmpty() || "0".equals(code)) {
         return null;

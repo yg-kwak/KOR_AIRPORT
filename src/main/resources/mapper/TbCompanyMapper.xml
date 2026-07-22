@@ -74,6 +74,14 @@
     WHERE c.company_code = #{companyCode}
   </select>
 
+  <!-- 인원 등록 등에서 쓰는 기관 select 옵션 -->
+  <select id="selectOptions" resultType="TbCompany">
+    SELECT company_code, company_name
+    FROM tb_company
+    WHERE del_yn = 'N' AND use_yn = 'Y'
+    ORDER BY company_name, company_code
+  </select>
+
   <insert id="insert" parameterType="TbCompany">
     INSERT INTO tb_company
       (company_code, company_type, company_name, ceo_name, tel, fax, addr,

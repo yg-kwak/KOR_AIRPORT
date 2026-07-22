@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbPersonPhotoMapper">
+
+  <!-- 1:1 저장 — 있으면 갱신, 없으면 삽입 -->
+  <update id="upsert">
+    UPDATE tb_person_photo SET photo_data = #{photoData}, mod_dt = getdate()
+    WHERE person_id = #{personId};
+    IF @@ROWCOUNT = 0
+      INSERT INTO tb_person_photo (person_id, photo_data) VALUES (#{personId}, #{photoData});
+  </update>
+
+  <select id="selectPhoto" resultType="string">
+    SELECT photo_data FROM tb_person_photo WHERE person_id = #{personId}
+  </select>
+
+</mapper>

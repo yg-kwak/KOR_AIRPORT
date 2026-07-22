@@ -46,6 +46,11 @@
 
 ## 매핑
 - 출입그룹: `tb_ac_group.biostar_ac_id`/`biostar_ac_name` ↔ BiostarX access group. (`database.md`)
+- **정규인원 ↔ BiostarX 사용자**(`/person/person`): 인원(`tb_person`, `person_type='PT01'`) 등록 시 BiostarX 사용자를 생성한다. 어댑터: `BiostarUserAdapter`.
+  - **얼굴(둘 중 하나)**: ①파일 업로드 `PUT /api/users/check/upload_picture` → 응답 `image`=사진, `image_template`/`image_template_2`=템플릿(9/5). ②장치 촬영 `GET /api/devices/{tb_login_user.dev_id}/credentials/face` → `template_ex_normalized_image` + `templates[]`. **브라우저가 BiostarX 를 직접 부를 수 없어 서버가 중계**한다.
+  - **사용자 생성**: `POST /api/users` — `user_group_id`=`tb_company.biostar_group_id`, `disabled`=`tb_common`(PS).code_tag, `user_title`=`tb_common`(UT).code_name, `access_groups`=선택한 `tb_ac_group.biostar_ac_id` 목록, `credentials.visualFaces`=얼굴 3종. 사진/얼굴은 `tb_person_photo` 에도 저장.
+  - **실패 정책**: 동기화 실패해도 인원 등록은 유지하고 경고(기관 연동과 동일). 성공 시 `tb_person.biostar_user_id`=인원ID.
+  - 수정/삭제 동기화, 카드 등록은 추후.
 - **기관 ↔ BiostarX 사용자그룹**(`/company/company`): BiostarX 의 **사용자 그룹**을 본 시스템에서는 **기관**으로 표현한다. 연결 ID 는 `tb_company.biostar_group_id`.
   - **부모 그룹 결정(코드 체인)**: `tb_common`(cmm_id='PT').code_tag → 발급구분 코드(예: `PTD01`) → `tb_common`(cmm_id='PTD', code_id='PTD01').**code_tag = BiostarX 부모 사용자그룹 ID**(예: 14227). 이 그룹 아래에 기관 그룹을 만들고 사용자를 넣는다.
   - **등록**: 모달에서 기존 그룹을 고르면 그 ID 를 저장(생성 API 미호출). 비우면 `POST /api/user_groups`(parent_id=PTD01 code_tag, depth 2, name=기관명)로 생성 후 반환 ID 저장. 응답에 ID 가 없으면 검색으로 보완 조회.

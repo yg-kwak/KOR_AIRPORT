@@ -59,19 +59,28 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_y
   ('PTD', N'발급구분', 'PTD02', N'임시등록', '14236', 'Y'),
   ('PTD', N'발급구분', 'PTD03', N'장기등록', '14231', 'Y');
 
+/* 인원상태(PS) — code_tag = BiostarX 사용자의 disabled 값(신규만 활성, 나머지는 비활성) */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_yn) VALUES
+  ('PS', N'인원상태', '01', N'신규', 'false', 'Y'),
+  ('PS', N'인원상태', '02', N'정지', 'true',  'Y'),
+  ('PS', N'인원상태', '03', N'퇴사', 'true',  'Y'),
+  ('PS', N'인원상태', '04', N'회수', 'true',  'Y');
+
 /* 메뉴 (level 1 그룹은 menu_icon 지정 — 사이드바 아이콘) */
 INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn) VALUES
-  (300, N'시스템관리',   NULL, NULL,                 1, 1, 'settings', 'Y'),
+  (200, N'정규인원관리', NULL, NULL,                 1, 1, 'card',     'Y'),
+  (201, N'정규인원등록', 200,  '/person/person',      2, 1, NULL,      'Y'),
+  (300, N'시스템관리',   NULL, NULL,                 1, 2, 'settings', 'Y'),
   (302, N'설정관리',     300,  '/system/system',     2, 1, NULL,       'Y'),
   (301, N'공통코드관리', 300,  '/system/common',     2, 2, NULL,       'Y'),
   (304, N'권한메뉴관리', 300,  '/system/menuAuth',   2, 3, NULL,       'Y'),
   (303, N'사용자관리',   300,  '/system/loginUser',  2, 4, NULL,       'Y'),
-  (500, N'보안관리',     NULL, NULL,                 1, 2, 'guard',    'Y'),
+  (500, N'보안관리',     NULL, NULL,                 1, 3, 'guard',    'Y'),
   (501, N'감사추적',     500,  '/security/systemLog', 2, 1, NULL,      'Y'),
   (502, N'출입권한관리', 500,  '/security/acGroup',   2, 2, NULL,      'Y'),
-  (600, N'차량관리',     NULL, NULL,                 1, 3, 'car',      'Y'),
+  (600, N'차량관리',     NULL, NULL,                 1, 4, 'car',      'Y'),
   (601, N'차량등록관리', 600,  '/carInfo/car',        2, 1, NULL,      'Y'),
-  (700, N'기관관리',     NULL, NULL,                 1, 4, 'company',  'Y'),
+  (700, N'기관관리',     NULL, NULL,                 1, 5, 'company',  'Y'),
   (701, N'기관등록관리', 700,  '/company/company',    2, 1, NULL,      'Y');
 
 /* 관리자 권한 + 공통코드관리 전권 + 관리자 계정 */
@@ -85,7 +94,8 @@ VALUES (@authId, 301, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 501, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 502, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 601, 'Y', 'Y', 'Y', 'Y'),
-       (@authId, 701, 'Y', 'Y', 'Y', 'Y');
+       (@authId, 701, 'Y', 'Y', 'Y', 'Y'),
+       (@authId, 201, 'Y', 'Y', 'Y', 'Y');
 
 /* 관리자 계정: 아이디 admin / 비밀번호 admin123 (ARIA 암호문) */
 INSERT INTO dbo.tb_login_user
@@ -107,7 +117,8 @@ VALUES (@viewerAuthId, 301, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 501, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 502, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 601, 'Y', 'N', 'N', 'N'),
-       (@viewerAuthId, 701, 'Y', 'N', 'N', 'N');
+       (@viewerAuthId, 701, 'Y', 'N', 'N', 'N'),
+       (@viewerAuthId, 201, 'Y', 'N', 'N', 'N');
 
 INSERT INTO dbo.tb_login_user
   (user_id, user_name, password, dept_name, use_yn, root_yn, auth_id, start_menu_id, work_location_code)
