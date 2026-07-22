@@ -9,6 +9,9 @@ import lombok.Setter;
 @Setter
 public class CardSearchParam extends PageParam {
 
+  /** 카드구분 코드 (tb_common CDT). 비면 전체. */
+  private String cardType;
+
   /** 카드상태 코드 (tb_common CS). 비면 전체. */
   private String cardStatus;
 

@@ -5,7 +5,7 @@
   const BASE = '/card/card';
   const state = {
     page: 1, size: 30, keyword: '', searchType: 'all',
-    cardStatus: '', passType: '', assigned: '', sort: 'cardId', dir: 'desc',
+    cardType: '', cardStatus: '', passType: '', assigned: '', sort: 'cardId', dir: 'desc',
   };
 
   const $ = (id) => document.getElementById(id);
@@ -27,7 +27,8 @@
     const q =
       `?page=${state.page}&size=${state.size}` +
       `&keyword=${encodeURIComponent(state.keyword)}&searchType=${state.searchType}` +
-      `&cardStatus=${encodeURIComponent(state.cardStatus)}&passType=${encodeURIComponent(state.passType)}` +
+      `&cardType=${encodeURIComponent(state.cardType)}&cardStatus=${encodeURIComponent(state.cardStatus)}` +
+      `&passType=${encodeURIComponent(state.passType)}` +
       `&assigned=${state.assigned}` +
       `&sort=${state.sort}&dir=${state.dir}`;
     const data = await api.get(BASE + '/list' + q);
@@ -87,6 +88,7 @@
   function search() {
     state.keyword = $('keyword').value.trim();
     state.searchType = $('searchType').value;
+    state.cardType = $('typeFilter').value;
     state.cardStatus = $('statusFilter').value;
     state.passType = $('passFilter').value;
     state.assigned = $('assignedFilter').value;
@@ -97,6 +99,8 @@
   function reset() {
     $('searchType').value = 'all';
     $('keyword').value = '';
+    $('typeFilter').value = '';
+    $('typeFilterName').value = '';
     $('statusFilter').value = '';
     $('statusFilterName').value = '';
     $('passFilter').value = '';
@@ -105,7 +109,7 @@
     $('pageSize').value = '30';
     Object.assign(state, {
       page: 1, size: 30, keyword: '', searchType: 'all',
-      cardStatus: '', passType: '', assigned: '', sort: 'cardId', dir: 'desc',
+      cardType: '', cardStatus: '', passType: '', assigned: '', sort: 'cardId', dir: 'desc',
     });
     load();
   }
@@ -205,33 +209,21 @@
     $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
     if ($('btnNew')) $('btnNew').addEventListener('click', () => openModal('create', null));
 
-    // 검색조건 카드상태: 코드팝업. 삭제(전체)로 비우면 즉시 재조회
-    $('statusFilterName').addEventListener('click', async () => {
-      const sel = await codePicker.open({ cmmId: 'CS', cmmName: '카드상태' });
-      if (!sel) return;
-      $('statusFilter').value = sel.codeId;
-      $('statusFilterName').value = sel.codeName;
-      search();
-    });
-    const filterWrap = $('statusFilterName').closest('.picker-wrap');
-    if (filterWrap) {
-      const clearBtn = filterWrap.querySelector('.picker-clear');
+    // 검색조건 코드팝업(카드구분·카드상태·패스구분) — 선택/삭제(전체) 시 즉시 재조회
+    [['typeFilterName', 'typeFilter', 'CDT', '카드구분'],
+      ['statusFilterName', 'statusFilter', 'CS', '카드상태'],
+      ['passFilterName', 'passFilter', 'PT', '패스구분']].forEach(([nameId, codeId, cmmId, cmmName]) => {
+      $(nameId).addEventListener('click', async () => {
+        const sel = await codePicker.open({ cmmId, cmmName });
+        if (!sel) return;
+        $(codeId).value = sel.codeId;
+        $(nameId).value = sel.codeName;
+        search();
+      });
+      const wrap = $(nameId).closest('.picker-wrap');
+      const clearBtn = wrap && wrap.querySelector('.picker-clear');
       if (clearBtn) clearBtn.addEventListener('click', () => setTimeout(search, 0));
-    }
-
-    // 검색조건 패스구분: 코드팝업
-    $('passFilterName').addEventListener('click', async () => {
-      const sel = await codePicker.open({ cmmId: 'PT', cmmName: '패스구분' });
-      if (!sel) return;
-      $('passFilter').value = sel.codeId;
-      $('passFilterName').value = sel.codeName;
-      search();
     });
-    const passWrap = $('passFilterName').closest('.picker-wrap');
-    if (passWrap) {
-      const clearPass = passWrap.querySelector('.picker-clear');
-      if (clearPass) clearPass.addEventListener('click', () => setTimeout(search, 0));
-    }
 
     // 행 클릭 → 수정, 삭제 버튼 → 삭제
     $('gridBody').addEventListener('click', (e) => {

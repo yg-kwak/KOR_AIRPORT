@@ -27,6 +27,7 @@
           </otherwise>
         </choose>
       </if>
+      <if test="cardType != null and cardType != ''">AND c.card_type = #{cardType}</if>
       <if test="cardStatus != null and cardStatus != ''">AND c.card_status = #{cardStatus}</if>
       <if test="passType != null and passType != ''">AND c.pass_type = #{passType}</if>
       <!-- OGNL 에서 'Y' 는 char 라 String 과 비교하면 터진다 → "Y".equals(...) 로 쓴다 -->

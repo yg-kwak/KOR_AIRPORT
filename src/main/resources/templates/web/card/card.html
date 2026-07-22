@@ -11,6 +11,12 @@
     <!-- 검색 -->
     <section class="search-section">
       <div class="search-field">
+        <label>카드구분</label>
+        <input type="hidden" id="typeFilter"/>
+        <input type="text" id="typeFilterName" class="input w-160 picker-field" readonly
+               data-target="typeFilter" placeholder="전체 (클릭하여 선택)" autocomplete="off"/>
+      </div>
+      <div class="search-field">
         <label>카드상태</label>
         <input type="hidden" id="statusFilter"/>
         <input type="text" id="statusFilterName" class="input w-160 picker-field" readonly
