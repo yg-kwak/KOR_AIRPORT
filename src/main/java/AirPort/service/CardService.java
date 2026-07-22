@@ -16,8 +16,11 @@ import AirPort.model.TbSystem;
 import AirPort.security.ARIAUtil;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * 카드(tb_card) — 카드등록관리(/card/card) 마스터 CRUD + 정규인원등록 카드정보 탭. (docs/backend.md)
@@ -28,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class CardService {
+
+  private static final Logger log = LoggerFactory.getLogger(CardService.class);
 
   /** 카드종류 — 인원 화면이 발급하는 카드는 '인원'(tb_common CDT) 고정. 화면 값을 믿지 않고 서버가 정한다. */
   private static final String CARD_TYPE_PERSON = "CDT01";
@@ -83,12 +88,21 @@ public class CardService {
   }
 
   /**
-   * 신규 실물 카드를 BiostarX 에 등록하고 {@code biostar_card_id} 를 채운다 — <b>tb_card insert 이후</b> 호출한다.
+   * 신규 실물 카드를 BiostarX 에 등록하고 {@code biostar_card_id} 를 채운다 — <b>활성 트랜잭션 안에서 tb_card insert 이후</b>
+   * 호출해야 한다(호출 계약을 아래 가드로 강제한다).
    *
-   * <p>순서 보장이 핵심이다: DB 행이 이미 있으므로 여기서 실패하면 트랜잭션이 통째로 롤백돼 BiostarX·DB 어느 쪽에도 남지 않는다.
-   * 성공 후에는 PK 단건 UPDATE 만 남아 불일치 여지가 사실상 없다.
+   * <p>순서 보장이 핵심이다: DB 행이 이미 있으므로 BiostarX 등록이 실패하면 트랜잭션이 통째로 롤백돼 BiostarX·DB 어느 쪽에도 남지 않는다.
+   * 트랜잭션이 없으면 이 롤백 보장이 깨져 <b>장비엔 있고 DB엔 없는</b> 고아 카드가 생길 수 있어, 계약 위반은 즉시 예외로 막는다.
    */
   void registerBiostar(TbCard row, TbLoginUser actor, Integer menuId) {
+    // ① 활성 트랜잭션 강제 — 스레드 바인딩 확인이라 self-invocation(같은 빈 호출)에도 정확하다
+    if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+      throw new IllegalStateException("registerBiostar 는 활성 트랜잭션 안에서만 호출해야 합니다(롤백 보장 필요).");
+    }
+    // ② insert 선행 강제 — cardId 가 없으면 DB 행이 없다는 뜻(그대로 두면 updateBiostarCardId 가 0행 갱신으로 조용히 실패)
+    if (row.getCardId() == null) {
+      throw new IllegalStateException("registerBiostar 는 tb_card insert 후(cardId 확보) 호출해야 합니다.");
+    }
     TbSystem cfg = systemMapper.selectOne();
     if (cfg == null) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 설정이 없습니다. 설정관리에서 등록하세요.");
@@ -97,6 +111,8 @@ public class CardService {
         biostarCardAdapter.createCard(
             cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), row.getBiostarCardValue());
     if (!issued.success()) {
+      // 실패 원인을 운영 로그(관리자)와 응답 메시지(사용자) 양쪽에 남긴다 — 트랜잭션은 롤백된다
+      log.warn("BiostarX 카드 등록 실패: cardNo={}, 원인={}", row.getBiostarCardValue(), issued.message());
       throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 카드 등록 실패: " + issued.message());
     }
     cardMapper.updateBiostarCardId(row.getCardId(), issued.biostarCardId());
