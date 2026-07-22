@@ -71,6 +71,14 @@ public class CardService {
     if (cfg == null) {
       return BiostarCard.fail("BiostarX 설정이 없습니다. 설정관리에서 등록하세요.");
     }
+    // 이미 발급된 실물 카드면 다시 만들지 않는다 — 회수(미배정)된 카드는 그대로 재사용한다
+    TbCard known = cardNo == null ? null : cardMapper.selectByCardNo(cardNo);
+    if (known != null) {
+      if (known.getPersonId() != null) {
+        return BiostarCard.fail("이미 다른 인원(" + known.getPersonId() + ")에게 발급된 카드입니다.");
+      }
+      return BiostarCard.ok(known.getBiostarCardId(), known.getBiostarCardValue());
+    }
     BiostarCard res =
         biostarCardAdapter.createCard(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), cardNo);
     if (res.success()) {
@@ -82,10 +90,11 @@ public class CardService {
   /**
    * 인원의 카드를 화면 목록 그대로 반영한다 — 인원 저장(등록/수정) 트랜잭션 안에서 호출.
    *
-   * <p>기존 카드는 전부 소프트 삭제한 뒤 화면에 남아 있는 것만 다시 살린다(새 카드=INSERT, 기존 카드=UPDATE + 되살리기).
+   * <p>기존 카드를 전부 <b>회수(미배정)</b>한 뒤 화면에 남아 있는 것만 다시 붙인다(새 카드=INSERT, 기존 카드=UPDATE).
+   * 목록에서 제외된 카드는 삭제되지 않고 {@code person_id=NULL, use_yn='Y', del_yn='N'} 로 남아 <b>다른 인원이 재사용</b>할 수 있다.
    */
   public void saveCards(String personId, List<CardForm> cards) {
-    cardMapper.softDeleteByPerson(personId);
+    cardMapper.releaseByPerson(personId);
     if (cards == null) {
       return;
     }

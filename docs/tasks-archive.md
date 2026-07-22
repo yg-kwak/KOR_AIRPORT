@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 카드 회수·재사용 — 목록에서 '제외'를 소프트삭제(del_yn='Y') → **회수**(person_id=NULL, use_yn='Y', del_yn='N')로 변경해 다른 인원이 같은 실물 카드를 다시 쓸 수 있게. 등록 시 tb_card 에 같은 카드번호가 있으면 POST /api/cards 를 부르지 않고 재사용하고, **타인에게 발급된 번호는 거부**(한 카드 두 사람 부여 차단). 개발DB의 구 삭제 카드 1건 이행 — sjpark2, 2026-07-22
 - [x] 카드 입력 필수값·표기 정리 — 카드번호·카드구분·패스구분·카드명칭·카드상태 필수(클라 토스트 + CardService 서버 검증, 실패 시 인원 저장 트랜잭션 롤백이라 BiostarX 사용자 생성 전에 막힘). SCAN 문구, 목록 컬럼에서 발급료 납부일 제외 — sjpark2, 2026-07-22
 - [x] 카드 패스구분·우측 패널 — tb_card.pass_type 추가(tb_common PT). 카드 입력을 별도 오버레이 → 편집 모달 오버레이 안의 형제 컨테이너로 바꿔 **우측에 나란히** 열리게(z-index 다툼 제거, 좁은 화면은 아래로 접힘). 카드 목록 행 클릭 시 같은 패널에 값 표시·수정(카드번호는 읽기전용). 카드종류는 CardService 가 CDT01(인원) 고정 — sjpark2, 2026-07-22
 - [x] 카드정보(tb_card) — 인원 모달 카드정보 탭: 카드 추가(카드번호 직접입력 또는 장치 scan_card) 시 BiostarX 카드 즉시 등록(POST /api/cards, CSN 고정) → id/card_id 를 biostar_card_id/biostar_card_value 로 보관, 인원 저장 시 tb_card 저장 + 사용자 payload cards[] 부여(수정은 델타). 공용 컴포넌트 card-list 신설, 얼굴 중계는 PersonFaceService 로 분리(PersonService 503→477줄), CS/IS 공통코드 시드 — sjpark2, 2026-07-22

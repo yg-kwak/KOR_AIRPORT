@@ -1,6 +1,7 @@
 /* 카드 목록 컴포넌트 — 조각 fragments/components/card-list(+cardPanel) 과 1:1. (docs/frontend.md)
    '카드 추가' 확인 시 BiostarX 에 카드를 즉시 등록하고(POST {baseUrl}/card/register) 결과를 목록에 담아둔다.
    tb_card 저장과 사용자 부여(cards[])는 인원 저장 시 한 번에 이뤄지므로, 저장하지 않으면 우리 DB 에는 남지 않는다.
+   목록에서 '제외'한 카드는 삭제가 아니라 회수(미배정)라 다른 인원이 같은 카드번호로 다시 발급받을 수 있다.
    카드종류는 화면에서 고정 표시만 하고 실제 코드값은 서버(CardService)가 정한다. */
 window.cardList = (function () {
   const state = {}; // 컨테이너 id → { baseUrl, cardTypeName, rows: [], editIdx }
@@ -132,7 +133,7 @@ window.cardList = (function () {
     box.addEventListener('click', (e) => {
       const del = e.target.closest('.card-list-del');
       if (del) {
-        state[id].rows.splice(Number(del.dataset.idx), 1); // 저장 전 목록에서만 제외
+        state[id].rows.splice(Number(del.dataset.idx), 1); // 인원 저장 시 회수(미배정)된다
         closePanel();
         render(id);
         return;
