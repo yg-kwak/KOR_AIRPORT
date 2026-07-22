@@ -146,6 +146,7 @@ CREATE TABLE dbo.tb_person (
   company_code       nvarchar(30)   NULL,                   -- → tb_company.company_code
   title_code         nvarchar(50)   NULL,                   -- 직위코드 → tb_common(cmm_id='UT')
   person_type        nvarchar(50)   NULL,                   -- 발급유형(정규/임시/상주 등) → tb_common(cmm_id='PT')
+  status_code        nvarchar(50)   NULL,                   -- 상태 → tb_common(cmm_id='PS')
   main_task          nvarchar(200)  NULL,                   -- 주요업무
   id_check_dt        datetime2(0)   NULL,                   -- 신원조회 회보일
   id_check_file      nvarchar(500)  NULL,                   -- 회보근거문서 (경로/파일명, 1건)
@@ -153,6 +154,8 @@ CREATE TABLE dbo.tb_person (
   security_edu_score int            NULL,                   -- 보안교육 점수
   final_approve_dt   datetime2(0)   NULL,                   -- 최종승인일
   approve_file       nvarchar(500)  NULL,                   -- 승인근거문서 (경로/파일명, 1건)
+  access_start_dt    datetime2(0)   NULL,                   -- 출입시작일
+  access_end_dt      datetime2(0)   NULL,                   -- 출입종료일
   remark             nvarchar(1000) NULL,                   -- 메모
   biostar_user_id    nvarchar(50)   NULL,                   -- BiostarX 사용자ID
   use_yn             nchar(1)       NOT NULL DEFAULT 'Y',

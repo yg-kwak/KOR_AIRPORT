@@ -186,6 +186,7 @@ PK: `person_id`. **`tb_login_user`(로그인 계정)와 다른 개체** — 혼�
 | company_code | nvarchar(30) | | | 기관코드 | → `tb_company.company_code` |
 | title_code | nvarchar(50) | | | 직위코드 | → `tb_common`(cmm_id='UT').code_id |
 | person_type | nvarchar(50) | | | 발급유형 | 정규/임시/상주 등 → `tb_common`(cmm_id='PT').code_id. 발급 절차가 유형별로 달라짐 |
+| status_code | nvarchar(50) | | | 상태 | → `tb_common`(cmm_id='PS').code_id |
 | main_task | nvarchar(200) | | | 주요업무 | |
 | id_check_dt | datetime2(0) | | | 신원조회 회보일 | |
 | id_check_file | nvarchar(500) | | | 회보근거문서 | 경로/파일명, 1건 |
@@ -193,6 +194,8 @@ PK: `person_id`. **`tb_login_user`(로그인 계정)와 다른 개체** — 혼�
 | security_edu_score | int | | | 보안교육 점수 | |
 | final_approve_dt | datetime2(0) | | | 최종승인일 | |
 | approve_file | nvarchar(500) | | | 승인근거문서 | 경로/파일명, 1건 |
+| access_start_dt | datetime2(0) | | | 출입시작일 | 출입 유효기간 시작 |
+| access_end_dt | datetime2(0) | | | 출입종료일 | 출입 유효기간 종료 |
 | remark | nvarchar(1000) | | | 메모 | |
 | biostar_user_id | nvarchar(50) | | | BiostarX 사용자ID | |
 | use_yn | nchar(1) | | | 사용유무 | 기본 'Y', CHK Y/N |
@@ -271,6 +274,7 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 - `tb_company.company_type` → `tb_common`(cmm_id='CO')
 - `tb_person.company_code` → `tb_company.company_code`, `tb_person.title_code` → `tb_common`(cmm_id='UT')
 - `tb_person.person_type`(발급유형: 정규/임시/상주) → `tb_common`(cmm_id='PT')
+- `tb_person.status_code`(상태) → `tb_common`(cmm_id='PS')
 - `tb_person_photo.person_id` → `tb_person.person_id` (1:1)
 - `tb_card.person_id` → `tb_person.person_id` (**1:N** — 인원 1명이 카드 여러 장)
 - `tb_card.card_type` → `tb_common`(cmm_id='CDT'), `card_status` → (cmm_id='CS'), `issue_type` → (cmm_id='IS')
