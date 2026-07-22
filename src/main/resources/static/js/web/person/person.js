@@ -100,13 +100,16 @@
   function renderRows(rows) {
     const body = $('gridBody');
     if (!rows || rows.length === 0) {
-      body.innerHTML = '<tr><td colspan="7" class="empty">조회 결과가 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="8" class="empty">조회 결과가 없습니다.</td></tr>';
       return;
     }
     body.innerHTML = rows.map((r) => {
       const period = [r.accessStartDt || '', r.accessEndDt || ''].filter(Boolean).join(' ~ ');
+      const actions = PERM.canDelete
+        ? `<button class="btn btn-sm btn-danger" data-act="del" data-id="${esc(r.personId)}">삭제</button>`
+        : '-';
       return `
-      <tr>
+      <tr${PERM.canCreate ? ' class="row-click" data-json=\'' + esc(JSON.stringify(r)) + '\'' : ''}>
         <td>${esc(r.personId)}</td>
         <td>${esc(r.personName)}</td>
         <td>${esc(r.companyName)}</td>
@@ -114,6 +117,7 @@
         <td>${esc(r.statusName)}</td>
         <td>${esc(period)}</td>
         <td>${r.biostarUserId ? '연동' : '-'}</td>
+        <td>${actions}</td>
       </tr>`;
     }).join('');
   }
@@ -176,10 +180,15 @@
     }).join('');
   }
 
-  function renderAcTree() {
+  function renderAcTree(checkedIds) {
     $('acTree').innerHTML = acTreeData.length
       ? acNodesHtml(acTreeData)
       : '<div class="empty">선택 가능한 출입권한이 없습니다. (출입권한관리에서 BiostarX 출입그룹을 매핑하세요)</div>';
+    if (checkedIds && checkedIds.length) {
+      const set = new Set(checkedIds.map(Number));
+      $('acTree').querySelectorAll('input[type="checkbox"]')
+        .forEach((c) => { c.checked = set.has(Number(c.value)); });
+    }
   }
 
   function selectedAcGroupIds() {
@@ -218,8 +227,12 @@
     toast.success('얼굴을 촬영했습니다.');
   }
 
-  // ---- 등록 모달 ----
-  function openModal() {
+  // ---- 등록/수정 모달 ----
+  let editMode = 'create';
+
+  async function openModal(mode, row) {
+    editMode = mode;
+    $('modalTitle').textContent = mode === 'create' ? '정규인원 등록' : '정규인원 수정';
     ['personId', 'personName', 'birthDate', 'personPhone', 'mainTask', 'remark',
       'companyCode', 'companyName', 'titleCode', 'titleName', 'statusCode', 'statusName',
       'accessStartDt', 'accessEndDt']
@@ -227,10 +240,47 @@
     $('faceFile').value = '';
     setFace(null);
     showTab('info');
-    renderAcTree(); // 체크 초기화
+    $('personId').readOnly = mode === 'edit'; // PK 는 수정 불가
+    renderAcTree([]); // 체크 초기화
     $('editModal').classList.add('open');
+    if (mode !== 'edit' || !row) return;
+
+    $('personId').value = row.personId;
+    $('personName').value = row.personName || '';
+    $('birthDate').value = row.birthDate || '';
+    $('personPhone').value = row.personPhone || '';
+    $('companyCode').value = row.companyCode || '';
+    $('companyName').value = row.companyName || '';
+    $('titleCode').value = row.titleCode || '';
+    $('titleName').value = row.titleName || '';
+    $('statusCode').value = row.statusCode || '';
+    $('statusName').value = row.statusName || '';
+    $('mainTask').value = row.mainTask || '';
+    $('accessStartDt').value = row.accessStartDt || '';
+    $('accessEndDt').value = row.accessEndDt || '';
+    $('remark').value = row.remark || '';
+    // 기존 얼굴·출입권한 로드(얼굴 템플릿은 저장하지 않으므로 이미지만 — 손대지 않으면 변경으로 보지 않는다)
+    const q = `?personId=${encodeURIComponent(row.personId)}`;
+    const [photo, acIds] = await Promise.all([
+      api.get(BASE + '/photo' + q),
+      api.get(BASE + '/personAcGroups' + q),
+    ]);
+    if (photo) setFace(photo, null, null);
+    renderAcTree(acIds || []);
   }
   function closeModal() { $('editModal').classList.remove('open'); }
+
+  async function remove(personId) {
+    if (!PERM.canDelete) return;
+    const ok = await confirmModal.open({
+      title: '삭제 확인',
+      message: `선택한 인원(${personId})을 삭제하시겠습니까? BiostarX 사용자도 함께 삭제됩니다.`,
+      confirmText: '삭제',
+    });
+    if (!ok) return;
+    await api.del(`${BASE}?personId=${encodeURIComponent(personId)}`);
+    load();
+  }
 
   async function save() {
     if (!PERM.canCreate) return;
@@ -253,7 +303,9 @@
     };
     if (!payload.personId) { toast.warning('인원ID는 필수입니다.'); return; }
     if (!payload.personName) { toast.warning('성명은 필수입니다.'); return; }
-    await api.post(BASE, payload); // 서버 메시지(연동 경고 포함) 자동 토스트
+    // 서버 메시지(연동 경고 포함) 자동 토스트. 수정은 변경분만 BiostarX 로 전송된다.
+    if (editMode === 'create') await api.post(BASE, payload);
+    else await api.put(BASE, payload);
     closeModal();
     load();
   }
@@ -270,7 +322,15 @@
       if (clearBtn) clearBtn.addEventListener('click', () => setTimeout(search, 0));
     }
     $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
-    if ($('btnNew')) $('btnNew').addEventListener('click', openModal);
+    if ($('btnNew')) $('btnNew').addEventListener('click', () => openModal('create', null));
+
+    // 행 클릭 → 수정, 삭제 버튼 → 삭제
+    $('gridBody').addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (btn) { if (btn.dataset.act === 'del') remove(btn.dataset.id); return; }
+      const tr = e.target.closest('tr[data-json]');
+      if (tr && PERM.canCreate) openModal('edit', JSON.parse(tr.dataset.json));
+    });
 
     document.querySelectorAll('.tab-btn').forEach((b) =>
       b.addEventListener('click', () => showTab(b.dataset.tab)));

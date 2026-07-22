@@ -70,6 +70,12 @@ public class BiostarSession {
     return exchange("GET", base, loginId, password, path, null);
   }
 
+  /** 인증된 DELETE 호출(삭제). 본문 없이 전송한다(대상은 쿼리 파라미터). */
+  public HttpResponse<String> delete(String base, String loginId, String password, String path)
+      throws Exception {
+    return exchange("DELETE", base, loginId, password, path, null);
+  }
+
   private HttpResponse<String> exchange(
       String method, String base, String loginId, String password, String path, String jsonBody)
       throws Exception {

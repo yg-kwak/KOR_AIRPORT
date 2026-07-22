@@ -144,6 +144,147 @@ public class PersonService {
     return syncBiostarUser(form);
   }
 
+  /** 인원의 등록사진(BASE64) — 수정 모달에서 기존 얼굴 표시용. */
+  public String photo(String personId, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireRead(actor, menuId);
+    return photoMapper.selectPhoto(personId);
+  }
+
+  /**
+   * 정규인원 수정 — 변경분만 BiostarX 로 동기화한다(PUT /api/users/{인원ID}).
+   *
+   * @return BiostarX 연동 경고(성공이면 null)
+   */
+  @Transactional
+  public String update(PersonForm form, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireCreate(actor, menuId); // 정책: 등록/수정은 create_auth 로 판정
+    validate(form);
+    TbPerson existing = personMapper.selectById(form.getPersonId());
+    if (existing == null || "Y".equals(existing.getDelYn())) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    // 변경 전 상태(BiostarX 비교용) — 복호화된 값·기존 얼굴·기존 출입그룹
+    decrypt(existing);
+    BiostarUserRequest before =
+        biostarRequest(
+            existing.getPersonId(),
+            existing.getPersonName(),
+            existing.getPersonPhone(),
+            photoMapper.selectPhoto(form.getPersonId()),
+            existing.getCompanyCode(),
+            existing.getStatusCode(),
+            existing.getAccessStartDt(),
+            existing.getAccessEndDt(),
+            existing.getTitleCode(),
+            acGroupMapper.selectBiostarAcIds(form.getPersonId()),
+            null,
+            null);
+
+    TbPerson row = new TbPerson();
+    row.setPersonId(form.getPersonId());
+    row.setPersonName(ARIAUtil.ariaEncrypt(form.getPersonName()));
+    row.setBirthDate(encryptOrNull(form.getBirthDate()));
+    row.setPersonPhone(encryptOrNull(form.getPersonPhone()));
+    row.setCompanyCode(form.getCompanyCode());
+    row.setTitleCode(form.getTitleCode());
+    row.setStatusCode(form.getStatusCode());
+    row.setMainTask(form.getMainTask());
+    row.setAccessStartDt(form.getAccessStartDt());
+    row.setAccessEndDt(form.getAccessEndDt());
+    row.setRemark(form.getRemark());
+    personMapper.update(row);
+
+    if (form.getFaceImage() != null && !form.getFaceImage().isBlank()) {
+      photoMapper.upsert(form.getPersonId(), form.getFaceImage());
+    } else {
+      photoMapper.deleteByPerson(form.getPersonId()); // 얼굴 삭제
+    }
+    saveAcGroups(form.getPersonId(), form.getAcGroupIds());
+
+    auditService.log(actor, AuditService.UPDATE, menuId, "정규인원 수정: " + form.getPersonId());
+
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      return "BiostarX 설정이 없습니다.";
+    }
+    BiostarUserRequest after =
+        biostarRequest(
+            form.getPersonId(),
+            form.getPersonName(),
+            form.getPersonPhone(),
+            form.getFaceImage(),
+            form.getCompanyCode(),
+            form.getStatusCode(),
+            form.getAccessStartDt(),
+            form.getAccessEndDt(),
+            form.getTitleCode(),
+            acGroupMapper.selectBiostarAcIds(form.getPersonId()),
+            form.getFaceTemplate9(),
+            form.getFaceTemplate5());
+    BiostarResult res =
+        biostarUserAdapter.updateUser(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), before, after);
+    return res.success() ? null : res.message();
+  }
+
+  /**
+   * 정규인원 삭제 — 우리 DB 는 소프트 삭제(del_yn='Y'), BiostarX 사용자도 삭제한다.
+   *
+   * @return BiostarX 연동 경고(성공이면 null)
+   */
+  @Transactional
+  public String delete(String personId, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireDelete(actor, menuId);
+    TbPerson existing = personMapper.selectById(personId);
+    if (existing == null || "Y".equals(existing.getDelYn())) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    personMapper.softDelete(personId);
+    auditService.log(actor, AuditService.DELETE, menuId, "정규인원 삭제: " + personId);
+
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      return "BiostarX 설정이 없습니다.";
+    }
+    BiostarResult res =
+        biostarUserAdapter.deleteUser(
+            cfg.getBiostarIp(),
+            cfg.getBiostarId(),
+            pw(cfg),
+            personId,
+            companyGroupId(existing.getCompanyCode()));
+    return res.success() ? null : res.message();
+  }
+
+  /** BiostarX 전송 값 구성(코드 → 실제 값 변환 포함). */
+  private BiostarUserRequest biostarRequest(
+      String personId,
+      String name,
+      String phone,
+      String faceImage,
+      String companyCode,
+      String statusCode,
+      String startDt,
+      String endDt,
+      String titleCode,
+      List<Integer> acIds,
+      String t9,
+      String t5) {
+    return new BiostarUserRequest(
+        personId,
+        name,
+        phone,
+        faceImage,
+        companyGroupId(companyCode),
+        codeTag(PS, statusCode),
+        biostarDate(startDt, "T00:00:00.00Z"),
+        biostarDate(endDt, "T23:59:00.00Z"),
+        codeName(UT, titleCode),
+        acIds,
+        faceImage,
+        t9,
+        t5);
+  }
+
   private void saveAcGroups(String personId, List<Integer> acGroupIds) {
     acGroupMapper.deleteByPerson(personId);
     if (acGroupIds != null && !acGroupIds.isEmpty()) {
@@ -189,18 +330,17 @@ public class PersonService {
       return "BiostarX 설정이 없습니다.";
     }
     BiostarUserRequest req =
-        new BiostarUserRequest(
+        biostarRequest(
             form.getPersonId(),
             form.getPersonName(),
             form.getPersonPhone(),
             form.getFaceImage(),
-            companyGroupId(form.getCompanyCode()),
-            codeTag(PS, form.getStatusCode()),
-            biostarDate(form.getAccessStartDt(), "T00:00:00.00Z"),
-            biostarDate(form.getAccessEndDt(), "T23:59:00.00Z"),
-            codeName(UT, form.getTitleCode()),
+            form.getCompanyCode(),
+            form.getStatusCode(),
+            form.getAccessStartDt(),
+            form.getAccessEndDt(),
+            form.getTitleCode(),
             acGroupMapper.selectBiostarAcIds(form.getPersonId()),
-            form.getFaceImage(),
             form.getFaceTemplate9(),
             form.getFaceTemplate5());
 

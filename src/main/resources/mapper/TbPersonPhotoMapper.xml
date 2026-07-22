@@ -15,4 +15,8 @@
     SELECT photo_data FROM tb_person_photo WHERE person_id = #{personId}
   </select>
 
+  <delete id="deleteByPerson">
+    DELETE FROM tb_person_photo WHERE person_id = #{personId}
+  </delete>
+
 </mapper>

@@ -20,8 +20,10 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -118,13 +120,39 @@ public class PersonController {
     return ApiResponse.ok(personService.captureFace(actor(session), menuId()));
   }
 
+  /** 인원 등록사진 (AJAX) — 수정 모달에서 기존 얼굴 표시용 */
+  @GetMapping("/photo")
+  @ResponseBody
+  public ApiResponse<String> photo(@RequestParam String personId, HttpSession session) {
+    return ApiResponse.ok(personService.photo(personId, actor(session), menuId()));
+  }
+
   /** 등록 (AJAX) — BiostarX 사용자 생성 실패 시에도 인원은 저장하고 경고를 덧붙인다. */
   @PostMapping
   @ResponseBody
   public ApiResponse<Void> create(@RequestBody PersonForm form, HttpSession session) {
-    String warn = personService.create(form, actor(session), menuId());
     return ApiResponse.okMessage(
-        warn == null ? "등록되었습니다." : "등록되었습니다. (BiostarX 사용자 동기화 실패: " + warn + ")");
+        withWarning("등록되었습니다.", personService.create(form, actor(session), menuId())));
+  }
+
+  /** 수정 (AJAX) — 변경분만 BiostarX 로 동기화 */
+  @PutMapping
+  @ResponseBody
+  public ApiResponse<Void> update(@RequestBody PersonForm form, HttpSession session) {
+    return ApiResponse.okMessage(
+        withWarning("수정되었습니다.", personService.update(form, actor(session), menuId())));
+  }
+
+  /** 삭제 (AJAX) — 소프트 삭제 + BiostarX 사용자 삭제 */
+  @DeleteMapping
+  @ResponseBody
+  public ApiResponse<Void> delete(@RequestParam String personId, HttpSession session) {
+    return ApiResponse.okMessage(
+        withWarning("삭제되었습니다.", personService.delete(personId, actor(session), menuId())));
+  }
+
+  private static String withWarning(String message, String warn) {
+    return warn == null ? message : message + " (BiostarX 사용자 동기화 실패: " + warn + ")";
   }
 
   private TbLoginUser actor(HttpSession session) {

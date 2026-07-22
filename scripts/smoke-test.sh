@@ -211,6 +211,9 @@ check "참조 데이터(기관)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_
 check "출입권한 트리" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/acGroups")"
 check "인원ID 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
 check "성명 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personId":"SMKP1"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
+# 수정/삭제도 존재 확인이 BiostarX 호출보다 먼저라 없는 인원은 외부 호출 없이 404
+check "없는 인원 수정 404" 404 "$(A -H 'Content-Type: application/json' -X PUT --data '{"personId":"NOPE_SMK","personName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
+check "없는 인원 삭제 404" 404 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/person/person?personId=NOPE_SMK")"
 
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
 VCODE=$(curl -s -m 2 -c "$CK_V" -o /dev/null -w "%{http_code}" --data "userId=viewer&password=viewer123" "$BASE_URL/login" 2>/dev/null)
@@ -238,6 +241,7 @@ if [ "$VCODE" = "302" ]; then
   check "viewer 차량 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"carNo":"VX-1"}' -o /dev/null -w '%{http_code}' "$BASE_URL/carInfo/car")"
   check "viewer 기관 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/list?size=1")"
   check "viewer 인원 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/list?size=1")"
+  check "viewer 인원 삭제 403" 403 "$(V -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/person/person?personId=NOPE_SMK")"
   check "viewer 인원 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"personId":"VXP","personName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
   check "viewer 기관 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"companyCode":"VXCO","companyName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
 else

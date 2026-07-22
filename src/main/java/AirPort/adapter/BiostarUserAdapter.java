@@ -122,6 +122,124 @@ public class BiostarUserAdapter {
     }
   }
 
+  /**
+   * BiostarX 사용자 수정 — {@code PUT /api/users/{userId}}. <b>변경된 항목만</b> 담아 보낸다.
+   *
+   * <p>있다가 없어진 값은 공란으로 보낸다(문자열 "", 목록 []). 얼굴을 지운 경우 {@code
+   * credentials.visualFaces=[]}. 변경이 없으면 호출하지 않는다.
+   */
+  public BiostarResult updateUser(
+      String ip,
+      String loginId,
+      String password,
+      BiostarUserRequest before,
+      BiostarUserRequest after) {
+    if (ip == null || ip.isBlank()) {
+      return BiostarResult.fail("BiostarX IP가 설정되어 있지 않습니다. 설정관리에서 등록하세요.");
+    }
+    try {
+      ObjectNode user = objectMapper.createObjectNode();
+      putDelta(user, "name", before.name(), after.name());
+      putDelta(user, "phone", before.phone(), after.phone());
+      putDelta(user, "photo", before.photo(), after.photo());
+      putDelta(user, "disabled", before.disabled(), after.disabled());
+      putDelta(user, "start_datetime", before.startDatetime(), after.startDatetime());
+      putDelta(user, "expiry_datetime", before.expiryDatetime(), after.expiryDatetime());
+      putDelta(user, "user_title", before.userTitle(), after.userTitle());
+
+      if (!java.util.Objects.equals(before.userGroupId(), after.userGroupId())) {
+        user.putObject("user_group_id")
+            .put("id", after.userGroupId() == null ? "" : String.valueOf(after.userGroupId()));
+      }
+      if (!sameIds(before.accessGroupIds(), after.accessGroupIds())) {
+        ArrayNode ags = user.putArray("access_groups"); // 비면 [] (권한 전체 해제)
+        if (after.accessGroupIds() != null) {
+          after.accessGroupIds().forEach(id -> ags.addObject().put("id", id));
+        }
+      }
+      applyFaceDelta(user, before, after);
+
+      if (user.isEmpty()) {
+        return BiostarResult.ok(); // 변경 없음 → 호출 생략
+      }
+      ObjectNode root = objectMapper.createObjectNode();
+      root.set("User", user);
+      HttpResponse<String> resp =
+          session.put(
+              baseUrl(ip),
+              loginId,
+              password,
+              "/api/users/" + after.userId(),
+              objectMapper.writeValueAsString(root));
+      String err = BiostarAdapter.responseError(objectMapper, resp);
+      return err == null ? BiostarResult.ok() : BiostarResult.fail(err);
+    } catch (Exception e) {
+      return BiostarResult.fail(friendlyError(e, "사용자 수정"));
+    }
+  }
+
+  /** 얼굴 변경분 — 새로 등록/교체면 새 값, 있다가 지웠으면 빈 목록, 그대로면 미포함. */
+  private void applyFaceDelta(ObjectNode user, BiostarUserRequest before, BiostarUserRequest after) {
+    boolean had = notBlank(before.faceImage());
+    boolean has = notBlank(after.faceImage());
+    if (has && !java.util.Objects.equals(before.faceImage(), after.faceImage())) {
+      ObjectNode cred = user.putObject("credentials");
+      ObjectNode face = cred.putArray("visualFaces").addObject();
+      face.put("template_ex_normalized_image", after.faceImage());
+      ArrayNode tpls = face.putArray("templates");
+      addTemplate(tpls, after.faceTemplate9(), "9");
+      addTemplate(tpls, after.faceTemplate5(), "5");
+      face.put("flag", "1");
+      face.put("useProfile", "true");
+      cred.put("check_visualFace_img_validation", false);
+    } else if (had && !has) {
+      ObjectNode cred = user.putObject("credentials");
+      cred.putArray("visualFaces"); // 얼굴 삭제
+      cred.put("check_visualFace_img_validation", false);
+    }
+  }
+
+  /** BiostarX 사용자 삭제 — {@code DELETE /api/users?id={userId}&group_id={groupId}}. */
+  public BiostarResult deleteUser(
+      String ip, String loginId, String password, String userId, Integer groupId) {
+    if (ip == null || ip.isBlank()) {
+      return BiostarResult.fail("BiostarX IP가 설정되어 있지 않습니다. 설정관리에서 등록하세요.");
+    }
+    try {
+      String path =
+          "/api/users?id="
+              + java.net.URLEncoder.encode(userId, java.nio.charset.StandardCharsets.UTF_8)
+              + "&group_id="
+              + (groupId == null ? "" : groupId);
+      HttpResponse<String> resp = session.delete(baseUrl(ip), loginId, password, path);
+      String err = BiostarAdapter.responseError(objectMapper, resp);
+      return err == null ? BiostarResult.ok() : BiostarResult.fail(err);
+    } catch (Exception e) {
+      return BiostarResult.fail(friendlyError(e, "사용자 삭제"));
+    }
+  }
+
+  /** 값이 바뀐 경우에만 담는다. 있다가 없어지면 공란(""). */
+  private static void putDelta(ObjectNode node, String field, String before, String after) {
+    if (!java.util.Objects.equals(nullToBlank(before), nullToBlank(after))) {
+      node.put(field, nullToBlank(after));
+    }
+  }
+
+  private static boolean sameIds(java.util.List<Integer> a, java.util.List<Integer> b) {
+    java.util.Set<Integer> sa = a == null ? java.util.Set.of() : new java.util.HashSet<>(a);
+    java.util.Set<Integer> sb = b == null ? java.util.Set.of() : new java.util.HashSet<>(b);
+    return sa.equals(sb);
+  }
+
+  private static boolean notBlank(String s) {
+    return s != null && !s.isBlank();
+  }
+
+  private static String nullToBlank(String s) {
+    return s == null ? "" : s;
+  }
+
   /** POST /api/users payload 구성 — null 필드는 넣지 않는다. */
   private String userPayload(BiostarUserRequest req) throws Exception {
     ObjectNode user = objectMapper.createObjectNode();

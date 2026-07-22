@@ -9,4 +9,6 @@ public interface TbPersonPhotoMapper {
   int upsert(@Param("personId") String personId, @Param("photoData") String photoData);
 
   String selectPhoto(@Param("personId") String personId);
+
+  int deleteByPerson(@Param("personId") String personId);
 }

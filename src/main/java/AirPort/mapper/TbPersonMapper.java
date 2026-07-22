@@ -17,6 +17,11 @@ public interface TbPersonMapper {
 
   int insert(TbPerson row);
 
+  int update(TbPerson row);
+
+  /** 소프트 삭제 — del_yn='Y'. */
+  int softDelete(@Param("personId") String personId);
+
   /** BiostarX 사용자 생성 성공 후 연동 ID 반영. */
   int updateBiostarUserId(
       @Param("personId") String personId, @Param("biostarUserId") String biostarUserId);
