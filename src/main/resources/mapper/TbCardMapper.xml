@@ -4,13 +4,13 @@
 <mapper namespace="AirPort.mapper.TbCardMapper">
 
   <sql id="cardColumns">
-    c.card_id, c.card_type, c.card_name, c.card_status, c.issue_reason, c.remark,
+    c.card_id, c.card_type, c.card_name, c.card_status, c.pass_type, c.issue_reason, c.remark,
     c.person_id, c.biostar_card_id, c.biostar_card_value, c.use_yn, c.del_yn, c.reg_dt, c.mod_dt,
     CONVERT(varchar(10), c.fee_paid_dt, 23) AS fee_paid_dt,
     CONVERT(varchar(10), c.issue_dt, 23)    AS issue_dt,
     CONVERT(varchar(10), c.lost_dt, 23)     AS lost_dt,
     CONVERT(varchar(10), c.return_dt, 23)   AS return_dt,
-    cdt.code_name AS card_type_name, cs.code_name AS card_status_name
+    cdt.code_name AS card_type_name, cs.code_name AS card_status_name, pt.code_name AS pass_type_name
   </sql>
 
   <select id="selectByPerson" resultType="TbCard">
@@ -18,16 +18,17 @@
     FROM tb_card c
     LEFT JOIN tb_common cdt ON cdt.cmm_id = 'CDT' AND cdt.code_id = c.card_type
     LEFT JOIN tb_common cs  ON cs.cmm_id  = 'CS'  AND cs.code_id  = c.card_status
+    LEFT JOIN tb_common pt  ON pt.cmm_id  = 'PT'  AND pt.code_id  = c.pass_type
     WHERE c.del_yn = 'N' AND c.person_id = #{personId}
     ORDER BY c.card_id
   </select>
 
   <insert id="insert" parameterType="TbCard" useGeneratedKeys="true" keyProperty="cardId">
     INSERT INTO tb_card
-      (card_type, card_name, card_status, fee_paid_dt, issue_dt, issue_reason, remark,
+      (card_type, card_name, card_status, pass_type, fee_paid_dt, issue_dt, issue_reason, remark,
        person_id, biostar_card_id, biostar_card_value)
     VALUES
-      (#{cardType}, #{cardName}, #{cardStatus}, #{feePaidDt}, getdate(), #{issueReason}, #{remark},
+      (#{cardType}, #{cardName}, #{cardStatus}, #{passType}, #{feePaidDt}, getdate(), #{issueReason}, #{remark},
        #{personId}, #{biostarCardId}, #{biostarCardValue})
   </insert>
 
@@ -39,6 +40,7 @@
         card_type = #{cardType},
         card_name = #{cardName},
         card_status = #{cardStatus},
+        pass_type = #{passType},
         fee_paid_dt = #{feePaidDt},
         issue_reason = #{issueReason},
         remark = #{remark},

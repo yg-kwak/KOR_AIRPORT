@@ -14,6 +14,7 @@ public class CardForm {
   private String cardType;
   private String cardName;
   private String cardStatus;
+  private String passType;
   private String feePaidDt;
   private String issueReason;
   private String remark;

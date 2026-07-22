@@ -235,6 +235,7 @@ PK: `card_id` (IDENTITY). **인원 1 : 카드 N** (`person_id`). 삭제는 `del_
 | card_type | nvarchar(50) | | 카드구분 | → `tb_common`(cmm_id='CDT').code_id |
 | card_name | nvarchar(100) | | 카드명칭 | |
 | card_status | nvarchar(50) | | 카드상태 | → `tb_common`(cmm_id='CS').code_id. 정지 포함 |
+| pass_type | nvarchar(50) | | 패스구분 | → `tb_common`(cmm_id='PT').code_id (정규/임시/장기/상주) |
 | fee_paid_dt | datetime2(0) | | 발급료 납부일 | |
 | issue_dt | datetime2(0) | | 카드발급일 | |
 | issue_type | nvarchar(50) | | 발급구분 | → `tb_common`(cmm_id='IS').code_id |

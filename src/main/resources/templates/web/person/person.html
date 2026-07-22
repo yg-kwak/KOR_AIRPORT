@@ -208,12 +208,13 @@
       <button class="btn btn-primary" id="btnSave">저장</button>
     </div>
   </div>
+  <!-- 카드 입력 패널 — 편집 모달 우측에 나란히 열린다 -->
+  <div th:replace="~{fragments/components/card-list :: cardPanel}"></div>
 </div>
 
 <div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
 <div th:replace="~{fragments/components/code-picker-modal :: codePicker}"></div>
 <div th:replace="~{fragments/components/company-picker-modal :: companyPicker}"></div>
-<div th:replace="~{fragments/components/card-list :: cardModal}"></div>
 
 <script th:inline="javascript">
   window.PAGE_PERM = {

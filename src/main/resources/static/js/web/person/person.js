@@ -375,7 +375,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     bind();
     acGroupTree.init(AC_TREE, BASE + '/acGroups');
-    cardList.init(CARD_LIST, { baseUrl: BASE });
+    cardList.init(CARD_LIST, { baseUrl: BASE, cardTypeName: '인원' });
     load();
   });
 })();

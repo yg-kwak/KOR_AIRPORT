@@ -16,6 +16,7 @@ public class TbCard {
   private String cardType; // → tb_common(CDT)
   private String cardName;
   private String cardStatus; // → tb_common(CS)
+  private String passType; // 패스구분 → tb_common(PT)
   private String feePaidDt; // 발급료 납부일 (문자열 바인딩 "YYYY-MM-DD")
   private String issueDt; // 카드발급일
   private String issueType; // → tb_common(IS)
@@ -34,4 +35,5 @@ public class TbCard {
   // 화면 표시용 조인값
   private String cardTypeName;
   private String cardStatusName;
+  private String passTypeName;
 }

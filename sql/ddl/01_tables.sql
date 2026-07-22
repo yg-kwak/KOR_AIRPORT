@@ -195,6 +195,7 @@ CREATE TABLE dbo.tb_card (
   card_type          nvarchar(50)   NULL,                   -- 카드구분 → tb_common(cmm_id='CDT')
   card_name          nvarchar(100)  NULL,                   -- 카드명칭
   card_status        nvarchar(50)   NULL,                   -- 카드상태 → tb_common(cmm_id='CS')
+  pass_type          nvarchar(50)   NULL,                   -- 패스구분 → tb_common(cmm_id='PT')
   fee_paid_dt        datetime2(0)   NULL,                   -- 발급료 납부일
   issue_dt           datetime2(0)   NULL,                   -- 카드발급일
   issue_type         nvarchar(50)   NULL,                   -- 발급구분 → tb_common(cmm_id='IS')

@@ -23,6 +23,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class CardService {
 
+  /** 카드종류 — 인원 화면이 발급하는 카드는 '인원'(tb_common CDT) 고정. 화면 값을 믿지 않고 서버가 정한다. */
+  private static final String CARD_TYPE_PERSON = "CDT01";
+
   private final TbCardMapper cardMapper;
   private final TbSystemMapper systemMapper;
   private final BiostarCardAdapter biostarCardAdapter;
@@ -88,9 +91,10 @@ public class CardService {
       TbCard row = new TbCard();
       row.setCardId(form.getCardId());
       row.setPersonId(personId);
-      row.setCardType(form.getCardType());
+      row.setCardType(CARD_TYPE_PERSON);
       row.setCardName(form.getCardName());
       row.setCardStatus(form.getCardStatus());
+      row.setPassType(form.getPassType());
       row.setFeePaidDt(blankToNull(form.getFeePaidDt()));
       row.setIssueReason(form.getIssueReason());
       row.setRemark(form.getRemark());

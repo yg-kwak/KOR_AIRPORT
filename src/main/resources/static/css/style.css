@@ -385,9 +385,7 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .picker-wrap > .input { flex: 1; min-width: 0; }
 .picker-clear { flex-shrink: 0; }
 /* 코드 선택 팝업은 편집 모달 위에 뜬다 */
-/* 특이도 상향(.modal-overlay 뒤에 와도 z-index 가 이김) — 편집 모달 위에 팝업이 뜨도록.
-   쌓임 순서: 편집 모달(2000) < 카드 입력(2400) < 코드/기관 팝업(2600) */
-.modal-overlay.card-modal-overlay { z-index: 2400; }
+/* 특이도 상향(.modal-overlay 뒤에 와도 z-index 가 이김) — 편집 모달 위에 팝업이 뜨도록 */
 .modal-overlay.code-picker-overlay { z-index: 2600; }
 
 /* 단일 폼(설정 등) — 항목 가로 배치, 버튼 우측 끝 */
@@ -443,6 +441,10 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .modal-container.small { width: 420px; }
 .modal-container.wide { width: 640px; }
 .modal-container.confirm { width: 400px; }
+/* 편집 모달 우측에 나란히 붙는 보조 패널(카드 입력). 좁은 화면에서는 아래로 접힌다 */
+.modal-overlay { gap: 16px; flex-wrap: wrap; }
+.modal-container.card-side { display: none; width: 440px; }
+.modal-container.card-side.open { display: flex; }
 .confirm-message { margin: 4px 0; font-size: 14px; color: var(--color-black); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--color-tertiary-active); flex: none; }
 .modal-title { font-size: 18px; font-weight: 700; margin: 0; }
