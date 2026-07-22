@@ -112,13 +112,23 @@ public class CardService {
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
-    if (existing.getPersonId() != null) {
-      throw new BusinessException(
-          ErrorCode.INVALID_INPUT,
-          "인원(" + existing.getPersonId() + ")에게 할당된 카드입니다. 정규인원등록에서 먼저 회수하세요.");
+    String holder = issuedTo(existing);
+    if (holder != null) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, holder + " 발급된 카드입니다. 먼저 회수하세요.");
     }
     cardMapper.softDelete(cardId);
     auditService.log(actor, AuditService.DELETE, menuId, "카드 삭제: " + existing.getBiostarCardValue());
+  }
+
+  /** 발급 대상 설명 — 인원/차량 어느 쪽에든 붙어 있으면 그 대상을, 미발급이면 null. */
+  private static String issuedTo(TbCard card) {
+    if (card.getPersonId() != null) {
+      return "인원(" + card.getPersonId() + ")에게";
+    }
+    if (card.getCarId() != null) {
+      return "차량(" + (card.getCarNo() == null ? card.getCarId() : card.getCarNo()) + ")에";
+    }
+    return null;
   }
 
   /** 카드 마스터 필수값 — 인원 화면(CardForm)과 같은 기준. 차량 카드는 패스구분을 받지 않는다. */

@@ -55,6 +55,9 @@
     });
   }
 
+  /** 카드의 발급 대상 — 인원ID 또는 '차량 {번호}'. 미발급이면 빈 문자열. */
+  const holderOf = (c) => c.personId || (c.carNo || c.carId ? `차량 ${c.carNo || c.carId}` : '');
+
   function renderRows(rows) {
     const body = $('gridBody');
     if (!rows || rows.length === 0) {
@@ -63,9 +66,10 @@
     }
     // 할당된 카드는 삭제 불가 — 정규인원등록에서 회수가 먼저다(서버도 거부한다)
     body.innerHTML = rows.map((r) => {
+      const holder = holderOf(r); // 발급된 카드는 삭제할 수 없다 — 회수가 먼저다(서버도 거부)
       const actions = !PERM.canDelete ? '-'
-        : r.personId
-          ? '<span class="form-hint">할당중</span>'
+        : holder
+          ? '<span class="form-hint">발급중</span>'
           : `<button class="btn btn-sm btn-danger" data-act="del" data-id="${esc(r.cardId)}">삭제</button>`;
       return `
       <tr${PERM.canCreate ? ' class="row-click" data-json=\'' + esc(JSON.stringify(r)) + '\'' : ''}>
@@ -74,7 +78,7 @@
         <td>${esc(r.passTypeName)}</td>
         <td>${esc(r.cardName)}</td>
         <td>${esc(r.cardStatusName)}</td>
-        <td>${esc(r.personId) || '<span class="form-hint">미할당</span>'}</td>
+        <td>${esc(holder) || '<span class="form-hint">미발급</span>'}</td>
         <td>${esc(fmtDt(r.regDt))}</td>
         <td>${actions}</td>
       </tr>`;
@@ -138,8 +142,9 @@
     $('cardId').value = row.cardId;
     $('cardNo').value = row.biostarCardValue || '';
     ['cardType', 'cardTypeName', 'passType', 'passTypeName', 'cardName',
-      'cardStatus', 'cardStatusName', 'feePaidDt', 'issueReason', 'remark', 'personId']
+      'cardStatus', 'cardStatusName', 'feePaidDt', 'issueReason', 'remark']
       .forEach((id) => { $(id).value = row[id] != null ? row[id] : ''; });
+    $('personId').value = holderOf(row); // 발급대상: 인원ID 또는 차량번호
     applyCardTypeRule();
   }
   /** 카드구분 규칙 — 차량 카드면 패스구분을 비우고 잠근다(필수값에서도 빠진다). */

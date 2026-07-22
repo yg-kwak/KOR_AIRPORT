@@ -10,7 +10,8 @@
     CONVERT(varchar(10), c.issue_dt, 23)    AS issue_dt,
     CONVERT(varchar(10), c.lost_dt, 23)     AS lost_dt,
     CONVERT(varchar(10), c.return_dt, 23)   AS return_dt,
-    cdt.code_name AS card_type_name, cs.code_name AS card_status_name, pt.code_name AS pass_type_name
+    cdt.code_name AS card_type_name, cs.code_name AS card_status_name, pt.code_name AS pass_type_name,
+    car.car_no AS car_no
   </sql>
 
   <!-- 카드등록관리 목록 — 조회는 항상 del_yn='N' -->
@@ -31,8 +32,9 @@
       <if test="cardStatus != null and cardStatus != ''">AND c.card_status = #{cardStatus}</if>
       <if test="passType != null and passType != ''">AND c.pass_type = #{passType}</if>
       <!-- OGNL 에서 'Y' 는 char 라 String 과 비교하면 터진다 → "Y".equals(...) 로 쓴다 -->
-      <if test='"Y".equals(assigned)'>AND c.person_id IS NOT NULL</if>
-      <if test='"N".equals(assigned)'>AND c.person_id IS NULL</if>
+      <!-- '발급됨' 은 인원 또는 차량 어느 쪽에든 붙어 있는 상태를 뜻한다 -->
+      <if test='"Y".equals(assigned)'>AND (c.person_id IS NOT NULL OR c.car_id IS NOT NULL)</if>
+      <if test='"N".equals(assigned)'>AND c.person_id IS NULL AND c.car_id IS NULL</if>
     </where>
   </sql>
 
@@ -48,11 +50,13 @@
     </choose>
   </sql>
 
+  <!-- 조인은 여기 한 곳에서만 정의한다(cardColumns 가 이 별칭들에 의존한다) -->
   <sql id="listJoins">
     FROM tb_card c
     LEFT JOIN tb_common cdt ON cdt.cmm_id = 'CDT' AND cdt.code_id = c.card_type
     LEFT JOIN tb_common cs  ON cs.cmm_id  = 'CS'  AND cs.code_id  = c.card_status
     LEFT JOIN tb_common pt  ON pt.cmm_id  = 'PT'  AND pt.code_id  = c.pass_type
+    LEFT JOIN tb_car car    ON car.car_id = c.car_id
   </sql>
 
   <select id="selectList" parameterType="AirPort.model.CardSearchParam" resultType="TbCard">
@@ -89,10 +93,7 @@
 
   <select id="selectByPerson" resultType="TbCard">
     SELECT <include refid="cardColumns"/>
-    FROM tb_card c
-    LEFT JOIN tb_common cdt ON cdt.cmm_id = 'CDT' AND cdt.code_id = c.card_type
-    LEFT JOIN tb_common cs  ON cs.cmm_id  = 'CS'  AND cs.code_id  = c.card_status
-    LEFT JOIN tb_common pt  ON pt.cmm_id  = 'PT'  AND pt.code_id  = c.pass_type
+    <include refid="listJoins"/>
     WHERE c.del_yn = 'N' AND c.person_id = #{personId}
     ORDER BY c.card_id
   </select>
@@ -100,10 +101,7 @@
   <!-- 미할당(회수된) 카드 목록 — 할당하기 팝업. 인원에 붙어 있지 않은 실물 카드만 -->
   <select id="selectUnassigned" resultType="TbCard">
     SELECT <include refid="cardColumns"/>
-    FROM tb_card c
-    LEFT JOIN tb_common cdt ON cdt.cmm_id = 'CDT' AND cdt.code_id = c.card_type
-    LEFT JOIN tb_common cs  ON cs.cmm_id  = 'CS'  AND cs.code_id  = c.card_status
-    LEFT JOIN tb_common pt  ON pt.cmm_id  = 'PT'  AND pt.code_id  = c.pass_type
+    <include refid="listJoins"/>
     <where>
       c.del_yn = 'N' AND c.person_id IS NULL
       <if test="keyword != null and keyword != ''">
@@ -117,10 +115,7 @@
   <!-- 카드번호로 단건 조회 — 회수된 카드 재사용 / 중복 발급 차단용 -->
   <select id="selectByCardNo" resultType="TbCard">
     SELECT TOP 1 <include refid="cardColumns"/>
-    FROM tb_card c
-    LEFT JOIN tb_common cdt ON cdt.cmm_id = 'CDT' AND cdt.code_id = c.card_type
-    LEFT JOIN tb_common cs  ON cs.cmm_id  = 'CS'  AND cs.code_id  = c.card_status
-    LEFT JOIN tb_common pt  ON pt.cmm_id  = 'PT'  AND pt.code_id  = c.pass_type
+    <include refid="listJoins"/>
     WHERE c.del_yn = 'N' AND c.biostar_card_value = #{cardNo}
     ORDER BY c.card_id
   </select>

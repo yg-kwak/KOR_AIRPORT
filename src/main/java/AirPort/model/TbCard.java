@@ -35,6 +35,7 @@ public class TbCard {
 
   // 화면 표시용 조인값
   private String cardTypeName;
+  private String carNo; // 차량 카드일 때 표시용(tb_car 조인)
   private String cardStatusName;
   private String passTypeName;
 }

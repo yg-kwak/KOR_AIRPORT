@@ -235,6 +235,7 @@ check "카드구분 필수 400" 400 "$(A -H 'Content-Type: application/json' -X 
 check "카드 카드구분 필터" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/card/card/list?cardType=CDT01&size=5")"
 check "카드 패스구분 필터" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/card/card/list?passType=PT01&size=5")"
 check "인원카드 패스구분 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"biostarCardValue":"1","cardType":"CDT01","cardName":"x","cardStatus":"CS01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/card/card")"
+check "미발급 필터(인원·차량 공통)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/card/card/list?assigned=N&size=5")"
 check "없는 카드 수정 404" 404 "$(A -H 'Content-Type: application/json' -X PUT --data '{"cardId":999999,"biostarCardValue":"1","cardType":"CDT01","passType":"PT01","cardName":"x","cardStatus":"CS01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/card/card")"
 check "없는 카드 삭제 404" 404 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/card/card?cardId=999999")"
 
