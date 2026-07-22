@@ -22,15 +22,19 @@ public class PersonForm {
   private String statusCode;
   private String mainTask;
   private String idCheckDt;
-  private String idCheckFile;
+  private String idCheckFile; // 회보근거문서 파일명 (빈 값 = 문서 삭제)
   private String securityEduDt;
   private Integer securityEduScore;
   private String finalApproveDt;
-  private String approveFile;
+  private String approveFile; // 승인근거문서 파일명 (빈 값 = 문서 삭제)
   private String accessStartDt;
   private String accessEndDt;
   private String remark;
   private String useYn;
+
+  // ── 증빙문서 첨부(BASE64) — null/빈 값이면 기존 파일 유지, 파일명이 비면 삭제 (tb_person_file) ──
+  private String idCheckFileData;
+  private String approveFileData;
 
   // ── 사용자 권한: 선택한 tb_ac_group.ac_group_id 목록 ──
   private List<Integer> acGroupIds;

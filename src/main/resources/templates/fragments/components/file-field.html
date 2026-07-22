@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 첨부파일 필드 (공용) — 짝 스크립트: static/js/core/components/file-field.js
+     사용: <div th:replace="~{fragments/components/file-field :: fileField('idCheckFile','회보근거문서')}"></div>
+     파일은 BASE64 로 읽어 화면 폼과 함께 전송된다(fileField.get(id)). -->
+<div th:fragment="fileField(fid, label)" class="form-group file-field" th:id="${fid}">
+  <label th:text="${label}">첨부파일</label>
+  <div class="file-field-row">
+    <input type="file" class="file-input"/>
+    <button type="button" class="btn btn-sm file-field-pick">파일 선택</button>
+    <span class="file-field-name empty-text">선택된 파일 없음</span>
+    <button type="button" class="btn btn-sm file-field-down">다운로드</button>
+    <button type="button" class="btn btn-sm file-field-clear">삭제</button>
+  </div>
+</div>
+</body>
+</html>

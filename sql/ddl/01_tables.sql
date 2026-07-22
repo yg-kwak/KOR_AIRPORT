@@ -149,11 +149,11 @@ CREATE TABLE dbo.tb_person (
   status_code        nvarchar(50)   NULL,                   -- 상태 → tb_common(cmm_id='PS')
   main_task          nvarchar(200)  NULL,                   -- 주요업무
   id_check_dt        datetime2(0)   NULL,                   -- 신원조회 회보일
-  id_check_file      nvarchar(500)  NULL,                   -- 회보근거문서 (경로/파일명, 1건)
+  id_check_file      nvarchar(500)  NULL,                   -- 회보근거문서 파일명 (실체는 tb_person_file)
   security_edu_dt    datetime2(0)   NULL,                   -- 보안교육 합격일
   security_edu_score int            NULL,                   -- 보안교육 점수
   final_approve_dt   datetime2(0)   NULL,                   -- 최종승인일
-  approve_file       nvarchar(500)  NULL,                   -- 승인근거문서 (경로/파일명, 1건)
+  approve_file       nvarchar(500)  NULL,                   -- 승인근거문서 파일명 (실체는 tb_person_file)
   access_start_dt    datetime2(0)   NULL,                   -- 출입시작일
   access_end_dt      datetime2(0)   NULL,                   -- 출입종료일
   remark             nvarchar(1000) NULL,                   -- 메모
@@ -174,6 +174,18 @@ CREATE TABLE dbo.tb_person_photo (
   reg_dt     datetime2(0)  NOT NULL DEFAULT getdate(),
   mod_dt     datetime2(0)  NOT NULL DEFAULT getdate(),
   CONSTRAINT PK_tb_person_photo PRIMARY KEY (person_id)
+);
+
+/* 인원 증빙문서 (회보근거·승인근거) — 종류별 1건. 파일 실체를 DB 에 보관해 백업을 일원화하고
+   업로드 경로 설정·고아파일 문제를 없앤다. tb_person.id_check_file/approve_file 은 표시용 원본 파일명 */
+CREATE TABLE dbo.tb_person_file (
+  person_id nvarchar(30)   NOT NULL,                          -- → tb_person.person_id
+  file_type nvarchar(20)   NOT NULL,                          -- 문서구분: ID_CHECK(회보근거) / APPROVE(승인근거)
+  file_name nvarchar(260)  NOT NULL,                          -- 원본 파일명
+  file_size int            NOT NULL,                          -- 파일 크기(byte)
+  file_data varbinary(max) NOT NULL,                          -- 파일 실체
+  reg_dt    datetime2(0)   NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_person_file PRIMARY KEY (person_id, file_type)
 );
 
 /* 카드 (인원 1 : 카드 N). 카드 상태는 card_status 단일 컬럼이 진실의 원천 —

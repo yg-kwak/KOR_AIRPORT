@@ -217,6 +217,8 @@ check "출입종료일 상한 초과 400" 400 "$(A -H 'Content-Type: application
 check "출입시작일>종료일 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personId":"SMKP4","personName":"x","companyCode":"SMKCO1","statusCode":"01","accessStartDt":"2027-01-01","accessEndDt":"2026-01-01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
 check "없는 인원 수정 404" 404 "$(A -H 'Content-Type: application/json' -X PUT --data '{"personId":"NOPE_SMK","personName":"x","companyCode":"SMKCO1","statusCode":"01","accessStartDt":"2026-01-01","accessEndDt":"2026-12-31"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
 check "없는 인원 삭제 404" 404 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/person/person?personId=NOPE_SMK")"
+check "없는 증빙문서 404" 404 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/file?personId=NOPE_SMK&fileType=ID_CHECK")"
+check "일괄삭제 빈 목록 400" 400 "$(A -H 'Content-Type: application/json' -X DELETE --data '[]' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/bulk")"
 
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
 VCODE=$(curl -s -m 2 -c "$CK_V" -o /dev/null -w "%{http_code}" --data "userId=viewer&password=viewer123" "$BASE_URL/login" 2>/dev/null)
@@ -245,6 +247,7 @@ if [ "$VCODE" = "302" ]; then
   check "viewer 기관 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/list?size=1")"
   check "viewer 인원 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/list?size=1")"
   check "viewer 인원 삭제 403" 403 "$(V -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/person/person?personId=NOPE_SMK")"
+  check "viewer 인원 일괄삭제 403" 403 "$(V -H 'Content-Type: application/json' -X DELETE --data '["NOPE_SMK"]' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/bulk")"
   check "viewer 인원 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"personId":"VXP","personName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
   check "viewer 기관 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"companyCode":"VXCO","companyName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
 else

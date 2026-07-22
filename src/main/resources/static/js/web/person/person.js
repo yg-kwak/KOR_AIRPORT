@@ -1,6 +1,6 @@
-/* 정규인원등록 화면 — 골든 샘플(loginUser) 구조 + 탭(사용자정보/사용자권한/카드정보).
+/* 정규인원등록 화면 — 골든 샘플(loginUser) 구조 + 탭(사용자정보/신원보안/사용자권한/카드정보).
    성명·생년월일·연락처는 서버에서 ARIA 암호화. 얼굴은 파일 업로드/장치 촬영을 서버가 BiostarX 로 중계한다.
-   등록 시 BiostarX 사용자도 생성된다(실패해도 인원은 저장되고 경고 토스트). 수정/삭제·카드는 추후. */
+   등록/수정/삭제 시 BiostarX 사용자도 동기화된다(실패해도 인원은 저장되고 경고 토스트). 카드는 추후. */
 (function () {
   const BASE = '/person/person';
   const state = {
@@ -10,11 +10,18 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
+  const fmtDt = (v) => (v == null ? '' : String(v).replace('T', ' '));
 
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
   const MAX_ACCESS_END_DT = '2037-12-31T23:59'; // BiostarX expiry 상한
   const TITLE_ALLOWED = /^[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/; // 직위: 특수문자 금지
+
+  // 서버로 그대로 전송하는 입력 필드(= PersonForm 속성명). 첨부문서는 fileField, 얼굴은 face 가 따로 담당.
+  const FORM_FIELDS = ['personId', 'personName', 'birthDate', 'personPhone', 'companyCode', 'titleCode',
+    'statusCode', 'mainTask', 'accessStartDt', 'accessEndDt', 'remark',
+    'idCheckDt', 'securityEduDt', 'securityEduScore', 'finalApproveDt'];
+  const VIEW_FIELDS = ['companyName', 'titleName', 'statusName', 'regDt']; // 화면 표시 전용(미전송)
 
   let face = { image: null, t9: null, t5: null }; // 얼굴(정규화 이미지 + 템플릿 2종)
   let acTreeData = []; // 출입권한 트리(tb_ac_group)
@@ -25,7 +32,6 @@
     const p = (n) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
   }
-
 
   // ---- 목록 ----
   async function load() {
@@ -62,26 +68,24 @@
     const body = $('gridBody');
     if (!rows || rows.length === 0) {
       body.innerHTML = '<tr><td colspan="8" class="empty">조회 결과가 없습니다.</td></tr>';
+      syncSelection();
       return;
     }
     body.innerHTML = rows.map((r) => {
-      const fmt = (v) => (v || '').replace('T', ' ');
-      const period = [fmt(r.accessStartDt), fmt(r.accessEndDt)].filter(Boolean).join(' ~ ');
-      const actions = PERM.canDelete
-        ? `<button class="btn btn-sm btn-danger" data-act="del" data-id="${esc(r.personId)}">삭제</button>`
-        : '-';
+      const period = [fmtDt(r.accessStartDt), fmtDt(r.accessEndDt)].filter(Boolean).join(' ~ ');
       return `
       <tr${PERM.canCreate ? ' class="row-click" data-json=\'' + esc(JSON.stringify(r)) + '\'' : ''}>
+        <td><input type="checkbox" class="row-chk" data-id="${esc(r.personId)}"/></td>
         <td>${esc(r.personId)}</td>
         <td>${esc(r.personName)}</td>
+        <td>${esc(r.companyCode)}</td>
         <td>${esc(r.companyName)}</td>
         <td>${esc(r.titleName)}</td>
-        <td>${esc(r.statusName)}</td>
+        <td>${esc(r.birthDate)}</td>
         <td>${esc(period)}</td>
-        <td>${r.biostarUserId ? '연동' : '-'}</td>
-        <td>${actions}</td>
       </tr>`;
     }).join('');
+    syncSelection();
   }
 
   function renderPaging(page, totalPages) {
@@ -113,6 +117,22 @@
     else { state.sort = col; state.dir = 'asc'; }
     state.page = 1;
     load();
+  }
+
+  // ---- 선택(체크박스) — 1건 이상 선택되면 '선택 삭제' 버튼이 등록 왼쪽에 나타난다 ----
+  function selectedIds() {
+    return [...$('gridBody').querySelectorAll('.row-chk:checked')].map((c) => c.dataset.id);
+  }
+
+  function syncSelection() {
+    const ids = selectedIds();
+    const boxes = $('gridBody').querySelectorAll('.row-chk');
+    const btn = $('btnDeleteSel');
+    if (btn) {
+      btn.style.display = ids.length ? '' : 'none';
+      btn.textContent = `선택 삭제 (${ids.length})`;
+    }
+    $('checkAll').checked = boxes.length > 0 && ids.length === boxes.length;
   }
 
   // ---- 탭 ----
@@ -198,15 +218,14 @@
   async function openModal(mode, row) {
     editMode = mode;
     $('modalTitle').textContent = mode === 'create' ? '정규인원 등록' : '정규인원 수정';
-    ['personId', 'personName', 'birthDate', 'personPhone', 'mainTask', 'remark',
-      'companyCode', 'companyName', 'titleCode', 'titleName', 'statusCode', 'statusName',
-      'accessStartDt', 'accessEndDt',
-      'idCheckDt', 'idCheckFile', 'securityEduDt', 'securityEduScore', 'finalApproveDt', 'approveFile']
-      .forEach((id) => { $(id).value = ''; });
+    [...FORM_FIELDS, ...VIEW_FIELDS].forEach((id) => { $(id).value = ''; });
+    fileField.set('idCheckFile', null, null);
+    fileField.set('approveFile', null, null);
     $('faceFile').value = '';
     setFace(null);
     showTab('info');
     $('personId').readOnly = mode === 'edit'; // PK 는 수정 불가
+    if ($('btnDelete')) $('btnDelete').style.display = mode === 'edit' ? '' : 'none';
     if (mode === 'create') { // 초기값: 시작=현재 일시, 종료=상한
       $('accessStartDt').value = nowLocal();
       $('accessEndDt').value = MAX_ACCESS_END_DT;
@@ -215,28 +234,13 @@
     $('editModal').classList.add('open');
     if (mode !== 'edit' || !row) return;
 
-    $('personId').value = row.personId;
-    $('personName').value = row.personName || '';
-    $('birthDate').value = row.birthDate || '';
-    $('personPhone').value = row.personPhone || '';
-    $('companyCode').value = row.companyCode || '';
-    $('companyName').value = row.companyName || '';
-    $('titleCode').value = row.titleCode || '';
-    $('titleName').value = row.titleName || '';
-    $('statusCode').value = row.statusCode || '';
-    $('statusName').value = row.statusName || '';
-    $('mainTask').value = row.mainTask || '';
-    $('accessStartDt').value = row.accessStartDt || '';
-    $('accessEndDt').value = row.accessEndDt || '';
-    $('remark').value = row.remark || '';
-    $('idCheckDt').value = row.idCheckDt || '';
-    $('idCheckFile').value = row.idCheckFile || '';
-    $('securityEduDt').value = row.securityEduDt || '';
-    $('securityEduScore').value = row.securityEduScore != null ? row.securityEduScore : '';
-    $('finalApproveDt').value = row.finalApproveDt || '';
-    $('approveFile').value = row.approveFile || '';
-    // 기존 얼굴·출입권한 로드(얼굴 템플릿은 저장하지 않으므로 이미지만 — 손대지 않으면 변경으로 보지 않는다)
+    [...FORM_FIELDS, ...VIEW_FIELDS].forEach((id) => { $(id).value = row[id] != null ? row[id] : ''; });
+    $('regDt').value = String(row.regDt || '').slice(0, 10); // 시스템 등록일은 날짜만
     const q = `?personId=${encodeURIComponent(row.personId)}`;
+    const dl = (type) => `${BASE}/file${q}&fileType=${type}`;
+    fileField.set('idCheckFile', row.idCheckFile, dl('ID_CHECK'));
+    fileField.set('approveFile', row.approveFile, dl('APPROVE'));
+    // 기존 얼굴·출입권한 로드(얼굴 템플릿은 저장하지 않으므로 이미지만 — 손대지 않으면 변경으로 보지 않는다)
     const [photo, acIds] = await Promise.all([
       api.get(BASE + '/photo' + q),
       api.get(BASE + '/personAcGroups' + q),
@@ -255,34 +259,35 @@
     });
     if (!ok) return;
     await api.del(`${BASE}?personId=${encodeURIComponent(personId)}`);
+    closeModal();
+    load();
+  }
+
+  async function removeSelected() {
+    const ids = selectedIds();
+    if (!PERM.canDelete || !ids.length) return;
+    const ok = await confirmModal.open({
+      title: '선택 삭제 확인',
+      message: `선택한 ${ids.length}건을 삭제하시겠습니까? BiostarX 사용자도 함께 삭제됩니다.`,
+      confirmText: '삭제',
+    });
+    if (!ok) return;
+    await api.del(BASE + '/bulk', ids);
     load();
   }
 
   async function save() {
     if (!PERM.canCreate) return;
-    const payload = {
-      personId: $('personId').value.trim(),
-      personName: $('personName').value.trim(),
-      birthDate: $('birthDate').value.trim() || null,
-      personPhone: $('personPhone').value.trim() || null,
-      companyCode: $('companyCode').value || null,
-      titleCode: $('titleCode').value || null,
-      statusCode: $('statusCode').value || null,
-      mainTask: $('mainTask').value.trim() || null,
-      accessStartDt: $('accessStartDt').value || null,
-      accessEndDt: $('accessEndDt').value || null,
-      remark: $('remark').value.trim() || null,
-      idCheckDt: $('idCheckDt').value || null,
-      idCheckFile: $('idCheckFile').value.trim() || null,
-      securityEduDt: $('securityEduDt').value || null,
-      securityEduScore: $('securityEduScore').value ? Number($('securityEduScore').value) : null,
-      finalApproveDt: $('finalApproveDt').value || null,
-      approveFile: $('approveFile').value.trim() || null,
-      acGroupIds: selectedAcGroupIds(),
-      faceImage: face.image,
-      faceTemplate9: face.t9,
-      faceTemplate5: face.t5,
-    };
+    const payload = { acGroupIds: selectedAcGroupIds(), faceImage: face.image, faceTemplate9: face.t9, faceTemplate5: face.t5 };
+    FORM_FIELDS.forEach((id) => { payload[id] = $(id).value.trim() || null; });
+    payload.securityEduScore = payload.securityEduScore ? Number(payload.securityEduScore) : null;
+    const idCheck = fileField.get('idCheckFile');
+    const approve = fileField.get('approveFile');
+    payload.idCheckFile = idCheck.name;
+    payload.idCheckFileData = idCheck.data;
+    payload.approveFile = approve.name;
+    payload.approveFileData = approve.data;
+
     const required = [
       [payload.personId, '인원ID'], [payload.personName, '성명'],
       [payload.companyCode, '기관'], [payload.statusCode, '상태'],
@@ -325,11 +330,16 @@
     }
     $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
     if ($('btnNew')) $('btnNew').addEventListener('click', () => openModal('create', null));
+    if ($('btnDeleteSel')) $('btnDeleteSel').addEventListener('click', removeSelected);
+    if ($('btnDelete')) $('btnDelete').addEventListener('click', () => remove($('personId').value));
 
-    // 행 클릭 → 수정, 삭제 버튼 → 삭제
+    // 전체선택 / 행 클릭 → 수정 (체크박스 클릭은 선택 토글만)
+    $('checkAll').addEventListener('click', (e) => {
+      $('gridBody').querySelectorAll('.row-chk').forEach((c) => { c.checked = e.target.checked; });
+      syncSelection();
+    });
     $('gridBody').addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (btn) { if (btn.dataset.act === 'del') remove(btn.dataset.id); return; }
+      if (e.target.closest('.row-chk')) { syncSelection(); return; }
       const tr = e.target.closest('tr[data-json]');
       if (tr && PERM.canCreate) openModal('edit', JSON.parse(tr.dataset.json));
     });

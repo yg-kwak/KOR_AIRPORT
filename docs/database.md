@@ -189,11 +189,11 @@ PK: `person_id`. **`tb_login_user`(로그인 계정)와 다른 개체** — 혼�
 | status_code | nvarchar(50) | | | 상태 | → `tb_common`(cmm_id='PS').code_id |
 | main_task | nvarchar(200) | | | 주요업무 | |
 | id_check_dt | datetime2(0) | | | 신원조회 회보일 | |
-| id_check_file | nvarchar(500) | | | 회보근거문서 | 경로/파일명, 1건 |
+| id_check_file | nvarchar(500) | | | 회보근거문서 | 표시용 원본 파일명. 실체는 `tb_person_file`(file_type='ID_CHECK') |
 | security_edu_dt | datetime2(0) | | | 보안교육 합격일 | |
 | security_edu_score | int | | | 보안교육 점수 | |
 | final_approve_dt | datetime2(0) | | | 최종승인일 | |
-| approve_file | nvarchar(500) | | | 승인근거문서 | 경로/파일명, 1건 |
+| approve_file | nvarchar(500) | | | 승인근거문서 | 표시용 원본 파일명. 실체는 `tb_person_file`(file_type='APPROVE') |
 | access_start_dt | datetime2(0) | | | 출입시작일 | 출입 유효기간 시작 |
 | access_end_dt | datetime2(0) | | | 출입종료일 | 출입 유효기간 종료 |
 | remark | nvarchar(1000) | | | 메모 | |
@@ -210,6 +210,18 @@ PK: `person_id` (`tb_person` 과 1:1). **본 테이블에서 분리한 이유**:
 | person_id | nvarchar(30) | Y | 인원ID | → `tb_person.person_id` |
 | photo_data | nvarchar(max) | | 등록사진 | BASE64 문자열. **암호화 안 함**(확정) — 대신 본 테이블 분리로 노출면 축소 (`security.md`) |
 | reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
+
+### tb_person_file — 인원 증빙문서
+PK: `person_id + file_type` (인원별 **문서 종류당 1건**). **파일 실체를 DB 에 두는 이유**: DB 백업만으로 문서까지 복구되고, 업로드 경로 설정·권한·고아파일 문제가 사라진다. 목록/검색은 이 테이블을 조인하지 않는다(행 크기).
+
+| 컬럼 | 타입 | PK | 설명 | 비고 |
+|------|------|----|------|------|
+| person_id | nvarchar(30) | Y | 인원ID | → `tb_person.person_id` |
+| file_type | nvarchar(20) | Y | 문서구분 | `ID_CHECK`(회보근거) / `APPROVE`(승인근거) |
+| file_name | nvarchar(260) | | 원본 파일명 | `tb_person.id_check_file`/`approve_file` 과 동일 값(표시용 비정규화) |
+| file_size | int | | 파일 크기 | byte. 업로드 상한 5MB |
+| file_data | varbinary(max) | | 파일 실체 | 다운로드 시 attachment 로 전송 |
+| reg_dt | datetime2(0) | | 입력일자 | 기본 getdate() |
 
 ### tb_card — 카드 (출입통제 카드)
 PK: `card_id` (IDENTITY). **인원 1 : 카드 N** (`person_id`). 삭제는 `del_yn='Y'` 소프트 삭제.
@@ -276,6 +288,7 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 - `tb_person.person_type`(발급유형: 정규/임시/상주) → `tb_common`(cmm_id='PT')
 - `tb_person.status_code`(상태) → `tb_common`(cmm_id='PS')
 - `tb_person_photo.person_id` → `tb_person.person_id` (1:1)
+- `tb_person_file.person_id` → `tb_person.person_id` (1:N — 문서 종류당 1건)
 - `tb_card.person_id` → `tb_person.person_id` (**1:N** — 인원 1명이 카드 여러 장)
 - `tb_card.card_type` → `tb_common`(cmm_id='CDT'), `card_status` → (cmm_id='CS'), `issue_type` → (cmm_id='IS')
 - `tb_person` ←(`tb_person_ac_group`)→ `tb_ac_group` (**N:M** 인원별 출입권한 부여)

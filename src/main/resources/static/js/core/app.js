@@ -35,6 +35,6 @@ window.api = (function () {
     get: (url) => request('GET', url),
     post: (url, body) => request('POST', url, body),
     put: (url, body) => request('PUT', url, body),
-    del: (url) => request('DELETE', url),
+    del: (url, body) => request('DELETE', url, body), // body 는 일괄삭제(ID 목록) 등에만 사용
   };
 })();

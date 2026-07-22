@@ -47,6 +47,7 @@ public class PersonService {
   private final TbCommonMapper commonMapper;
   private final TbSystemMapper systemMapper;
   private final BiostarUserAdapter biostarUserAdapter;
+  private final PersonFileService personFileService;
   private final AuditService auditService;
   private final MenuAuthService menuAuthService;
 
@@ -58,6 +59,7 @@ public class PersonService {
       TbCommonMapper commonMapper,
       TbSystemMapper systemMapper,
       BiostarUserAdapter biostarUserAdapter,
+      PersonFileService personFileService,
       AuditService auditService,
       MenuAuthService menuAuthService) {
     this.personMapper = personMapper;
@@ -67,6 +69,7 @@ public class PersonService {
     this.commonMapper = commonMapper;
     this.systemMapper = systemMapper;
     this.biostarUserAdapter = biostarUserAdapter;
+    this.personFileService = personFileService;
     this.auditService = auditService;
     this.menuAuthService = menuAuthService;
   }
@@ -137,6 +140,7 @@ public class PersonService {
       photoMapper.upsert(form.getPersonId(), form.getFaceImage());
     }
     saveAcGroups(form.getPersonId(), form.getAcGroupIds());
+    personFileService.apply(form);
 
     auditService.log(actor, AuditService.CREATE, menuId, "정규인원 등록: " + form.getPersonId());
     return syncBiostarUser(form);
@@ -204,6 +208,7 @@ public class PersonService {
       photoMapper.deleteByPerson(form.getPersonId()); // 얼굴 삭제
     }
     saveAcGroups(form.getPersonId(), form.getAcGroupIds());
+    personFileService.apply(form);
 
     auditService.log(actor, AuditService.UPDATE, menuId, "정규인원 수정: " + form.getPersonId());
 
@@ -238,6 +243,31 @@ public class PersonService {
   @Transactional
   public String delete(String personId, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireDelete(actor, menuId);
+    return deleteOne(personId, actor, menuId);
+  }
+
+  /**
+   * 선택 인원 일괄 삭제 — 건별로 소프트 삭제 + BiostarX 사용자 삭제.
+   *
+   * @return 실패한 건들의 경고(모두 성공이면 null)
+   */
+  @Transactional
+  public String deleteMany(List<String> personIds, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireDelete(actor, menuId);
+    if (personIds == null || personIds.isEmpty()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "삭제할 인원을 선택하세요.");
+    }
+    List<String> warns = new java.util.ArrayList<>();
+    for (String personId : personIds) {
+      String warn = deleteOne(personId, actor, menuId);
+      if (warn != null) {
+        warns.add(personId + "(" + warn + ")");
+      }
+    }
+    return warns.isEmpty() ? null : String.join(", ", warns);
+  }
+
+  private String deleteOne(String personId, TbLoginUser actor, Integer menuId) {
     TbPerson existing = personMapper.selectById(personId);
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);

@@ -10,14 +10,22 @@ import AirPort.model.PersonForm;
 import AirPort.model.PersonSearchParam;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbPerson;
+import AirPort.model.TbPersonFile;
 import AirPort.service.AcGroupService;
 import AirPort.service.MenuAuthService;
 import AirPort.service.MenuService;
+import AirPort.service.PersonFileService;
 import AirPort.service.PersonService;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.util.List;
 import java.util.Map;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -39,6 +47,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class PersonController {
 
   private final PersonService personService;
+  private final PersonFileService personFileService;
   private final AcGroupService acGroupService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
@@ -46,11 +55,13 @@ public class PersonController {
 
   public PersonController(
       PersonService personService,
+      PersonFileService personFileService,
       AcGroupService acGroupService,
       MenuService menuService,
       MenuAuthService menuAuthService,
       CurrentMenu currentMenu) {
     this.personService = personService;
+    this.personFileService = personFileService;
     this.acGroupService = acGroupService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
@@ -134,6 +145,28 @@ public class PersonController {
   public ApiResponse<Void> update(@RequestBody PersonForm form, HttpSession session) {
     return ApiResponse.okMessage(
         withWarning("수정되었습니다.", personService.update(form, actor(session), menuId())));
+  }
+
+  /** 증빙문서 다운로드 — 브라우저가 파일로 받도록 attachment 로 전송한다. */
+  @GetMapping("/file")
+  public ResponseEntity<ByteArrayResource> file(
+      @RequestParam String personId, @RequestParam String fileType, HttpSession session) {
+    TbPersonFile file = personFileService.download(personId, fileType, actor(session), menuId());
+    String name = URLEncoder.encode(file.getFileName(), StandardCharsets.UTF_8).replace("+", "%20");
+    return ResponseEntity.ok()
+        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + name)
+        .contentType(MediaType.APPLICATION_OCTET_STREAM)
+        .body(new ByteArrayResource(file.getFileData()));
+  }
+
+  /** 선택 인원 일괄 삭제 (AJAX) */
+  @DeleteMapping("/bulk")
+  @ResponseBody
+  public ApiResponse<Void> deleteMany(@RequestBody List<String> personIds, HttpSession session) {
+    return ApiResponse.okMessage(
+        withWarning(
+            personIds.size() + "건을 삭제했습니다.",
+            personService.deleteMany(personIds, actor(session), menuId())));
   }
 
   /** 삭제 (AJAX) — 소프트 삭제 + BiostarX 사용자 삭제 */

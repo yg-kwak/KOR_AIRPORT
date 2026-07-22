@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 정규인원 목록·삭제 UX 및 증빙문서 첨부 — 목록 컬럼 재구성(선택/인원ID/성명/기관코드/기관/직위/생년월일/출입기간, 행별 관리 컬럼 제거), 체크박스 다중선택 + 툴바 '선택 삭제'(DELETE /bulk, 건별 BiostarX 동기화·실패만 경고), 수정 모달 좌측 삭제 버튼, 시스템 등록일(reg_dt) 읽기전용 표시. 회보/승인 근거문서는 경로 텍스트 → **첨부파일**(tb_person_file, 파일 실체 DB 보관, 종류당 1건, 5MB, 다운로드는 attachment) + 공용 컴포넌트 file-field 신설 — sjpark2, 2026-07-22
 - [x] 인원·카드·출입그룹 스키마 설계 — tb_person(인원, 성명·생년월일·연락처 ARIA, 발급유형 person_type=PT, tb_login_user 와 이름 분리해 조인 오용 차단), tb_person_photo(등록사진 BASE64 1:1 분리 — 목록 성능·생체정보 노출면 축소), tb_card(인원 1:N, card_status 단일화로 상태 모순 차단), tb_person_ac_group(출입권한 N:M, 복합PK 로 중복부여 차단). security.md Enc=Y 목록 7컬럼 갱신 + 비암호화 결정(카드값·사진) 근거 기록 + 출입권한 부여/회수 감사 필수화. DDL·문서만(코드 없음), 공통코드 시드 UT/PT/CDT/CS/IS 는 후속 — sjpark2, 2026-07-21
 - [x] 정규인원등록(tb_person) — 정규인원관리(200)/정규인원등록(201), /person/person 수직 슬라이스. person_type=PT01 고정, 성명·생년월일·연락처 ARIA, 탭 모달(사용자정보/사용자권한/카드정보), 출입권한은 tb_ac_group 트리 선택→tb_person_ac_group, 얼굴은 파일업로드(upload_picture)/장치촬영(credentials/face) 서버 중계 + tb_person_photo, 등록 시 BiostarX 사용자 생성(POST /api/users, 실패는 경고). 수정/삭제·카드는 추후 — yg-kwak, 2026-07-15
 - [x] 기관 ↔ BiostarX 사용자그룹 연동 — tb_company.biostar_group_id 추가, PT→PTD01 code_tag(부모 그룹ID) 체인, 등록 시 선택(모달)/미선택 시 생성(POST /api/user_groups), 기관명 변경 시 그룹명 수정(PUT), 선택 팝업은 user_groups/search 를 부모로 필터. 연동 실패는 기관 저장 유지 + 경고. PT/PTD seed — yg-kwak, 2026-07-15
