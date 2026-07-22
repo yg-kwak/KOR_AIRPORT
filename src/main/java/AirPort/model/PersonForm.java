@@ -21,6 +21,12 @@ public class PersonForm {
   private String titleCode;
   private String statusCode;
   private String mainTask;
+  private String idCheckDt;
+  private String idCheckFile;
+  private String securityEduDt;
+  private Integer securityEduScore;
+  private String finalApproveDt;
+  private String approveFile;
   private String accessStartDt;
   private String accessEndDt;
   private String remark;

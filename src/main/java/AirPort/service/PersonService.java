@@ -121,6 +121,12 @@ public class PersonService {
     row.setPersonType(PERSON_TYPE_REGULAR);
     row.setStatusCode(form.getStatusCode());
     row.setMainTask(form.getMainTask());
+    row.setIdCheckDt(form.getIdCheckDt());
+    row.setIdCheckFile(form.getIdCheckFile());
+    row.setSecurityEduDt(form.getSecurityEduDt());
+    row.setSecurityEduScore(form.getSecurityEduScore());
+    row.setFinalApproveDt(form.getFinalApproveDt());
+    row.setApproveFile(form.getApproveFile());
     row.setAccessStartDt(dbDateTime(form.getAccessStartDt(), "00:00"));
     row.setAccessEndDt(dbDateTime(form.getAccessEndDt(), "23:59"));
     row.setRemark(form.getRemark());
@@ -181,6 +187,12 @@ public class PersonService {
     row.setTitleCode(form.getTitleCode());
     row.setStatusCode(form.getStatusCode());
     row.setMainTask(form.getMainTask());
+    row.setIdCheckDt(form.getIdCheckDt());
+    row.setIdCheckFile(form.getIdCheckFile());
+    row.setSecurityEduDt(form.getSecurityEduDt());
+    row.setSecurityEduScore(form.getSecurityEduScore());
+    row.setFinalApproveDt(form.getFinalApproveDt());
+    row.setApproveFile(form.getApproveFile());
     row.setAccessStartDt(dbDateTime(form.getAccessStartDt(), "00:00"));
     row.setAccessEndDt(dbDateTime(form.getAccessEndDt(), "23:59"));
     row.setRemark(form.getRemark());

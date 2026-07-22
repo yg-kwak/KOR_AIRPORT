@@ -197,7 +197,8 @@
     $('modalTitle').textContent = mode === 'create' ? '정규인원 등록' : '정규인원 수정';
     ['personId', 'personName', 'birthDate', 'personPhone', 'mainTask', 'remark',
       'companyCode', 'companyName', 'titleCode', 'titleName', 'statusCode', 'statusName',
-      'accessStartDt', 'accessEndDt']
+      'accessStartDt', 'accessEndDt',
+      'idCheckDt', 'idCheckFile', 'securityEduDt', 'securityEduScore', 'finalApproveDt', 'approveFile']
       .forEach((id) => { $(id).value = ''; });
     $('faceFile').value = '';
     setFace(null);
@@ -225,6 +226,12 @@
     $('accessStartDt').value = row.accessStartDt || '';
     $('accessEndDt').value = row.accessEndDt || '';
     $('remark').value = row.remark || '';
+    $('idCheckDt').value = row.idCheckDt || '';
+    $('idCheckFile').value = row.idCheckFile || '';
+    $('securityEduDt').value = row.securityEduDt || '';
+    $('securityEduScore').value = row.securityEduScore != null ? row.securityEduScore : '';
+    $('finalApproveDt').value = row.finalApproveDt || '';
+    $('approveFile').value = row.approveFile || '';
     // 기존 얼굴·출입권한 로드(얼굴 템플릿은 저장하지 않으므로 이미지만 — 손대지 않으면 변경으로 보지 않는다)
     const q = `?personId=${encodeURIComponent(row.personId)}`;
     const [photo, acIds] = await Promise.all([
@@ -262,6 +269,12 @@
       accessStartDt: $('accessStartDt').value || null,
       accessEndDt: $('accessEndDt').value || null,
       remark: $('remark').value.trim() || null,
+      idCheckDt: $('idCheckDt').value || null,
+      idCheckFile: $('idCheckFile').value.trim() || null,
+      securityEduDt: $('securityEduDt').value || null,
+      securityEduScore: $('securityEduScore').value ? Number($('securityEduScore').value) : null,
+      finalApproveDt: $('finalApproveDt').value || null,
+      approveFile: $('approveFile').value.trim() || null,
       acGroupIds: selectedAcGroupIds(),
       faceImage: face.image,
       faceTemplate9: face.t9,

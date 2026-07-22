@@ -20,6 +20,12 @@ public class TbPerson {
   private String personType; // → tb_common(PT). 본 화면은 PT01 고정
   private String statusCode; // → tb_common(PS)
   private String mainTask;
+  private String idCheckDt; // 신원조회 회보일 (YYYY-MM-DD)
+  private String idCheckFile; // 회보근거문서(경로/파일명)
+  private String securityEduDt; // 보안교육 합격일
+  private Integer securityEduScore; // 보안교육 점수
+  private String finalApproveDt; // 최종승인일
+  private String approveFile; // 승인근거문서(경로/파일명)
   private String accessStartDt; // 출입시작일 (문자열 바인딩 "YYYY-MM-DD")
   private String accessEndDt; // 출입종료일
   private String remark;

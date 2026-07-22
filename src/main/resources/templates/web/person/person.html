@@ -76,6 +76,7 @@
     <div class="modal-body">
       <div class="tabs">
         <button type="button" class="tab-btn active" data-tab="info">사용자 정보</button>
+        <button type="button" class="tab-btn" data-tab="sec">신원 보안 정보</button>
         <button type="button" class="tab-btn" data-tab="auth">사용자 권한</button>
         <button type="button" class="tab-btn" data-tab="card">카드정보</button>
       </div>
@@ -119,20 +120,12 @@
                      data-target="statusCode" placeholder="클릭하여 선택" autocomplete="off"/>
             </div>
             <div class="form-group">
-              <label>주요업무</label>
-              <input type="text" id="mainTask" class="input" autocomplete="off"/>
-            </div>
-            <div class="form-group">
               <label>출입시작일 <span class="req">*</span></label>
               <input type="datetime-local" id="accessStartDt" class="input" max="2037-12-31T23:59"/>
             </div>
             <div class="form-group">
               <label>출입종료일 <span class="req">*</span></label>
               <input type="datetime-local" id="accessEndDt" class="input" max="2037-12-31T23:59"/>
-            </div>
-            <div class="form-group full">
-              <label>메모</label>
-              <input type="text" id="remark" class="input" autocomplete="off"/>
             </div>
           </div>
 
@@ -150,7 +143,45 @@
         </form>
       </div>
 
-      <!-- 탭2: 사용자 권한 (tb_ac_group 선택) -->
+      <!-- 탭2: 신원 보안 정보 (BiostarX 미연동 — 우리 시스템 관리 항목) -->
+      <div class="tab-panel" id="tab-sec">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>신원조회 회보일</label>
+            <input type="date" id="idCheckDt" class="input"/>
+          </div>
+          <div class="form-group">
+            <label>회보근거문서 <span class="form-hint">(경로/파일명)</span></label>
+            <input type="text" id="idCheckFile" class="input" autocomplete="off"/>
+          </div>
+          <div class="form-group">
+            <label>보안교육 합격일</label>
+            <input type="date" id="securityEduDt" class="input"/>
+          </div>
+          <div class="form-group">
+            <label>보안교육 점수</label>
+            <input type="number" id="securityEduScore" class="input" min="0" max="100" autocomplete="off"/>
+          </div>
+          <div class="form-group">
+            <label>최종승인일</label>
+            <input type="date" id="finalApproveDt" class="input"/>
+          </div>
+          <div class="form-group">
+            <label>승인근거문서 <span class="form-hint">(경로/파일명)</span></label>
+            <input type="text" id="approveFile" class="input" autocomplete="off"/>
+          </div>
+          <div class="form-group full">
+            <label>주요업무</label>
+            <input type="text" id="mainTask" class="input" autocomplete="off"/>
+          </div>
+          <div class="form-group full">
+            <label>메모</label>
+            <input type="text" id="remark" class="input" autocomplete="off"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- 탭3: 사용자 권한 (tb_ac_group 선택) -->
       <div class="tab-panel" id="tab-auth">
         <p class="form-hint">출입을 허용할 출입권한(BiostarX 출입그룹)을 선택하세요.</p>
         <div class="ac-select-tree" id="acTree">
@@ -158,7 +189,7 @@
         </div>
       </div>
 
-      <!-- 탭3: 카드정보 (추후) -->
+      <!-- 탭4: 카드정보 (추후) -->
       <div class="tab-panel" id="tab-card">
         <p class="form-hint">카드 등록은 추후 제공됩니다.</p>
       </div>
