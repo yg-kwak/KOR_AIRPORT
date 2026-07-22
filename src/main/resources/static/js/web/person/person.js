@@ -13,6 +13,9 @@
 
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
+  const MAX_ACCESS_END_DT = '2037-12-31'; // BiostarX expiry 상한(2037-12-31T23:59)
+  const TITLE_ALLOWED = /^[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/; // 직위: 특수문자 금지
+
   let face = { image: null, t9: null, t5: null }; // 얼굴(정규화 이미지 + 템플릿 2종)
   let acTreeData = []; // 출입권한 트리(tb_ac_group)
   let companies = []; // 기관 목록(검색조건 + 등록모달 공용)
@@ -301,8 +304,22 @@
       faceTemplate9: face.t9,
       faceTemplate5: face.t5,
     };
-    if (!payload.personId) { toast.warning('인원ID는 필수입니다.'); return; }
-    if (!payload.personName) { toast.warning('성명은 필수입니다.'); return; }
+    const required = [
+      [payload.personId, '인원ID'], [payload.personName, '성명'],
+      [payload.companyCode, '기관'], [payload.statusCode, '상태'],
+      [payload.accessStartDt, '출입시작일'], [payload.accessEndDt, '출입종료일'],
+    ].find(([v]) => !v);
+    if (required) { toast.warning(`${required[1]}은(는) 필수입니다.`); return; }
+    if (payload.accessEndDt > MAX_ACCESS_END_DT) {
+      toast.warning(`출입종료일은 ${MAX_ACCESS_END_DT} 23:59 를 초과할 수 없습니다.`); return;
+    }
+    if (payload.accessStartDt > payload.accessEndDt) {
+      toast.warning('출입시작일은 출입종료일보다 늦을 수 없습니다.'); return;
+    }
+    const titleName = $('titleName').value.trim();
+    if (titleName && !TITLE_ALLOWED.test(titleName)) {
+      toast.warning('직위에 특수문자를 사용할 수 없습니다.'); return;
+    }
     // 서버 메시지(연동 경고 포함) 자동 토스트. 수정은 변경분만 BiostarX 로 전송된다.
     if (editMode === 'create') await api.post(BASE, payload);
     else await api.put(BASE, payload);

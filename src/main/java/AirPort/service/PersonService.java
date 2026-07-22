@@ -385,12 +385,39 @@ public class PersonService {
 
   // ── 공통 ────────────────────────────────────────────────────────────────
 
+  /** BiostarX 유효기간 상한 — expiry_datetime 은 2037-12-31T23:59 를 넘을 수 없다. */
+  private static final String MAX_ACCESS_END_DT = "2037-12-31";
+
+  /** 직위(user_title) 허용 문자 — 한글·영문·숫자·공백만(특수문자 금지). */
+  private static final java.util.regex.Pattern TITLE_ALLOWED =
+      java.util.regex.Pattern.compile("^[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ\\s]+$");
+
+  /** 필수값·형식 검증 — 등록·수정 공통(인원 데이터의 최소 요건). */
   private void validate(PersonForm form) {
-    if (form.getPersonId() == null || form.getPersonId().isBlank()) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "인원ID는 필수입니다.");
+    require(form.getPersonId(), "인원ID");
+    require(form.getPersonName(), "성명");
+    require(form.getCompanyCode(), "기관");
+    require(form.getStatusCode(), "상태");
+    require(form.getAccessStartDt(), "출입시작일");
+    require(form.getAccessEndDt(), "출입종료일");
+
+    // 날짜는 "YYYY-MM-DD" 형식이라 문자열 비교로 대소 판정이 가능하다
+    if (form.getAccessEndDt().compareTo(MAX_ACCESS_END_DT) > 0) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT, "출입종료일은 " + MAX_ACCESS_END_DT + " 23:59 를 초과할 수 없습니다.");
     }
-    if (form.getPersonName() == null || form.getPersonName().isBlank()) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "성명은 필수입니다.");
+    if (form.getAccessStartDt().compareTo(form.getAccessEndDt()) > 0) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "출입시작일은 출입종료일보다 늦을 수 없습니다.");
+    }
+    String title = codeName(UT, form.getTitleCode());
+    if (title != null && !title.isBlank() && !TITLE_ALLOWED.matcher(title).matches()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "직위에 특수문자를 사용할 수 없습니다: " + title);
+    }
+  }
+
+  private static void require(String value, String label) {
+    if (value == null || value.isBlank()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, label + "은(는) 필수입니다.");
     }
   }
 

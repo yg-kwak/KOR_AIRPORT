@@ -101,7 +101,7 @@
               <input type="text" id="personPhone" class="input" autocomplete="off"/>
             </div>
             <div class="form-group">
-              <label>기관 <span class="form-hint">(클릭하여 선택)</span></label>
+              <label>기관 <span class="req">*</span> <span class="form-hint">(클릭하여 선택)</span></label>
               <input type="hidden" id="companyCode"/>
               <input type="text" id="companyName" class="input picker-field" readonly
                      data-target="companyCode" placeholder="클릭하여 선택" autocomplete="off"/>
@@ -113,7 +113,7 @@
                      data-target="titleCode" placeholder="클릭하여 선택" autocomplete="off"/>
             </div>
             <div class="form-group">
-              <label>상태 <span class="form-hint">(클릭하여 선택)</span></label>
+              <label>상태 <span class="req">*</span> <span class="form-hint">(클릭하여 선택)</span></label>
               <input type="hidden" id="statusCode"/>
               <input type="text" id="statusName" class="input picker-field" readonly
                      data-target="statusCode" placeholder="클릭하여 선택" autocomplete="off"/>
@@ -123,12 +123,12 @@
               <input type="text" id="mainTask" class="input" autocomplete="off"/>
             </div>
             <div class="form-group">
-              <label>출입시작일</label>
+              <label>출입시작일 <span class="req">*</span></label>
               <input type="date" id="accessStartDt" class="input"/>
             </div>
             <div class="form-group">
-              <label>출입종료일</label>
-              <input type="date" id="accessEndDt" class="input"/>
+              <label>출입종료일 <span class="req">*</span></label>
+              <input type="date" id="accessEndDt" class="input" max="2037-12-31"/>
             </div>
             <div class="form-group full">
               <label>메모</label>

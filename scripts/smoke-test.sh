@@ -212,7 +212,10 @@ check "출입권한 트리" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/p
 check "인원ID 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
 check "성명 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personId":"SMKP1"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
 # 수정/삭제도 존재 확인이 BiostarX 호출보다 먼저라 없는 인원은 외부 호출 없이 404
-check "없는 인원 수정 404" 404 "$(A -H 'Content-Type: application/json' -X PUT --data '{"personId":"NOPE_SMK","personName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
+check "기관 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personId":"SMKP2","personName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
+check "출입종료일 상한 초과 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personId":"SMKP3","personName":"x","companyCode":"SMKCO1","statusCode":"01","accessStartDt":"2026-01-01","accessEndDt":"2038-01-01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
+check "출입시작일>종료일 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personId":"SMKP4","personName":"x","companyCode":"SMKCO1","statusCode":"01","accessStartDt":"2027-01-01","accessEndDt":"2026-01-01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
+check "없는 인원 수정 404" 404 "$(A -H 'Content-Type: application/json' -X PUT --data '{"personId":"NOPE_SMK","personName":"x","companyCode":"SMKCO1","statusCode":"01","accessStartDt":"2026-01-01","accessEndDt":"2026-12-31"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
 check "없는 인원 삭제 404" 404 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/person/person?personId=NOPE_SMK")"
 
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
