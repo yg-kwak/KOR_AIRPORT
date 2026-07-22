@@ -207,7 +207,7 @@ echo "== 정규인원등록(tb_person) =="
 # 읽기 전용 경로 + 입력 검증(외부 호출 전에 실패)만 확인한다.
 check "인원 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
 check "인원 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/list?size=5")"
-check "참조 데이터(기관)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/refs")"
+check "기관 선택 팝업(공용)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/picker")"
 check "출입권한 트리" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/acGroups")"
 check "인원ID 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
 check "성명 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personId":"SMKP1"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"

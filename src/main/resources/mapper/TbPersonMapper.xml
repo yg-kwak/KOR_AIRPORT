@@ -46,8 +46,8 @@
   <sql id="listColumns">
     p.person_id, p.person_name, p.birth_date, p.person_phone, p.company_code, p.title_code,
     p.person_type, p.status_code, p.main_task, p.remark, p.biostar_user_id,
-    CONVERT(varchar(10), p.access_start_dt, 23) AS access_start_dt,
-    CONVERT(varchar(10), p.access_end_dt, 23)   AS access_end_dt,
+    CONVERT(varchar(16), p.access_start_dt, 126) AS access_start_dt,
+    CONVERT(varchar(16), p.access_end_dt, 126)   AS access_end_dt,
     p.use_yn, p.del_yn, p.reg_dt, p.mod_dt,
     co.company_name AS company_name, ut.code_name AS title_name, ps.code_name AS status_name
   </sql>

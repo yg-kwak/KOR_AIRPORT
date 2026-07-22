@@ -82,13 +82,6 @@ public class PersonController {
     return ApiResponse.ok(personService.list(param, actor(session), menuId()));
   }
 
-  /** 등록 참조 데이터(기관 옵션) (AJAX) */
-  @GetMapping("/refs")
-  @ResponseBody
-  public ApiResponse<Map<String, Object>> refs(HttpSession session) {
-    return ApiResponse.ok(personService.refs(actor(session), menuId()));
-  }
-
   /** 출입권한 선택 트리 (AJAX) — tb_ac_group 재사용 */
   @GetMapping("/acGroups")
   @ResponseBody

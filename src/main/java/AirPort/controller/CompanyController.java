@@ -108,6 +108,13 @@ public class CompanyController {
     ExcelUtil.download(response, filename, headers, data);
   }
 
+  /** 기관 선택 팝업용 조회 — 로그인 사용자 공용(특정 메뉴 권한 불요). 코드팝업과 동일한 선례. (AJAX) */
+  @GetMapping("/picker")
+  @ResponseBody
+  public ApiResponse<List<TbCompany>> picker() {
+    return ApiResponse.ok(companyService.pickerCompanies());
+  }
+
   /** BiostarX 사용자그룹 목록 (AJAX) — PTD01 하위만. 기관 등록 모달의 선택 팝업용 */
   @GetMapping("/biostarGroups")
   @ResponseBody

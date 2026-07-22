@@ -143,6 +143,11 @@ public class CompanyService {
     return res.success() ? null : res.message();
   }
 
+  /** 기관 선택 팝업용 조회 — 로그인 사용자 공용(특정 메뉴 권한 불요). 다른 화면이 tb_company 를 참조할 때 사용. */
+  public List<TbCompany> pickerCompanies() {
+    return companyMapper.selectOptions();
+  }
+
   /** 목록 조회 — 대표자 복호화(표시용) + 검색조건·결과 건수 감사(READ). */
   public PageResult<TbCompany> list(CompanySearchParam param, TbLoginUser actor, Integer menuId) {
     long total = companyMapper.selectCount(param);

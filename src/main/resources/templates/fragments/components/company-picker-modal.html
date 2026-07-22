@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 공통 기관(tb_company) 선택 팝업. 코드팝업(code-picker-modal)과 같은 사용 방식.
+     사용: <div th:replace="~{fragments/components/company-picker-modal :: companyPicker}"></div>
+          const sel = await companyPicker.open();  // {companyCode, companyName} | null -->
+<div th:fragment="companyPicker" class="modal-overlay code-picker-overlay" id="companyPickerModal">
+  <div class="modal-container wide">
+    <div class="modal-header">
+      <h2 class="modal-title">기관 선택</h2>
+      <button class="modal-close" id="companyPickerClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="search-keyword" style="margin-bottom:10px">
+        <input type="text" id="companyPickerKeyword" class="input"
+               placeholder="기관코드 또는 기관명으로 검색" autocomplete="off"/>
+      </div>
+      <p class="form-hint" id="companyPickerInfo"></p>
+      <div class="matrix-wrap">
+        <table class="grid">
+          <thead>
+          <tr><th class="w-40"></th><th class="w-160">기관코드</th><th style="text-align:left">기관명</th></tr>
+          </thead>
+          <tbody id="companyPickerBody">
+          <tr><td colspan="3" class="empty">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="companyPickerCancel">취소</button>
+      <button class="btn btn-primary" id="companyPickerOk">선택</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

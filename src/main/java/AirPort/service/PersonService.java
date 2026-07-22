@@ -92,14 +92,6 @@ public class PersonService {
     return row;
   }
 
-  /** 등록 모달 참조 데이터 — 기관 select 옵션. (직위 UT·상태 PS 는 코드 팝업으로 조회) */
-  public java.util.Map<String, Object> refs(TbLoginUser actor, Integer menuId) {
-    menuAuthService.requireRead(actor, menuId);
-    java.util.Map<String, Object> refs = new java.util.LinkedHashMap<>();
-    refs.put("companies", companyMapper.selectOptions());
-    return refs;
-  }
-
   /** 인원의 출입권한(ac_group_id) 목록. */
   public List<Integer> acGroupIds(String personId, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
@@ -129,8 +121,8 @@ public class PersonService {
     row.setPersonType(PERSON_TYPE_REGULAR);
     row.setStatusCode(form.getStatusCode());
     row.setMainTask(form.getMainTask());
-    row.setAccessStartDt(form.getAccessStartDt());
-    row.setAccessEndDt(form.getAccessEndDt());
+    row.setAccessStartDt(dbDateTime(form.getAccessStartDt(), "00:00"));
+    row.setAccessEndDt(dbDateTime(form.getAccessEndDt(), "23:59"));
     row.setRemark(form.getRemark());
     row.setUseYn(form.getUseYn());
     personMapper.insert(row);
@@ -189,8 +181,8 @@ public class PersonService {
     row.setTitleCode(form.getTitleCode());
     row.setStatusCode(form.getStatusCode());
     row.setMainTask(form.getMainTask());
-    row.setAccessStartDt(form.getAccessStartDt());
-    row.setAccessEndDt(form.getAccessEndDt());
+    row.setAccessStartDt(dbDateTime(form.getAccessStartDt(), "00:00"));
+    row.setAccessEndDt(dbDateTime(form.getAccessEndDt(), "23:59"));
     row.setRemark(form.getRemark());
     personMapper.update(row);
 
@@ -276,8 +268,8 @@ public class PersonService {
         faceImage,
         companyGroupId(companyCode),
         codeTag(PS, statusCode),
-        biostarDate(startDt, "T00:00:00.00Z"),
-        biostarDate(endDt, "T23:59:00.00Z"),
+        biostarDateTime(startDt, "00:00"),
+        biostarDateTime(endDt, "23:59"),
         codeName(UT, titleCode),
         acIds,
         faceImage,
@@ -378,15 +370,36 @@ public class PersonService {
     return (codeId == null || codeId.isBlank()) ? null : commonMapper.selectOne(cmmId, codeId);
   }
 
-  /** "YYYY-MM-DD" → BiostarX 일시 형식. 값이 없으면 null. */
-  private static String biostarDate(String date, String timeSuffix) {
-    return (date == null || date.isBlank()) ? null : date + timeSuffix;
+  /**
+   * 화면 값("YYYY-MM-DDTHH:mm" 또는 날짜만) → BiostarX 일시 형식(예: 2037-12-31T23:59:00.00Z).
+   *
+   * @param defaultTime 날짜만 들어온 경우 채울 시각("00:00"/"23:59")
+   */
+  private static String biostarDateTime(String value, String defaultTime) {
+    String v = withSeconds(value, defaultTime);
+    return v == null ? null : v + ".00Z";
+  }
+
+  /** DB(datetime2) 저장용 — 초까지 채운 ISO 문자열. 값이 없으면 null. */
+  private static String dbDateTime(String value, String defaultTime) {
+    return withSeconds(value, defaultTime);
+  }
+
+  private static String withSeconds(String value, String defaultTime) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    String v = value.trim();
+    if (!v.contains("T")) {
+      v = v + "T" + defaultTime; // 날짜만 오면 기본 시각 보정
+    }
+    return v.length() == 16 ? v + ":00" : v; // "YYYY-MM-DDTHH:mm" → 초 보정
   }
 
   // ── 공통 ────────────────────────────────────────────────────────────────
 
   /** BiostarX 유효기간 상한 — expiry_datetime 은 2037-12-31T23:59 를 넘을 수 없다. */
-  private static final String MAX_ACCESS_END_DT = "2037-12-31";
+  private static final String MAX_ACCESS_END_DT = "2037-12-31T23:59";
 
   /** 직위(user_title) 허용 문자 — 한글·영문·숫자·공백만(특수문자 금지). */
   private static final java.util.regex.Pattern TITLE_ALLOWED =
@@ -404,7 +417,7 @@ public class PersonService {
     // 날짜는 "YYYY-MM-DD" 형식이라 문자열 비교로 대소 판정이 가능하다
     if (form.getAccessEndDt().compareTo(MAX_ACCESS_END_DT) > 0) {
       throw new BusinessException(
-          ErrorCode.INVALID_INPUT, "출입종료일은 " + MAX_ACCESS_END_DT + " 23:59 를 초과할 수 없습니다.");
+          ErrorCode.INVALID_INPUT, "출입종료일은 " + MAX_ACCESS_END_DT.replace('T', ' ') + " 를 초과할 수 없습니다.");
     }
     if (form.getAccessStartDt().compareTo(form.getAccessEndDt()) > 0) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "출입시작일은 출입종료일보다 늦을 수 없습니다.");
