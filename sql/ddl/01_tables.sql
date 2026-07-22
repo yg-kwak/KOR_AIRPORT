@@ -224,7 +224,9 @@ CREATE TABLE dbo.tb_card (
   mod_dt             datetime2(0)   NOT NULL DEFAULT getdate(),
   CONSTRAINT PK_tb_card PRIMARY KEY (card_id),
   CONSTRAINT CHK_tb_card_use_yn CHECK (use_yn IN ('Y','N')),
-  CONSTRAINT CHK_tb_card_del_yn CHECK (del_yn IN ('Y','N'))
+  CONSTRAINT CHK_tb_card_del_yn CHECK (del_yn IN ('Y','N')),
+  -- 한 카드는 인원 또는 차량 중 한쪽에만 귀속(둘 다 채워질 수 없다)
+  CONSTRAINT CHK_tb_card_holder CHECK (person_id IS NULL OR car_id IS NULL)
 );
 
 /* 카드번호는 실물 카드와 1:1 — 살아 있는 행끼리 중복될 수 없다(회수/재사용도 같은 행을 쓴다).

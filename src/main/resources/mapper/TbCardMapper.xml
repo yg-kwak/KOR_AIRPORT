@@ -98,12 +98,12 @@
     ORDER BY c.card_id
   </select>
 
-  <!-- 미할당(회수된) 카드 목록 — 할당하기 팝업. 인원에 붙어 있지 않은 실물 카드만 -->
+  <!-- 미할당(회수된) 카드 목록 — 할당하기 팝업. 인원·차량 어느 쪽에도 붙어 있지 않은 실물 카드만 -->
   <select id="selectUnassigned" resultType="TbCard">
     SELECT <include refid="cardColumns"/>
     <include refid="listJoins"/>
     <where>
-      c.del_yn = 'N' AND c.person_id IS NULL
+      c.del_yn = 'N' AND c.person_id IS NULL AND c.car_id IS NULL
       <if test="keyword != null and keyword != ''">
         AND (c.biostar_card_value LIKE '%' + #{keyword} + '%'
              OR c.card_name LIKE '%' + #{keyword} + '%')
@@ -130,10 +130,11 @@
   </insert>
 
   <!-- 카드번호·BiostarX 식별자는 불변(발급된 실물 카드라서).
-       person_id 재배정 — 저장 시 '전체 회수 후 화면에 남은 것만 다시 붙이기' 흐름을 따른다 -->
+       person_id 재배정 — 인원 카드로 붙으므로 car_id 는 비운다(한 카드는 인원·차량 중 하나에만) -->
   <update id="update" parameterType="TbCard">
     UPDATE tb_card
     SET person_id = #{personId},
+        car_id = NULL,
         use_yn = 'Y',
         del_yn = 'N',
         card_type = #{cardType},

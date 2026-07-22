@@ -180,11 +180,13 @@ public class CardService {
     if (cfg == null) {
       return BiostarCard.fail("BiostarX 설정이 없습니다. 설정관리에서 등록하세요.");
     }
-    // 이미 발급된 실물 카드면 다시 만들지 않는다 — 회수(미배정)된 카드는 그대로 재사용한다
+    // 이미 발급된 실물 카드면 다시 만들지 않는다 — 회수(미배정)된 카드는 그대로 재사용한다.
+    // 인원·차량 어느 쪽에든 붙어 있으면 거부한다(한 카드는 둘 중 하나에만 귀속).
     TbCard known = cardNo == null ? null : cardMapper.selectByCardNo(cardNo);
     if (known != null) {
-      if (known.getPersonId() != null) {
-        return BiostarCard.fail("이미 다른 인원(" + known.getPersonId() + ")에게 발급된 카드입니다.");
+      String holder = issuedTo(known);
+      if (holder != null) {
+        return BiostarCard.fail("이미 " + holder + " 발급된 카드입니다. 먼저 회수하세요.");
       }
       return BiostarCard.ok(known.getBiostarCardId(), known.getBiostarCardValue());
     }
