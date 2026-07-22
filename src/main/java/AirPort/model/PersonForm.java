@@ -39,6 +39,9 @@ public class PersonForm {
   // ── 사용자 권한: 선택한 tb_ac_group.ac_group_id 목록 ──
   private List<Integer> acGroupIds;
 
+  // ── 카드정보: 화면 목록 그대로. 각 건은 추가 시점에 이미 BiostarX 에 등록돼 있다 ──
+  private List<CardForm> cards;
+
   // ── 얼굴 ──
   private String faceImage; // template_ex_normalized_image (BASE64) — 사진/얼굴로 사용
   private String faceTemplate9; // credential_bin_type "9"

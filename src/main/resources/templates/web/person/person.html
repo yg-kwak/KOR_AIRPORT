@@ -196,9 +196,9 @@
         <div th:replace="~{fragments/components/ac-group-tree :: acGroupTree('acTree')}"></div>
       </div>
 
-      <!-- 탭4: 카드정보 (추후) -->
+      <!-- 탭4: 카드정보 (tb_card) -->
       <div class="tab-panel" id="tab-card">
-        <p class="form-hint">카드 등록은 추후 제공됩니다.</p>
+        <div th:replace="~{fragments/components/card-list :: cardList('cardList')}"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -213,6 +213,7 @@
 <div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
 <div th:replace="~{fragments/components/code-picker-modal :: codePicker}"></div>
 <div th:replace="~{fragments/components/company-picker-modal :: companyPicker}"></div>
+<div th:replace="~{fragments/components/card-list :: cardModal}"></div>
 
 <script th:inline="javascript">
   window.PAGE_PERM = {

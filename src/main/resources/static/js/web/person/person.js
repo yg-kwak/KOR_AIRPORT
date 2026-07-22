@@ -4,6 +4,7 @@
 (function () {
   const BASE = '/person/person';
   const AC_TREE = 'acTree'; // 공용 출입권한 트리 컨테이너 id
+  const CARD_LIST = 'cardList'; // 공용 카드 목록 컨테이너 id
   const state = {
     page: 1, size: 30, keyword: '', searchType: 'all', companyCode: '', sort: 'personId', dir: 'asc',
   };
@@ -212,6 +213,7 @@
       $('accessEndDt').value = MAX_ACCESS_END_DT;
     }
     acGroupTree.set(AC_TREE, []); // 체크 초기화
+    cardList.set(CARD_LIST, []);
     $('editModal').classList.add('open');
     if (mode !== 'edit' || !row) return;
 
@@ -222,12 +224,14 @@
     fileField.set('idCheckFile', row.idCheckFile, dl('ID_CHECK'));
     fileField.set('approveFile', row.approveFile, dl('APPROVE'));
     // 기존 얼굴·출입권한 로드(얼굴 템플릿은 저장하지 않으므로 이미지만 — 손대지 않으면 변경으로 보지 않는다)
-    const [photo, acIds] = await Promise.all([
+    const [photo, acIds, cards] = await Promise.all([
       api.get(BASE + '/photo' + q),
       api.get(BASE + '/personAcGroups' + q),
+      api.get(BASE + '/cards' + q),
     ]);
     if (photo) setFace(photo, null, null);
     acGroupTree.set(AC_TREE, acIds || []);
+    cardList.set(CARD_LIST, cards || []);
   }
   function closeModal() { $('editModal').classList.remove('open'); }
 
@@ -259,7 +263,7 @@
 
   async function save() {
     if (!PERM.canCreate) return;
-    const payload = { acGroupIds: acGroupTree.get(AC_TREE), faceImage: face.image, faceTemplate9: face.t9, faceTemplate5: face.t5 };
+    const payload = { acGroupIds: acGroupTree.get(AC_TREE), cards: cardList.get(CARD_LIST), faceImage: face.image, faceTemplate9: face.t9, faceTemplate5: face.t5 };
     FORM_FIELDS.forEach((id) => { payload[id] = $(id).value.trim() || null; });
     payload.securityEduScore = payload.securityEduScore ? Number(payload.securityEduScore) : null;
     const idCheck = fileField.get('idCheckFile');
@@ -368,5 +372,10 @@
       th.addEventListener('click', () => toggleSort(th.dataset.sort)));
   }
 
-  document.addEventListener('DOMContentLoaded', () => { bind(); acGroupTree.init(AC_TREE, BASE + '/acGroups'); load(); });
+  document.addEventListener('DOMContentLoaded', () => {
+    bind();
+    acGroupTree.init(AC_TREE, BASE + '/acGroups');
+    cardList.init(CARD_LIST, { baseUrl: BASE });
+    load();
+  });
 })();

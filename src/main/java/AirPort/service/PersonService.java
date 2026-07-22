@@ -1,13 +1,14 @@
 package AirPort.service;
 
-import AirPort.adapter.BiostarFace;
 import AirPort.adapter.BiostarResult;
 import AirPort.adapter.BiostarUserAdapter;
+import AirPort.adapter.BiostarUserCard;
 import AirPort.adapter.BiostarUserRequest;
 import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCommonMapper;
+import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbCompanyMapper;
 import AirPort.mapper.TbPersonAcGroupMapper;
 import AirPort.mapper.TbPersonMapper;
@@ -44,6 +45,7 @@ public class PersonService {
   private static final String UT = "UT";
 
   private final TbPersonMapper personMapper;
+  private final TbCardMapper cardMapper;
   private final TbPersonPhotoMapper photoMapper;
   private final TbPersonAcGroupMapper acGroupMapper;
   private final TbCompanyMapper companyMapper;
@@ -51,11 +53,13 @@ public class PersonService {
   private final TbSystemMapper systemMapper;
   private final BiostarUserAdapter biostarUserAdapter;
   private final PersonFileService personFileService;
+  private final CardService cardService;
   private final AuditService auditService;
   private final MenuAuthService menuAuthService;
 
   public PersonService(
       TbPersonMapper personMapper,
+      TbCardMapper cardMapper,
       TbPersonPhotoMapper photoMapper,
       TbPersonAcGroupMapper acGroupMapper,
       TbCompanyMapper companyMapper,
@@ -63,9 +67,11 @@ public class PersonService {
       TbSystemMapper systemMapper,
       BiostarUserAdapter biostarUserAdapter,
       PersonFileService personFileService,
+      CardService cardService,
       AuditService auditService,
       MenuAuthService menuAuthService) {
     this.personMapper = personMapper;
+    this.cardMapper = cardMapper;
     this.photoMapper = photoMapper;
     this.acGroupMapper = acGroupMapper;
     this.companyMapper = companyMapper;
@@ -73,6 +79,7 @@ public class PersonService {
     this.systemMapper = systemMapper;
     this.biostarUserAdapter = biostarUserAdapter;
     this.personFileService = personFileService;
+    this.cardService = cardService;
     this.auditService = auditService;
     this.menuAuthService = menuAuthService;
   }
@@ -127,6 +134,7 @@ public class PersonService {
     }
     saveAcGroups(form.getPersonId(), form.getAcGroupIds());
     personFileService.apply(form);
+    cardService.saveCards(form.getPersonId(), form.getCards());
 
     auditService.log(actor, AuditService.CREATE, menuId, "정규인원 등록: " + form.getPersonId());
     return syncBiostarUser(form);
@@ -169,6 +177,7 @@ public class PersonService {
     }
     saveAcGroups(form.getPersonId(), form.getAcGroupIds());
     personFileService.apply(form);
+    cardService.saveCards(form.getPersonId(), form.getCards());
 
     auditService.log(actor, AuditService.UPDATE, menuId, "정규인원 수정: " + form.getPersonId());
 
@@ -242,7 +251,8 @@ public class PersonService {
     return biostarRequest(
         f.getPersonId(), f.getPersonName(), f.getPersonPhone(), f.getFaceImage(),
         f.getCompanyCode(), f.getStatusCode(), f.getAccessStartDt(), f.getAccessEndDt(),
-        f.getTitleCode(), acIds, f.getFaceTemplate9(), f.getFaceTemplate5());
+        f.getTitleCode(), acIds, f.getFaceTemplate9(), f.getFaceTemplate5(),
+        CardService.toBiostarCards(f.getCards()));
   }
 
   /** 저장된 인원(수정 전 상태) → BiostarX 전송 값. 얼굴 템플릿은 보관하지 않으므로 없음. */
@@ -250,7 +260,8 @@ public class PersonService {
     return biostarRequest(
         p.getPersonId(), p.getPersonName(), p.getPersonPhone(), faceImage,
         p.getCompanyCode(), p.getStatusCode(), p.getAccessStartDt(), p.getAccessEndDt(),
-        p.getTitleCode(), acIds, null, null);
+        p.getTitleCode(), acIds, null, null,
+        CardService.toBiostarCardsOf(cardMapper.selectByPerson(p.getPersonId())));
   }
 
   /** BiostarX 전송 값 구성(코드 → 실제 값 변환 포함). */
@@ -266,7 +277,8 @@ public class PersonService {
       String titleCode,
       List<Integer> acIds,
       String t9,
-      String t5) {
+      String t5,
+      List<BiostarUserCard> cards) {
     return new BiostarUserRequest(
         personId,
         name,
@@ -280,7 +292,8 @@ public class PersonService {
         acIds,
         faceImage,
         t9,
-        t5);
+        t5,
+        cards);
   }
 
   /** 폼 → 저장 행. 성명·생년월일·연락처는 ARIA 암호화, 출입기간은 초까지 채운다. (등록/수정 공통) */
@@ -314,31 +327,6 @@ public class PersonService {
   }
 
   // ── BiostarX 연동 ────────────────────────────────────────────────────────
-
-  /** 사진 파일 업로드 → 정규화 얼굴. */
-  public BiostarFace uploadPicture(String base64Image, TbLoginUser actor, Integer menuId) {
-    menuAuthService.requireCreate(actor, menuId);
-    if (base64Image == null || base64Image.isBlank()) {
-      return BiostarFace.fail("사진 데이터가 없습니다.");
-    }
-    TbSystem cfg = systemMapper.selectOne();
-    if (cfg == null) {
-      return BiostarFace.fail("BiostarX 설정이 없습니다. 설정관리에서 등록하세요.");
-    }
-    return biostarUserAdapter.uploadPicture(
-        cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), base64Image);
-  }
-
-  /** 로그인 계정의 장치(tb_login_user.dev_id)로 얼굴 촬영. */
-  public BiostarFace captureFace(TbLoginUser actor, Integer menuId) {
-    menuAuthService.requireCreate(actor, menuId);
-    TbSystem cfg = systemMapper.selectOne();
-    if (cfg == null) {
-      return BiostarFace.fail("BiostarX 설정이 없습니다. 설정관리에서 등록하세요.");
-    }
-    String devId = actor == null ? null : actor.getDevId();
-    return biostarUserAdapter.captureFace(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), devId);
-  }
 
   private String pw(TbSystem cfg) {
     return cfg.getBiostarPw() == null ? "" : ARIAUtil.ariaDecrypt(cfg.getBiostarPw());

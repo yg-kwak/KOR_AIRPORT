@@ -1,5 +1,6 @@
 package AirPort.controller;
 
+import AirPort.adapter.BiostarCard;
 import AirPort.adapter.BiostarFace;
 import AirPort.common.ApiResponse;
 import AirPort.common.CurrentMenu;
@@ -10,10 +11,13 @@ import AirPort.model.PersonForm;
 import AirPort.model.PersonSearchParam;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbPerson;
+import AirPort.model.TbCard;
 import AirPort.model.TbPersonFile;
 import AirPort.service.AcGroupService;
+import AirPort.service.CardService;
 import AirPort.service.MenuAuthService;
 import AirPort.service.MenuService;
+import AirPort.service.PersonFaceService;
 import AirPort.service.PersonFileService;
 import AirPort.service.PersonService;
 import java.net.URLEncoder;
@@ -48,6 +52,8 @@ public class PersonController {
 
   private final PersonService personService;
   private final PersonFileService personFileService;
+  private final PersonFaceService personFaceService;
+  private final CardService cardService;
   private final AcGroupService acGroupService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
@@ -56,12 +62,16 @@ public class PersonController {
   public PersonController(
       PersonService personService,
       PersonFileService personFileService,
+      PersonFaceService personFaceService,
+      CardService cardService,
       AcGroupService acGroupService,
       MenuService menuService,
       MenuAuthService menuAuthService,
       CurrentMenu currentMenu) {
     this.personService = personService;
     this.personFileService = personFileService;
+    this.personFaceService = personFaceService;
+    this.cardService = cardService;
     this.acGroupService = acGroupService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
@@ -114,14 +124,14 @@ public class PersonController {
   public ApiResponse<BiostarFace> faceUpload(
       @RequestBody Map<String, String> body, HttpSession session) {
     return ApiResponse.ok(
-        personService.uploadPicture(body.get("image"), actor(session), menuId()));
+        personFaceService.uploadPicture(body.get("image"), actor(session), menuId()));
   }
 
   /** 로그인 계정의 장치로 얼굴 촬영 (AJAX) */
   @GetMapping("/face/capture")
   @ResponseBody
   public ApiResponse<BiostarFace> faceCapture(HttpSession session) {
-    return ApiResponse.ok(personService.captureFace(actor(session), menuId()));
+    return ApiResponse.ok(personFaceService.captureFace(actor(session), menuId()));
   }
 
   /** 인원 등록사진 (AJAX) — 수정 모달에서 기존 얼굴 표시용 */
@@ -145,6 +155,28 @@ public class PersonController {
   public ApiResponse<Void> update(@RequestBody PersonForm form, HttpSession session) {
     return ApiResponse.okMessage(
         withWarning("수정되었습니다.", personService.update(form, actor(session), menuId())));
+  }
+
+  /** 인원의 카드 목록 (AJAX) — 수정 모달의 카드정보 탭 */
+  @GetMapping("/cards")
+  @ResponseBody
+  public ApiResponse<List<TbCard>> cards(@RequestParam String personId, HttpSession session) {
+    return ApiResponse.ok(cardService.listByPerson(personId, actor(session), menuId()));
+  }
+
+  /** 장치 리더로 카드번호 읽기 (AJAX) — 로그인 계정의 장치(dev_id) */
+  @PostMapping("/card/scan")
+  @ResponseBody
+  public ApiResponse<BiostarCard> cardScan(HttpSession session) {
+    return ApiResponse.ok(cardService.scan(actor(session), menuId()));
+  }
+
+  /** BiostarX 카드 등록 (AJAX) — 카드 추가 시 즉시 호출된다(정책) */
+  @PostMapping("/card/register")
+  @ResponseBody
+  public ApiResponse<BiostarCard> cardRegister(
+      @RequestBody Map<String, String> body, HttpSession session) {
+    return ApiResponse.ok(cardService.register(body.get("cardNo"), actor(session), menuId()));
   }
 
   /** 증빙문서 다운로드 — 브라우저가 파일로 받도록 attachment 로 전송한다. */

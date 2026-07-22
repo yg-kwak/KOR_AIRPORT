@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 카드 목록 + 카드 추가 (공용) — 짝 스크립트: static/js/core/components/card-list.js
+     사용: <div th:replace="~{fragments/components/card-list :: cardList('cardList')}"></div>
+     화면 스크립트에서 cardList.init(id, {baseUrl}) 로 엔드포인트를 알려준다. -->
+<div th:fragment="cardList(fid)" class="card-list" th:id="${fid}">
+  <div class="grid-toolbar">
+    <span class="form-hint">카드 추가를 누르면 BiostarX 에 카드가 즉시 등록됩니다. 인원 저장 시 사용자에게 부여됩니다.</span>
+    <div class="grid-actions">
+      <button type="button" class="btn card-list-add">카드 추가</button>
+    </div>
+  </div>
+  <table class="grid">
+    <thead>
+    <tr>
+      <th class="w-160">카드번호</th>
+      <th class="w-120">카드구분</th>
+      <th>카드명칭</th>
+      <th class="w-100">카드상태</th>
+      <th class="w-120">발급료 납부일</th>
+      <th class="w-80">관리</th>
+    </tr>
+    </thead>
+    <tbody class="card-list-body">
+    <tr><td colspan="6" class="empty">등록된 카드가 없습니다.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 카드 입력 모달 (카드 목록 컴포넌트 전용) -->
+<div th:fragment="cardModal" class="modal-overlay card-modal-overlay" id="cardModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2 class="modal-title">카드 추가</h2>
+      <button type="button" class="modal-close" id="cardModalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>카드번호 <span class="req">*</span></label>
+          <div class="file-field-row">
+            <input type="text" id="cardNo" class="input" maxlength="30" inputmode="numeric"
+                   placeholder="카드번호를 입력하거나 장치에서 읽으세요" autocomplete="off"/>
+            <button type="button" class="btn" id="btnCardScan">장치에서 읽기</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>카드구분 <span class="form-hint">(클릭하여 선택)</span></label>
+          <input type="hidden" id="cardType"/>
+          <input type="text" id="cardTypeName" class="input picker-field" readonly
+                 data-target="cardType" placeholder="클릭하여 선택" autocomplete="off"/>
+        </div>
+        <div class="form-group">
+          <label>카드명칭</label>
+          <input type="text" id="cardName" class="input" maxlength="100" autocomplete="off"/>
+        </div>
+        <div class="form-group">
+          <label>카드상태 <span class="form-hint">(클릭하여 선택)</span></label>
+          <input type="hidden" id="cardStatus"/>
+          <input type="text" id="cardStatusName" class="input picker-field" readonly
+                 data-target="cardStatus" placeholder="클릭하여 선택" autocomplete="off"/>
+        </div>
+        <div class="form-group">
+          <label>발급료 납부일</label>
+          <input type="date" id="cardFeePaidDt" class="input"/>
+        </div>
+        <div class="form-group full">
+          <label>발급근거</label>
+          <input type="text" id="cardIssueReason" class="input" maxlength="500" autocomplete="off"/>
+        </div>
+        <div class="form-group full">
+          <label>메모</label>
+          <input type="text" id="cardRemark" class="input" maxlength="1000" autocomplete="off"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="cardModalCancel">취소</button>
+      <button type="button" class="btn btn-primary" id="cardModalOk">확인</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

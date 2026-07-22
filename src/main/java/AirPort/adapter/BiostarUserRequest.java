@@ -21,4 +21,5 @@ public record BiostarUserRequest(
     List<Integer> accessGroupIds,
     String faceImage,
     String faceTemplate9,
-    String faceTemplate5) {}
+    String faceTemplate5,
+    List<BiostarUserCard> cards) {}

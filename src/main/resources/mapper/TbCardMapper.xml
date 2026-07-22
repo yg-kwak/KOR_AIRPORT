@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbCardMapper">
+
+  <sql id="cardColumns">
+    c.card_id, c.card_type, c.card_name, c.card_status, c.issue_reason, c.remark,
+    c.person_id, c.biostar_card_id, c.biostar_card_value, c.use_yn, c.del_yn, c.reg_dt, c.mod_dt,
+    CONVERT(varchar(10), c.fee_paid_dt, 23) AS fee_paid_dt,
+    CONVERT(varchar(10), c.issue_dt, 23)    AS issue_dt,
+    CONVERT(varchar(10), c.lost_dt, 23)     AS lost_dt,
+    CONVERT(varchar(10), c.return_dt, 23)   AS return_dt,
+    cdt.code_name AS card_type_name, cs.code_name AS card_status_name
+  </sql>
+
+  <select id="selectByPerson" resultType="TbCard">
+    SELECT <include refid="cardColumns"/>
+    FROM tb_card c
+    LEFT JOIN tb_common cdt ON cdt.cmm_id = 'CDT' AND cdt.code_id = c.card_type
+    LEFT JOIN tb_common cs  ON cs.cmm_id  = 'CS'  AND cs.code_id  = c.card_status
+    WHERE c.del_yn = 'N' AND c.person_id = #{personId}
+    ORDER BY c.card_id
+  </select>
+
+  <insert id="insert" parameterType="TbCard" useGeneratedKeys="true" keyProperty="cardId">
+    INSERT INTO tb_card
+      (card_type, card_name, card_status, fee_paid_dt, issue_dt, issue_reason, remark,
+       person_id, biostar_card_id, biostar_card_value)
+    VALUES
+      (#{cardType}, #{cardName}, #{cardStatus}, #{feePaidDt}, getdate(), #{issueReason}, #{remark},
+       #{personId}, #{biostarCardId}, #{biostarCardValue})
+  </insert>
+
+  <!-- 카드번호·BiostarX 식별자는 불변(발급된 실물 카드라서).
+       del_yn='N' 복원 — 저장 시 '전체 소프트삭제 후 화면에 남은 것만 되살리기' 흐름을 따른다 -->
+  <update id="update" parameterType="TbCard">
+    UPDATE tb_card
+    SET del_yn = 'N',
+        card_type = #{cardType},
+        card_name = #{cardName},
+        card_status = #{cardStatus},
+        fee_paid_dt = #{feePaidDt},
+        issue_reason = #{issueReason},
+        remark = #{remark},
+        mod_dt = getdate()
+    WHERE card_id = #{cardId}
+  </update>
+
+  <!-- 소프트 삭제 — 물리 DELETE 금지 -->
+  <update id="softDeleteByPerson">
+    UPDATE tb_card SET del_yn = 'Y', mod_dt = getdate()
+    WHERE person_id = #{personId} AND del_yn = 'N'
+  </update>
+
+</mapper>

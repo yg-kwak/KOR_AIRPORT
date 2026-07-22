@@ -157,6 +157,12 @@ public class BiostarUserAdapter {
           after.accessGroupIds().forEach(id -> ags.addObject().put("id", id));
         }
       }
+      if (!sameCards(before.cards(), after.cards())) {
+        appendCards(user, after.cards()); // 비면 [] (카드 전체 회수)
+        if (!user.has("cards")) {
+          user.putArray("cards");
+        }
+      }
       applyFaceDelta(user, before, after);
 
       if (user.isEmpty()) {
@@ -232,6 +238,30 @@ public class BiostarUserAdapter {
     return sa.equals(sb);
   }
 
+  /** 카드 목록 — 비어 있지 않을 때만 cards[] 를 만든다(생성 payload 는 없는 필드를 넣지 않는다). */
+  private static void appendCards(ObjectNode user, java.util.List<BiostarUserCard> cards) {
+    if (cards == null || cards.isEmpty()) {
+      return;
+    }
+    ArrayNode arr = user.putArray("cards");
+    cards.forEach(c -> BiostarCardAdapter.appendCard(arr.addObject(), c));
+  }
+
+  private static boolean sameCards(
+      java.util.List<BiostarUserCard> a, java.util.List<BiostarUserCard> b) {
+    java.util.Set<String> sa = cardKeys(a);
+    return sa.equals(cardKeys(b));
+  }
+
+  private static java.util.Set<String> cardKeys(java.util.List<BiostarUserCard> cards) {
+    if (cards == null) {
+      return java.util.Set.of();
+    }
+    java.util.Set<String> keys = new java.util.HashSet<>();
+    cards.forEach(c -> keys.add(c.id() + "/" + c.cardNo()));
+    return keys;
+  }
+
   private static boolean notBlank(String s) {
     return s != null && !s.isBlank();
   }
@@ -259,6 +289,8 @@ public class BiostarUserAdapter {
       ArrayNode ags = user.putArray("access_groups");
       req.accessGroupIds().forEach(id -> ags.addObject().put("id", id));
     }
+
+    appendCards(user, req.cards());
 
     if (req.faceImage() != null && !req.faceImage().isBlank()) {
       ObjectNode cred = user.putObject("credentials");

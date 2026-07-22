@@ -66,6 +66,21 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_y
   ('PS', N'인원상태', '03', N'퇴사', 'true',  'Y'),
   ('PS', N'인원상태', '04', N'회수', 'true',  'Y');
 
+/* 카드상태(CS) — 카드 상태의 진실의 원천(tb_card.card_status 단일 컬럼).
+   카드구분(CDT)·직위(UT)는 운영에서 직접 등록하므로 시드하지 않는다 (공통코드관리) */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
+  ('CS', N'카드상태', 'CS01', N'정상', 'Y'),
+  ('CS', N'카드상태', 'CS02', N'분실', 'Y'),
+  ('CS', N'카드상태', 'CS03', N'반납', 'Y'),
+  ('CS', N'카드상태', 'CS04', N'정지', 'Y'),
+  ('CS', N'카드상태', 'CS05', N'폐기', 'Y');
+
+/* 발급구분(IS) — 카드 발급 사유 */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
+  ('IS', N'발급구분', 'IS01', N'신규', 'Y'),
+  ('IS', N'발급구분', 'IS02', N'재발급', 'Y'),
+  ('IS', N'발급구분', 'IS03', N'분실재발급', 'Y');
+
 /* 메뉴 (level 1 그룹은 menu_icon 지정 — 사이드바 아이콘) */
 INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn) VALUES
   (200, N'정규인원관리', NULL, NULL,                 1, 1, 'card',     'Y'),
