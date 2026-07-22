@@ -100,10 +100,10 @@
               <input type="text" id="personPhone" class="input" autocomplete="off"/>
             </div>
             <div class="form-group">
-              <label>기관</label>
-              <select id="companyCode" class="input">
-                <option value="">선택</option>
-              </select>
+              <label>기관 <span class="form-hint">(클릭하여 선택)</span></label>
+              <input type="hidden" id="companyCode"/>
+              <input type="text" id="companyName" class="input picker-field" readonly
+                     data-target="companyCode" placeholder="클릭하여 선택" autocomplete="off"/>
             </div>
             <div class="form-group">
               <label>직위 <span class="form-hint">(클릭하여 선택)</span></label>
@@ -118,6 +118,10 @@
                      data-target="statusCode" placeholder="클릭하여 선택" autocomplete="off"/>
             </div>
             <div class="form-group">
+              <label>주요업무</label>
+              <input type="text" id="mainTask" class="input" autocomplete="off"/>
+            </div>
+            <div class="form-group">
               <label>출입시작일</label>
               <input type="date" id="accessStartDt" class="input"/>
             </div>
@@ -125,18 +129,7 @@
               <label>출입종료일</label>
               <input type="date" id="accessEndDt" class="input"/>
             </div>
-            <div class="form-group">
-              <label>사용유무</label>
-              <select id="useYn" class="input">
-                <option value="Y">사용</option>
-                <option value="N">미사용</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>주요업무</label>
-              <input type="text" id="mainTask" class="input" autocomplete="off"/>
-            </div>
-            <div class="form-group">
+            <div class="form-group full">
               <label>메모</label>
               <input type="text" id="remark" class="input" autocomplete="off"/>
             </div>
@@ -172,6 +165,36 @@
     <div class="modal-footer">
       <button class="btn" id="btnCancel">취소</button>
       <button class="btn btn-primary" id="btnSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 기관 선택 팝업 (tb_company) -->
+<div class="modal-overlay code-picker-overlay" id="companyModal">
+  <div class="modal-container wide">
+    <div class="modal-header">
+      <h2 class="modal-title">기관 선택</h2>
+      <button class="modal-close" id="companyClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="search-keyword" style="margin-bottom:10px">
+        <input type="text" id="companyFilterKw" class="input" placeholder="기관코드 또는 기관명으로 검색" autocomplete="off"/>
+      </div>
+      <p class="form-hint" id="companyInfo"></p>
+      <div class="matrix-wrap">
+        <table class="grid">
+          <thead>
+          <tr><th class="w-40"></th><th class="w-160">기관코드</th><th style="text-align:left">기관명</th></tr>
+          </thead>
+          <tbody id="companyList">
+          <tr><td colspan="3" class="empty">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="companyCancel">취소</button>
+      <button class="btn btn-primary" id="companyConfirm">선택</button>
     </div>
   </div>
 </div>

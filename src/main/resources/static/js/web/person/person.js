@@ -15,14 +15,48 @@
 
   let face = { image: null, t9: null, t5: null }; // 얼굴(정규화 이미지 + 템플릿 2종)
   let acTreeData = []; // 출입권한 트리(tb_ac_group)
+  let companies = []; // 기관 목록(검색 select + 선택 팝업 공용)
 
-  // ---- 참조 데이터(기관 옵션) ----
+  // ---- 참조 데이터(기관) ----
   async function loadRefs() {
     const data = await api.get(BASE + '/refs');
-    const opts = (data.companies || [])
-      .map((c) => `<option value="${esc(c.companyCode)}">${esc(c.companyName)}</option>`).join('');
-    $('companyFilter').insertAdjacentHTML('beforeend', opts);
-    $('companyCode').insertAdjacentHTML('beforeend', opts);
+    companies = data.companies || [];
+    $('companyFilter').insertAdjacentHTML('beforeend',
+      companies.map((c) => `<option value="${esc(c.companyCode)}">${esc(c.companyName)}</option>`).join(''));
+  }
+
+  // ---- 기관 선택 팝업 ----
+  function openCompanyModal() {
+    $('companyFilterKw').value = '';
+    renderCompanyList();
+    $('companyModal').classList.add('open');
+  }
+
+  function renderCompanyList() {
+    const kw = $('companyFilterKw').value.trim().toLowerCase();
+    const rows = kw
+      ? companies.filter((c) => (c.companyCode || '').toLowerCase().includes(kw)
+          || (c.companyName || '').toLowerCase().includes(kw))
+      : companies;
+    $('companyInfo').textContent = `총 ${rows.length}개 — 기관 1건을 선택하고 [선택]을 누르세요.`;
+    $('companyList').innerHTML = rows.length
+      ? rows.map((c) => `
+        <tr>
+          <td><input type="radio" name="companyPick" data-code="${esc(c.companyCode)}" data-name="${esc(c.companyName)}"/></td>
+          <td>${esc(c.companyCode)}</td>
+          <td style="text-align:left">${esc(c.companyName)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="3" class="empty">검색 결과가 없습니다.</td></tr>';
+  }
+
+  function closeCompanyModal() { $('companyModal').classList.remove('open'); }
+
+  function confirmCompany() {
+    const sel = $('companyList').querySelector('input[name="companyPick"]:checked');
+    if (!sel) { toast.warning('기관을 선택해주세요.'); return; }
+    $('companyCode').value = sel.dataset.code;
+    $('companyName').value = sel.dataset.name;
+    closeCompanyModal();
   }
 
   // ---- 목록 ----
@@ -119,7 +153,8 @@
     renderAcTree();
   }
 
-  // biostar_ac_id 가 매핑된 노드만 선택 가능(최상위 구역은 라벨)
+  // biostar_ac_id 가 매핑된 노드만 선택 가능(최상위 구역은 라벨).
+  // 노드를 .ac-node-wrap 으로 감싸 상위 체크 시 하위까지 연쇄 적용한다.
   function acNodesHtml(nodes) {
     return (nodes || []).map((n) => {
       const kids = (n.children || []).length ? `<div class="ac-select-node">${acNodesHtml(n.children)}</div>` : '';
@@ -129,7 +164,7 @@
              <span>${esc(n.acGroupName)}</span>
            </label>`
         : `<div class="ac-select-item group">${esc(n.acGroupName)}</div>`;
-      return row + kids;
+      return `<div class="ac-node-wrap">${row}${kids}</div>`;
     }).join('');
   }
 
@@ -178,10 +213,9 @@
   // ---- 등록 모달 ----
   function openModal() {
     ['personId', 'personName', 'birthDate', 'personPhone', 'mainTask', 'remark',
-      'titleCode', 'titleName', 'statusCode', 'statusName', 'accessStartDt', 'accessEndDt']
+      'companyCode', 'companyName', 'titleCode', 'titleName', 'statusCode', 'statusName',
+      'accessStartDt', 'accessEndDt']
       .forEach((id) => { $(id).value = ''; });
-    $('companyCode').value = '';
-    $('useYn').value = 'Y';
     $('faceFile').value = '';
     setFace(null);
     showTab('info');
@@ -204,7 +238,6 @@
       accessStartDt: $('accessStartDt').value || null,
       accessEndDt: $('accessEndDt').value || null,
       remark: $('remark').value.trim() || null,
-      useYn: $('useYn').value,
       acGroupIds: selectedAcGroupIds(),
       faceImage: face.image,
       faceTemplate9: face.t9,
@@ -227,6 +260,27 @@
 
     document.querySelectorAll('.tab-btn').forEach((b) =>
       b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+    // 기관: 별도 선택 팝업(tb_company)
+    $('companyName').addEventListener('click', openCompanyModal);
+    $('companyClose').addEventListener('click', closeCompanyModal);
+    $('companyCancel').addEventListener('click', closeCompanyModal);
+    $('companyConfirm').addEventListener('click', confirmCompany);
+    $('companyFilterKw').addEventListener('input', renderCompanyList);
+    $('companyModal').addEventListener('click', (e) => { if (e.target === $('companyModal')) closeCompanyModal(); });
+    $('companyList').addEventListener('click', (e) => {
+      if (e.target.closest('input[type="radio"]')) return;
+      const radio = e.target.closest('tr')?.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+    });
+
+    // 출입권한: 상위를 체크/해제하면 하위 전체에 동일 적용
+    $('acTree').addEventListener('change', (e) => {
+      const cb = e.target.closest('input[type="checkbox"]');
+      if (!cb) return;
+      const wrap = cb.closest('.ac-node-wrap');
+      if (wrap) wrap.querySelectorAll('input[type="checkbox"]').forEach((c) => { c.checked = cb.checked; });
+    });
 
     // 직위(UT)·상태(PS)는 공통 코드팝업
     $('titleName').addEventListener('click', async () => {
