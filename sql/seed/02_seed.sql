@@ -97,7 +97,7 @@ INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_leve
   (601, N'차량등록관리', 600,  '/carInfo/car',        2, 1, NULL,      'Y'),
   (700, N'기관관리',     NULL, NULL,                 1, 5, 'company',  'Y'),
   (701, N'기관등록관리', 700,  '/company/company',    2, 1, NULL,      'Y'),
-  (702, N'기관차량등록', 700,  '/company/car',        2, 2, NULL,      'Y'),
+  (702, N'기관차량등록', 700,  '/company/companyCar',        2, 2, NULL,      'Y'),
   (800, N'카드관리',     NULL, NULL,                 1, 6, 'card',     'Y'),
   (801, N'카드등록관리', 800,  '/card/card',          2, 1, NULL,      'Y');
 

@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 기관차량등록 (/company/car) — 기관 소속 차량(tb_car)과 그 차량용 카드(tb_card) 발급. (docs/backend.md)
+ * 기관차량등록 (/company/companyCar) — 기관 소속 차량(tb_car)과 그 차량용 카드(tb_card) 발급. (docs/backend.md)
  *
  * <p>차량 카드는 <b>카드구분=차량 고정</b>이고 패스구분을 쓰지 않는다. 카드는 실물이라 BiostarX 등록이 선행돼야 하며(카드 발급 시
  * {@link CardService#register}), 회수는 삭제가 아니라 {@code car_id=NULL} 이다(다른 차량이 재사용).

@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
  * <p>차량등록관리(/carInfo/car)는 차량 마스터 전용이고, 이 화면은 <b>기관에 묶인 차량</b>과 그 카드를 다룬다.
  */
 @Controller
-@RequestMapping("/company/car")
+@RequestMapping("/company/companyCar")
 public class CompanyCarController {
 
   private final CompanyCarService companyCarService;
@@ -74,7 +74,7 @@ public class CompanyCarController {
     }
     model.addAttribute("menus", menuService.tree(actor(session)));
     model.addAttribute("perm", perm);
-    return "web/company/car";
+    return "web/company/companyCar";
   }
 
   /** 목록 (AJAX) — 기관 목록(삭제되지 않은 기관) + 등록차량 수 */

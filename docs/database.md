@@ -146,7 +146,7 @@ PK: `car_id` (IDENTITY). 차량 1대에 관리자 1명(1:1). **삭제는 물리 
 | car_name | nvarchar(50) | | | 차량명칭 |                                      |
 | car_type | nvarchar(30) | | | 차종 | `tb_common`(cmm_id='CT').code_id     |
 | car_manager_id | nvarchar(30) | | 차량관리자 | → `tb_person.person_id` (소속 기관의 정규인원). 기관차량등록에서 지정 |
-| company_code | nvarchar(30) | | 소속 기관 | → `tb_company.company_code`. 기관차량등록(`/company/car`)에서 채운다 |
+| company_code | nvarchar(30) | | 소속 기관 | → `tb_company.company_code`. 기관차량등록(`/company/companyCar`)에서 채운다 |
 | del_yn | nchar(1) | | | 삭제여부 | 기본 'N', CHK Y/N. 삭제 시 'Y' (소프트 삭제)   |
 | reg_dt / mod_dt | datetime2(0) | | | 입력/수정일자 | 기본 getdate()                         |
 

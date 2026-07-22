@@ -2,7 +2,7 @@
    차량 자체의 마스터 관리는 차량등록관리(/carInfo/car) 담당. 여기는 기관 중심이다.
    카드구분은 서버가 '차량'으로 고정하고 패스구분은 쓰지 않는다. 회수는 삭제가 아니라 미배정(car_id=NULL). */
 (function () {
-  const BASE = '/company/car';
+  const BASE = '/company/companyCar';
   const state = { page: 1, size: 30, keyword: '', searchType: 'all', useYn: '', sort: 'companyCode', dir: 'asc' };
 
   const $ = (id) => document.getElementById(id);
