@@ -164,6 +164,14 @@ public class PersonController {
     return ApiResponse.ok(cardService.listByPerson(personId, actor(session), menuId()));
   }
 
+  /** 미할당 카드 목록 (AJAX) — 카드 할당하기 팝업 */
+  @GetMapping("/card/unassigned")
+  @ResponseBody
+  public ApiResponse<List<TbCard>> cardUnassigned(
+      @RequestParam(required = false) String keyword, HttpSession session) {
+    return ApiResponse.ok(cardService.listUnassigned(keyword, actor(session), menuId()));
+  }
+
   /** 장치 리더로 카드번호 읽기 (AJAX) — 로그인 계정의 장치(dev_id) */
   @PostMapping("/card/scan")
   @ResponseBody

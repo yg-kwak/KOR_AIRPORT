@@ -61,6 +61,7 @@ window.cardList = (function () {
     $('cardNo').value = c.cardNo || '';
     $('cardNo').readOnly = idx != null;
     $('btnCardScan').style.display = idx == null ? '' : 'none';
+    $('btnCardAssign').style.display = idx == null ? '' : 'none';
     $('passType').value = c.passType || '';
     $('passTypeName').value = c.passTypeName || '';
     $('cardName').value = c.cardName || '';
@@ -82,6 +83,59 @@ window.cardList = (function () {
       issueReason: $('cardIssueReason').value.trim() || null,
       remark: $('cardRemark').value.trim() || null,
     };
+  }
+
+  // ---- 미할당 카드 선택 팝업(할당하기) ----
+  let picked = null; // 팝업에서 고른 카드
+
+  async function loadPicker(id) {
+    const keyword = encodeURIComponent($('cardPickerKeyword').value.trim());
+    const rows = (await api.get(`${state[id].baseUrl}/card/unassigned?keyword=${keyword}`)) || [];
+    picked = null;
+    $('cardPickerBody').innerHTML = rows.length
+      ? rows.map((c, i) => `
+        <tr class="row-click card-pick-row" data-idx="${i}">
+          <td><input type="radio" name="cardPick" value="${i}"/></td>
+          <td>${esc(c.biostarCardValue)}</td>
+          <td>${esc(c.passTypeName)}</td>
+          <td style="text-align:left">${esc(c.cardName)}</td>
+          <td>${esc(c.cardStatusName)}</td>
+        </tr>`).join('')
+      : `<tr><td colspan="5" class="empty">${keyword
+        ? '검색 결과가 없습니다.'
+        : '할당할 수 있는 카드가 없습니다. (회수된 카드가 없습니다)'}</td></tr>`;
+    $('cardPickerBody').dataset.rows = JSON.stringify(rows);
+  }
+
+  function openPicker(id) {
+    $('cardPickerKeyword').value = '';
+    $('cardPickerModal').classList.add('open');
+    loadPicker(id);
+  }
+  function closePicker() { $('cardPickerModal').classList.remove('open'); }
+
+  // 선택 → 카드번호와 기존 정보(패스구분·명칭·상태)를 입력칸에 채운다
+  function applyPicked() {
+    if (!picked) { toast.warning('카드를 선택하세요.'); return; }
+    $('cardNo').value = picked.biostarCardValue || '';
+    if (picked.passType) { $('passType').value = picked.passType; $('passTypeName').value = picked.passTypeName || ''; }
+    if (picked.cardName) $('cardName').value = picked.cardName;
+    if (picked.cardStatus) { $('cardStatus').value = picked.cardStatus; $('cardStatusName').value = picked.cardStatusName || ''; }
+    closePicker();
+  }
+
+  function bindPicker(id) {
+    $('btnCardAssign').addEventListener('click', () => openPicker(id));
+    $('cardPickerKeyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadPicker(id); });
+    $('cardPickerBody').addEventListener('click', (e) => {
+      const row = e.target.closest('.card-pick-row');
+      if (!row) return;
+      row.querySelector('input[type="radio"]').checked = true;
+      picked = JSON.parse($('cardPickerBody').dataset.rows)[Number(row.dataset.idx)];
+    });
+    $('cardPickerOk').addEventListener('click', applyPicked);
+    $('cardPickerCancel').addEventListener('click', closePicker);
+    $('cardPickerClose').addEventListener('click', closePicker);
   }
 
   /** 필수값 검사 — 서버(CardService)와 같은 기준. 통과하면 null. */
@@ -143,6 +197,7 @@ window.cardList = (function () {
     });
     $('cardNo').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, ''); });
     $('btnCardScan').addEventListener('click', () => scan(id));
+    bindPicker(id);
     $('cardModalOk').addEventListener('click', () => confirmCard(id));
     $('cardModalCancel').addEventListener('click', closePanel);
     $('cardModalClose').addEventListener('click', closePanel);

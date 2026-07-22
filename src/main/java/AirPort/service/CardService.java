@@ -53,6 +53,12 @@ public class CardService {
     return cardMapper.selectByPerson(personId);
   }
 
+  /** 미할당 카드 목록 — 할당하기 팝업(회수되어 다시 쓸 수 있는 카드). */
+  public List<TbCard> listUnassigned(String keyword, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireRead(actor, menuId);
+    return cardMapper.selectUnassigned(keyword);
+  }
+
   /** 장치 리더로 카드번호 읽기 — 로그인 계정의 장치(tb_login_user.dev_id). */
   public BiostarCard scan(TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);

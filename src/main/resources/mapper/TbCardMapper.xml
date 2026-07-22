@@ -23,6 +23,23 @@
     ORDER BY c.card_id
   </select>
 
+  <!-- 미할당(회수된) 카드 목록 — 할당하기 팝업. 인원에 붙어 있지 않은 실물 카드만 -->
+  <select id="selectUnassigned" resultType="TbCard">
+    SELECT <include refid="cardColumns"/>
+    FROM tb_card c
+    LEFT JOIN tb_common cdt ON cdt.cmm_id = 'CDT' AND cdt.code_id = c.card_type
+    LEFT JOIN tb_common cs  ON cs.cmm_id  = 'CS'  AND cs.code_id  = c.card_status
+    LEFT JOIN tb_common pt  ON pt.cmm_id  = 'PT'  AND pt.code_id  = c.pass_type
+    <where>
+      c.del_yn = 'N' AND c.person_id IS NULL
+      <if test="keyword != null and keyword != ''">
+        AND (c.biostar_card_value LIKE '%' + #{keyword} + '%'
+             OR c.card_name LIKE '%' + #{keyword} + '%')
+      </if>
+    </where>
+    ORDER BY c.biostar_card_value
+  </select>
+
   <!-- 카드번호로 단건 조회 — 회수된 카드 재사용 / 중복 발급 차단용 -->
   <select id="selectByCardNo" resultType="TbCard">
     SELECT <include refid="cardColumns"/>

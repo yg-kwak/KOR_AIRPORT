@@ -5,6 +5,7 @@
      목록:  <div th:replace="~{fragments/components/card-list :: cardList('cardList')}"></div>
      입력:  편집 모달(.modal-overlay) 안에 .modal-container 형제로 넣으면 모달 우측에 나란히 열린다.
             <div th:replace="~{fragments/components/card-list :: cardPanel}"></div>
+     팝업:  <div th:replace="~{fragments/components/card-list :: cardPicker}"></div>  (모달 밖, 페이지 하단)
      화면 스크립트에서 cardList.init(id, {baseUrl, cardTypeName}) 로 엔드포인트를 알려준다. -->
 <div th:fragment="cardList(fid)" class="card-list" th:id="${fid}">
   <div class="grid-toolbar">
@@ -41,9 +42,10 @@
       <div class="form-group full">
         <label>카드번호 <span class="req">*</span></label>
         <div class="file-field-row">
-          <input type="text" id="cardNo" class="input" maxlength="30" inputmode="numeric"
-                 placeholder="직접 입력하거나 SCAN 으로 읽으세요" autocomplete="off"/>
+          <input type="text" id="cardNo" class="input w-160" maxlength="30" inputmode="numeric"
+                 placeholder="카드번호" autocomplete="off"/>
           <button type="button" class="btn" id="btnCardScan">SCAN</button>
+          <button type="button" class="btn" id="btnCardAssign">할당하기</button>
         </div>
       </div>
       <div class="form-group">
@@ -83,6 +85,43 @@
   <div class="modal-footer">
     <button type="button" class="btn" id="cardModalCancel">닫기</button>
     <button type="button" class="btn btn-primary" id="cardModalOk">확인</button>
+  </div>
+</div>
+
+<!-- 미할당 카드 선택 팝업 — 회수되어 다시 쓸 수 있는 카드 목록 -->
+<div th:fragment="cardPicker" class="modal-overlay code-picker-overlay" id="cardPickerModal">
+  <div class="modal-container wide">
+    <div class="modal-header">
+      <h2 class="modal-title">카드 할당</h2>
+      <button type="button" class="modal-close" id="cardPickerClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="search-keyword" style="margin-bottom:10px">
+        <input type="text" id="cardPickerKeyword" class="input"
+               placeholder="카드번호 또는 카드명칭으로 검색" autocomplete="off"/>
+      </div>
+      <p class="form-hint" id="cardPickerInfo">인원에 할당되지 않은(회수된) 카드만 보입니다.</p>
+      <div class="matrix-wrap">
+        <table class="grid">
+          <thead>
+          <tr>
+            <th class="w-40"></th>
+            <th class="w-160">카드번호</th>
+            <th class="w-100">패스구분</th>
+            <th style="text-align:left">카드명칭</th>
+            <th class="w-100">카드상태</th>
+          </tr>
+          </thead>
+          <tbody id="cardPickerBody">
+          <tr><td colspan="5" class="empty">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="cardPickerCancel">취소</button>
+      <button type="button" class="btn btn-primary" id="cardPickerOk">선택</button>
+    </div>
   </div>
 </div>
 </body>

@@ -9,6 +9,9 @@ public interface TbCardMapper {
 
   List<TbCard> selectByPerson(@Param("personId") String personId);
 
+  /** 미할당(회수된) 카드 목록 — 할당하기 팝업용. */
+  List<TbCard> selectUnassigned(@Param("keyword") String keyword);
+
   /** 카드번호로 단건 조회 — 회수된 카드 재사용 / 중복 발급 차단용. */
   TbCard selectByCardNo(@Param("cardNo") String cardNo);
 

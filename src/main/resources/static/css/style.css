@@ -395,6 +395,11 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .setting-form .form-group.wider { width: 340px; }
 .setting-actions { display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; height: 36px; }
 .form-group .input { width: 100%; }
+/* 폭 유틸(.w-*)을 붙인 입력은 위 100% 대신 그 폭을 지킨다 (예: 카드번호 + 버튼 한 줄) */
+.form-group .input.w-80 { width: 80px; }
+.form-group .input.w-100 { width: 100px; }
+.form-group .input.w-120 { width: 120px; }
+.form-group .input.w-160 { width: 160px; }
 
 /* 그리드 툴바 (총건수 / 페이지크기) */
 .grid-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
