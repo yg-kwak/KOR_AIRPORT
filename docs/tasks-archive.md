@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 정규인원 ↔ BiostarX 사용자 upsert — 저장 전 GET /api/users/{인원ID} 로 존재를 확인해 있으면 PUT, 없으면 POST. 등록·수정 어느 쪽에서 들어와도 결과가 같아져 DB 와 장비의 어긋남이 저장 한 번으로 맞춰진다 — sjpark2, 2026-07-22
 - [x] 기관차량등록 — 차량관리자(해당 기관 정규인원 선택)·차량 불러오기(미할당 차량 편입)·출입구역(신규 tb_car_ac_group, tb_common CAR). car_manager_id 의미를 tb_login_user → tb_person(정규인원)으로 확정 — sjpark2, 2026-07-22
 - [x] 기관차량등록을 기관 중심으로 재구성 — 목록을 차량 → **기관**(tb_company del_yn='N', 등록차량 수)으로 바꾸고, 기관을 누르면 모달에서 차량 목록 → 우측 패널(차량 정보 + 카드 발급/회수). 차량 자체 관리는 차량등록관리 담당 — sjpark2, 2026-07-22
 - [x] 기관차량등록(/company/companyCar) — 기관관리(700) 하위 702. 기관 소속 차량(tb_car + company_code)과 차량용 카드(tb_card + car_id) 발급/회수. 카드구분은 서버가 차량 고정·패스구분 미사용, 카드 있는 차량은 삭제 거부, 회수는 car_id=NULL(재사용). 곁들여 잘못된 JSON 본문이 500 → 400 이 되도록 GlobalExceptionHandler 보강 — sjpark2, 2026-07-22

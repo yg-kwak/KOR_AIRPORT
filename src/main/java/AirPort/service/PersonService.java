@@ -32,8 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 정규인원(tb_person, person_type='PT01') 등록관리. (docs/backend.md)
  *
- * <p>성명·생년월일·연락처는 ARIA 암호화 저장. 등록 시 얼굴(tb_person_photo)·출입권한(tb_person_ac_group)을 함께 저장하고
- * BiostarX 사용자({@code POST /api/users})를 생성한다. 연동 실패해도 인원 등록은 유지하고 경고를 돌려준다(기관 연동과 동일 정책).
+ * <p>성명·생년월일·연락처는 ARIA 암호화 저장. 얼굴(tb_person_photo)·출입권한(tb_person_ac_group)·카드도 함께 저장한다.
+ * BiostarX 사용자는 등록·수정 모두 <b>존재 확인 후 upsert</b>({@code GET /api/users/{인원ID}} → 있으면 PUT, 없으면 POST)
+ * 한다. 연동 실패해도 인원 저장은 유지하고 경고를 돌려준다(기관 연동과 동일 정책).
  */
 @Service
 public class PersonService {
@@ -187,8 +188,8 @@ public class PersonService {
     }
     BiostarUserRequest after =
         biostarRequest(form, acGroupMapper.selectBiostarAcIds(form.getPersonId()));
-    BiostarResult res =
-        biostarUserAdapter.updateUser(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), before, after);
+    // BiostarX 에 없으면(수동 삭제 등) 변경분 전송이 무의미하므로 새로 등록한다
+    BiostarResult res = syncUser(cfg, before, after);
     return res.success() ? null : res.message();
   }
 
@@ -338,16 +339,36 @@ public class PersonService {
     if (cfg == null) {
       return "BiostarX 설정이 없습니다.";
     }
-    BiostarUserRequest req =
+    BiostarUserRequest after =
         biostarRequest(form, acGroupMapper.selectBiostarAcIds(form.getPersonId()));
 
-    BiostarResult res =
-        biostarUserAdapter.createUser(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), req);
+    // 이미 BiostarX 에 있는 인원ID 면 생성 대신 덮어쓴다(before 를 비워 전 항목을 보낸다)
+    BiostarResult res = syncUser(cfg, empty(form.getPersonId()), after);
     if (!res.success()) {
       return res.message();
     }
     personMapper.updateBiostarUserId(form.getPersonId(), form.getPersonId());
     return null;
+  }
+
+  /**
+   * BiostarX 사용자 동기화 — {@code GET /api/users/{인원ID}} 로 존재를 확인해 있으면 수정, 없으면 등록한다.
+   *
+   * <p>등록/수정 어느 쪽에서 들어와도 결과가 같아진다(우리 DB 와 BiostarX 가 어긋나 있어도 한 번에 맞춰진다).
+   */
+  private BiostarResult syncUser(TbSystem cfg, BiostarUserRequest before, BiostarUserRequest after) {
+    String ip = cfg.getBiostarIp();
+    String id = cfg.getBiostarId();
+    boolean exists = biostarUserAdapter.userExists(ip, id, pw(cfg), after.userId());
+    return exists
+        ? biostarUserAdapter.updateUser(ip, id, pw(cfg), before, after)
+        : biostarUserAdapter.createUser(ip, id, pw(cfg), after);
+  }
+
+  /** 비교 기준이 없을 때 쓰는 빈 요청 — 모든 항목이 '변경됨'이 되어 전 항목이 전송된다. */
+  private static BiostarUserRequest empty(String userId) {
+    return new BiostarUserRequest(
+        userId, null, null, null, null, null, null, null, null, null, null, null, null, null);
   }
 
   /** 기관의 BiostarX 사용자그룹 ID. */

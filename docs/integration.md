@@ -36,7 +36,7 @@
 | 출입그룹 검색 | `POST /api/v2/access_groups/search` |
 | 장치 검색 | `POST /api/v2/devices/search` |
 | 사용자 검색(고급) | `POST /api/v2/users/advance_search` |
-| 사용자 조회/등록/수정/삭제 | `GET·POST·PUT·DELETE /api/users`, `/api/users/{id}` |
+| 사용자 조회(존재 확인)/등록/수정/삭제 | `GET·POST·PUT·DELETE /api/users`, `GET /api/users/{id}` |
 | 카드 발급 | `POST /api/cards` |
 | 장치 카드 스캔 | `POST /api/devices/{deviceId}/scan_card` |
 | 얼굴 크리덴셜 | `GET /api/devices/{deviceId}/credentials/face` |
@@ -48,6 +48,7 @@
 - 출입그룹: `tb_ac_group.biostar_ac_id`/`biostar_ac_name` ↔ BiostarX access group. (`database.md`)
 - **정규인원 ↔ BiostarX 사용자**(`/person/person`): 인원(`tb_person`, `person_type='PT01'`) 등록 시 BiostarX 사용자를 생성한다. 어댑터: `BiostarUserAdapter`.
   - **얼굴(둘 중 하나)**: ①파일 업로드 `PUT /api/users/check/upload_picture` → 응답 `image`=사진, `image_template`/`image_template_2`=템플릿(9/5). ②장치 촬영 `GET /api/devices/{tb_login_user.dev_id}/credentials/face` → `template_ex_normalized_image` + `templates[]`. **브라우저가 BiostarX 를 직접 부를 수 없어 서버가 중계**한다.
+  - **존재 확인 후 upsert(등록·수정 공통)**: 저장 전 `GET /api/users/{인원ID}` 로 확인해 **있으면 수정(PUT), 없으면 등록(POST)** 한다. 등록에서 들어와도 이미 있으면 덮어쓰고(비교 기준을 비워 전 항목 전송), 수정에서 들어왔는데 없으면 새로 만든다 — 우리 DB 와 BiostarX 가 어긋나 있어도 저장 한 번으로 맞춰진다. 확인 호출이 통신 오류로 실패하면 '없음'으로 보지만, 이어지는 등록도 같은 이유로 실패해 경고가 남는다.
   - **사용자 생성**: `POST /api/users` — `user_group_id`=`tb_company.biostar_group_id`, `disabled`=`tb_common`(PS).code_tag, `user_title`=`tb_common`(UT).code_name, `access_groups`=선택한 `tb_ac_group.biostar_ac_id` 목록, `credentials.visualFaces`=얼굴 3종. 사진/얼굴은 `tb_person_photo` 에도 저장.
   - **실패 정책**: 동기화 실패해도 인원 등록은 유지하고 경고(기관 연동과 동일). 성공 시 `tb_person.biostar_user_id`=인원ID.
   - **수정**: `PUT /api/users/{인원ID}` — **변경된 항목만** 전송(델타). 있다가 없어진 값은 공란(문자열 `""`, 목록 `[]`), 얼굴 삭제는 `credentials.visualFaces=[]`. 변경이 없으면 호출하지 않는다.

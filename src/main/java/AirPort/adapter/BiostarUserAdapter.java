@@ -106,6 +106,28 @@ public class BiostarUserAdapter {
     return null;
   }
 
+  /**
+   * BiostarX 사용자 존재 확인 — {@code GET /api/users/{userId}}. 호출이 성공하면 등록돼 있다는 뜻이다.
+   *
+   * <p>확인 자체가 실패하면(없는 사용자·통신 오류) {@code false} 로 본다. 통신 오류라면 이어지는 생성 호출도 같은 이유로 실패해 경고가
+   * 남으므로, 데이터가 잘못될 여지는 없다.
+   */
+  public boolean userExists(String ip, String loginId, String password, String userId) {
+    if (ip == null || ip.isBlank() || userId == null || userId.isBlank()) {
+      return false;
+    }
+    try {
+      String path =
+          "/api/users/"
+              + java.net.URLEncoder.encode(userId, java.nio.charset.StandardCharsets.UTF_8);
+      HttpResponse<String> resp = session.get(baseUrl(ip), loginId, password, path);
+      return BiostarAdapter.responseError(objectMapper, resp) == null;
+    } catch (Exception e) {
+      log.warn("BiostarX 사용자 확인 실패({}): {}", userId, e.toString());
+      return false;
+    }
+  }
+
   /** BiostarX 사용자 생성 — {@code POST /api/users}. 실패 시 BiostarX 메시지를 그대로 돌려준다. */
   public BiostarResult createUser(
       String ip, String loginId, String password, BiostarUserRequest req) {
