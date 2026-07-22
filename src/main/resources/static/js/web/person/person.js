@@ -15,18 +15,18 @@
 
   let face = { image: null, t9: null, t5: null }; // 얼굴(정규화 이미지 + 템플릿 2종)
   let acTreeData = []; // 출입권한 트리(tb_ac_group)
-  let companies = []; // 기관 목록(검색 select + 선택 팝업 공용)
+  let companies = []; // 기관 목록(검색조건 + 등록모달 공용)
+  let companyPickTarget = 'form'; // 기관 팝업을 연 곳: 'form'(등록모달) | 'filter'(검색조건)
 
   // ---- 참조 데이터(기관) ----
   async function loadRefs() {
     const data = await api.get(BASE + '/refs');
     companies = data.companies || [];
-    $('companyFilter').insertAdjacentHTML('beforeend',
-      companies.map((c) => `<option value="${esc(c.companyCode)}">${esc(c.companyName)}</option>`).join(''));
   }
 
-  // ---- 기관 선택 팝업 ----
-  function openCompanyModal() {
+  // ---- 기관 선택 팝업 (검색조건·등록모달 공용) ----
+  function openCompanyModal(target) {
+    companyPickTarget = target;
     $('companyFilterKw').value = '';
     renderCompanyList();
     $('companyModal').classList.add('open');
@@ -54,6 +54,13 @@
   function confirmCompany() {
     const sel = $('companyList').querySelector('input[name="companyPick"]:checked');
     if (!sel) { toast.warning('기관을 선택해주세요.'); return; }
+    if (companyPickTarget === 'filter') {
+      $('companyFilter').value = sel.dataset.code;
+      $('companyFilterName').value = sel.dataset.name;
+      closeCompanyModal();
+      search(); // 검색조건은 선택 즉시 재조회
+      return;
+    }
     $('companyCode').value = sel.dataset.code;
     $('companyName').value = sel.dataset.name;
     closeCompanyModal();
@@ -127,6 +134,7 @@
     $('searchType').value = 'all';
     $('keyword').value = '';
     $('companyFilter').value = '';
+    $('companyFilterName').value = '';
     $('pageSize').value = '30';
     Object.assign(state, {
       page: 1, size: 30, keyword: '', searchType: 'all', companyCode: '', sort: 'personId', dir: 'asc',
@@ -254,15 +262,21 @@
     $('btnSearch').addEventListener('click', search);
     $('btnReset').addEventListener('click', reset);
     $('keyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
-    $('companyFilter').addEventListener('change', search);
+    // 검색조건 기관: 등록모달과 같은 선택 팝업. 삭제(전체)로 비우면 즉시 재조회
+    $('companyFilterName').addEventListener('click', () => openCompanyModal('filter'));
+    const filterWrap = $('companyFilterName').closest('.picker-wrap');
+    if (filterWrap) {
+      const clearBtn = filterWrap.querySelector('.picker-clear');
+      if (clearBtn) clearBtn.addEventListener('click', () => setTimeout(search, 0));
+    }
     $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
     if ($('btnNew')) $('btnNew').addEventListener('click', openModal);
 
     document.querySelectorAll('.tab-btn').forEach((b) =>
       b.addEventListener('click', () => showTab(b.dataset.tab)));
 
-    // 기관: 별도 선택 팝업(tb_company)
-    $('companyName').addEventListener('click', openCompanyModal);
+    // 기관(등록모달): 별도 선택 팝업(tb_company)
+    $('companyName').addEventListener('click', () => openCompanyModal('form'));
     $('companyClose').addEventListener('click', closeCompanyModal);
     $('companyCancel').addEventListener('click', closeCompanyModal);
     $('companyConfirm').addEventListener('click', confirmCompany);

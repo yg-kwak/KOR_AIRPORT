@@ -12,9 +12,9 @@
     <section class="search-section">
       <div class="search-field">
         <label>기관</label>
-        <select id="companyFilter" class="input w-160">
-          <option value="">전체</option>
-        </select>
+        <input type="hidden" id="companyFilter"/>
+        <input type="text" id="companyFilterName" class="input w-160 picker-field" readonly
+               data-target="companyFilter" placeholder="전체 (클릭하여 선택)" autocomplete="off"/>
       </div>
       <div class="search-field">
         <label>검색어</label>
