@@ -246,6 +246,8 @@ PK: `card_id` (IDENTITY). **인원 1 : 카드 N** (`person_id`). 삭제는 `del_
 | person_id | nvarchar(30) | | 인원ID | → `tb_person.person_id` (FK 미강제) |
 | biostar_card_id | nvarchar(50) | | BiostarX 카드ID | |
 | biostar_card_value | nvarchar(255) | | BiostarX 카드값 | **암호화 안 함** — 근거: 카드값은 개인정보가 아님 (`security.md`) |
+
+> **카드번호 유일성**: `UX_tb_card_value` (필터 유니크 인덱스, `del_yn='N'`) — 실물 카드와 1:1이므로 살아 있는 행끼리 카드번호가 겹칠 수 없다. 회수·재사용도 새 행을 만들지 않고 같은 행의 `person_id` 만 바꾼다.
 | use_yn | nchar(1) | | 사용유무 | 기본 'Y', CHK Y/N |
 | del_yn | nchar(1) | | 삭제유무 | 기본 'N', CHK Y/N (소프트 삭제) |
 | reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('카드등록관리')}"></head>
+<body>
+<div th:replace="~{fragments/main :: header}"></div>
+<div class="layout-container">
+  <div th:replace="~{fragments/sidebar :: sidebar(${menus})}"></div>
+  <main class="layout-content">
+    <h2>카드등록관리</h2>
+
+    <!-- 검색 -->
+    <section class="search-section">
+      <div class="search-field">
+        <label>카드상태</label>
+        <input type="hidden" id="statusFilter"/>
+        <input type="text" id="statusFilterName" class="input w-160 picker-field" readonly
+               data-target="statusFilter" placeholder="전체 (클릭하여 선택)" autocomplete="off"/>
+      </div>
+      <div class="search-field">
+        <label>할당여부</label>
+        <select id="assignedFilter" class="input w-120">
+          <option value="">전체</option>
+          <option value="N">미할당</option>
+          <option value="Y">할당</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>검색어</label>
+        <div class="search-keyword">
+          <select id="searchType" class="input w-120">
+            <option value="all">전체</option>
+            <option value="cardNo">카드번호</option>
+            <option value="cardName">카드명칭</option>
+          </select>
+          <input type="text" id="keyword" class="input w-300" placeholder="검색어를 입력해주세요"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnSearch">검색</button>
+      <button class="btn" id="btnReset">초기화</button>
+    </section>
+
+    <!-- 목록 -->
+    <section class="content-card">
+      <div class="grid-toolbar">
+        <span class="grid-total" id="totalInfo"></span>
+        <div class="grid-actions">
+          <button class="btn" id="btnNew" th:if="${perm.canCreate}">등록</button>
+          <select id="pageSize" class="input">
+            <option value="30">30개씩 보기</option>
+            <option value="50">50개씩 보기</option>
+            <option value="100">100개씩 보기</option>
+          </select>
+        </div>
+      </div>
+      <table class="grid">
+        <thead>
+        <tr>
+          <th class="w-160 sortable" data-sort="cardNo">카드번호<span class="sort-ind"></span></th>
+          <th class="w-100">카드구분</th>
+          <th class="w-100">패스구분</th>
+          <th class="sortable" data-sort="cardName">카드명칭<span class="sort-ind"></span></th>
+          <th class="w-100 sortable" data-sort="cardStatus">카드상태<span class="sort-ind"></span></th>
+          <th class="w-120">할당인원</th>
+          <th class="w-160 sortable" data-sort="regDt">등록일<span class="sort-ind"></span></th>
+          <th class="w-100">관리</th>
+        </tr>
+        </thead>
+        <tbody id="gridBody">
+        <tr><td colspan="8" class="empty">조회 결과가 없습니다.</td></tr>
+        </tbody>
+      </table>
+      <div class="paging" id="paging"></div>
+    </section>
+  </main>
+</div>
+
+<!-- 등록/수정 모달 -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">카드 등록</h2>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="editForm">
+        <input type="hidden" id="cardId"/>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>카드번호 <span class="req">*</span></label>
+            <div class="file-field-row">
+              <input type="text" id="cardNo" class="input w-160" maxlength="30" inputmode="numeric"
+                     placeholder="카드번호" autocomplete="off"/>
+              <button type="button" class="btn" id="btnScan">SCAN</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>카드구분 <span class="req">*</span> <span class="form-hint">(클릭하여 선택)</span></label>
+            <input type="hidden" id="cardType"/>
+            <input type="text" id="cardTypeName" class="input picker-field" readonly
+                   data-target="cardType" placeholder="클릭하여 선택" autocomplete="off"/>
+          </div>
+          <div class="form-group">
+            <label>패스구분 <span class="req">*</span> <span class="form-hint">(클릭하여 선택)</span></label>
+            <input type="hidden" id="passType"/>
+            <input type="text" id="passTypeName" class="input picker-field" readonly
+                   data-target="passType" placeholder="클릭하여 선택" autocomplete="off"/>
+          </div>
+          <div class="form-group">
+            <label>카드명칭 <span class="req">*</span></label>
+            <input type="text" id="cardName" class="input" maxlength="100" autocomplete="off"/>
+          </div>
+          <div class="form-group">
+            <label>카드상태 <span class="req">*</span> <span class="form-hint">(클릭하여 선택)</span></label>
+            <input type="hidden" id="cardStatus"/>
+            <input type="text" id="cardStatusName" class="input picker-field" readonly
+                   data-target="cardStatus" placeholder="클릭하여 선택" autocomplete="off"/>
+          </div>
+          <div class="form-group">
+            <label>발급료 납부일</label>
+            <input type="date" id="feePaidDt" class="input"/>
+          </div>
+          <div class="form-group">
+            <label>할당인원 <span class="form-hint">(정규인원등록에서 부여)</span></label>
+            <input type="text" id="personId" class="input" readonly disabled autocomplete="off"/>
+          </div>
+          <div class="form-group full">
+            <label>발급근거</label>
+            <input type="text" id="issueReason" class="input" maxlength="500" autocomplete="off"/>
+          </div>
+          <div class="form-group full">
+            <label>메모</label>
+            <input type="text" id="remark" class="input" maxlength="1000" autocomplete="off"/>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="btnCancel">취소</button>
+      <button class="btn btn-primary" id="btnSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 공통 확인/코드팝업 모달 (fragments/components — 제목/내용은 JS 로 주입) -->
+<div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
+<div th:replace="~{fragments/components/code-picker-modal :: codePicker}"></div>
+
+<!-- 메뉴 권한 → JS 전달 (행 버튼 노출 제어. 서버가 2차로 강제) -->
+<script th:inline="javascript">
+  window.PAGE_PERM = {
+    canCreate: [[${perm.canCreate}]],
+    canDelete: [[${perm.canDelete}]]
+  };
+</script>
+<script src="/js/web/card/card.js" defer></script>
+</body>
+</html>

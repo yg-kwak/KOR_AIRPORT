@@ -13,6 +13,65 @@
     cdt.code_name AS card_type_name, cs.code_name AS card_status_name, pt.code_name AS pass_type_name
   </sql>
 
+  <!-- 카드등록관리 목록 — 조회는 항상 del_yn='N' -->
+  <sql id="searchWhere">
+    <where>
+      c.del_yn = 'N'
+      <if test="keyword != null and keyword != ''">
+        <choose>
+          <when test="searchType == 'cardNo'">AND c.biostar_card_value LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'cardName'">AND c.card_name LIKE '%' + #{keyword} + '%'</when>
+          <otherwise>
+            AND (c.biostar_card_value LIKE '%' + #{keyword} + '%'
+                 OR c.card_name LIKE '%' + #{keyword} + '%')
+          </otherwise>
+        </choose>
+      </if>
+      <if test="cardStatus != null and cardStatus != ''">AND c.card_status = #{cardStatus}</if>
+      <!-- OGNL 에서 'Y' 는 char 라 String 과 비교하면 터진다 → "Y".equals(...) 로 쓴다 -->
+      <if test='"Y".equals(assigned)'>AND c.person_id IS NOT NULL</if>
+      <if test='"N".equals(assigned)'>AND c.person_id IS NULL</if>
+    </where>
+  </sql>
+
+  <!-- 정렬: 화이트리스트만(SQL 인젝션 방지). 기본 최신 등록순 -->
+  <sql id="orderBy">
+    ORDER BY
+    <choose>
+      <when test="sort == 'cardNo'">c.biostar_card_value <if test="desc">DESC</if>, c.card_id</when>
+      <when test="sort == 'cardName'">c.card_name <if test="desc">DESC</if>, c.card_id</when>
+      <when test="sort == 'cardStatus'">cs.code_name <if test="desc">DESC</if>, c.card_id</when>
+      <when test="sort == 'regDt'">c.reg_dt <if test="desc">DESC</if>, c.card_id</when>
+      <otherwise>c.card_id DESC</otherwise>
+    </choose>
+  </sql>
+
+  <sql id="listJoins">
+    FROM tb_card c
+    LEFT JOIN tb_common cdt ON cdt.cmm_id = 'CDT' AND cdt.code_id = c.card_type
+    LEFT JOIN tb_common cs  ON cs.cmm_id  = 'CS'  AND cs.code_id  = c.card_status
+    LEFT JOIN tb_common pt  ON pt.cmm_id  = 'PT'  AND pt.code_id  = c.pass_type
+  </sql>
+
+  <select id="selectList" parameterType="AirPort.model.CardSearchParam" resultType="TbCard">
+    SELECT <include refid="cardColumns"/>
+    <include refid="listJoins"/>
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="selectCount" parameterType="AirPort.model.CardSearchParam" resultType="long">
+    SELECT COUNT(*) FROM tb_card c
+    <include refid="searchWhere"/>
+  </select>
+
+  <select id="selectById" resultType="TbCard">
+    SELECT <include refid="cardColumns"/>
+    <include refid="listJoins"/>
+    WHERE c.card_id = #{cardId}
+  </select>
+
   <select id="selectByPerson" resultType="TbCard">
     SELECT <include refid="cardColumns"/>
     FROM tb_card c
@@ -42,12 +101,13 @@
 
   <!-- 카드번호로 단건 조회 — 회수된 카드 재사용 / 중복 발급 차단용 -->
   <select id="selectByCardNo" resultType="TbCard">
-    SELECT <include refid="cardColumns"/>
+    SELECT TOP 1 <include refid="cardColumns"/>
     FROM tb_card c
     LEFT JOIN tb_common cdt ON cdt.cmm_id = 'CDT' AND cdt.code_id = c.card_type
     LEFT JOIN tb_common cs  ON cs.cmm_id  = 'CS'  AND cs.code_id  = c.card_status
     LEFT JOIN tb_common pt  ON pt.cmm_id  = 'PT'  AND pt.code_id  = c.pass_type
     WHERE c.del_yn = 'N' AND c.biostar_card_value = #{cardNo}
+    ORDER BY c.card_id
   </select>
 
   <insert id="insert" parameterType="TbCard" useGeneratedKeys="true" keyProperty="cardId">
@@ -75,6 +135,25 @@
         remark = #{remark},
         mod_dt = getdate()
     WHERE card_id = #{cardId}
+  </update>
+
+  <!-- 카드등록관리 수정 — 카드번호·BiostarX 식별자·할당 인원은 건드리지 않는다 -->
+  <update id="updateInfo" parameterType="TbCard">
+    UPDATE tb_card
+    SET card_type = #{cardType},
+        card_name = #{cardName},
+        card_status = #{cardStatus},
+        pass_type = #{passType},
+        fee_paid_dt = #{feePaidDt},
+        issue_reason = #{issueReason},
+        remark = #{remark},
+        mod_dt = getdate()
+    WHERE card_id = #{cardId}
+  </update>
+
+  <!-- 카드 마스터 소프트 삭제 — 물리 DELETE 금지 -->
+  <update id="softDelete">
+    UPDATE tb_card SET del_yn = 'Y', mod_dt = getdate() WHERE card_id = #{cardId}
   </update>
 
   <!-- 회수: 인원에서 떼어내 '미배정' 으로 되돌린다(카드 자체는 살아 있어 다른 인원이 다시 쓸 수 있다).

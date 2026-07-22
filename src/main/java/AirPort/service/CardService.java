@@ -3,11 +3,13 @@ package AirPort.service;
 import AirPort.adapter.BiostarCard;
 import AirPort.adapter.BiostarCardAdapter;
 import AirPort.adapter.BiostarUserCard;
+import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbSystemMapper;
 import AirPort.model.CardForm;
+import AirPort.model.CardSearchParam;
 import AirPort.model.TbCard;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbSystem;
@@ -15,12 +17,14 @@ import AirPort.security.ARIAUtil;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 카드(tb_card) — 인원 모달의 카드정보 탭 담당. (docs/backend.md)
+ * 카드(tb_card) — 카드등록관리(/card/card) 마스터 CRUD + 정규인원등록 카드정보 탭. (docs/backend.md)
  *
- * <p>정책: <b>카드 추가 시점에 BiostarX 에 카드를 등록</b>하고(POST /api/cards), 그 결과(biostar_card_id/카드번호)를
- * 화면이 들고 있다가 인원 저장 시 tb_card 로 저장한다. 사용자에게 붙이는 것은 인원 저장 시 사용자 payload 의 cards[] 가 한다.
+ * <p>두 화면의 공통 규칙: 카드는 <b>실물</b>이라 BiostarX 등록이 선행돼야 하고(POST /api/cards, 이미 있는 번호는 재사용),
+ * 인원에서 빼는 것은 삭제가 아니라 <b>회수</b>(person_id=NULL)다. 인원 화면은 카드 추가 시점에 BiostarX 등록만 하고
+ * tb_card 저장·사용자 부여(cards[])는 인원 저장 시 한 번에 처리한다.
  */
 @Service
 public class CardService {
@@ -45,6 +49,82 @@ public class CardService {
     this.biostarCardAdapter = biostarCardAdapter;
     this.menuAuthService = menuAuthService;
     this.auditService = auditService;
+  }
+
+  // ── 카드등록관리(/card/card) — 카드 마스터 CRUD ────────────────────────────
+
+  /** 목록 조회 — 검색조건·결과 건수 감사(READ). */
+  public PageResult<TbCard> list(CardSearchParam param, TbLoginUser actor, Integer menuId) {
+    long total = cardMapper.selectCount(param);
+    List<TbCard> rows = cardMapper.selectList(param);
+    auditService.log(actor, AuditService.READ, menuId, "카드 목록 조회 (결과 " + total + "건)");
+    return new PageResult<>(rows, total, param.getPage(), param.getSize());
+  }
+
+  /**
+   * 카드 등록 — BiostarX 에 카드를 만든 뒤 tb_card 에 저장한다.
+   *
+   * <p>연동 실패 시 <b>저장하지 않는다</b>: biostar_card_id 없는 카드는 인원에게 부여할 수 없어 쓸모가 없다(인원/기관의 '실패해도
+   * 저장' 정책과 다른 이유). 이미 등록된 카드번호는 중복으로 막는다.
+   */
+  @Transactional
+  public void createCard(TbCard row, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireCreate(actor, menuId);
+    validateCard(row);
+    if (cardMapper.selectByCardNo(row.getBiostarCardValue()) != null) {
+      throw new BusinessException(ErrorCode.DUPLICATE, "이미 등록된 카드번호입니다.");
+    }
+    BiostarCard issued = register(row.getBiostarCardValue(), actor, menuId);
+    if (!issued.success()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 카드 등록 실패: " + issued.message());
+    }
+    row.setBiostarCardId(issued.biostarCardId());
+    row.setFeePaidDt(blankToNull(row.getFeePaidDt()));
+    cardMapper.insert(row);
+    auditService.log(actor, AuditService.CREATE, menuId, "카드 등록: " + row.getBiostarCardValue());
+  }
+
+  /** 카드 수정 — 카드번호·BiostarX 식별자·할당 인원은 바꾸지 않는다(실물 카드). */
+  @Transactional
+  public void updateCard(TbCard row, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireCreate(actor, menuId); // 정책: 등록/수정은 create_auth 로 판정
+    if (row.getCardId() == null) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "카드ID가 필요합니다.");
+    }
+    TbCard existing = cardMapper.selectById(row.getCardId());
+    if (existing == null || "Y".equals(existing.getDelYn())) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    validateCard(row);
+    row.setFeePaidDt(blankToNull(row.getFeePaidDt()));
+    cardMapper.updateInfo(row);
+    auditService.log(actor, AuditService.UPDATE, menuId, "카드 수정: " + existing.getBiostarCardValue());
+  }
+
+  /** 카드 삭제(소프트) — 인원에게 할당된 카드는 막는다(먼저 회수해야 한다). */
+  @Transactional
+  public void deleteCard(int cardId, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireDelete(actor, menuId);
+    TbCard existing = cardMapper.selectById(cardId);
+    if (existing == null || "Y".equals(existing.getDelYn())) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    if (existing.getPersonId() != null) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT,
+          "인원(" + existing.getPersonId() + ")에게 할당된 카드입니다. 정규인원등록에서 먼저 회수하세요.");
+    }
+    cardMapper.softDelete(cardId);
+    auditService.log(actor, AuditService.DELETE, menuId, "카드 삭제: " + existing.getBiostarCardValue());
+  }
+
+  /** 카드 마스터 필수값 — 인원 화면(CardForm)과 같은 기준. */
+  private static void validateCard(TbCard row) {
+    require(row.getBiostarCardValue(), "카드번호");
+    require(row.getCardType(), "카드구분");
+    require(row.getPassType(), "패스구분");
+    require(row.getCardName(), "카드명칭");
+    require(row.getCardStatus(), "카드상태");
   }
 
   /** 인원의 카드 목록 — 수정 모달에서 기존 카드 표시용. */
@@ -118,11 +198,20 @@ public class CardService {
       row.setRemark(form.getRemark());
       row.setBiostarCardId(form.getBiostarCardId());
       row.setBiostarCardValue(form.getCardNo());
-      if (form.getCardId() == null) {
+      // 화면에서 온 cardId 가 없어도 같은 카드번호가 이미 있으면 그 행을 쓴다
+      // (할당하기·SCAN 으로 고른 회수 카드가 새 행으로 복제되는 것을 막는다 — 카드번호는 실물 1:1)
+      if (row.getCardId() == null) {
+        TbCard known = cardMapper.selectByCardNo(form.getCardNo());
+        if (known != null) {
+          row.setCardId(known.getCardId());
+        }
+      }
+      if (row.getCardId() == null) {
         cardMapper.insert(row);
         form.setCardId(row.getCardId());
       } else {
-        cardMapper.update(row); // update 가 del_yn 을 'N' 으로 되돌린다
+        cardMapper.update(row); // update 가 person_id 재배정 + del_yn='N' 복원
+        form.setCardId(row.getCardId());
       }
     }
   }

@@ -24,7 +24,8 @@ if [ -z "$SQLCMD" ]; then
 fi
 [ -z "$SQLCMD" ] && { echo "❌ sqlcmd 를 찾을 수 없습니다. SQL Server Command Line Utilities 를 설치하세요."; exit 1; }
 
-run_sql() { "$SQLCMD" -S "$DB_HOST" -U "$DB_SA_USER" -P "$DB_SA_PASSWORD" -C -l 5 "$@"; }
+# -I: QUOTED_IDENTIFIER ON (필터 인덱스 생성에 필요 — sqlcmd 기본은 OFF)
+run_sql() { "$SQLCMD" -S "$DB_HOST" -U "$DB_SA_USER" -P "$DB_SA_PASSWORD" -C -I -l 5 "$@"; }
 
 echo "== [1/4] 접속 확인 ($DB_HOST) =="
 run_sql -Q "SELECT 1" >/dev/null || { echo "❌ MSSQL 접속 실패"; exit 1; }

@@ -215,6 +215,13 @@ CREATE TABLE dbo.tb_card (
   CONSTRAINT CHK_tb_card_del_yn CHECK (del_yn IN ('Y','N'))
 );
 
+/* 카드번호는 실물 카드와 1:1 — 살아 있는 행끼리 중복될 수 없다(회수/재사용도 같은 행을 쓴다).
+   필터 인덱스는 QUOTED_IDENTIFIER ON 이어야 만들어진다(sqlcmd 는 기본 OFF) */
+SET QUOTED_IDENTIFIER ON;
+GO
+CREATE UNIQUE INDEX UX_tb_card_value ON dbo.tb_card (biostar_card_value)
+  WHERE del_yn = 'N' AND biostar_card_value IS NOT NULL;
+
 /* 인원 출입그룹 (인원 N : 출입그룹 M 매핑).
    복합 PK 가 동일 인원-그룹 중복 부여를 막는다. 부여/회수 이력은 tb_system_log 에 스냅샷으로 남긴다 */
 CREATE TABLE dbo.tb_person_ac_group (

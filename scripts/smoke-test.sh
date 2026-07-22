@@ -226,6 +226,15 @@ check "카드번호 없이 등록 실패" 0 "$(A -H 'Content-Type: application/j
 check "없는 증빙문서 404" 404 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/file?personId=NOPESMK&fileType=ID_CHECK")"
 check "일괄삭제 빈 목록 400" 400 "$(A -H 'Content-Type: application/json' -X DELETE --data '[]' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/bulk")"
 
+echo "== 카드등록관리(tb_card) ==" 
+check "카드 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/card/card")"
+check "카드 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/card/card/list?size=5")"
+check "카드 미할당 필터" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/card/card/list?assigned=N&size=5")"
+check "카드번호 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"cardName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/card/card")"
+check "카드구분 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"biostarCardValue":"1","cardName":"x","passType":"PT01","cardStatus":"CS01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/card/card")"
+check "없는 카드 수정 404" 404 "$(A -H 'Content-Type: application/json' -X PUT --data '{"cardId":999999,"biostarCardValue":"1","cardType":"CDT01","passType":"PT01","cardName":"x","cardStatus":"CS01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/card/card")"
+check "없는 카드 삭제 404" 404 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/card/card?cardId=999999")"
+
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
 VCODE=$(curl -s -m 2 -c "$CK_V" -o /dev/null -w "%{http_code}" --data "userId=viewer&password=viewer123" "$BASE_URL/login" 2>/dev/null)
 if [ "$VCODE" = "302" ]; then
@@ -258,6 +267,9 @@ if [ "$VCODE" = "302" ]; then
   check "viewer 카드 읽기 403" 403 "$(V -H 'Content-Type: application/json' -X POST --data '{}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/card/scan")"
   check "viewer 인원 일괄삭제 403" 403 "$(V -H 'Content-Type: application/json' -X DELETE --data '["NOPESMK"]' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/bulk")"
   check "viewer 인원 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"personId":"VXP","personName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
+  check "viewer 카드관리 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/card/card/list?size=1")"
+  check "viewer 카드관리 등록 403" 403 "$(V -H 'Content-Type: application/json' -X POST --data '{"biostarCardValue":"1","cardType":"CDT01","passType":"PT01","cardName":"x","cardStatus":"CS01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/card/card")"
+  check "viewer 카드관리 삭제 403" 403 "$(V -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/card/card?cardId=999999")"
   check "viewer 기관 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"companyCode":"VXCO","companyName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
 else
   bad "viewer 로그인 실패($VCODE) — seed 확인 필요"
