@@ -13,6 +13,9 @@ public interface TbCompanyMapper {
   /** 엑셀 다운로드용 — 동일 검색/정렬, 페이징 없음(전체). */
   List<TbCompany> selectListAll(CompanySearchParam param);
 
+  /** 기관차량등록 목록 — 기관 + 등록차량 수. 조회는 기존 검색조건(del_yn='N')을 그대로 쓴다. */
+  List<TbCompany> selectCarOwnerList(CompanySearchParam param);
+
   long selectCount(CompanySearchParam param);
 
   /** PK 단건 조회(del_yn 무관 — 중복/존재 판정용). */

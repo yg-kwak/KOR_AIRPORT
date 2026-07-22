@@ -8,27 +8,23 @@
   <main class="layout-content">
     <h2>기관차량등록</h2>
 
-    <!-- 검색 -->
+    <!-- 검색 (기관 기준) -->
     <section class="search-section">
       <div class="search-field">
-        <label>기관</label>
-        <input type="hidden" id="companyFilter"/>
-        <input type="text" id="companyFilterName" class="input w-160 picker-field" readonly
-               data-target="companyFilter" placeholder="전체 (클릭하여 선택)" autocomplete="off"/>
-      </div>
-      <div class="search-field">
-        <label>차종</label>
-        <input type="hidden" id="typeFilter"/>
-        <input type="text" id="typeFilterName" class="input w-160 picker-field" readonly
-               data-target="typeFilter" placeholder="전체 (클릭하여 선택)" autocomplete="off"/>
+        <label>사용유무</label>
+        <select id="useYnFilter" class="input w-120">
+          <option value="">전체</option>
+          <option value="Y">사용</option>
+          <option value="N">미사용</option>
+        </select>
       </div>
       <div class="search-field">
         <label>검색어</label>
         <div class="search-keyword">
           <select id="searchType" class="input w-120">
             <option value="all">전체</option>
-            <option value="carNo">차량번호</option>
-            <option value="carName">차량명칭</option>
+            <option value="companyCode">기관코드</option>
+            <option value="companyName">기관명</option>
           </select>
           <input type="text" id="keyword" class="input w-300" placeholder="검색어를 입력해주세요"/>
         </div>
@@ -37,12 +33,12 @@
       <button class="btn" id="btnReset">초기화</button>
     </section>
 
-    <!-- 목록 -->
+    <!-- 목록: 기관 (삭제되지 않은 기관). 차량·카드는 기관을 눌러 모달에서 다룬다 -->
     <section class="content-card">
       <div class="grid-toolbar">
         <span class="grid-total" id="totalInfo"></span>
         <div class="grid-actions">
-          <button class="btn" id="btnNew" th:if="${perm.canCreate}">등록</button>
+          <span class="form-hint">기관을 클릭하면 차량·카드를 등록할 수 있습니다.</span>
           <select id="pageSize" class="input">
             <option value="30">30개씩 보기</option>
             <option value="50">50개씩 보기</option>
@@ -53,17 +49,16 @@
       <table class="grid">
         <thead>
         <tr>
-          <th class="sortable" data-sort="companyName">기관<span class="sort-ind"></span></th>
-          <th class="w-160 sortable" data-sort="carNo">차량번호<span class="sort-ind"></span></th>
-          <th>차량명칭</th>
-          <th class="w-120">차종</th>
-          <th class="w-100">발급카드</th>
+          <th class="w-160 sortable" data-sort="companyCode">기관코드<span class="sort-ind"></span></th>
+          <th class="sortable" data-sort="companyName">기관명<span class="sort-ind"></span></th>
+          <th class="w-120 sortable" data-sort="companyType">기관구분<span class="sort-ind"></span></th>
+          <th class="w-100">등록차량</th>
+          <th class="w-100 sortable" data-sort="useYn">사용유무<span class="sort-ind"></span></th>
           <th class="w-160 sortable" data-sort="regDt">등록일<span class="sort-ind"></span></th>
-          <th class="w-100">관리</th>
         </tr>
         </thead>
         <tbody id="gridBody">
-        <tr><td colspan="7" class="empty">조회 결과가 없습니다.</td></tr>
+        <tr><td colspan="6" class="empty">조회 결과가 없습니다.</td></tr>
         </tbody>
       </table>
       <div class="paging" id="paging"></div>
@@ -71,73 +66,101 @@
   </main>
 </div>
 
-<!-- 차량 등록/수정 모달 + 우측 카드 패널 -->
+<!-- 기관 모달: 차량 목록 (좌) + 차량/카드 패널 (우) -->
 <div class="modal-overlay" id="editModal">
-  <div class="modal-container">
+  <div class="modal-container wide">
     <div class="modal-header">
-      <h2 class="modal-title" id="modalTitle">기관차량 등록</h2>
+      <h2 class="modal-title" id="modalTitle">기관 차량</h2>
       <button class="modal-close" id="modalClose">&times;</button>
     </div>
     <div class="modal-body">
-      <form id="editForm">
-        <input type="hidden" id="carId"/>
-        <div class="form-grid">
-          <div class="form-group full">
-            <label>기관 <span class="req">*</span> <span class="form-hint">(클릭하여 선택)</span></label>
-            <input type="hidden" id="companyCode"/>
-            <input type="text" id="companyName" class="input picker-field" readonly
-                   data-target="companyCode" placeholder="클릭하여 선택" autocomplete="off"/>
-          </div>
-          <div class="form-group">
-            <label>차량번호 <span class="req">*</span></label>
-            <input type="text" id="carNo" class="input" maxlength="20" placeholder="예: 12가3456" autocomplete="off"/>
-          </div>
-          <div class="form-group">
-            <label>차종 <span class="req">*</span> <span class="form-hint">(클릭하여 선택)</span></label>
-            <input type="hidden" id="carType"/>
-            <input type="text" id="carTypeName" class="input picker-field" readonly
-                   data-target="carType" placeholder="클릭하여 선택" autocomplete="off"/>
-          </div>
-          <div class="form-group full">
-            <label>차량명칭 <span class="req">*</span></label>
-            <input type="text" id="carName" class="input" maxlength="50" autocomplete="off"/>
-          </div>
+      <input type="hidden" id="companyCode"/>
+      <div class="grid-toolbar" style="padding:0 0 8px">
+        <span class="form-hint">차량을 클릭하면 오른쪽에서 정보와 카드를 관리할 수 있습니다.</span>
+        <div class="grid-actions">
+          <button type="button" class="btn" id="btnNewCar" th:if="${perm.canCreate}">차량 추가</button>
         </div>
-
-        <!-- 발급된 차량용 카드 (수정 모드에서만) -->
-        <div id="cardSection" style="display:none">
-          <div class="grid-toolbar" style="padding:12px 0 8px">
-            <span class="form-hint">차량용 카드입니다. 회수하면 삭제되지 않고 다른 차량이 다시 쓸 수 있습니다.</span>
-            <div class="grid-actions">
-              <button type="button" class="btn" id="btnIssue">카드 발급</button>
-            </div>
-          </div>
-          <table class="grid">
-            <thead>
-            <tr>
-              <th class="w-160">카드번호</th>
-              <th>카드명칭</th>
-              <th class="w-100">카드상태</th>
-              <th class="w-80">관리</th>
-            </tr>
-            </thead>
-            <tbody id="cardBody">
-            <tr><td colspan="4" class="empty">발급된 카드가 없습니다.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </form>
+      </div>
+      <table class="grid">
+        <thead>
+        <tr>
+          <th class="w-160">차량번호</th>
+          <th>차량명칭</th>
+          <th class="w-120">차종</th>
+          <th class="w-80">카드</th>
+        </tr>
+        </thead>
+        <tbody id="carBody">
+        <tr><td colspan="4" class="empty">등록된 차량이 없습니다.</td></tr>
+        </tbody>
+      </table>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-danger modal-footer-left" id="btnDelete"
-              th:if="${perm.canDelete}" style="display:none">삭제</button>
-      <button class="btn" id="btnCancel">취소</button>
-      <button class="btn btn-primary" id="btnSave">저장</button>
+      <button class="btn" id="btnCancel">닫기</button>
     </div>
   </div>
 
-  <!-- 카드 발급 패널 — 차량 모달 우측에 나란히 -->
-  <div class="modal-container card-side" id="issueModal">
+  <!-- 차량 정보 + 카드 패널 — 모달 우측에 나란히 -->
+  <div class="modal-container card-side" id="carPanel">
+    <div class="modal-header">
+      <h2 class="modal-title" id="carPanelTitle">차량 추가</h2>
+      <button type="button" class="modal-close" id="carPanelClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="carId"/>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>차량번호 <span class="req">*</span></label>
+          <input type="text" id="carNo" class="input" maxlength="20" placeholder="예: 12가3456" autocomplete="off"/>
+        </div>
+        <div class="form-group full">
+          <label>차량명칭 <span class="req">*</span></label>
+          <input type="text" id="carName" class="input" maxlength="50" autocomplete="off"/>
+        </div>
+        <div class="form-group full">
+          <label>차종 <span class="req">*</span> <span class="form-hint">(클릭하여 선택)</span></label>
+          <input type="hidden" id="carType"/>
+          <input type="text" id="carTypeName" class="input picker-field" readonly
+                 data-target="carType" placeholder="클릭하여 선택" autocomplete="off"/>
+        </div>
+      </div>
+
+      <!-- 발급된 차량용 카드 (저장된 차량에서만) -->
+      <div id="cardSection" style="display:none">
+        <div class="grid-toolbar" style="padding:12px 0 8px">
+          <span class="form-group-label">카드정보</span>
+          <div class="grid-actions">
+            <button type="button" class="btn btn-sm" id="btnIssue">카드 발급</button>
+          </div>
+        </div>
+        <table class="grid">
+          <thead>
+          <tr>
+            <th class="w-120">카드번호</th>
+            <th>카드명칭</th>
+            <th class="w-80">상태</th>
+            <th class="w-80">관리</th>
+          </tr>
+          </thead>
+          <tbody id="cardBody">
+          <tr><td colspan="4" class="empty">발급된 카드가 없습니다.</td></tr>
+          </tbody>
+        </table>
+        <p class="form-hint">회수한 카드는 삭제되지 않고 다른 차량이 다시 쓸 수 있습니다.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-danger modal-footer-left" id="btnCarDelete"
+              th:if="${perm.canDelete}" style="display:none">삭제</button>
+      <button type="button" class="btn" id="carPanelCancel">닫기</button>
+      <button type="button" class="btn btn-primary" id="btnCarSave" th:if="${perm.canCreate}">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 차량용 카드 발급 팝업 (차량 패널 위) -->
+<div class="modal-overlay card-modal-overlay" id="issueModal">
+  <div class="modal-container">
     <div class="modal-header">
       <h2 class="modal-title">차량용 카드 발급</h2>
       <button type="button" class="modal-close" id="issueClose">&times;</button>
@@ -177,7 +200,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn" id="issueCancel">닫기</button>
+      <button type="button" class="btn" id="issueCancel">취소</button>
       <button type="button" class="btn btn-primary" id="issueOk">발급</button>
     </div>
   </div>
@@ -185,7 +208,6 @@
 
 <div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
 <div th:replace="~{fragments/components/code-picker-modal :: codePicker}"></div>
-<div th:replace="~{fragments/components/company-picker-modal :: companyPicker}"></div>
 
 <script th:inline="javascript">
   window.PAGE_PERM = {

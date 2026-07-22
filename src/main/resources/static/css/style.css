@@ -385,7 +385,9 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .picker-wrap > .input { flex: 1; min-width: 0; }
 .picker-clear { flex-shrink: 0; }
 /* 코드 선택 팝업은 편집 모달 위에 뜬다 */
-/* 특이도 상향(.modal-overlay 뒤에 와도 z-index 가 이김) — 편집 모달 위에 팝업이 뜨도록 */
+/* 특이도 상향(.modal-overlay 뒤에 와도 z-index 가 이김) — 편집 모달 위에 팝업이 뜨도록.
+   쌓임 순서: 편집 모달(2000) < 보조 팝업(2400) < 코드/기관 팝업(2600) */
+.modal-overlay.card-modal-overlay { z-index: 2400; }
 .modal-overlay.code-picker-overlay { z-index: 2600; }
 
 /* 단일 폼(설정 등) — 항목 가로 배치, 버튼 우측 끝 */

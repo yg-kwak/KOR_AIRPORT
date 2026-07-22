@@ -1,12 +1,9 @@
-/* 기관차량등록 화면 — 기관 소속 차량(tb_car) + 차량용 카드(tb_card) 발급.
-   차량 저장 후(수정 모드) 카드 발급이 열린다. 카드구분은 서버가 '차량'으로 고정하고 패스구분은 쓰지 않는다.
-   회수는 삭제가 아니라 미배정(car_id=NULL) — 다른 차량이 같은 실물 카드를 다시 쓸 수 있다. */
+/* 기관차량등록 화면 — 목록은 '기관'(삭제되지 않은 tb_company)이고, 차량·카드는 기관을 눌러 모달에서 다룬다.
+   차량 자체의 마스터 관리는 차량등록관리(/carInfo/car) 담당. 여기는 기관 중심이다.
+   카드구분은 서버가 '차량'으로 고정하고 패스구분은 쓰지 않는다. 회수는 삭제가 아니라 미배정(car_id=NULL). */
 (function () {
   const BASE = '/company/car';
-  const state = {
-    page: 1, size: 30, keyword: '', searchType: 'all',
-    companyCode: '', carType: '', sort: 'carId', dir: 'desc',
-  };
+  const state = { page: 1, size: 30, keyword: '', searchType: 'all', useYn: '', sort: 'companyCode', dir: 'asc' };
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
@@ -15,12 +12,12 @@
 
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
+  // ---- 기관 목록 ----
   async function load() {
     const q =
       `?page=${state.page}&size=${state.size}` +
       `&keyword=${encodeURIComponent(state.keyword)}&searchType=${state.searchType}` +
-      `&companyCode=${encodeURIComponent(state.companyCode)}&carType=${encodeURIComponent(state.carType)}` +
-      `&sort=${state.sort}&dir=${state.dir}`;
+      `&useYn=${state.useYn}&sort=${state.sort}&dir=${state.dir}`;
     const data = await api.get(BASE + '/list' + q);
     renderRows(data.content);
     renderPaging(data.page, data.totalPages);
@@ -48,26 +45,18 @@
   function renderRows(rows) {
     const body = $('gridBody');
     if (!rows || rows.length === 0) {
-      body.innerHTML = '<tr><td colspan="7" class="empty">조회 결과가 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="6" class="empty">조회 결과가 없습니다.</td></tr>';
       return;
     }
-    // 카드가 발급된 차량은 삭제 불가 — 회수가 먼저다(서버도 거부한다)
-    body.innerHTML = rows.map((r) => {
-      const actions = !PERM.canDelete ? '-'
-        : r.cardCount > 0
-          ? '<span class="form-hint">카드있음</span>'
-          : `<button class="btn btn-sm btn-danger" data-act="del" data-id="${esc(r.carId)}">삭제</button>`;
-      return `
-      <tr${PERM.canCreate ? ' class="row-click" data-json=\'' + esc(JSON.stringify(r)) + '\'' : ''}>
+    body.innerHTML = rows.map((r) => `
+      <tr class="row-click" data-code="${esc(r.companyCode)}" data-name="${esc(r.companyName)}">
+        <td>${esc(r.companyCode)}</td>
         <td>${esc(r.companyName)}</td>
-        <td>${esc(r.carNo)}</td>
-        <td>${esc(r.carName)}</td>
-        <td>${esc(r.carTypeName)}</td>
-        <td>${r.cardCount > 0 ? esc(r.cardCount) + '장' : '<span class="form-hint">없음</span>'}</td>
+        <td>${esc(r.companyTypeName)}</td>
+        <td>${r.carCount > 0 ? esc(r.carCount) + '대' : '<span class="form-hint">없음</span>'}</td>
+        <td>${r.useYn === 'Y' ? '사용' : '미사용'}</td>
         <td>${esc(fmtDt(r.regDt))}</td>
-        <td>${actions}</td>
-      </tr>`;
-    }).join('');
+      </tr>`).join('');
   }
 
   function renderPaging(page, totalPages) {
@@ -77,21 +66,17 @@
   function search() {
     state.keyword = $('keyword').value.trim();
     state.searchType = $('searchType').value;
-    state.companyCode = $('companyFilter').value;
-    state.carType = $('typeFilter').value;
+    state.useYn = $('useYnFilter').value;
     state.page = 1;
     load();
   }
 
   function reset() {
-    ['searchType'].forEach((id) => { $(id).value = 'all'; });
-    ['keyword', 'companyFilter', 'companyFilterName', 'typeFilter', 'typeFilterName']
-      .forEach((id) => { $(id).value = ''; });
+    $('searchType').value = 'all';
+    $('keyword').value = '';
+    $('useYnFilter').value = '';
     $('pageSize').value = '30';
-    Object.assign(state, {
-      page: 1, size: 30, keyword: '', searchType: 'all',
-      companyCode: '', carType: '', sort: 'carId', dir: 'desc',
-    });
+    Object.assign(state, { page: 1, size: 30, keyword: '', searchType: 'all', useYn: '', sort: 'companyCode', dir: 'asc' });
     load();
   }
 
@@ -102,26 +87,47 @@
     load();
   }
 
-  // ---- 차량 등록/수정 모달 ----
-  let editMode = 'create';
-
-  async function openModal(mode, row) {
-    editMode = mode;
-    $('modalTitle').textContent = mode === 'create' ? '기관차량 등록' : '기관차량 수정';
-    ['carId', 'companyCode', 'companyName', 'carNo', 'carType', 'carTypeName', 'carName']
-      .forEach((id) => { $(id).value = ''; });
-    closeIssue();
-    // 카드 발급은 차량이 저장된 뒤에만(=수정 모드) 가능하다
-    $('cardSection').style.display = mode === 'edit' ? '' : 'none';
-    if ($('btnDelete')) $('btnDelete').style.display = mode === 'edit' ? '' : 'none';
+  // ---- 기관 모달(차량 목록) ----
+  function openCompany(code, name) {
+    $('companyCode').value = code;
+    $('modalTitle').textContent = `기관 차량 — ${name} (${code})`;
+    closeCarPanel();
     $('editModal').classList.add('open');
-    if (mode !== 'edit' || !row) return;
-
-    ['carId', 'companyCode', 'companyName', 'carNo', 'carType', 'carTypeName', 'carName']
-      .forEach((id) => { $(id).value = row[id] != null ? row[id] : ''; });
-    loadCards(row.carId);
+    loadCars();
   }
-  function closeModal() { $('editModal').classList.remove('open'); closeIssue(); }
+  function closeCompany() { $('editModal').classList.remove('open'); closeCarPanel(); }
+
+  async function loadCars() {
+    const code = $('companyCode').value;
+    const rows = (await api.get(`${BASE}/cars?companyCode=${encodeURIComponent(code)}`)) || [];
+    $('carBody').innerHTML = rows.length
+      ? rows.map((c) => `
+        <tr class="row-click" data-json='${esc(JSON.stringify(c))}'>
+          <td>${esc(c.carNo)}</td>
+          <td>${esc(c.carName)}</td>
+          <td>${esc(c.carTypeName)}</td>
+          <td>${c.cardCount > 0 ? esc(c.cardCount) + '장' : '<span class="form-hint">없음</span>'}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="4" class="empty">등록된 차량이 없습니다.</td></tr>';
+    load(); // 기관 목록의 등록차량 수 갱신
+  }
+
+  // ---- 차량 패널(우측) ----
+  function openCarPanel(car) {
+    const isNew = !car;
+    $('carPanelTitle').textContent = isNew ? '차량 추가' : '차량 정보';
+    ['carId', 'carNo', 'carName', 'carType', 'carTypeName'].forEach((id) => { $(id).value = ''; });
+    if (!isNew) {
+      ['carId', 'carNo', 'carName', 'carType', 'carTypeName']
+        .forEach((id) => { $(id).value = car[id] != null ? car[id] : ''; });
+    }
+    // 카드는 저장된 차량에만 발급할 수 있다
+    $('cardSection').style.display = isNew ? 'none' : '';
+    if ($('btnCarDelete')) $('btnCarDelete').style.display = isNew ? 'none' : '';
+    $('carPanel').classList.add('open');
+    if (!isNew) loadCards(car.carId);
+  }
+  function closeCarPanel() { $('carPanel').classList.remove('open'); closeIssue(); }
 
   async function loadCards(carId) {
     const rows = (await api.get(`${BASE}/cards?carId=${encodeURIComponent(carId)}`)) || [];
@@ -137,7 +143,7 @@
       : '<tr><td colspan="4" class="empty">발급된 카드가 없습니다.</td></tr>';
   }
 
-  async function save() {
+  async function saveCar() {
     if (!PERM.canCreate) return;
     const payload = {
       carId: $('carId').value ? Number($('carId').value) : null,
@@ -147,29 +153,30 @@
       carType: $('carType').value || null,
     };
     const required = [
-      [payload.companyCode, '기관'], [payload.carNo, '차량번호'],
-      [payload.carName, '차량명칭'], [payload.carType, '차종'],
+      [payload.carNo, '차량번호'], [payload.carName, '차량명칭'], [payload.carType, '차종'],
     ].find(([v]) => !v);
     if (required) { toast.warning(`${required[1]}은(는) 필수입니다.`); return; }
 
-    if (editMode === 'create') await api.post(BASE, payload);
+    if (payload.carId == null) await api.post(BASE, payload);
     else await api.put(BASE, payload);
-    closeModal();
-    load();
+    closeCarPanel();
+    loadCars();
   }
 
-  async function remove(carId) {
+  async function removeCar() {
     if (!PERM.canDelete) return;
+    const carId = $('carId').value;
+    if (!carId) return;
     const ok = await confirmModal.open({
       title: '삭제 확인', message: '선택한 차량을 삭제하시겠습니까?', confirmText: '삭제',
     });
     if (!ok) return;
     await api.del(`${BASE}?carId=${encodeURIComponent(carId)}`);
-    closeModal();
-    load();
+    closeCarPanel();
+    loadCars();
   }
 
-  // ---- 차량용 카드 발급 패널 ----
+  // ---- 차량용 카드 발급 ----
   function openIssue() {
     ['cardNo', 'cardName', 'cardStatus', 'cardStatusName',
       'cardFeePaidDt', 'cardIssueReason', 'cardRemark'].forEach((id) => { $(id).value = ''; });
@@ -178,8 +185,9 @@
   function closeIssue() { $('issueModal').classList.remove('open'); }
 
   async function issue() {
+    const carId = Number($('carId').value);
     const payload = {
-      carId: Number($('carId').value),
+      carId,
       cardNo: $('cardNo').value.trim() || null,
       cardName: $('cardName').value.trim() || null,
       cardStatus: $('cardStatus').value || null,
@@ -193,8 +201,8 @@
     if (required) { toast.warning(`${required[1]}은(는) 필수입니다.`); return; }
     await api.post(BASE + '/card', payload);
     closeIssue();
-    loadCards(payload.carId);
-    load();
+    loadCards(carId);
+    loadCars();
   }
 
   async function scan() {
@@ -213,54 +221,39 @@
     if (!ok) return;
     await api.del(`${BASE}/card?cardId=${encodeURIComponent(cardId)}`);
     loadCards(Number($('carId').value));
-    load();
+    loadCars();
   }
 
   function bind() {
     $('btnSearch').addEventListener('click', search);
     $('btnReset').addEventListener('click', reset);
     $('keyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
+    $('useYnFilter').addEventListener('change', search);
     $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
-    if ($('btnNew')) $('btnNew').addEventListener('click', () => openModal('create', null));
-    if ($('btnDelete')) $('btnDelete').addEventListener('click', () => remove($('carId').value));
 
-    // 검색조건 — 기관 팝업 / 차종 코드팝업 (선택·삭제(전체) 시 즉시 재조회)
-    $('companyFilterName').addEventListener('click', async () => {
-      const sel = await companyPicker.open();
-      if (!sel) return;
-      $('companyFilter').value = sel.companyCode;
-      $('companyFilterName').value = sel.companyName;
-      search();
-    });
-    $('typeFilterName').addEventListener('click', async () => {
-      const sel = await codePicker.open({ cmmId: 'CT', cmmName: '차종' });
-      if (!sel) return;
-      $('typeFilter').value = sel.codeId;
-      $('typeFilterName').value = sel.codeName;
-      search();
-    });
-    ['companyFilterName', 'typeFilterName'].forEach((id) => {
-      const wrap = $(id).closest('.picker-wrap');
-      const clearBtn = wrap && wrap.querySelector('.picker-clear');
-      if (clearBtn) clearBtn.addEventListener('click', () => setTimeout(search, 0));
-    });
-
+    // 기관 행 클릭 → 모달
     $('gridBody').addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (btn) { if (btn.dataset.act === 'del') remove(btn.dataset.id); return; }
+      const tr = e.target.closest('tr[data-code]');
+      if (tr) openCompany(tr.dataset.code, tr.dataset.name);
+    });
+    // 차량 행 클릭 → 우측 패널
+    $('carBody').addEventListener('click', (e) => {
       const tr = e.target.closest('tr[data-json]');
-      if (tr && PERM.canCreate) openModal('edit', JSON.parse(tr.dataset.json));
+      if (tr) openCarPanel(JSON.parse(tr.dataset.json));
     });
     $('cardBody').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-act="release"]');
       if (btn) releaseCard(btn.dataset.id);
     });
 
-    // 모달 — 기관 팝업 / 차종 코드팝업
-    $('companyName').addEventListener('click', async () => {
-      const sel = await companyPicker.open();
-      if (sel) { $('companyCode').value = sel.companyCode; $('companyName').value = sel.companyName; }
-    });
+    if ($('btnNewCar')) $('btnNewCar').addEventListener('click', () => openCarPanel(null));
+    if ($('btnCarSave')) $('btnCarSave').addEventListener('click', saveCar);
+    if ($('btnCarDelete')) $('btnCarDelete').addEventListener('click', removeCar);
+    $('carPanelCancel').addEventListener('click', closeCarPanel);
+    $('carPanelClose').addEventListener('click', closeCarPanel);
+    $('btnCancel').addEventListener('click', closeCompany);
+    $('modalClose').addEventListener('click', closeCompany);
+
     $('carTypeName').addEventListener('click', async () => {
       const sel = await codePicker.open({ cmmId: 'CT', cmmName: '차종' });
       if (sel) { $('carType').value = sel.codeId; $('carTypeName').value = sel.codeName; }
@@ -276,10 +269,6 @@
     $('issueOk').addEventListener('click', issue);
     $('issueCancel').addEventListener('click', closeIssue);
     $('issueClose').addEventListener('click', closeIssue);
-
-    $('btnSave').addEventListener('click', save);
-    $('btnCancel').addEventListener('click', closeModal);
-    $('modalClose').addEventListener('click', closeModal);
 
     document.querySelectorAll('th.sortable').forEach((th) =>
       th.addEventListener('click', () => toggleSort(th.dataset.sort)));

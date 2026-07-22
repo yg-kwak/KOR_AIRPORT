@@ -6,10 +6,11 @@ import AirPort.common.CurrentMenu;
 import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
 import AirPort.model.CarCardForm;
-import AirPort.model.CompanyCarSearchParam;
+import AirPort.model.CompanySearchParam;
 import AirPort.model.MenuPermission;
 import AirPort.model.TbCar;
 import AirPort.model.TbCard;
+import AirPort.model.TbCompany;
 import AirPort.model.TbLoginUser;
 import AirPort.service.CardService;
 import AirPort.service.CompanyCarService;
@@ -74,12 +75,19 @@ public class CompanyCarController {
     return "web/company/car";
   }
 
-  /** 목록 (AJAX) */
+  /** 목록 (AJAX) — 기관 목록(삭제되지 않은 기관) + 등록차량 수 */
   @GetMapping("/list")
   @ResponseBody
-  public ApiResponse<PageResult<TbCar>> list(CompanyCarSearchParam param, HttpSession session) {
+  public ApiResponse<PageResult<TbCompany>> list(CompanySearchParam param, HttpSession session) {
     menuAuthService.requireRead(actor(session), menuId());
     return ApiResponse.ok(companyCarService.list(param, actor(session), menuId()));
+  }
+
+  /** 기관의 차량 목록 (AJAX) — 기관 모달 */
+  @GetMapping("/cars")
+  @ResponseBody
+  public ApiResponse<List<TbCar>> cars(@RequestParam String companyCode, HttpSession session) {
+    return ApiResponse.ok(companyCarService.carsOf(companyCode, actor(session), menuId()));
   }
 
   /** 차량의 발급 카드 목록 (AJAX) */

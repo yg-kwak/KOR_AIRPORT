@@ -56,6 +56,16 @@
     OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
   </select>
 
+  <!-- 기관차량등록(/company/car) — 기관 목록 + 등록차량 수 -->
+  <select id="selectCarOwnerList" parameterType="AirPort.model.CompanySearchParam" resultType="TbCompany">
+    SELECT <include refid="listColumns"/>,
+           (SELECT COUNT(*) FROM tb_car k WHERE k.company_code = c.company_code AND k.del_yn = 'N') AS car_count
+    <include refid="listJoins"/>
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
   <select id="selectListAll" parameterType="AirPort.model.CompanySearchParam" resultType="TbCompany">
     SELECT <include refid="listColumns"/>
     <include refid="listJoins"/>

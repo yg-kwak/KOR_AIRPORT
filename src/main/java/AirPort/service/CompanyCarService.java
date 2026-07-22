@@ -5,10 +5,12 @@ import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCarMapper;
+import AirPort.mapper.TbCompanyMapper;
 import AirPort.mapper.TbCardMapper;
 import AirPort.model.CarCardForm;
-import AirPort.model.CompanyCarSearchParam;
+import AirPort.model.CompanySearchParam;
 import AirPort.model.TbCar;
+import AirPort.model.TbCompany;
 import AirPort.model.TbCard;
 import AirPort.model.TbLoginUser;
 import java.util.List;
@@ -28,6 +30,7 @@ public class CompanyCarService {
   private static final String CARD_TYPE_CAR = "CDT02";
 
   private final TbCarMapper carMapper;
+  private final TbCompanyMapper companyMapper;
   private final TbCardMapper cardMapper;
   private final CardService cardService;
   private final MenuAuthService menuAuthService;
@@ -35,23 +38,31 @@ public class CompanyCarService {
 
   public CompanyCarService(
       TbCarMapper carMapper,
+      TbCompanyMapper companyMapper,
       TbCardMapper cardMapper,
       CardService cardService,
       MenuAuthService menuAuthService,
       AuditService auditService) {
     this.carMapper = carMapper;
+    this.companyMapper = companyMapper;
     this.cardMapper = cardMapper;
     this.cardService = cardService;
     this.menuAuthService = menuAuthService;
     this.auditService = auditService;
   }
 
-  /** 목록 조회 — 기관명·발급 카드수 포함. 검색조건·건수 감사(READ). */
-  public PageResult<TbCar> list(CompanyCarSearchParam param, TbLoginUser actor, Integer menuId) {
-    long total = carMapper.selectCompanyCarCount(param);
-    List<TbCar> rows = carMapper.selectCompanyCarList(param);
-    auditService.log(actor, AuditService.READ, menuId, "기관차량 목록 조회 (결과 " + total + "건)");
+  /** 목록 조회 — <b>기관</b> 목록(삭제되지 않은 기관) + 등록차량 수. 차량 자체는 기관을 눌러 모달에서 다룬다. */
+  public PageResult<TbCompany> list(CompanySearchParam param, TbLoginUser actor, Integer menuId) {
+    long total = companyMapper.selectCount(param);
+    List<TbCompany> rows = companyMapper.selectCarOwnerList(param);
+    auditService.log(actor, AuditService.READ, menuId, "기관차량 기관 목록 조회 (결과 " + total + "건)");
     return new PageResult<>(rows, total, param.getPage(), param.getSize());
+  }
+
+  /** 기관의 차량 목록 — 모달에서 표시. */
+  public List<TbCar> carsOf(String companyCode, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireRead(actor, menuId);
+    return carMapper.selectByCompany(companyCode);
   }
 
   /** 차량의 발급 카드 목록. */

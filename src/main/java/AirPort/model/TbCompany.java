@@ -27,5 +27,6 @@ public class TbCompany {
   private LocalDateTime regDt;
   private LocalDateTime modDt;
 
+  private Integer carCount; // 등록차량 수(기관차량등록 목록) — 저장 컬럼 아님
   private String companyTypeName; // 목록 표시용(tb_common CO 조인) — 저장 컬럼 아님
 }
