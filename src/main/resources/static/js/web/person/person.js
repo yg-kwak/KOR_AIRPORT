@@ -160,7 +160,10 @@
   // ---- 얼굴(파일 업로드 / 장치 촬영) ----
   function setFace(image, t9, t5) {
     face = { image: image || null, t9: t9 || null, t5: t5 || null };
-    $('facePreview').src = image ? 'data:image/jpeg;base64,' + image : '';
+    const img = $('facePreview');
+    if (image) img.src = 'data:image/jpeg;base64,' + image;
+    else img.removeAttribute('src'); // src="" 는 페이지 URL 재요청 → 깨진 아이콘
+    $('facePreviewBox').classList.toggle('has-face', !!image);
   }
 
   function fileToBase64(file) {

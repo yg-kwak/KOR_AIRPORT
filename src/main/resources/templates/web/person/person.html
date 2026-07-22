@@ -119,21 +119,30 @@
               <input type="text" id="statusName" class="input picker-field" readonly
                      data-target="statusCode" placeholder="클릭하여 선택" autocomplete="off"/>
             </div>
-            <div class="form-group">
-              <label>출입시작일 <span class="req">*</span></label>
-              <input type="datetime-local" id="accessStartDt" class="input" max="2037-12-31T23:59"/>
-            </div>
-            <div class="form-group">
-              <label>출입종료일 <span class="req">*</span></label>
-              <input type="datetime-local" id="accessEndDt" class="input" max="2037-12-31T23:59"/>
+            <!-- 출입 시작/종료일은 항상 한 행에 나란히 (앞 항목 개수와 무관) -->
+            <div class="full">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>출입시작일 <span class="req">*</span></label>
+                  <input type="datetime-local" id="accessStartDt" class="input" max="2037-12-31T23:59"/>
+                </div>
+                <div class="form-group">
+                  <label>출입종료일 <span class="req">*</span></label>
+                  <input type="datetime-local" id="accessEndDt" class="input" max="2037-12-31T23:59"/>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="form-group-label" style="margin-top:12px">얼굴</div>
           <div class="face-box">
-            <img id="facePreview" class="face-preview" alt="얼굴 미리보기"/>
+            <div class="face-preview" id="facePreviewBox">
+              <img id="facePreview" alt=""/>
+              <span class="face-empty">얼굴 없음</span>
+            </div>
             <div class="face-actions">
-              <input type="file" id="faceFile" accept="image/*" class="input"/>
+              <input type="file" id="faceFile" accept="image/*" class="file-input"/>
+              <label class="btn" for="faceFile">파일 선택</label>
               <button type="button" class="btn" id="btnCapture">장치에서 촬영</button>
               <button type="button" class="btn" id="btnFaceClear">얼굴 지우기</button>
               <span class="form-hint">파일을 올리면 BiostarX 가 정규화한 얼굴을 사용합니다.
