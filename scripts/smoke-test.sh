@@ -219,6 +219,7 @@ check "없는 인원 수정 404" 404 "$(A -H 'Content-Type: application/json' -X
 check "없는 인원 삭제 404" 404 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/person/person?personId=NOPESMK")"
 check "인원ID 형식 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personId":"BAD_ID!","personName":"x","companyCode":"SMKCO1","statusCode":"01","accessStartDt":"2026-01-01","accessEndDt":"2026-12-31"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
 check "생년월일 형식 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personId":"SMKFMT","personName":"x","birthDate":"1990/01/01","companyCode":"SMKCO1","statusCode":"01","accessStartDt":"2026-01-01","accessEndDt":"2026-12-31"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
+check "카드 필수값(패스구분) 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"personId":"SMKCARD","personName":"x","companyCode":"SMKCO1","statusCode":"01","accessStartDt":"2026-01-01","accessEndDt":"2026-12-31","cards":[{"cardNo":"1","cardName":"c","cardStatus":"CS01"}]}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
 check "인원 카드목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/cards?personId=NOPESMK")"
 check "카드번호 없이 등록 실패" 0 "$(A -H 'Content-Type: application/json' -X POST --data '{}' "$BASE_URL/person/person/card/register" | grep -q '"success":false' && echo 0 || echo 1)"
 check "없는 증빙문서 404" 404 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/file?personId=NOPESMK&fileType=ID_CHECK")"

@@ -21,12 +21,11 @@
       <th class="w-100">패스구분</th>
       <th>카드명칭</th>
       <th class="w-100">카드상태</th>
-      <th class="w-120">발급료 납부일</th>
       <th class="w-80">관리</th>
     </tr>
     </thead>
     <tbody class="card-list-body">
-    <tr><td colspan="6" class="empty">등록된 카드가 없습니다.</td></tr>
+    <tr><td colspan="5" class="empty">등록된 카드가 없습니다.</td></tr>
     </tbody>
   </table>
 </div>
@@ -43,26 +42,26 @@
         <label>카드번호 <span class="req">*</span></label>
         <div class="file-field-row">
           <input type="text" id="cardNo" class="input" maxlength="30" inputmode="numeric"
-                 placeholder="카드번호를 입력하거나 장치에서 읽으세요" autocomplete="off"/>
-          <button type="button" class="btn" id="btnCardScan">장치에서 읽기</button>
+                 placeholder="직접 입력하거나 SCAN 으로 읽으세요" autocomplete="off"/>
+          <button type="button" class="btn" id="btnCardScan">SCAN</button>
         </div>
       </div>
       <div class="form-group">
-        <label>카드구분 <span class="form-hint">(고정)</span></label>
+        <label>카드구분 <span class="req">*</span> <span class="form-hint">(고정)</span></label>
         <input type="text" id="cardTypeName" class="input" readonly disabled autocomplete="off"/>
       </div>
       <div class="form-group">
-        <label>패스구분 <span class="form-hint">(클릭하여 선택)</span></label>
+        <label>패스구분 <span class="req">*</span> <span class="form-hint">(클릭하여 선택)</span></label>
         <input type="hidden" id="passType"/>
         <input type="text" id="passTypeName" class="input picker-field" readonly
                data-target="passType" placeholder="클릭하여 선택" autocomplete="off"/>
       </div>
       <div class="form-group">
-        <label>카드명칭</label>
+        <label>카드명칭 <span class="req">*</span></label>
         <input type="text" id="cardName" class="input" maxlength="100" autocomplete="off"/>
       </div>
       <div class="form-group">
-        <label>카드상태 <span class="form-hint">(클릭하여 선택)</span></label>
+        <label>카드상태 <span class="req">*</span> <span class="form-hint">(클릭하여 선택)</span></label>
         <input type="hidden" id="cardStatus"/>
         <input type="text" id="cardStatusName" class="input picker-field" readonly
                data-target="cardStatus" placeholder="클릭하여 선택" autocomplete="off"/>

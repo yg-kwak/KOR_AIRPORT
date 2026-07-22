@@ -3,6 +3,8 @@ package AirPort.service;
 import AirPort.adapter.BiostarCard;
 import AirPort.adapter.BiostarCardAdapter;
 import AirPort.adapter.BiostarUserCard;
+import AirPort.common.exception.BusinessException;
+import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbSystemMapper;
 import AirPort.model.CardForm;
@@ -88,6 +90,7 @@ public class CardService {
       return;
     }
     for (CardForm form : cards) {
+      validate(form);
       TbCard row = new TbCard();
       row.setCardId(form.getCardId());
       row.setPersonId(personId);
@@ -129,6 +132,20 @@ public class CardService {
           .forEach(c -> result.add(new BiostarUserCard(c.getBiostarCardId(), c.getBiostarCardValue())));
     }
     return result;
+  }
+
+  /** 카드 필수값 — 화면(card-list.js)과 같은 기준. 카드구분은 서버가 고정하므로 검사 대상이 아니다. */
+  private static void validate(CardForm form) {
+    require(form.getCardNo(), "카드번호");
+    require(form.getPassType(), "패스구분");
+    require(form.getCardName(), "카드명칭");
+    require(form.getCardStatus(), "카드상태");
+  }
+
+  private static void require(String value, String label) {
+    if (value == null || value.isBlank()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "카드 " + label + "은(는) 필수입니다.");
+    }
   }
 
   private static String blankToNull(String v) {

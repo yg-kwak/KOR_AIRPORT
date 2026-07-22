@@ -13,7 +13,7 @@ window.cardList = (function () {
     const rows = state[id].rows;
     const body = document.getElementById(id).querySelector('.card-list-body');
     if (!rows.length) {
-      body.innerHTML = '<tr><td colspan="6" class="empty">등록된 카드가 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="5" class="empty">등록된 카드가 없습니다.</td></tr>';
       return;
     }
     body.innerHTML = rows.map((c, i) => `
@@ -22,7 +22,6 @@ window.cardList = (function () {
         <td>${esc(c.passTypeName)}</td>
         <td>${esc(c.cardName)}</td>
         <td>${esc(c.cardStatusName)}</td>
-        <td>${esc(c.feePaidDt)}</td>
         <td><button type="button" class="btn btn-sm btn-danger card-list-del" data-idx="${i}">제외</button></td>
       </tr>`).join('');
   }
@@ -84,9 +83,21 @@ window.cardList = (function () {
     };
   }
 
+  /** 필수값 검사 — 서버(CardService)와 같은 기준. 통과하면 null. */
+  function missingRequired() {
+    const found = [
+      [$('cardNo').value.trim(), '카드번호'], [$('cardTypeName').value, '카드구분'],
+      [$('passType').value, '패스구분'], [$('cardName').value.trim(), '카드명칭'],
+      [$('cardStatus').value, '카드상태'],
+    ].find(([v]) => !v);
+    return found ? found[1] : null;
+  }
+
   // 확인 — 새 카드면 BiostarX 등록(즉시) 후 목록에 추가, 기존 카드면 입력값만 갱신
   async function confirmCard(id) {
     const s = state[id];
+    const missing = missingRequired();
+    if (missing) { toast.warning(`${missing}은(는) 필수입니다.`); return; }
     if (s.editIdx != null) {
       Object.assign(s.rows[s.editIdx], inputs());
       render(id);
@@ -94,7 +105,6 @@ window.cardList = (function () {
       return;
     }
     const cardNo = $('cardNo').value.trim();
-    if (!cardNo) { toast.warning('카드번호는 필수입니다.'); return; }
     if (s.rows.some((c) => c.cardNo === cardNo)) {
       toast.warning('이미 목록에 있는 카드번호입니다.'); return;
     }
