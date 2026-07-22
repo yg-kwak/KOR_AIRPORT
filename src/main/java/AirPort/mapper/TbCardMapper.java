@@ -16,6 +16,12 @@ public interface TbCardMapper {
 
   List<TbCard> selectByPerson(@Param("personId") String personId);
 
+  /** 차량에 발급된 카드 목록. */
+  List<TbCard> selectByCar(@Param("carId") int carId);
+
+  /** 카드를 차량에 발급/회수(carId 가 null 이면 회수). */
+  int assignCar(@Param("cardId") int cardId, @Param("carId") Integer carId);
+
   /** 미할당(회수된) 카드 목록 — 할당하기 팝업용. */
   List<TbCard> selectUnassigned(@Param("keyword") String keyword);
 

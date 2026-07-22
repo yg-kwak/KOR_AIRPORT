@@ -77,9 +77,71 @@
   </select>
 
   <insert id="insert" parameterType="TbCar" useGeneratedKeys="true" keyProperty="carId">
-    INSERT INTO tb_car (car_no, car_name, car_type, car_manager_id)
-    VALUES (#{carNo}, #{carName}, #{carType}, #{carManagerId})
+    INSERT INTO tb_car (car_no, car_name, car_type, car_manager_id, company_code)
+    VALUES (#{carNo}, #{carName}, #{carType}, #{carManagerId}, #{companyCode})
   </insert>
+
+  <!-- 기관차량등록 수정 — 소속 기관 포함. 차량등록관리의 update 는 기관을 건드리지 않는다 -->
+  <update id="updateWithCompany" parameterType="TbCar">
+    UPDATE tb_car
+    SET car_no = #{carNo},
+        car_name = #{carName},
+        car_type = #{carType},
+        company_code = #{companyCode},
+        mod_dt = getdate()
+    WHERE car_id = #{carId}
+  </update>
+
+  <!-- ── 기관차량등록(/company/car) ── -->
+  <sql id="ccWhere">
+    <where>
+      c.del_yn = 'N'
+      <if test="companyCode != null and companyCode != ''">AND c.company_code = #{companyCode}</if>
+      <if test="carType != null and carType != ''">AND c.car_type = #{carType}</if>
+      <if test="keyword != null and keyword != ''">
+        <choose>
+          <when test="searchType == 'carNo'">AND c.car_no LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'carName'">AND c.car_name LIKE '%' + #{keyword} + '%'</when>
+          <otherwise>
+            AND (c.car_no LIKE '%' + #{keyword} + '%'
+                 OR c.car_name LIKE '%' + #{keyword} + '%')
+          </otherwise>
+        </choose>
+      </if>
+    </where>
+  </sql>
+
+  <sql id="ccOrderBy">
+    ORDER BY
+    <choose>
+      <when test="sort == 'carNo'">c.car_no <if test="desc">DESC</if>, c.car_id</when>
+      <when test="sort == 'companyName'">co.company_name <if test="desc">DESC</if>, c.car_id</when>
+      <when test="sort == 'regDt'">c.reg_dt <if test="desc">DESC</if>, c.car_id</when>
+      <otherwise>c.car_id DESC</otherwise>
+    </choose>
+  </sql>
+
+  <sql id="ccJoins">
+    FROM tb_car c
+    LEFT JOIN tb_common ct ON ct.cmm_id = 'CT' AND ct.code_id = c.car_type
+    LEFT JOIN tb_company co ON co.company_code = c.company_code
+  </sql>
+
+  <select id="selectCompanyCarList" parameterType="AirPort.model.CompanyCarSearchParam" resultType="TbCar">
+    SELECT c.car_id, c.car_no, c.car_name, c.car_type, c.company_code,
+           c.del_yn, c.reg_dt, c.mod_dt,
+           ct.code_name AS car_type_name, co.company_name AS company_name,
+           (SELECT COUNT(*) FROM tb_card k WHERE k.car_id = c.car_id AND k.del_yn = 'N') AS card_count
+    <include refid="ccJoins"/>
+    <include refid="ccWhere"/>
+    <include refid="ccOrderBy"/>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="selectCompanyCarCount" parameterType="AirPort.model.CompanyCarSearchParam" resultType="long">
+    SELECT COUNT(*) FROM tb_car c
+    <include refid="ccWhere"/>
+  </select>
 
   <update id="update" parameterType="TbCar">
     UPDATE tb_car

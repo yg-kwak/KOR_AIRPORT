@@ -146,6 +146,7 @@ PK: `car_id` (IDENTITY). 차량 1대에 관리자 1명(1:1). **삭제는 물리 
 | car_name | nvarchar(50) | | | 차량명칭 |                                      |
 | car_type | nvarchar(30) | | | 차종 | `tb_common`(cmm_id='CT').code_id     |
 | car_manager_id | nvarchar(30) | | | 관리자ID | → `tb_login_user.user_id` (FK 미강제)   |
+| company_code | nvarchar(30) | | 소속 기관 | → `tb_company.company_code`. 기관차량등록(`/company/car`)에서 채운다 |
 | del_yn | nchar(1) | | | 삭제여부 | 기본 'N', CHK Y/N. 삭제 시 'Y' (소프트 삭제)   |
 | reg_dt / mod_dt | datetime2(0) | | | 입력/수정일자 | 기본 getdate()                         |
 
@@ -180,6 +181,7 @@ PK: `person_id`. **`tb_login_user`(로그인 계정)와 다른 개체** — 혼�
 | 컬럼 | 타입 | PK | Enc | 설명 | 비고 |
 |------|------|----|-----|------|------|
 | person_id | nvarchar(30) | Y | | 인원ID | |
+| car_id | int | | 차량ID | → `tb_car.car_id`. **차량 카드**(card_type=차량)일 때 채운다. person_id 와 배타적 |
 | person_name | nvarchar(255) | | **Y** | 성명 | ARIA 암호화 |
 | birth_date | nvarchar(255) | | **Y** | 생년월일 | ARIA 암호화 |
 | person_phone | nvarchar(255) | | **Y** | 연락처 | ARIA 암호화 |

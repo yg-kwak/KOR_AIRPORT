@@ -5,7 +5,7 @@
 
   <sql id="cardColumns">
     c.card_id, c.card_type, c.card_name, c.card_status, c.pass_type, c.issue_reason, c.remark,
-    c.person_id, c.biostar_card_id, c.biostar_card_value, c.use_yn, c.del_yn, c.reg_dt, c.mod_dt,
+    c.person_id, c.car_id, c.biostar_card_id, c.biostar_card_value, c.use_yn, c.del_yn, c.reg_dt, c.mod_dt,
     CONVERT(varchar(10), c.fee_paid_dt, 23) AS fee_paid_dt,
     CONVERT(varchar(10), c.issue_dt, 23)    AS issue_dt,
     CONVERT(varchar(10), c.lost_dt, 23)     AS lost_dt,
@@ -74,6 +74,19 @@
     WHERE c.card_id = #{cardId}
   </select>
 
+  <select id="selectByCar" resultType="TbCard">
+    SELECT <include refid="cardColumns"/>
+    <include refid="listJoins"/>
+    WHERE c.del_yn = 'N' AND c.car_id = #{carId}
+    ORDER BY c.card_id
+  </select>
+
+  <!-- 차량 카드 발급/회수 — carId 가 null 이면 회수(카드는 살아 있어 다른 차량이 재사용) -->
+  <update id="assignCar">
+    UPDATE tb_card SET car_id = #{carId}, use_yn = 'Y', del_yn = 'N', mod_dt = getdate()
+    WHERE card_id = #{cardId}
+  </update>
+
   <select id="selectByPerson" resultType="TbCard">
     SELECT <include refid="cardColumns"/>
     FROM tb_card c
@@ -115,10 +128,10 @@
   <insert id="insert" parameterType="TbCard" useGeneratedKeys="true" keyProperty="cardId">
     INSERT INTO tb_card
       (card_type, card_name, card_status, pass_type, fee_paid_dt, issue_dt, issue_reason, remark,
-       person_id, biostar_card_id, biostar_card_value)
+       person_id, car_id, biostar_card_id, biostar_card_value)
     VALUES
       (#{cardType}, #{cardName}, #{cardStatus}, #{passType}, #{feePaidDt}, getdate(), #{issueReason}, #{remark},
-       #{personId}, #{biostarCardId}, #{biostarCardValue})
+       #{personId}, #{carId}, #{biostarCardId}, #{biostarCardValue})
   </insert>
 
   <!-- 카드번호·BiostarX 식별자는 불변(발급된 실물 카드라서).

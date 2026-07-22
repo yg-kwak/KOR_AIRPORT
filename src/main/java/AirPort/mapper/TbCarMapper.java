@@ -1,6 +1,7 @@
 package AirPort.mapper;
 
 import AirPort.model.CarSearchParam;
+import AirPort.model.CompanyCarSearchParam;
 import AirPort.model.TbCar;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
@@ -25,5 +26,13 @@ public interface TbCarMapper {
   int update(TbCar row);
 
   /** 소프트 삭제 — del_yn='Y'. */
+  /** 기관차량등록 목록 — 기관명·발급 카드수 포함. */
+  List<TbCar> selectCompanyCarList(CompanyCarSearchParam param);
+
+  long selectCompanyCarCount(CompanyCarSearchParam param);
+
+  /** 기관차량등록 수정 — 소속 기관까지 함께 고친다(차량등록관리의 update 는 기관을 건드리지 않는다). */
+  int updateWithCompany(TbCar car);
+
   int softDelete(@Param("carId") Integer carId);
 }

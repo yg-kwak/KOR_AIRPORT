@@ -16,9 +16,13 @@ public class TbCar {
   private String carName;
   private String carType; // tb_common(CT) code_id
   private String carManagerId; // → tb_login_user.user_id (TODO: 관리자ID 화면 추후)
+  private String companyCode; // → tb_company.company_code (기관차량등록)
   private String delYn;
   private LocalDateTime regDt;
   private LocalDateTime modDt;
 
-  private String carTypeName; // 목록 표시용(tb_common CT 조인) — 저장 컬럼 아님
+  // 목록 표시용 조인값 — 저장 컬럼 아님
+  private String carTypeName; // tb_common(CT)
+  private String companyName; // tb_company
+  private Integer cardCount; // 발급된 차량카드 수
 }

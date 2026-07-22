@@ -108,6 +108,7 @@ CREATE TABLE dbo.tb_car (
   car_name       nvarchar(50)  NULL,                   -- 차량명칭
   car_type       nvarchar(30)  NULL,                   -- 차종
   car_manager_id nvarchar(30)  NULL,                   -- 관리자ID (→ tb_login_user.user_id, FK 미강제)
+  company_code   nvarchar(30)  NULL,                   -- 소속 기관 (→ tb_company.company_code, FK 미강제). 기관차량등록에서 채운다
   del_yn         nchar(1)      NOT NULL DEFAULT 'N',   -- 삭제여부(소프트 삭제): 삭제 시 'Y', 조회는 'N'
   reg_dt         datetime2(0)  NOT NULL DEFAULT getdate(),
   mod_dt         datetime2(0)  NOT NULL DEFAULT getdate(),
@@ -203,7 +204,8 @@ CREATE TABLE dbo.tb_card (
   lost_dt            datetime2(0)   NULL,                   -- 카드분실일
   return_dt          datetime2(0)   NULL,                   -- 카드반납일
   remark             nvarchar(1000) NULL,                   -- 메모
-  person_id          nvarchar(30)   NULL,                   -- 인원ID → tb_person (FK 미강제)
+  person_id          nvarchar(30)   NULL,                   -- 인원ID → tb_person (FK 미강제). 인원 카드일 때
+  car_id             int            NULL,                   -- 차량ID → tb_car (FK 미강제). 차량 카드일 때
   biostar_card_id    nvarchar(50)   NULL,                   -- BiostarX 카드ID
   biostar_card_value nvarchar(255)  NULL,                   -- BiostarX 카드값 (암호화 안 함)
   use_yn             nchar(1)       NOT NULL DEFAULT 'Y',

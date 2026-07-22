@@ -238,6 +238,18 @@ check "인원카드 패스구분 필수 400" 400 "$(A -H 'Content-Type: applicat
 check "없는 카드 수정 404" 404 "$(A -H 'Content-Type: application/json' -X PUT --data '{"cardId":999999,"biostarCardValue":"1","cardType":"CDT01","passType":"PT01","cardName":"x","cardStatus":"CS01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/card/card")"
 check "없는 카드 삭제 404" 404 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/card/card?cardId=999999")"
 
+echo "== 기관차량등록(tb_car + tb_card) ==" 
+check "기관차량 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/company/car")"
+check "기관차량 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/company/car/list?size=5")"
+check "기관차량 기관 필터" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/company/car/list?companyCode=SMKCO1&size=5")"
+check "기관 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"carNo":"99A9999","carName":"x","carType":"CT01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/car")"
+check "차량번호 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"companyCode":"SMKCO1","carName":"x","carType":"CT01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/car")"
+check "깨진 JSON 본문 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"carNo":' -o /dev/null -w '%{http_code}' "$BASE_URL/company/car")"
+check "없는 차량 삭제 404" 404 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/company/car?carId=999999")"
+check "카드발급 카드번호 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"carId":999999,"cardName":"x","cardStatus":"CS01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/car/card")"
+check "없는 차량 카드발급 404" 404 "$(A -H 'Content-Type: application/json' -X POST --data '{"carId":999999,"cardNo":"1","cardName":"x","cardStatus":"CS01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/car/card")"
+check "없는 카드 회수 404" 404 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/company/car/card?cardId=999999")"
+
 echo "== 권한 통제 (viewer: read Y / create·delete N) =="
 VCODE=$(curl -s -m 2 -c "$CK_V" -o /dev/null -w "%{http_code}" --data "userId=viewer&password=viewer123" "$BASE_URL/login" 2>/dev/null)
 if [ "$VCODE" = "302" ]; then
@@ -270,6 +282,9 @@ if [ "$VCODE" = "302" ]; then
   check "viewer 카드 읽기 403" 403 "$(V -H 'Content-Type: application/json' -X POST --data '{}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/card/scan")"
   check "viewer 인원 일괄삭제 403" 403 "$(V -H 'Content-Type: application/json' -X DELETE --data '["NOPESMK"]' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/bulk")"
   check "viewer 인원 등록 403"  403 "$(V -H 'Content-Type: application/json' -X POST --data '{"personId":"VXP","personName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
+  check "viewer 기관차량 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/company/car/list?size=1")"
+  check "viewer 기관차량 등록 403" 403 "$(V -H 'Content-Type: application/json' -X POST --data '{"companyCode":"SMKCO1","carNo":"1","carName":"x","carType":"CT01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/car")"
+  check "viewer 차량카드 발급 403" 403 "$(V -H 'Content-Type: application/json' -X POST --data '{"carId":1,"cardNo":"1","cardName":"x","cardStatus":"CS01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/company/car/card")"
   check "viewer 카드관리 조회 허용" 200 "$(V -o /dev/null -w '%{http_code}' "$BASE_URL/card/card/list?size=1")"
   check "viewer 카드관리 등록 403" 403 "$(V -H 'Content-Type: application/json' -X POST --data '{"biostarCardValue":"1","cardType":"CDT01","passType":"PT01","cardName":"x","cardStatus":"CS01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/card/card")"
   check "viewer 카드관리 삭제 403" 403 "$(V -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/card/card?cardId=999999")"

@@ -97,6 +97,7 @@ INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_leve
   (601, N'차량등록관리', 600,  '/carInfo/car',        2, 1, NULL,      'Y'),
   (700, N'기관관리',     NULL, NULL,                 1, 5, 'company',  'Y'),
   (701, N'기관등록관리', 700,  '/company/company',    2, 1, NULL,      'Y'),
+  (702, N'기관차량등록', 700,  '/company/car',        2, 2, NULL,      'Y'),
   (800, N'카드관리',     NULL, NULL,                 1, 6, 'card',     'Y'),
   (801, N'카드등록관리', 800,  '/card/card',          2, 1, NULL,      'Y');
 
@@ -113,7 +114,8 @@ VALUES (@authId, 301, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 601, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 701, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 201, 'Y', 'Y', 'Y', 'Y'),
-       (@authId, 801, 'Y', 'Y', 'Y', 'Y');
+       (@authId, 801, 'Y', 'Y', 'Y', 'Y'),
+       (@authId, 702, 'Y', 'Y', 'Y', 'Y');
 
 /* 관리자 계정: 아이디 admin / 비밀번호 admin123 (ARIA 암호문) */
 INSERT INTO dbo.tb_login_user
@@ -137,7 +139,8 @@ VALUES (@viewerAuthId, 301, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 601, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 701, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 201, 'Y', 'N', 'N', 'N'),
-       (@viewerAuthId, 801, 'Y', 'N', 'N', 'N');
+       (@viewerAuthId, 801, 'Y', 'N', 'N', 'N'),
+       (@viewerAuthId, 702, 'Y', 'N', 'N', 'N');
 
 INSERT INTO dbo.tb_login_user
   (user_id, user_name, password, dept_name, use_yn, root_yn, auth_id, start_menu_id, work_location_code)

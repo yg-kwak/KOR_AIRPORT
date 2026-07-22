@@ -25,6 +25,7 @@ public class TbCard {
   private String returnDt;
   private String remark;
   private String personId;
+  private Integer carId; // → tb_car.car_id (차량 카드)
   private String biostarCardId;
   private String biostarCardValue; // 카드번호
   private String useYn;

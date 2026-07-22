@@ -39,6 +39,15 @@ public class GlobalExceptionHandler {
                 ErrorCode.INVALID_INPUT.code(), "필수 값이 누락되었습니다: " + e.getParameterName()));
   }
 
+  /** 요청 본문을 읽을 수 없음(깨진 JSON·인코딩·타입 불일치) → 400. 서버 잘못이 아니므로 500 으로 내보내지 않는다. */
+  @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+  public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(
+      org.springframework.http.converter.HttpMessageNotReadableException e) {
+    log.warn("unreadable request body: {}", e.getMostSpecificCause().getMessage());
+    return ResponseEntity.badRequest()
+        .body(ApiResponse.fail(ErrorCode.INVALID_INPUT.code(), "요청 형식이 올바르지 않습니다."));
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiResponse<Void>> handleEtc(Exception e) {
     log.error("unexpected error", e);
