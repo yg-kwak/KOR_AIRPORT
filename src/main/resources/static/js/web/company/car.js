@@ -12,6 +12,11 @@
 
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
+  // 차량 패널 입력 필드(= TbCar 속성명). *Name 은 표시용
+  const PANEL_FIELDS = ['carId', 'carNo', 'carName', 'carType', 'carTypeName',
+    'carManagerId', 'carManagerName'];
+  let acCodeList = []; // tb_common(CAR) 출입구역 코드
+
   // ---- 기관 목록 ----
   async function load() {
     const q =
@@ -106,9 +111,11 @@
           <td>${esc(c.carNo)}</td>
           <td>${esc(c.carName)}</td>
           <td>${esc(c.carTypeName)}</td>
+          <td>${esc(c.carManagerName) || '<span class="form-hint">미지정</span>'}</td>
+          <td>${esc(c.acCodeNames) || '<span class="form-hint">없음</span>'}</td>
           <td>${c.cardCount > 0 ? esc(c.cardCount) + '장' : '<span class="form-hint">없음</span>'}</td>
         </tr>`).join('')
-      : '<tr><td colspan="4" class="empty">등록된 차량이 없습니다.</td></tr>';
+      : '<tr><td colspan="6" class="empty">등록된 차량이 없습니다.</td></tr>';
     load(); // 기관 목록의 등록차량 수 갱신
   }
 
@@ -116,11 +123,10 @@
   function openCarPanel(car) {
     const isNew = !car;
     $('carPanelTitle').textContent = isNew ? '차량 추가' : '차량 정보';
-    ['carId', 'carNo', 'carName', 'carType', 'carTypeName'].forEach((id) => { $(id).value = ''; });
-    if (!isNew) {
-      ['carId', 'carNo', 'carName', 'carType', 'carTypeName']
-        .forEach((id) => { $(id).value = car[id] != null ? car[id] : ''; });
-    }
+    PANEL_FIELDS.forEach((id) => { $(id).value = ''; });
+    if (!isNew) PANEL_FIELDS.forEach((id) => { $(id).value = car[id] != null ? car[id] : ''; });
+    renderAcCodes([]);
+    if (!isNew) loadAcCodes(car.carId);
     // 카드는 저장된 차량에만 발급할 수 있다
     $('cardSection').style.display = isNew ? 'none' : '';
     if ($('btnCarDelete')) $('btnCarDelete').style.display = isNew ? 'none' : '';
@@ -143,6 +149,29 @@
       : '<tr><td colspan="4" class="empty">발급된 카드가 없습니다.</td></tr>';
   }
 
+  /** 출입구역 체크박스 — tb_common(CAR) 전체를 그리고 부여된 것만 체크한다. */
+  function renderAcCodes(checked) {
+    const box = $('acCodeBox');
+    if (!acCodeList.length) {
+      box.innerHTML = '<div class="empty">등록된 출입구역이 없습니다. (공통코드관리 CAR)</div>';
+      return;
+    }
+    const want = new Set(checked || []);
+    box.innerHTML = acCodeList.map((c) => `
+      <label class="ac-select-item">
+        <input type="checkbox" value="${esc(c.codeId)}"${want.has(c.codeId) ? ' checked' : ''}/>
+        <span>${esc(c.codeName)}</span>
+      </label>`).join('');
+  }
+
+  async function loadAcCodes(carId) {
+    renderAcCodes((await api.get(`${BASE}/acCodes?carId=${encodeURIComponent(carId)}`)) || []);
+  }
+
+  function selectedAcCodes() {
+    return [...$('acCodeBox').querySelectorAll('input[type="checkbox"]:checked')].map((c) => c.value);
+  }
+
   async function saveCar() {
     if (!PERM.canCreate) return;
     const payload = {
@@ -151,6 +180,8 @@
       carNo: $('carNo').value.trim() || null,
       carName: $('carName').value.trim() || null,
       carType: $('carType').value || null,
+      carManagerId: $('carManagerId').value || null,
+      acCodes: selectedAcCodes(),
     };
     const required = [
       [payload.carNo, '차량번호'], [payload.carName, '차량명칭'], [payload.carType, '차종'],
@@ -224,6 +255,73 @@
     loadCars();
   }
 
+  // ---- 차량관리자 선택 팝업(해당 기관의 정규인원) ----
+  let pickedManager = null;
+
+  async function openManager() {
+    pickedManager = null;
+    $('managerModal').classList.add('open');
+    const url = `${BASE}/managers?companyCode=${encodeURIComponent($('companyCode').value)}`;
+    const rows = (await api.get(url)) || [];
+    $('managerBody').innerHTML = rows.length
+      ? rows.map((p, i) => `
+        <tr class="row-click manager-row" data-idx="${i}">
+          <td><input type="radio" name="mgrPick" value="${i}"/></td>
+          <td>${esc(p.personId)}</td>
+          <td style="text-align:left">${esc(p.personName)}</td>
+          <td>${esc(p.titleName)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="4" class="empty">해당 기관의 정규인원이 없습니다.</td></tr>';
+    $('managerBody').dataset.rows = JSON.stringify(rows);
+  }
+  function closeManager() { $('managerModal').classList.remove('open'); }
+
+  // ---- 차량 불러오기 팝업(기관 미할당 차량) ----
+  let pickedCar = null;
+
+  async function loadUnassigned() {
+    pickedCar = null;
+    const kw = encodeURIComponent($('loadCarKeyword').value.trim());
+    const rows = (await api.get(`${BASE}/unassigned?keyword=${kw}`)) || [];
+    $('loadCarBody').innerHTML = rows.length
+      ? rows.map((c, i) => `
+        <tr class="row-click loadcar-row" data-idx="${i}">
+          <td><input type="radio" name="carPick" value="${i}"/></td>
+          <td>${esc(c.carNo)}</td>
+          <td style="text-align:left">${esc(c.carName)}</td>
+          <td>${esc(c.carTypeName)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="4" class="empty">불러올 수 있는 차량이 없습니다.</td></tr>';
+    $('loadCarBody').dataset.rows = JSON.stringify(rows);
+  }
+  function openLoadCar() {
+    $('loadCarKeyword').value = '';
+    $('loadCarModal').classList.add('open');
+    loadUnassigned();
+  }
+  function closeLoadCar() { $('loadCarModal').classList.remove('open'); }
+
+  /** 불러온 차량은 패널에 채워지고, 저장하면 이 기관 소속으로 바뀐다. */
+  function applyLoadedCar() {
+    if (!pickedCar) { toast.warning('차량을 선택하세요.'); return; }
+    closeLoadCar();
+    openCarPanel({
+      carId: pickedCar.carId, carNo: pickedCar.carNo, carName: pickedCar.carName,
+      carType: pickedCar.carType, carTypeName: pickedCar.carTypeName,
+    });
+    $('carPanelTitle').textContent = '차량 불러오기';
+  }
+
+  /** 라디오 목록 팝업의 행 선택 — tbody 의 data-rows(JSON) 에서 고른 행을 돌려준다. */
+  function bindPickRows(bodyId, rowClass, onPick) {
+    $(bodyId).addEventListener('click', (e) => {
+      const row = e.target.closest('.' + rowClass);
+      if (!row) return;
+      row.querySelector('input[type="radio"]').checked = true;
+      onPick(JSON.parse($(bodyId).dataset.rows)[Number(row.dataset.idx)]);
+    });
+  }
+
   function bind() {
     $('btnSearch').addEventListener('click', search);
     $('btnReset').addEventListener('click', reset);
@@ -247,6 +345,22 @@
     });
 
     if ($('btnNewCar')) $('btnNewCar').addEventListener('click', () => openCarPanel(null));
+
+    // 선택 팝업 2종(차량관리자 / 차량 불러오기) — 라디오 행 선택은 같은 방식
+    bindPickRows('managerBody', 'manager-row', (row) => { pickedManager = row; });
+    bindPickRows('loadCarBody', 'loadcar-row', (row) => { pickedCar = row; });
+    $('carManagerName').addEventListener('click', openManager);
+    $('managerOk').addEventListener('click', () => {
+      if (!pickedManager) { toast.warning('인원을 선택하세요.'); return; }
+      $('carManagerId').value = pickedManager.personId;
+      $('carManagerName').value = pickedManager.personName;
+      closeManager();
+    });
+    ['managerCancel', 'managerClose'].forEach((id) => $(id).addEventListener('click', closeManager));
+    if ($('btnLoadCar')) $('btnLoadCar').addEventListener('click', openLoadCar);
+    $('loadCarKeyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadUnassigned(); });
+    $('loadCarOk').addEventListener('click', applyLoadedCar);
+    ['loadCarCancel', 'loadCarClose'].forEach((id) => $(id).addEventListener('click', closeLoadCar));
     if ($('btnCarSave')) $('btnCarSave').addEventListener('click', saveCar);
     if ($('btnCarDelete')) $('btnCarDelete').addEventListener('click', removeCar);
     $('carPanelCancel').addEventListener('click', closeCarPanel);
@@ -274,5 +388,9 @@
       th.addEventListener('click', () => toggleSort(th.dataset.sort)));
   }
 
-  document.addEventListener('DOMContentLoaded', () => { bind(); load(); });
+  document.addEventListener('DOMContentLoaded', async () => {
+    bind();
+    acCodeList = (await api.get('/system/common/picker?cmmId=CAR')) || [];
+    load();
+  });
 })();

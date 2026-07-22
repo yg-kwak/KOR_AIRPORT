@@ -76,6 +76,15 @@
     <include refid="searchWhere"/>
   </select>
 
+  <!-- 기관의 정규인원 — 차량관리자 선택 팝업 -->
+  <select id="selectByCompany" resultType="TbPerson">
+    SELECT p.person_id, p.person_name, p.company_code, p.title_code, ut.code_name AS title_name
+    FROM tb_person p
+    LEFT JOIN tb_common ut ON ut.cmm_id = 'UT' AND ut.code_id = p.title_code
+    WHERE p.del_yn = 'N' AND p.person_type = 'PT01' AND p.company_code = #{companyCode}
+    ORDER BY p.person_id
+  </select>
+
   <select id="selectById" resultType="TbPerson">
     SELECT <include refid="listColumns"/>
     <include refid="listJoins"/>

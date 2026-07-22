@@ -145,12 +145,21 @@ PK: `car_id` (IDENTITY). 차량 1대에 관리자 1명(1:1). **삭제는 물리 
 | car_no | nvarchar(20) | | | 차량번호 | 예: 12가3456 (개인정보 암호화 대상 여부 재검토 TODO) |
 | car_name | nvarchar(50) | | | 차량명칭 |                                      |
 | car_type | nvarchar(30) | | | 차종 | `tb_common`(cmm_id='CT').code_id     |
-| car_manager_id | nvarchar(30) | | | 관리자ID | → `tb_login_user.user_id` (FK 미강제)   |
+| car_manager_id | nvarchar(30) | | 차량관리자 | → `tb_person.person_id` (소속 기관의 정규인원). 기관차량등록에서 지정 |
 | company_code | nvarchar(30) | | 소속 기관 | → `tb_company.company_code`. 기관차량등록(`/company/car`)에서 채운다 |
 | del_yn | nchar(1) | | | 삭제여부 | 기본 'N', CHK Y/N. 삭제 시 'Y' (소프트 삭제)   |
 | reg_dt / mod_dt | datetime2(0) | | | 입력/수정일자 | 기본 getdate()                         |
 
 > 삭제 로그는 `tb_system_log` 에 차량번호를 **스냅샷**(`action_detail`)으로 남긴다 — 차량 행 상태와 무관하게 이력이 보존되도록 조인 의존을 없앤다.
+
+### tb_car_ac_group — 차량 출입구역
+PK: `car_id + code_id` (복합키로 중복 부여 차단). 인원의 `tb_person_ac_group` 과 같은 역할이지만, 차량은 BiostarX 출입그룹이 아니라 **공통코드 구역**(`tb_common` cmm_id='CAR')으로 관리한다.
+
+| 컬럼 | 타입 | PK | 설명 | 비고 |
+|------|------|----|------|------|
+| car_id | int | Y | 차량ID | → `tb_car.car_id` |
+| code_id | nvarchar(50) | Y | 출입구역 | → `tb_common`(cmm_id='CAR').code_id |
+| reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
 
 ### tb_company — 기관 (기관관리)
 PK: `company_code` (업무코드). **삭제는 물리 DELETE 금지 — `del_yn='Y'` 소프트 삭제.** `ceo_name` 은 ARIA 암호화 대상.

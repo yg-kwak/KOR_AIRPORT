@@ -25,4 +25,6 @@ public class TbCar {
   private String carTypeName; // tb_common(CT)
   private String companyName; // tb_company
   private Integer cardCount; // 발급된 차량카드 수
+  private String carManagerName; // tb_person 성명(ARIA 복호화는 서비스에서)
+  private String acCodeNames; // 부여된 출입구역명(콤마 연결)
 }

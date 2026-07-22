@@ -6,12 +6,14 @@ import AirPort.common.CurrentMenu;
 import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
 import AirPort.model.CarCardForm;
+import AirPort.model.CarForm;
 import AirPort.model.CompanySearchParam;
 import AirPort.model.MenuPermission;
 import AirPort.model.TbCar;
 import AirPort.model.TbCard;
 import AirPort.model.TbCompany;
 import AirPort.model.TbLoginUser;
+import AirPort.model.TbPerson;
 import AirPort.service.CardService;
 import AirPort.service.CompanyCarService;
 import AirPort.service.MenuAuthService;
@@ -90,6 +92,28 @@ public class CompanyCarController {
     return ApiResponse.ok(companyCarService.carsOf(companyCode, actor(session), menuId()));
   }
 
+  /** 기관의 정규인원 (AJAX) — 차량관리자 선택 팝업 */
+  @GetMapping("/managers")
+  @ResponseBody
+  public ApiResponse<List<TbPerson>> managers(@RequestParam String companyCode, HttpSession session) {
+    return ApiResponse.ok(companyCarService.managersOf(companyCode, actor(session), menuId()));
+  }
+
+  /** 미할당 차량 (AJAX) — 차량 불러오기 팝업 */
+  @GetMapping("/unassigned")
+  @ResponseBody
+  public ApiResponse<List<TbCar>> unassigned(
+      @RequestParam(required = false) String keyword, HttpSession session) {
+    return ApiResponse.ok(companyCarService.unassignedCars(keyword, actor(session), menuId()));
+  }
+
+  /** 차량의 출입구역 코드 (AJAX) — tb_common(CAR) */
+  @GetMapping("/acCodes")
+  @ResponseBody
+  public ApiResponse<List<String>> acCodes(@RequestParam int carId, HttpSession session) {
+    return ApiResponse.ok(companyCarService.acCodesOf(carId, actor(session), menuId()));
+  }
+
   /** 차량의 발급 카드 목록 (AJAX) */
   @GetMapping("/cards")
   @ResponseBody
@@ -123,16 +147,16 @@ public class CompanyCarController {
   /** 차량 등록 (AJAX) */
   @PostMapping
   @ResponseBody
-  public ApiResponse<Void> create(@RequestBody TbCar row, HttpSession session) {
-    companyCarService.create(row, actor(session), menuId());
+  public ApiResponse<Void> create(@RequestBody CarForm form, HttpSession session) {
+    companyCarService.create(form, actor(session), menuId());
     return ApiResponse.okMessage("등록되었습니다.");
   }
 
   /** 차량 수정 (AJAX) */
   @PutMapping
   @ResponseBody
-  public ApiResponse<Void> update(@RequestBody TbCar row, HttpSession session) {
-    companyCarService.update(row, actor(session), menuId());
+  public ApiResponse<Void> update(@RequestBody CarForm form, HttpSession session) {
+    companyCarService.update(form, actor(session), menuId());
     return ApiResponse.okMessage("수정되었습니다.");
   }
 

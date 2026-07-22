@@ -96,14 +96,40 @@
   <select id="selectByCompany" resultType="TbCar">
     SELECT c.car_id, c.car_no, c.car_name, c.car_type, c.company_code,
            c.del_yn, c.reg_dt, c.mod_dt,
+           c.car_manager_id,
            ct.code_name AS car_type_name, co.company_name AS company_name,
-           (SELECT COUNT(*) FROM tb_card k WHERE k.car_id = c.car_id AND k.del_yn = 'N') AS card_count
+           p.person_name AS car_manager_name,
+           (SELECT COUNT(*) FROM tb_card k WHERE k.car_id = c.car_id AND k.del_yn = 'N') AS card_count,
+           (SELECT STRING_AGG(cm.code_name, ', ') WITHIN GROUP (ORDER BY cm.code_id)
+              FROM tb_car_ac_group g JOIN tb_common cm ON cm.cmm_id = 'CAR' AND cm.code_id = g.code_id
+             WHERE g.car_id = c.car_id) AS ac_code_names
     FROM tb_car c
     LEFT JOIN tb_common ct ON ct.cmm_id = 'CT' AND ct.code_id = c.car_type
     LEFT JOIN tb_company co ON co.company_code = c.company_code
+    LEFT JOIN tb_person p ON p.person_id = c.car_manager_id
     WHERE c.del_yn = 'N' AND c.company_code = #{companyCode}
     ORDER BY c.car_id DESC
   </select>
+
+  <!-- 차량 불러오기 — 아직 어느 기관에도 속하지 않은 차량 -->
+  <select id="selectUnassigned" resultType="TbCar">
+    SELECT c.car_id, c.car_no, c.car_name, c.car_type, c.company_code,
+           c.del_yn, c.reg_dt, ct.code_name AS car_type_name
+    FROM tb_car c
+    LEFT JOIN tb_common ct ON ct.cmm_id = 'CT' AND ct.code_id = c.car_type
+    <where>
+      c.del_yn = 'N' AND c.company_code IS NULL
+      <if test="keyword != null and keyword != ''">
+        AND (c.car_no LIKE '%' + #{keyword} + '%' OR c.car_name LIKE '%' + #{keyword} + '%')
+      </if>
+    </where>
+    ORDER BY c.car_id DESC
+  </select>
+
+  <!-- 기관차량등록 — 차량관리자만 갱신(차량 정보 수정과 분리) -->
+  <update id="updateManager">
+    UPDATE tb_car SET car_manager_id = #{carManagerId}, mod_dt = getdate() WHERE car_id = #{carId}
+  </update>
 
   <!-- 차량등록관리(/carInfo/car) 수정 — 소속 기관은 건드리지 않는다(기관차량등록이 관리) -->
   <update id="update" parameterType="TbCar">

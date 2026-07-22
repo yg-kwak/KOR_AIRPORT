@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbCarAcGroupMapper">
+
+  <delete id="deleteByCar">
+    DELETE FROM tb_car_ac_group WHERE car_id = #{carId}
+  </delete>
+
+  <insert id="insertBatch">
+    INSERT INTO tb_car_ac_group (car_id, code_id) VALUES
+    <foreach collection="codeIds" item="code" separator=",">
+      (#{carId}, #{code})
+    </foreach>
+  </insert>
+
+  <select id="selectCodeIds" resultType="string">
+    SELECT code_id FROM tb_car_ac_group WHERE car_id = #{carId} ORDER BY code_id
+  </select>
+
+  <!-- 목록 표시용 — 구역명을 콤마로 이어 한 칸에 보여준다 -->
+  <select id="selectCodeNames" resultType="string">
+    SELECT STRING_AGG(c.code_name, ', ') WITHIN GROUP (ORDER BY c.code_id)
+    FROM tb_car_ac_group g
+    JOIN tb_common c ON c.cmm_id = 'CAR' AND c.code_id = g.code_id
+    WHERE g.car_id = #{carId}
+  </select>
+
+</mapper>

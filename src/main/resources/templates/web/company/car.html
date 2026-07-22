@@ -78,6 +78,7 @@
       <div class="grid-toolbar" style="padding:0 0 8px">
         <span class="form-hint">차량을 클릭하면 오른쪽에서 정보와 카드를 관리할 수 있습니다.</span>
         <div class="grid-actions">
+          <button type="button" class="btn" id="btnLoadCar" th:if="${perm.canCreate}">차량 불러오기</button>
           <button type="button" class="btn" id="btnNewCar" th:if="${perm.canCreate}">차량 추가</button>
         </div>
       </div>
@@ -86,12 +87,14 @@
         <tr>
           <th class="w-160">차량번호</th>
           <th>차량명칭</th>
-          <th class="w-120">차종</th>
+          <th class="w-100">차종</th>
+          <th class="w-120">관리자</th>
+          <th class="w-160">출입구역</th>
           <th class="w-80">카드</th>
         </tr>
         </thead>
         <tbody id="carBody">
-        <tr><td colspan="4" class="empty">등록된 차량이 없습니다.</td></tr>
+        <tr><td colspan="6" class="empty">등록된 차량이 없습니다.</td></tr>
         </tbody>
       </table>
     </div>
@@ -123,6 +126,17 @@
           <input type="text" id="carTypeName" class="input picker-field" readonly
                  data-target="carType" placeholder="클릭하여 선택" autocomplete="off"/>
         </div>
+        <div class="form-group full">
+          <label>차량관리자 <span class="form-hint">(해당 기관의 정규인원)</span></label>
+          <input type="hidden" id="carManagerId"/>
+          <input type="text" id="carManagerName" class="input picker-field" readonly
+                 data-target="carManagerId" placeholder="클릭하여 선택" autocomplete="off"/>
+        </div>
+      </div>
+
+      <div class="form-group-label" style="margin-top:12px">출입구역</div>
+      <div class="ac-select-tree" id="acCodeBox">
+        <div class="empty">불러오는 중...</div>
       </div>
 
       <!-- 발급된 차량용 카드 (저장된 차량에서만) -->
@@ -202,6 +216,64 @@
     <div class="modal-footer">
       <button type="button" class="btn" id="issueCancel">취소</button>
       <button type="button" class="btn btn-primary" id="issueOk">발급</button>
+    </div>
+  </div>
+</div>
+
+<!-- 차량관리자 선택 팝업 (해당 기관의 정규인원) -->
+<div class="modal-overlay code-picker-overlay" id="managerModal">
+  <div class="modal-container wide">
+    <div class="modal-header">
+      <h2 class="modal-title">차량관리자 선택</h2>
+      <button type="button" class="modal-close" id="managerClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-hint">해당 기관의 정규인원만 보입니다.</p>
+      <div class="matrix-wrap">
+        <table class="grid">
+          <thead>
+          <tr><th class="w-40"></th><th class="w-160">인원ID</th><th style="text-align:left">성명</th><th class="w-120">직위</th></tr>
+          </thead>
+          <tbody id="managerBody">
+          <tr><td colspan="4" class="empty">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="managerCancel">취소</button>
+      <button type="button" class="btn btn-primary" id="managerOk">선택</button>
+    </div>
+  </div>
+</div>
+
+<!-- 차량 불러오기 팝업 (기관 미할당 차량) -->
+<div class="modal-overlay code-picker-overlay" id="loadCarModal">
+  <div class="modal-container wide">
+    <div class="modal-header">
+      <h2 class="modal-title">차량 불러오기</h2>
+      <button type="button" class="modal-close" id="loadCarClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="search-keyword" style="margin-bottom:10px">
+        <input type="text" id="loadCarKeyword" class="input"
+               placeholder="차량번호 또는 차량명칭으로 검색" autocomplete="off"/>
+      </div>
+      <p class="form-hint">아직 어느 기관에도 속하지 않은 차량만 보입니다.</p>
+      <div class="matrix-wrap">
+        <table class="grid">
+          <thead>
+          <tr><th class="w-40"></th><th class="w-160">차량번호</th><th style="text-align:left">차량명칭</th><th class="w-120">차종</th></tr>
+          </thead>
+          <tbody id="loadCarBody">
+          <tr><td colspan="4" class="empty">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="loadCarCancel">취소</button>
+      <button type="button" class="btn btn-primary" id="loadCarOk">선택</button>
     </div>
   </div>
 </div>

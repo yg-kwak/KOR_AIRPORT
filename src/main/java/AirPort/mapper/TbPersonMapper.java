@@ -13,6 +13,9 @@ public interface TbPersonMapper {
   long selectCount(PersonSearchParam param);
 
   /** PK 단건 조회(del_yn 무관 — 중복/존재 판정용). */
+  /** 기관의 정규인원 목록 — 차량관리자 선택 팝업(성명은 ARIA 암호문, 서비스가 복호화). */
+  List<TbPerson> selectByCompany(@Param("companyCode") String companyCode);
+
   TbPerson selectById(@Param("personId") String personId);
 
   int insert(TbPerson row);

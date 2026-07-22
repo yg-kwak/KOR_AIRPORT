@@ -25,8 +25,14 @@ public interface TbCarMapper {
   int update(TbCar row);
 
   /** 소프트 삭제 — del_yn='Y'. */
-  /** 기관의 차량 목록 — 기관차량등록 모달. 발급 카드수 포함. */
+  /** 기관의 차량 목록 — 기관차량등록 모달. 발급 카드수·관리자·출입구역 포함. */
   List<TbCar> selectByCompany(@Param("companyCode") String companyCode);
+
+  /** 아직 기관에 할당되지 않은 차량 — 차량 불러오기 팝업. */
+  List<TbCar> selectUnassigned(@Param("keyword") String keyword);
+
+  /** 기관차량등록 수정 — 관리자까지 함께. */
+  int updateManager(@Param("carId") int carId, @Param("carManagerId") String carManagerId);
 
   /** 기관차량등록 수정 — 소속 기관까지 함께 고친다(차량등록관리의 update 는 기관을 건드리지 않는다). */
   int updateWithCompany(TbCar car);

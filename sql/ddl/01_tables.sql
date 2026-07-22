@@ -107,13 +107,23 @@ CREATE TABLE dbo.tb_car (
   car_no         nvarchar(20)  NOT NULL,               -- 차량번호 (예: 12가3456)
   car_name       nvarchar(50)  NULL,                   -- 차량명칭
   car_type       nvarchar(30)  NULL,                   -- 차종
-  car_manager_id nvarchar(30)  NULL,                   -- 관리자ID (→ tb_login_user.user_id, FK 미강제)
+  car_manager_id nvarchar(30)  NULL,                   -- 차량관리자 (→ tb_person.person_id, 소속 기관의 정규인원. FK 미강제)
   company_code   nvarchar(30)  NULL,                   -- 소속 기관 (→ tb_company.company_code, FK 미강제). 기관차량등록에서 채운다
   del_yn         nchar(1)      NOT NULL DEFAULT 'N',   -- 삭제여부(소프트 삭제): 삭제 시 'Y', 조회는 'N'
   reg_dt         datetime2(0)  NOT NULL DEFAULT getdate(),
   mod_dt         datetime2(0)  NOT NULL DEFAULT getdate(),
   CONSTRAINT PK_tb_car PRIMARY KEY (car_id),
   CONSTRAINT CHK_tb_car_del_yn CHECK (del_yn IN ('Y','N'))
+);
+
+/* 차량 출입구역 (차량 1 : 구역 N) — 인원의 tb_person_ac_group 과 같은 역할.
+   차량은 BiostarX 출입그룹이 아니라 공통코드(cmm_id='CAR') 구역으로 관리한다 */
+CREATE TABLE dbo.tb_car_ac_group (
+  car_id  int          NOT NULL,                            -- → tb_car.car_id
+  code_id nvarchar(50) NOT NULL,                            -- 출입구역 → tb_common(cmm_id='CAR').code_id
+  reg_dt  datetime2(0) NOT NULL DEFAULT getdate(),
+  mod_dt  datetime2(0) NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_car_ac_group PRIMARY KEY (car_id, code_id)
 );
 
 /* 기관 (기관관리) — PK 업무코드. 삭제=del_yn 소프트 삭제, 활성/비활성=use_yn */
