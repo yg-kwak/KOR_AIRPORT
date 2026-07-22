@@ -65,10 +65,8 @@ public class CardService {
   }
 
   /**
-   * 카드 등록 — BiostarX 에 카드를 만든 뒤 tb_card 에 저장한다.
-   *
-   * <p>연동 실패 시 <b>저장하지 않는다</b>: biostar_card_id 없는 카드는 인원에게 부여할 수 없어 쓸모가 없다(인원/기관의 '실패해도
-   * 저장' 정책과 다른 이유). 이미 등록된 카드번호는 중복으로 막는다.
+   * 카드 등록 — <b>DB 저장 후 BiostarX 등록</b> 순서. 제약 위반은 BiostarX 호출 전에 걸리고, BiostarX 실패는 트랜잭션을 롤백해
+   * 고아 카드를 막는다(장비엔 남고 우리 DB엔 없는 상태 방지). 이미 등록된 카드번호는 중복으로 막는다.
    */
   @Transactional
   public void createCard(TbCard row, TbLoginUser actor, Integer menuId) {
@@ -77,14 +75,32 @@ public class CardService {
     if (cardMapper.selectByCardNo(row.getBiostarCardValue()) != null) {
       throw new BusinessException(ErrorCode.DUPLICATE, "이미 등록된 카드번호입니다.");
     }
-    BiostarCard issued = register(row.getBiostarCardValue(), actor, menuId);
+    normalize(row);
+    row.setBiostarCardId(null);
+    cardMapper.insert(row); // DB 먼저 — unique/CHECK 위반은 BiostarX 호출 전에 잡힌다
+    registerBiostar(row, actor, menuId); // BiostarX 나중 — 실패하면 위 insert 도 롤백
+    auditService.log(actor, AuditService.CREATE, menuId, "카드 등록: " + row.getBiostarCardValue());
+  }
+
+  /**
+   * 신규 실물 카드를 BiostarX 에 등록하고 {@code biostar_card_id} 를 채운다 — <b>tb_card insert 이후</b> 호출한다.
+   *
+   * <p>순서 보장이 핵심이다: DB 행이 이미 있으므로 여기서 실패하면 트랜잭션이 통째로 롤백돼 BiostarX·DB 어느 쪽에도 남지 않는다.
+   * 성공 후에는 PK 단건 UPDATE 만 남아 불일치 여지가 사실상 없다.
+   */
+  void registerBiostar(TbCard row, TbLoginUser actor, Integer menuId) {
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 설정이 없습니다. 설정관리에서 등록하세요.");
+    }
+    BiostarCard issued =
+        biostarCardAdapter.createCard(
+            cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), row.getBiostarCardValue());
     if (!issued.success()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 카드 등록 실패: " + issued.message());
     }
-    row.setBiostarCardId(issued.biostarCardId());
-    normalize(row);
-    cardMapper.insert(row);
-    auditService.log(actor, AuditService.CREATE, menuId, "카드 등록: " + row.getBiostarCardValue());
+    cardMapper.updateBiostarCardId(row.getCardId(), issued.biostarCardId());
+    auditService.log(actor, AuditService.CREATE, menuId, "BiostarX 카드 등록: " + issued.cardNo());
   }
 
   /** 카드 수정 — 카드번호·BiostarX 식별자·할당 인원은 바꾸지 않는다(실물 카드). */

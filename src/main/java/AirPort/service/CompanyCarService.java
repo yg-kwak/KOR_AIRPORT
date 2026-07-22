@@ -1,6 +1,5 @@
 package AirPort.service;
 
-import AirPort.adapter.BiostarCard;
 import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
@@ -202,10 +201,6 @@ public class CompanyCarService {
     if (known != null && (known.getPersonId() != null || known.getCarId() != null)) {
       throw new BusinessException(ErrorCode.DUPLICATE, "이미 발급된 카드번호입니다. 먼저 회수하세요.");
     }
-    BiostarCard issued = cardService.register(form.getCardNo(), actor, menuId);
-    if (!issued.success()) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 카드 등록 실패: " + issued.message());
-    }
 
     TbCard row = new TbCard();
     row.setCardId(known == null ? null : known.getCardId());
@@ -216,13 +211,15 @@ public class CompanyCarService {
     row.setFeePaidDt(blankToNull(form.getFeePaidDt()));
     row.setIssueReason(form.getIssueReason());
     row.setRemark(form.getRemark());
-    row.setBiostarCardId(issued.biostarCardId());
-    row.setBiostarCardValue(issued.cardNo());
-    if (row.getCardId() == null) {
-      cardMapper.insert(row); // 새 실물 카드
-    } else {
-      cardMapper.updateInfo(row); // 회수돼 있던 카드 재사용
+    row.setBiostarCardValue(form.getCardNo());
+    if (known != null) {
+      // 회수돼 있던 카드 재사용 — BiostarX 에 이미 있으므로 등록 호출 없이 재배정만
+      cardMapper.updateInfo(row);
       cardMapper.assignCar(row.getCardId(), form.getCarId());
+    } else {
+      // 신규 카드: DB 먼저 저장하고(제약 위반은 여기서) 그 다음 BiostarX 등록 — 실패 시 롤백돼 고아 없음
+      cardMapper.insert(row);
+      cardService.registerBiostar(row, actor, menuId);
     }
     auditService.log(
         actor, AuditService.CREATE, menuId, "차량카드 발급: " + car.getCarNo() + " / " + form.getCardNo());

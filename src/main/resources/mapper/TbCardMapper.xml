@@ -148,6 +148,12 @@
     WHERE card_id = #{cardId}
   </update>
 
+  <!-- 발급 시 BiostarX id 채우기 — DB insert 후 BiostarX 등록 성공 시 마지막 반영 -->
+  <update id="updateBiostarCardId">
+    UPDATE tb_card SET biostar_card_id = #{biostarCardId}, mod_dt = getdate()
+    WHERE card_id = #{cardId}
+  </update>
+
   <!-- 카드등록관리 수정 — 카드번호·BiostarX 식별자·할당 인원은 건드리지 않는다 -->
   <update id="updateInfo" parameterType="TbCard">
     UPDATE tb_card

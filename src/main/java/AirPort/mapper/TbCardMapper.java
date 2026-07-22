@@ -36,6 +36,10 @@ public interface TbCardMapper {
   /** 카드등록관리 전용 — 카드 정보만 고친다(할당 인원은 건드리지 않는다). */
   int updateInfo(TbCard card);
 
+  /** 발급 시 BiostarX 응답의 id 를 채운다 — DB insert 후 BiostarX 등록이 성공하면 마지막에 반영. */
+  int updateBiostarCardId(
+      @Param("cardId") int cardId, @Param("biostarCardId") String biostarCardId);
+
   /** 소프트 삭제 — 카드 마스터 자체를 지울 때만(할당된 카드는 서비스가 막는다). */
   int softDelete(@Param("cardId") int cardId);
 
