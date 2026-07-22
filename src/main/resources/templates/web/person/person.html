@@ -87,8 +87,8 @@
         <form id="editForm">
           <div class="form-grid">
             <div class="form-group">
-              <label>인원ID <span class="req">*</span></label>
-              <input type="text" id="personId" class="input" autocomplete="off"/>
+              <label>인원ID <span class="req">*</span> <span class="form-hint">(영문·숫자)</span></label>
+              <input type="text" id="personId" class="input" maxlength="30" autocomplete="off"/>
             </div>
             <div class="form-group">
               <label>성명 <span class="req">*</span></label>
@@ -96,7 +96,8 @@
             </div>
             <div class="form-group">
               <label>생년월일</label>
-              <input type="text" id="birthDate" class="input" placeholder="예: 1990-01-01" autocomplete="off"/>
+              <input type="text" id="birthDate" class="input" placeholder="예: 1990-01-01"
+                     maxlength="10" inputmode="numeric" autocomplete="off"/>
             </div>
             <div class="form-group">
               <label>연락처</label>
@@ -192,9 +193,7 @@
       <!-- 탭3: 사용자 권한 (tb_ac_group 선택) -->
       <div class="tab-panel" id="tab-auth">
         <p class="form-hint">출입을 허용할 출입권한(BiostarX 출입그룹)을 선택하세요.</p>
-        <div class="ac-select-tree" id="acTree">
-          <div class="empty">불러오는 중...</div>
-        </div>
+        <div th:replace="~{fragments/components/ac-group-tree :: acGroupTree('acTree')}"></div>
       </div>
 
       <!-- 탭4: 카드정보 (추후) -->

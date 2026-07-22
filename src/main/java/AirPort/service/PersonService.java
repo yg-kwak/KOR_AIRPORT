@@ -21,7 +21,10 @@ import AirPort.model.TbLoginUser;
 import AirPort.model.TbPerson;
 import AirPort.model.TbSystem;
 import AirPort.security.ARIAUtil;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -114,25 +117,8 @@ public class PersonService {
       throw new BusinessException(ErrorCode.DUPLICATE, "이미 존재하는 인원ID 입니다.");
     }
 
-    TbPerson row = new TbPerson();
-    row.setPersonId(form.getPersonId());
-    row.setPersonName(ARIAUtil.ariaEncrypt(form.getPersonName()));
-    row.setBirthDate(encryptOrNull(form.getBirthDate()));
-    row.setPersonPhone(encryptOrNull(form.getPersonPhone()));
-    row.setCompanyCode(form.getCompanyCode());
-    row.setTitleCode(form.getTitleCode());
+    TbPerson row = toRow(form);
     row.setPersonType(PERSON_TYPE_REGULAR);
-    row.setStatusCode(form.getStatusCode());
-    row.setMainTask(form.getMainTask());
-    row.setIdCheckDt(form.getIdCheckDt());
-    row.setIdCheckFile(form.getIdCheckFile());
-    row.setSecurityEduDt(form.getSecurityEduDt());
-    row.setSecurityEduScore(form.getSecurityEduScore());
-    row.setFinalApproveDt(form.getFinalApproveDt());
-    row.setApproveFile(form.getApproveFile());
-    row.setAccessStartDt(dbDateTime(form.getAccessStartDt(), "00:00"));
-    row.setAccessEndDt(dbDateTime(form.getAccessEndDt(), "23:59"));
-    row.setRemark(form.getRemark());
     row.setUseYn(form.getUseYn());
     personMapper.insert(row);
 
@@ -169,37 +155,11 @@ public class PersonService {
     decrypt(existing);
     BiostarUserRequest before =
         biostarRequest(
-            existing.getPersonId(),
-            existing.getPersonName(),
-            existing.getPersonPhone(),
+            existing,
             photoMapper.selectPhoto(form.getPersonId()),
-            existing.getCompanyCode(),
-            existing.getStatusCode(),
-            existing.getAccessStartDt(),
-            existing.getAccessEndDt(),
-            existing.getTitleCode(),
-            acGroupMapper.selectBiostarAcIds(form.getPersonId()),
-            null,
-            null);
+            acGroupMapper.selectBiostarAcIds(form.getPersonId()));
 
-    TbPerson row = new TbPerson();
-    row.setPersonId(form.getPersonId());
-    row.setPersonName(ARIAUtil.ariaEncrypt(form.getPersonName()));
-    row.setBirthDate(encryptOrNull(form.getBirthDate()));
-    row.setPersonPhone(encryptOrNull(form.getPersonPhone()));
-    row.setCompanyCode(form.getCompanyCode());
-    row.setTitleCode(form.getTitleCode());
-    row.setStatusCode(form.getStatusCode());
-    row.setMainTask(form.getMainTask());
-    row.setIdCheckDt(form.getIdCheckDt());
-    row.setIdCheckFile(form.getIdCheckFile());
-    row.setSecurityEduDt(form.getSecurityEduDt());
-    row.setSecurityEduScore(form.getSecurityEduScore());
-    row.setFinalApproveDt(form.getFinalApproveDt());
-    row.setApproveFile(form.getApproveFile());
-    row.setAccessStartDt(dbDateTime(form.getAccessStartDt(), "00:00"));
-    row.setAccessEndDt(dbDateTime(form.getAccessEndDt(), "23:59"));
-    row.setRemark(form.getRemark());
+    TbPerson row = toRow(form);
     personMapper.update(row);
 
     if (form.getFaceImage() != null && !form.getFaceImage().isBlank()) {
@@ -217,19 +177,7 @@ public class PersonService {
       return "BiostarX 설정이 없습니다.";
     }
     BiostarUserRequest after =
-        biostarRequest(
-            form.getPersonId(),
-            form.getPersonName(),
-            form.getPersonPhone(),
-            form.getFaceImage(),
-            form.getCompanyCode(),
-            form.getStatusCode(),
-            form.getAccessStartDt(),
-            form.getAccessEndDt(),
-            form.getTitleCode(),
-            acGroupMapper.selectBiostarAcIds(form.getPersonId()),
-            form.getFaceTemplate9(),
-            form.getFaceTemplate5());
+        biostarRequest(form, acGroupMapper.selectBiostarAcIds(form.getPersonId()));
     BiostarResult res =
         biostarUserAdapter.updateUser(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), before, after);
     return res.success() ? null : res.message();
@@ -289,6 +237,22 @@ public class PersonService {
     return res.success() ? null : res.message();
   }
 
+  /** 등록/수정 요청(폼) → BiostarX 전송 값. */
+  private BiostarUserRequest biostarRequest(PersonForm f, List<Integer> acIds) {
+    return biostarRequest(
+        f.getPersonId(), f.getPersonName(), f.getPersonPhone(), f.getFaceImage(),
+        f.getCompanyCode(), f.getStatusCode(), f.getAccessStartDt(), f.getAccessEndDt(),
+        f.getTitleCode(), acIds, f.getFaceTemplate9(), f.getFaceTemplate5());
+  }
+
+  /** 저장된 인원(수정 전 상태) → BiostarX 전송 값. 얼굴 템플릿은 보관하지 않으므로 없음. */
+  private BiostarUserRequest biostarRequest(TbPerson p, String faceImage, List<Integer> acIds) {
+    return biostarRequest(
+        p.getPersonId(), p.getPersonName(), p.getPersonPhone(), faceImage,
+        p.getCompanyCode(), p.getStatusCode(), p.getAccessStartDt(), p.getAccessEndDt(),
+        p.getTitleCode(), acIds, null, null);
+  }
+
   /** BiostarX 전송 값 구성(코드 → 실제 값 변환 포함). */
   private BiostarUserRequest biostarRequest(
       String personId,
@@ -317,6 +281,29 @@ public class PersonService {
         faceImage,
         t9,
         t5);
+  }
+
+  /** 폼 → 저장 행. 성명·생년월일·연락처는 ARIA 암호화, 출입기간은 초까지 채운다. (등록/수정 공통) */
+  private TbPerson toRow(PersonForm form) {
+    TbPerson row = new TbPerson();
+    row.setPersonId(form.getPersonId());
+    row.setPersonName(ARIAUtil.ariaEncrypt(form.getPersonName()));
+    row.setBirthDate(encryptOrNull(form.getBirthDate()));
+    row.setPersonPhone(encryptOrNull(form.getPersonPhone()));
+    row.setCompanyCode(form.getCompanyCode());
+    row.setTitleCode(form.getTitleCode());
+    row.setStatusCode(form.getStatusCode());
+    row.setMainTask(form.getMainTask());
+    row.setIdCheckDt(form.getIdCheckDt());
+    row.setIdCheckFile(form.getIdCheckFile());
+    row.setSecurityEduDt(form.getSecurityEduDt());
+    row.setSecurityEduScore(form.getSecurityEduScore());
+    row.setFinalApproveDt(form.getFinalApproveDt());
+    row.setApproveFile(form.getApproveFile());
+    row.setAccessStartDt(dbDateTime(form.getAccessStartDt(), "00:00"));
+    row.setAccessEndDt(dbDateTime(form.getAccessEndDt(), "23:59"));
+    row.setRemark(form.getRemark());
+    return row;
   }
 
   private void saveAcGroups(String personId, List<Integer> acGroupIds) {
@@ -364,19 +351,7 @@ public class PersonService {
       return "BiostarX 설정이 없습니다.";
     }
     BiostarUserRequest req =
-        biostarRequest(
-            form.getPersonId(),
-            form.getPersonName(),
-            form.getPersonPhone(),
-            form.getFaceImage(),
-            form.getCompanyCode(),
-            form.getStatusCode(),
-            form.getAccessStartDt(),
-            form.getAccessEndDt(),
-            form.getTitleCode(),
-            acGroupMapper.selectBiostarAcIds(form.getPersonId()),
-            form.getFaceTemplate9(),
-            form.getFaceTemplate5());
+        biostarRequest(form, acGroupMapper.selectBiostarAcIds(form.getPersonId()));
 
     BiostarResult res =
         biostarUserAdapter.createUser(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), req);
@@ -444,8 +419,10 @@ public class PersonService {
   private static final String MAX_ACCESS_END_DT = "2037-12-31T23:59";
 
   /** 직위(user_title) 허용 문자 — 한글·영문·숫자·공백만(특수문자 금지). */
-  private static final java.util.regex.Pattern TITLE_ALLOWED =
-      java.util.regex.Pattern.compile("^[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ\\s]+$");
+  private static final Pattern TITLE_ALLOWED = Pattern.compile("^[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ\\s]+$");
+
+  /** 인원ID 허용 문자 — 영문·숫자만. BiostarX 사용자ID 와 같은 키라 공백·특수문자를 막는다. */
+  private static final Pattern PERSON_ID_ALLOWED = Pattern.compile("^[0-9A-Za-z]+$");
 
   /** 필수값·형식 검증 — 등록·수정 공통(인원 데이터의 최소 요건). */
   private void validate(PersonForm form) {
@@ -455,6 +432,15 @@ public class PersonService {
     require(form.getStatusCode(), "상태");
     require(form.getAccessStartDt(), "출입시작일");
     require(form.getAccessEndDt(), "출입종료일");
+
+    if (!PERSON_ID_ALLOWED.matcher(form.getPersonId()).matches()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "인원ID 는 영문·숫자만 사용할 수 있습니다.");
+    }
+    String birth = form.getBirthDate();
+    if (birth != null && !birth.isBlank() && !isIsoDate(birth)) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT, "생년월일은 YYYY-MM-DD 형식으로 입력하세요. 예: 1990-01-01");
+    }
 
     // 날짜는 "YYYY-MM-DD" 형식이라 문자열 비교로 대소 판정이 가능하다
     if (form.getAccessEndDt().compareTo(MAX_ACCESS_END_DT) > 0) {
@@ -467,6 +453,16 @@ public class PersonService {
     String title = codeName(UT, form.getTitleCode());
     if (title != null && !title.isBlank() && !TITLE_ALLOWED.matcher(title).matches()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "직위에 특수문자를 사용할 수 없습니다: " + title);
+    }
+  }
+
+  /** "YYYY-MM-DD" 형식이면서 실제로 존재하는 날짜인지(2월 30일 같은 값 차단). */
+  private static boolean isIsoDate(String value) {
+    try {
+      LocalDate.parse(value); // ISO_LOCAL_DATE = 화면 안내(1990-01-01)와 같은 형식
+      return true;
+    } catch (DateTimeParseException e) {
+      return false;
     }
   }
 

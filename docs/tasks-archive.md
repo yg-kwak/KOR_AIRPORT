@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 정규인원 입력 포맷 고정 — 인원ID 영문·숫자만(입력 즉시 필터 + 서버 정규식), 생년월일 YYYY-MM-DD 자동 하이픈 + 실재 날짜 검증(클라·서버 동일 기준). 한계선 정리 동반: PersonService 폼→행 매핑 toRow() 통합·BiostarX 요청 오버로드(506→489줄), 출입권한 트리를 공용 컴포넌트 ac-group-tree 로 분리(person.js 416→372줄) — sjpark2, 2026-07-22
 - [x] 정규인원 목록·삭제 UX 및 증빙문서 첨부 — 목록 컬럼 재구성(선택/인원ID/성명/기관코드/기관/직위/생년월일/출입기간, 행별 관리 컬럼 제거), 체크박스 다중선택 + 툴바 '선택 삭제'(DELETE /bulk, 건별 BiostarX 동기화·실패만 경고), 수정 모달 좌측 삭제 버튼, 시스템 등록일(reg_dt) 읽기전용 표시. 회보/승인 근거문서는 경로 텍스트 → **첨부파일**(tb_person_file, 파일 실체 DB 보관, 종류당 1건, 5MB, 다운로드는 attachment) + 공용 컴포넌트 file-field 신설 — sjpark2, 2026-07-22
 - [x] 인원·카드·출입그룹 스키마 설계 — tb_person(인원, 성명·생년월일·연락처 ARIA, 발급유형 person_type=PT, tb_login_user 와 이름 분리해 조인 오용 차단), tb_person_photo(등록사진 BASE64 1:1 분리 — 목록 성능·생체정보 노출면 축소), tb_card(인원 1:N, card_status 단일화로 상태 모순 차단), tb_person_ac_group(출입권한 N:M, 복합PK 로 중복부여 차단). security.md Enc=Y 목록 7컬럼 갱신 + 비암호화 결정(카드값·사진) 근거 기록 + 출입권한 부여/회수 감사 필수화. DDL·문서만(코드 없음), 공통코드 시드 UT/PT/CDT/CS/IS 는 후속 — sjpark2, 2026-07-21
 - [x] 정규인원등록(tb_person) — 정규인원관리(200)/정규인원등록(201), /person/person 수직 슬라이스. person_type=PT01 고정, 성명·생년월일·연락처 ARIA, 탭 모달(사용자정보/사용자권한/카드정보), 출입권한은 tb_ac_group 트리 선택→tb_person_ac_group, 얼굴은 파일업로드(upload_picture)/장치촬영(credentials/face) 서버 중계 + tb_person_photo, 등록 시 BiostarX 사용자 생성(POST /api/users, 실패는 경고). 수정/삭제·카드는 추후 — yg-kwak, 2026-07-15

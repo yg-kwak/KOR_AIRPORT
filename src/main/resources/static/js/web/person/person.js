@@ -3,6 +3,7 @@
    등록/수정/삭제 시 BiostarX 사용자도 동기화된다(실패해도 인원은 저장되고 경고 토스트). 카드는 추후. */
 (function () {
   const BASE = '/person/person';
+  const AC_TREE = 'acTree'; // 공용 출입권한 트리 컨테이너 id
   const state = {
     page: 1, size: 30, keyword: '', searchType: 'all', companyCode: '', sort: 'personId', dir: 'asc',
   };
@@ -16,6 +17,8 @@
 
   const MAX_ACCESS_END_DT = '2037-12-31T23:59'; // BiostarX expiry 상한
   const TITLE_ALLOWED = /^[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/; // 직위: 특수문자 금지
+  const PERSON_ID_ALLOWED = /^[0-9A-Za-z]+$/; // 인원ID: 영문·숫자만(BiostarX 사용자ID 와 같은 키)
+  const BIRTH_DATE_FORMAT = /^\d{4}-\d{2}-\d{2}$/; // 생년월일: placeholder 와 같은 YYYY-MM-DD
 
   // 서버로 그대로 전송하는 입력 필드(= PersonForm 속성명). 첨부문서는 fileField, 얼굴은 face 가 따로 담당.
   const FORM_FIELDS = ['personId', 'personName', 'birthDate', 'personPhone', 'companyCode', 'titleCode',
@@ -24,7 +27,21 @@
   const VIEW_FIELDS = ['companyName', 'titleName', 'statusName', 'regDt']; // 화면 표시 전용(미전송)
 
   let face = { image: null, t9: null, t5: null }; // 얼굴(정규화 이미지 + 템플릿 2종)
-  let acTreeData = []; // 출입권한 트리(tb_ac_group)
+
+  // 생년월일 입력 보정 — 숫자만 남기고 YYYY-MM-DD 로 하이픈을 자동 삽입(붙여넣기 포함)
+  function maskBirthDate(value) {
+    const d = String(value).replace(/\D/g, '').slice(0, 8);
+    if (d.length <= 4) return d;
+    if (d.length <= 6) return `${d.slice(0, 4)}-${d.slice(4)}`;
+    return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}`;
+  }
+
+  // 존재하는 날짜인지(2월 30일 등 차단). 서버 검증과 같은 기준.
+  function isRealDate(value) {
+    const [y, m, day] = value.split('-').map(Number);
+    const dt = new Date(y, m - 1, day);
+    return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === day;
+  }
 
   // 현재 일시를 datetime-local 형식("YYYY-MM-DDTHH:mm")으로 (로컬 시간 기준)
   function nowLocal() {
@@ -141,42 +158,6 @@
     document.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p.id === 'tab-' + name));
   }
 
-  // ---- 사용자 권한(출입권한 트리) ----
-  async function loadAcTree() {
-    acTreeData = (await api.get(BASE + '/acGroups')) || [];
-    renderAcTree();
-  }
-
-  // biostar_ac_id 가 매핑된 노드만 선택 가능(최상위 구역은 라벨).
-  // 노드를 .ac-node-wrap 으로 감싸 상위 체크 시 하위까지 연쇄 적용한다.
-  function acNodesHtml(nodes) {
-    return (nodes || []).map((n) => {
-      const kids = (n.children || []).length ? `<div class="ac-select-node">${acNodesHtml(n.children)}</div>` : '';
-      const row = n.biostarAcId != null
-        ? `<label class="ac-select-item">
-             <input type="checkbox" value="${esc(n.acGroupId)}"/>
-             <span>${esc(n.acGroupName)}</span>
-           </label>`
-        : `<div class="ac-select-item group">${esc(n.acGroupName)}</div>`;
-      return `<div class="ac-node-wrap">${row}${kids}</div>`;
-    }).join('');
-  }
-
-  function renderAcTree(checkedIds) {
-    $('acTree').innerHTML = acTreeData.length
-      ? acNodesHtml(acTreeData)
-      : '<div class="empty">선택 가능한 출입권한이 없습니다. (출입권한관리에서 BiostarX 출입그룹을 매핑하세요)</div>';
-    if (checkedIds && checkedIds.length) {
-      const set = new Set(checkedIds.map(Number));
-      $('acTree').querySelectorAll('input[type="checkbox"]')
-        .forEach((c) => { c.checked = set.has(Number(c.value)); });
-    }
-  }
-
-  function selectedAcGroupIds() {
-    return [...$('acTree').querySelectorAll('input[type="checkbox"]:checked')].map((c) => Number(c.value));
-  }
-
   // ---- 얼굴(파일 업로드 / 장치 촬영) ----
   function setFace(image, t9, t5) {
     face = { image: image || null, t9: t9 || null, t5: t5 || null };
@@ -230,7 +211,7 @@
       $('accessStartDt').value = nowLocal();
       $('accessEndDt').value = MAX_ACCESS_END_DT;
     }
-    renderAcTree([]); // 체크 초기화
+    acGroupTree.set(AC_TREE, []); // 체크 초기화
     $('editModal').classList.add('open');
     if (mode !== 'edit' || !row) return;
 
@@ -246,7 +227,7 @@
       api.get(BASE + '/personAcGroups' + q),
     ]);
     if (photo) setFace(photo, null, null);
-    renderAcTree(acIds || []);
+    acGroupTree.set(AC_TREE, acIds || []);
   }
   function closeModal() { $('editModal').classList.remove('open'); }
 
@@ -278,7 +259,7 @@
 
   async function save() {
     if (!PERM.canCreate) return;
-    const payload = { acGroupIds: selectedAcGroupIds(), faceImage: face.image, faceTemplate9: face.t9, faceTemplate5: face.t5 };
+    const payload = { acGroupIds: acGroupTree.get(AC_TREE), faceImage: face.image, faceTemplate9: face.t9, faceTemplate5: face.t5 };
     FORM_FIELDS.forEach((id) => { payload[id] = $(id).value.trim() || null; });
     payload.securityEduScore = payload.securityEduScore ? Number(payload.securityEduScore) : null;
     const idCheck = fileField.get('idCheckFile');
@@ -294,6 +275,12 @@
       [payload.accessStartDt, '출입시작일'], [payload.accessEndDt, '출입종료일'],
     ].find(([v]) => !v);
     if (required) { toast.warning(`${required[1]}은(는) 필수입니다.`); return; }
+    if (!PERSON_ID_ALLOWED.test(payload.personId)) {
+      toast.warning('인원ID 는 영문·숫자만 사용할 수 있습니다.'); return;
+    }
+    if (payload.birthDate && (!BIRTH_DATE_FORMAT.test(payload.birthDate) || !isRealDate(payload.birthDate))) {
+      toast.warning('생년월일은 YYYY-MM-DD 형식으로 입력하세요. 예: 1990-01-01'); return;
+    }
     if (payload.accessEndDt > MAX_ACCESS_END_DT) {
       toast.warning(`출입종료일은 ${MAX_ACCESS_END_DT.replace('T', ' ')} 를 초과할 수 없습니다.`); return;
     }
@@ -353,14 +340,6 @@
       if (sel) { $('companyCode').value = sel.companyCode; $('companyName').value = sel.companyName; }
     });
 
-    // 출입권한: 상위를 체크/해제하면 하위 전체에 동일 적용
-    $('acTree').addEventListener('change', (e) => {
-      const cb = e.target.closest('input[type="checkbox"]');
-      if (!cb) return;
-      const wrap = cb.closest('.ac-node-wrap');
-      if (wrap) wrap.querySelectorAll('input[type="checkbox"]').forEach((c) => { c.checked = cb.checked; });
-    });
-
     // 직위(UT)·상태(PS)는 공통 코드팝업
     $('titleName').addEventListener('click', async () => {
       const sel = await codePicker.open({ cmmId: 'UT', cmmName: '직위' });
@@ -370,6 +349,12 @@
       const sel = await codePicker.open({ cmmId: 'PS', cmmName: '상태' });
       if (sel) { $('statusCode').value = sel.codeId; $('statusName').value = sel.codeName; }
     });
+
+    // 입력 포맷 고정 — 인원ID는 영문·숫자만, 생년월일은 YYYY-MM-DD 자동 하이픈
+    $('personId').addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/[^0-9A-Za-z]/g, '');
+    });
+    $('birthDate').addEventListener('input', (e) => { e.target.value = maskBirthDate(e.target.value); });
 
     $('faceFile').addEventListener('change', onFaceFile);
     $('btnCapture').addEventListener('click', onCapture);
@@ -383,5 +368,5 @@
       th.addEventListener('click', () => toggleSort(th.dataset.sort)));
   }
 
-  document.addEventListener('DOMContentLoaded', () => { bind(); loadAcTree(); load(); });
+  document.addEventListener('DOMContentLoaded', () => { bind(); acGroupTree.init(AC_TREE, BASE + '/acGroups'); load(); });
 })();
