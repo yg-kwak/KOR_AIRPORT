@@ -12,6 +12,9 @@ public class CardSearchParam extends PageParam {
   /** 카드상태 코드 (tb_common CS). 비면 전체. */
   private String cardStatus;
 
+  /** 패스구분 코드 (tb_common PT). 비면 전체. */
+  private String passType;
+
   /** 할당여부: 'Y'=인원에 할당됨, 'N'=미할당(회수), 비면 전체. */
   private String assigned;
 }

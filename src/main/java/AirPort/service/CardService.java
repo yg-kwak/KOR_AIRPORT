@@ -32,6 +32,9 @@ public class CardService {
   /** 카드종류 — 인원 화면이 발급하는 카드는 '인원'(tb_common CDT) 고정. 화면 값을 믿지 않고 서버가 정한다. */
   private static final String CARD_TYPE_PERSON = "CDT01";
 
+  /** 차량 카드 — 패스구분(사람의 출입 패스 구분)을 쓰지 않는다. tb_common(CDT) */
+  private static final String CARD_TYPE_CAR = "CDT02";
+
   private final TbCardMapper cardMapper;
   private final TbSystemMapper systemMapper;
   private final BiostarCardAdapter biostarCardAdapter;
@@ -79,7 +82,7 @@ public class CardService {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 카드 등록 실패: " + issued.message());
     }
     row.setBiostarCardId(issued.biostarCardId());
-    row.setFeePaidDt(blankToNull(row.getFeePaidDt()));
+    normalize(row);
     cardMapper.insert(row);
     auditService.log(actor, AuditService.CREATE, menuId, "카드 등록: " + row.getBiostarCardValue());
   }
@@ -96,7 +99,7 @@ public class CardService {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
     validateCard(row);
-    row.setFeePaidDt(blankToNull(row.getFeePaidDt()));
+    normalize(row);
     cardMapper.updateInfo(row);
     auditService.log(actor, AuditService.UPDATE, menuId, "카드 수정: " + existing.getBiostarCardValue());
   }
@@ -118,13 +121,23 @@ public class CardService {
     auditService.log(actor, AuditService.DELETE, menuId, "카드 삭제: " + existing.getBiostarCardValue());
   }
 
-  /** 카드 마스터 필수값 — 인원 화면(CardForm)과 같은 기준. */
+  /** 카드 마스터 필수값 — 인원 화면(CardForm)과 같은 기준. 차량 카드는 패스구분을 받지 않는다. */
   private static void validateCard(TbCard row) {
     require(row.getBiostarCardValue(), "카드번호");
     require(row.getCardType(), "카드구분");
-    require(row.getPassType(), "패스구분");
+    if (!CARD_TYPE_CAR.equals(row.getCardType())) {
+      require(row.getPassType(), "패스구분");
+    }
     require(row.getCardName(), "카드명칭");
     require(row.getCardStatus(), "카드상태");
+  }
+
+  /** 저장 전 보정 — 차량 카드의 패스구분은 화면에서 무엇이 오든 비운다(화면 값 불신). */
+  private static void normalize(TbCard row) {
+    if (CARD_TYPE_CAR.equals(row.getCardType())) {
+      row.setPassType(null);
+    }
+    row.setFeePaidDt(blankToNull(row.getFeePaidDt()));
   }
 
   /** 인원의 카드 목록 — 수정 모달에서 기존 카드 표시용. */

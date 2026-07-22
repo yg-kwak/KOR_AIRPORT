@@ -5,7 +5,7 @@
   const BASE = '/card/card';
   const state = {
     page: 1, size: 30, keyword: '', searchType: 'all',
-    cardStatus: '', assigned: '', sort: 'cardId', dir: 'desc',
+    cardStatus: '', passType: '', assigned: '', sort: 'cardId', dir: 'desc',
   };
 
   const $ = (id) => document.getElementById(id);
@@ -16,6 +16,8 @@
   // 메뉴 권한(서버 렌더 시 주입). 버튼 숨김은 1차 방어 — 서버가 생성/수정/삭제를 재검증한다.
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
+  const CARD_TYPE_CAR = 'CDT02'; // 차량 카드는 패스구분(사람의 출입 패스)을 쓰지 않는다
+
   // 폼 필드(= TbCard 속성명). *Name 은 화면 표시용이라 전송하지 않는다.
   const FORM_FIELDS = ['cardId', 'cardNo', 'cardType', 'passType', 'cardName', 'cardStatus',
     'feePaidDt', 'issueReason', 'remark'];
@@ -25,7 +27,8 @@
     const q =
       `?page=${state.page}&size=${state.size}` +
       `&keyword=${encodeURIComponent(state.keyword)}&searchType=${state.searchType}` +
-      `&cardStatus=${encodeURIComponent(state.cardStatus)}&assigned=${state.assigned}` +
+      `&cardStatus=${encodeURIComponent(state.cardStatus)}&passType=${encodeURIComponent(state.passType)}` +
+      `&assigned=${state.assigned}` +
       `&sort=${state.sort}&dir=${state.dir}`;
     const data = await api.get(BASE + '/list' + q);
     renderRows(data.content);
@@ -85,6 +88,7 @@
     state.keyword = $('keyword').value.trim();
     state.searchType = $('searchType').value;
     state.cardStatus = $('statusFilter').value;
+    state.passType = $('passFilter').value;
     state.assigned = $('assignedFilter').value;
     state.page = 1;
     load();
@@ -95,11 +99,13 @@
     $('keyword').value = '';
     $('statusFilter').value = '';
     $('statusFilterName').value = '';
+    $('passFilter').value = '';
+    $('passFilterName').value = '';
     $('assignedFilter').value = '';
     $('pageSize').value = '30';
     Object.assign(state, {
       page: 1, size: 30, keyword: '', searchType: 'all',
-      cardStatus: '', assigned: '', sort: 'cardId', dir: 'desc',
+      cardStatus: '', passType: '', assigned: '', sort: 'cardId', dir: 'desc',
     });
     load();
   }
@@ -121,6 +127,7 @@
     // 카드번호는 실물 카드라 등록할 때만 입력한다
     $('cardNo').readOnly = mode === 'edit';
     $('btnScan').style.display = mode === 'create' ? '' : 'none';
+    applyCardTypeRule();
     $('editModal').classList.add('open');
     if (mode !== 'edit' || !row) return;
 
@@ -129,7 +136,19 @@
     ['cardType', 'cardTypeName', 'passType', 'passTypeName', 'cardName',
       'cardStatus', 'cardStatusName', 'feePaidDt', 'issueReason', 'remark', 'personId']
       .forEach((id) => { $(id).value = row[id] != null ? row[id] : ''; });
+    applyCardTypeRule();
   }
+  /** 카드구분 규칙 — 차량 카드면 패스구분을 비우고 잠근다(필수값에서도 빠진다). */
+  function applyCardTypeRule() {
+    const isCar = $('cardType').value === CARD_TYPE_CAR;
+    if (isCar) { $('passType').value = ''; $('passTypeName').value = ''; }
+    $('passTypeName').disabled = isCar;
+    $('passTypeName').placeholder = isCar ? '차량 카드는 사용하지 않습니다' : '클릭하여 선택';
+    $('passTypeReq').style.display = isCar ? 'none' : '';
+    const wrap = $('passTypeName').closest('.picker-wrap');
+    if (wrap) wrap.querySelectorAll('.picker-clear').forEach((b) => { b.disabled = isCar; });
+  }
+
   function closeModal() { $('editModal').classList.remove('open'); }
 
   async function scan() {
@@ -154,8 +173,9 @@
     };
     const required = [
       [payload.biostarCardValue, '카드번호'], [payload.cardType, '카드구분'],
-      [payload.passType, '패스구분'], [payload.cardName, '카드명칭'],
-      [payload.cardStatus, '카드상태'],
+      // 차량 카드는 패스구분을 쓰지 않는다(서버도 같은 기준)
+      ...(payload.cardType === CARD_TYPE_CAR ? [] : [[payload.passType, '패스구분']]),
+      [payload.cardName, '카드명칭'], [payload.cardStatus, '카드상태'],
     ].find(([v]) => !v);
     if (required) { toast.warning(`${required[1]}은(는) 필수입니다.`); return; }
 
@@ -199,6 +219,20 @@
       if (clearBtn) clearBtn.addEventListener('click', () => setTimeout(search, 0));
     }
 
+    // 검색조건 패스구분: 코드팝업
+    $('passFilterName').addEventListener('click', async () => {
+      const sel = await codePicker.open({ cmmId: 'PT', cmmName: '패스구분' });
+      if (!sel) return;
+      $('passFilter').value = sel.codeId;
+      $('passFilterName').value = sel.codeName;
+      search();
+    });
+    const passWrap = $('passFilterName').closest('.picker-wrap');
+    if (passWrap) {
+      const clearPass = passWrap.querySelector('.picker-clear');
+      if (clearPass) clearPass.addEventListener('click', () => setTimeout(search, 0));
+    }
+
     // 행 클릭 → 수정, 삭제 버튼 → 삭제
     $('gridBody').addEventListener('click', (e) => {
       const btn = e.target.closest('button');
@@ -218,6 +252,7 @@
       $(nameId).addEventListener('click', async () => {
         const sel = await codePicker.open({ cmmId, cmmName });
         if (sel) { $(codeId).value = sel.codeId; $(nameId).value = sel.codeName; }
+        if (codeId === 'cardType') applyCardTypeRule();
       });
     });
 

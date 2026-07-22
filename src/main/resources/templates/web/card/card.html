@@ -17,6 +17,12 @@
                data-target="statusFilter" placeholder="전체 (클릭하여 선택)" autocomplete="off"/>
       </div>
       <div class="search-field">
+        <label>패스구분</label>
+        <input type="hidden" id="passFilter"/>
+        <input type="text" id="passFilterName" class="input w-160 picker-field" readonly
+               data-target="passFilter" placeholder="전체 (클릭하여 선택)" autocomplete="off"/>
+      </div>
+      <div class="search-field">
         <label>할당여부</label>
         <select id="assignedFilter" class="input w-120">
           <option value="">전체</option>
@@ -100,7 +106,8 @@
                    data-target="cardType" placeholder="클릭하여 선택" autocomplete="off"/>
           </div>
           <div class="form-group">
-            <label>패스구분 <span class="req">*</span> <span class="form-hint">(클릭하여 선택)</span></label>
+            <label>패스구분 <span class="req" id="passTypeReq">*</span>
+              <span class="form-hint">(클릭하여 선택)</span></label>
             <input type="hidden" id="passType"/>
             <input type="text" id="passTypeName" class="input picker-field" readonly
                    data-target="passType" placeholder="클릭하여 선택" autocomplete="off"/>
@@ -120,7 +127,7 @@
             <input type="date" id="feePaidDt" class="input"/>
           </div>
           <div class="form-group">
-            <label>할당인원 <span class="form-hint">(정규인원등록에서 부여)</span></label>
+            <label>할당인원</label>
             <input type="text" id="personId" class="input" readonly disabled autocomplete="off"/>
           </div>
           <div class="form-group full">
