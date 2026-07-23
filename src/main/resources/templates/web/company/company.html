@@ -39,6 +39,9 @@
         <span class="grid-total" id="totalInfo"></span>
         <div class="grid-actions">
           <button class="btn" id="btnNew" th:if="${perm.canCreate}">등록</button>
+          <button class="btn" id="btnTemplate" th:if="${perm.canCreate}">양식 다운로드</button>
+          <input type="file" id="excelFile" accept=".xlsx" class="file-input" th:if="${perm.canCreate}"/>
+          <button class="btn" id="btnImport" th:if="${perm.canCreate}">엑셀 업로드</button>
           <button class="btn" id="btnExcel">엑셀 다운로드</button>
           <select id="pageSize" class="input">
             <option value="30">30개씩 보기</option>

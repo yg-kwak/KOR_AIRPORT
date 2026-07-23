@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 기관 엑셀 일괄등록 — 양식 다운로드(빈 헤더) + 엑셀 업로드(행별 create 재사용, 행 단위 독립 트랜잭션, 기관코드·기관명 필수, 성공/실패 요약). ExcelUtil.read 파싱 추가, multipart 상한 5MB — sjpark2, 2026-07-23
 - [x] 정규인원 등록 편의·차량카드 정책 — ①등록 시 인원ID 자동 채번(숫자형 PT01 최대+1, GET /person/person/nextId) ②차량 카드(CDT02)는 BiostarX 미등록으로 확정(issueCard·createCard 분기, tb_card 만 저장) ③기관 선택 팝업 검색 입력 폭 확대 — sjpark2, 2026-07-23
 - [x] 정규인원 ↔ BiostarX 사용자 upsert — 저장 전 GET /api/users/{인원ID} 로 존재를 확인해 있으면 PUT, 없으면 POST. 등록·수정 어느 쪽에서 들어와도 결과가 같아져 DB 와 장비의 어긋남이 저장 한 번으로 맞춰진다 — sjpark2, 2026-07-22
 - [x] 기관차량등록 — 차량관리자(해당 기관 정규인원 선택)·차량 불러오기(미할당 차량 편입)·출입구역(신규 tb_car_ac_group, tb_common CAR). car_manager_id 의미를 tb_login_user → tb_person(정규인원)으로 확정 — sjpark2, 2026-07-22

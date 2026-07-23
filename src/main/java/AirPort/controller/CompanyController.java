@@ -6,6 +6,7 @@ import AirPort.common.CurrentMenu;
 import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
 import AirPort.model.CompanySearchParam;
+import AirPort.model.ExcelImportResult;
 import AirPort.model.MenuPermission;
 import AirPort.model.TbCompany;
 import AirPort.model.TbLoginUser;
@@ -106,6 +107,26 @@ public class CompanyController {
     String filename =
         "기관_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".xlsx";
     ExcelUtil.download(response, filename, headers, data);
+  }
+
+  /** 엑셀 일괄등록 양식 다운로드 — 헤더만 있는 빈 양식(기관코드*·기관명* 필수). */
+  @GetMapping("/excel/template")
+  public void excelTemplate(HttpServletResponse response) throws IOException {
+    ExcelUtil.download(response, "기관등록양식.xlsx", CompanyService.IMPORT_HEADERS, List.of());
+  }
+
+  /** 엑셀 일괄등록 (AJAX, multipart) — 행별 성공/실패를 요약해 돌려준다. */
+  @PostMapping("/excel/import")
+  @ResponseBody
+  public ApiResponse<ExcelImportResult> excelImport(
+      @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+      HttpSession session)
+      throws IOException {
+    if (file == null || file.isEmpty()) {
+      return ApiResponse.fail(
+          AirPort.common.exception.ErrorCode.INVALID_INPUT.code(), "업로드할 파일을 선택하세요.");
+    }
+    return ApiResponse.ok(companyService.importExcel(file.getInputStream(), actor(session), menuId()));
   }
 
   /** 기관 선택 팝업용 조회 — 로그인 사용자 공용(특정 메뉴 권한 불요). 코드팝업과 동일한 선례. (AJAX) */

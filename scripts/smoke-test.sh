@@ -184,6 +184,8 @@ A -X DELETE -o /dev/null "$BASE_URL/carInfo/car?carId=${NEW_CAR_ID:-0}" || true
 
 echo "== 기관등록관리(tb_company) =="
 A -X DELETE -o /dev/null "$BASE_URL/company/company?companyCode=SMKCO1" || true
+check "기관 엑셀 양식 다운로드" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/excel/template")"
+check "기관 엑셀 업로드 빈파일 거절" 0 "$(A -F 'file=@/dev/null' "$BASE_URL/company/company/excel/import" | grep -q '"success":false' && echo 0 || echo 1)"
 check "기관 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/company/company")"
 check "기관 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/list?size=5")"
 check "기관구분 코드팝업(CO)" 0 "$(A "$BASE_URL/system/common/picker?cmmId=CO" | grep -q '"codeId":"44"' && echo 0 || echo 1)"

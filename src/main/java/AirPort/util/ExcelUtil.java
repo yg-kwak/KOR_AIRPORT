@@ -2,11 +2,15 @@ package AirPort.util;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -63,5 +67,42 @@ public final class ExcelUtil {
       response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encoded);
       wb.write(response.getOutputStream());
     }
+  }
+
+  /**
+   * 업로드 xlsx 의 첫 시트를 문자열 행 목록으로 읽는다(헤더 1행 제외). 모든 셀은 표시 문자열로 통일(숫자·날짜 포함).
+   *
+   * @param colCount 읽을 열 개수(부족한 셀은 빈 문자열). 완전히 빈 행은 건너뛴다.
+   */
+  public static List<String[]> read(InputStream in, int colCount) throws IOException {
+    List<String[]> rows = new ArrayList<>();
+    DataFormatter fmt = new DataFormatter();
+    try (Workbook wb = new XSSFWorkbook(in)) {
+      Sheet sheet = wb.getSheetAt(0);
+      for (int r = 1; r <= sheet.getLastRowNum(); r++) {
+        Row row = sheet.getRow(r);
+        if (row == null) {
+          continue;
+        }
+        String[] vals = new String[colCount];
+        boolean allBlank = true;
+        for (int c = 0; c < colCount; c++) {
+          Cell cell = row.getCell(c);
+          String v = cell == null ? "" : fmt.formatCellValue(cell).trim();
+          // 엑셀이 숫자로 인식한 코드값의 소수점 꼬리(예: 1002.0) 제거
+          if (cell != null && cell.getCellType() == CellType.NUMERIC && v.endsWith(".0")) {
+            v = v.substring(0, v.length() - 2);
+          }
+          vals[c] = v;
+          if (!v.isEmpty()) {
+            allBlank = false;
+          }
+        }
+        if (!allBlank) {
+          rows.add(vals);
+        }
+      }
+    }
+    return rows;
   }
 }

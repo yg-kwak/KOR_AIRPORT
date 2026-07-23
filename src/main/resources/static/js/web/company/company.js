@@ -210,6 +210,29 @@
     load();
   }
 
+  // 엑셀 일괄등록 양식 다운로드(빈 헤더)
+  function templateDownload() { location.href = BASE + '/excel/template'; }
+
+  // 엑셀 업로드 → 행별 성공/실패 요약. 성공분이 있으면 목록 갱신
+  async function excelImport(file) {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch(BASE + '/excel/import', {
+      method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd,
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json || json.success === false) {
+      toast.error((json && json.message) || '엑셀 업로드에 실패했습니다.');
+      return;
+    }
+    const r = json.data;
+    if (r.fail === 0) toast.success(`등록 ${r.success}건 완료`);
+    else toast.warning(`등록 ${r.success}건 / 실패 ${r.fail}건 — ${r.errors.slice(0, 5).join(' · ')}` +
+      (r.errors.length > 5 ? ` 외 ${r.errors.length - 5}건` : ''));
+    if (r.success > 0) load();
+  }
+
   function bind() {
     $('btnSearch').addEventListener('click', search);
     $('btnReset').addEventListener('click', reset);
@@ -240,6 +263,13 @@
     });
 
     $('btnExcel').addEventListener('click', excelDownload);
+    if ($('btnTemplate')) $('btnTemplate').addEventListener('click', templateDownload);
+    if ($('btnImport')) $('btnImport').addEventListener('click', () => $('excelFile').click());
+    if ($('excelFile')) $('excelFile').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = ''; // 같은 파일 재선택 허용
+      excelImport(f);
+    });
     $('btnSave').addEventListener('click', save);
     $('btnCancel').addEventListener('click', closeModal);
     $('modalClose').addEventListener('click', closeModal);

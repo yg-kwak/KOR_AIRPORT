@@ -12,6 +12,7 @@ import AirPort.mapper.TbCompanyMapper;
 import AirPort.mapper.TbSystemMapper;
 import AirPort.model.CompanySearchParam;
 import AirPort.model.TbCommon;
+import AirPort.model.ExcelImportResult;
 import AirPort.model.TbCompany;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbSystem;
@@ -41,19 +42,24 @@ public class CompanyService {
   private final AuditService auditService;
   private final MenuAuthService menuAuthService;
 
+  /** 자기 자신(프록시) — 엑셀 일괄등록에서 create 를 행마다 독립 트랜잭션으로 부르기 위해(자가호출은 @Transactional 무시됨). */
+  private final CompanyService self;
+
   public CompanyService(
       TbCompanyMapper companyMapper,
       TbCommonMapper commonMapper,
       TbSystemMapper systemMapper,
       BiostarAdapter biostarAdapter,
       AuditService auditService,
-      MenuAuthService menuAuthService) {
+      MenuAuthService menuAuthService,
+      @org.springframework.context.annotation.Lazy CompanyService self) {
     this.companyMapper = companyMapper;
     this.commonMapper = commonMapper;
     this.systemMapper = systemMapper;
     this.biostarAdapter = biostarAdapter;
     this.auditService = auditService;
     this.menuAuthService = menuAuthService;
+    this.self = self;
   }
 
   // ── BiostarX 사용자그룹(=기관) 연동 ───────────────────────────────────────
@@ -191,6 +197,58 @@ public class CompanyService {
     auditService.log(
         actor, AuditService.DOWNLOAD, menuId, "기관 엑셀 다운로드 (" + rows.size() + "건)", purpose);
     return rows;
+  }
+
+  /** 엑셀 일괄 등록의 열 순서(양식 헤더와 일치): 기관코드 · 기관명 · 기관구분코드 · 대표자 · 연락처. */
+  public static final String[] IMPORT_HEADERS = {"기관코드*", "기관명*", "기관구분코드", "대표자", "연락처"};
+
+  /**
+   * 엑셀 일괄 등록 — 행마다 {@link #create}를 호출한다(행 단위 독립 트랜잭션이라 한 행 실패가 나머지를 막지 않는다).
+   *
+   * <p>기관코드·기관명은 필수. BiostarX 그룹은 각 행에서 create 규칙대로 생성된다(연동 실패해도 저장은 유지). 결과는 성공/실패
+   * 건수와 행별 사유로 돌려준다.
+   */
+  public ExcelImportResult importExcel(
+      java.io.InputStream in, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireCreate(actor, menuId);
+    ExcelImportResult result = new ExcelImportResult();
+    List<String[]> rows;
+    try {
+      rows = AirPort.util.ExcelUtil.read(in, IMPORT_HEADERS.length);
+    } catch (Exception e) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "엑셀을 읽을 수 없습니다. 양식 파일을 확인하세요.");
+    }
+    if (rows.isEmpty()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "등록할 데이터가 없습니다. 2행부터 입력하세요.");
+    }
+    int line = 1; // 헤더가 1행 → 데이터는 2행부터
+    for (String[] r : rows) {
+      line++;
+      try {
+        TbCompany row = new TbCompany();
+        row.setCompanyCode(blankToNull(r[0]));
+        row.setCompanyName(blankToNull(r[1]));
+        row.setCompanyType(blankToNull(r[2]));
+        row.setCeoName(blankToNull(r[3]));
+        row.setTel(blankToNull(r[4]));
+        self.create(row, actor, menuId); // 프록시 경유 — 행마다 독립 트랜잭션
+        result.addSuccess();
+      } catch (BusinessException e) {
+        result.addError(line, e.getMessage());
+      } catch (Exception e) {
+        result.addError(line, "처리 실패");
+      }
+    }
+    auditService.log(
+        actor,
+        AuditService.CREATE,
+        menuId,
+        "기관 엑셀 일괄등록 (성공 " + result.getSuccess() + " / 실패 " + result.getFail() + ")");
+    return result;
+  }
+
+  private static String blankToNull(String v) {
+    return (v == null || v.isBlank()) ? null : v;
   }
 
   /**
