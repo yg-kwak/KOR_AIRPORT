@@ -83,7 +83,10 @@ public class CardService {
     normalize(row);
     row.setBiostarCardId(null);
     cardMapper.insert(row); // DB 먼저 — unique/CHECK 위반은 BiostarX 호출 전에 잡힌다
-    registerBiostar(row, actor, menuId); // BiostarX 나중 — 실패하면 위 insert 도 롤백
+    // 차량 카드(CDT02)는 BiostarX 에 등록하지 않는다 — 인원 카드만 장비에 올린다
+    if (!CARD_TYPE_CAR.equals(row.getCardType())) {
+      registerBiostar(row, actor, menuId); // BiostarX 나중 — 실패하면 위 insert 도 롤백
+    }
     auditService.log(actor, AuditService.CREATE, menuId, "카드 등록: " + row.getBiostarCardValue());
   }
 

@@ -95,6 +95,13 @@ public class PersonController {
     return "web/person/person";
   }
 
+  /** 다음 인원ID (AJAX) — 등록 모달 초기값 */
+  @GetMapping("/nextId")
+  @ResponseBody
+  public ApiResponse<String> nextId(HttpSession session) {
+    return ApiResponse.ok(personService.nextPersonId(actor(session), menuId()));
+  }
+
   /** 목록 (AJAX) */
   @GetMapping("/list")
   @ResponseBody

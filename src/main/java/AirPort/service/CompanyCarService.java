@@ -24,8 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 기관차량등록 (/company/companyCar) — 기관 소속 차량(tb_car)과 그 차량용 카드(tb_card) 발급. (docs/backend.md)
  *
- * <p>차량 카드는 <b>카드구분=차량 고정</b>이고 패스구분을 쓰지 않는다. 카드는 실물이라 BiostarX 등록이 선행돼야 하며(카드 발급 시
- * {@link CardService#register}), 회수는 삭제가 아니라 {@code car_id=NULL} 이다(다른 차량이 재사용).
+ * <p>차량 카드는 <b>카드구분=차량 고정</b>·패스구분 미사용이며, <b>BiostarX 에 등록하지 않는다</b>(차량은 BiostarX 사용자/카드
+ * 대상이 아님). tb_card 에만 저장한다. 회수는 삭제가 아니라 {@code car_id=NULL} 이다(다른 차량이 재사용).
  */
 @Service
 public class CompanyCarService {
@@ -38,7 +38,6 @@ public class CompanyCarService {
   private final TbCardMapper cardMapper;
   private final TbCarAcGroupMapper carAcGroupMapper;
   private final TbPersonMapper personMapper;
-  private final CardService cardService;
   private final MenuAuthService menuAuthService;
   private final AuditService auditService;
 
@@ -48,7 +47,6 @@ public class CompanyCarService {
       TbCardMapper cardMapper,
       TbCarAcGroupMapper carAcGroupMapper,
       TbPersonMapper personMapper,
-      CardService cardService,
       MenuAuthService menuAuthService,
       AuditService auditService) {
     this.carMapper = carMapper;
@@ -56,7 +54,6 @@ public class CompanyCarService {
     this.cardMapper = cardMapper;
     this.carAcGroupMapper = carAcGroupMapper;
     this.personMapper = personMapper;
-    this.cardService = cardService;
     this.menuAuthService = menuAuthService;
     this.auditService = auditService;
   }
@@ -181,9 +178,9 @@ public class CompanyCarService {
   }
 
   /**
-   * 차량용 카드 발급 — BiostarX 카드 등록(이미 있는 번호는 재사용) 후 tb_card 에 저장한다.
+   * 차량용 카드 발급 — tb_card 에만 저장한다(차량 카드는 BiostarX 미등록). 회수된 카드 재사용은 재배정만 한다.
    *
-   * <p>연동 실패 시 저장하지 않는다(biostar_card_id 없는 카드는 쓸모가 없다 — 카드등록관리와 같은 정책).
+   * <p>같은 카드번호가 인원/다른 차량에 발급돼 있으면 거부한다(한 실물 카드는 한 대상에만).
    */
   @Transactional
   public void issueCard(CarCardForm form, TbLoginUser actor, Integer menuId) {
@@ -217,9 +214,8 @@ public class CompanyCarService {
       cardMapper.updateInfo(row);
       cardMapper.assignCar(row.getCardId(), form.getCarId());
     } else {
-      // 신규 카드: DB 먼저 저장하고(제약 위반은 여기서) 그 다음 BiostarX 등록 — 실패 시 롤백돼 고아 없음
+      // 신규 차량 카드: BiostarX 에 등록하지 않는다(차량은 BiostarX 사용자/카드 대상이 아님). tb_card 에만 저장.
       cardMapper.insert(row);
-      cardService.registerBiostar(row, actor, menuId);
     }
     auditService.log(
         actor, AuditService.CREATE, menuId, "차량카드 발급: " + car.getCarNo() + " / " + form.getCardNo());

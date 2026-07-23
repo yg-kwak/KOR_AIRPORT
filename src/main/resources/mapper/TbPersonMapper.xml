@@ -85,6 +85,13 @@
     ORDER BY p.person_id
   </select>
 
+  <!-- 다음 인원ID — 숫자형 인원ID 최대값 + 1(기본 400001). 삭제분 포함해 재사용 방지, 문자혼합 ID 는 제외 -->
+  <select id="selectNextPersonId" resultType="string">
+    SELECT CAST(ISNULL(MAX(CAST(person_id AS bigint)), 400000) + 1 AS varchar(20))
+    FROM tb_person
+    WHERE person_type = 'PT01' AND person_id NOT LIKE '%[^0-9]%'
+  </select>
+
   <select id="selectById" resultType="TbPerson">
     SELECT <include refid="listColumns"/>
     <include refid="listJoins"/>

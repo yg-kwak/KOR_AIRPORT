@@ -208,9 +208,10 @@
     showTab('info');
     $('personId').readOnly = mode === 'edit'; // PK 는 수정 불가
     if ($('btnDelete')) $('btnDelete').style.display = mode === 'edit' ? '' : 'none';
-    if (mode === 'create') { // 초기값: 시작=현재 일시, 종료=상한
+    if (mode === 'create') { // 초기값: 인원ID 자동 채번, 시작=현재 일시, 종료=상한
       $('accessStartDt').value = nowLocal();
       $('accessEndDt').value = MAX_ACCESS_END_DT;
+      $('personId').value = (await api.get(BASE + '/nextId')) || '';
     }
     acGroupTree.set(AC_TREE, []); // 체크 초기화
     cardList.set(CARD_LIST, []);

@@ -18,6 +18,9 @@ public interface TbPersonMapper {
 
   TbPerson selectById(@Param("personId") String personId);
 
+  /** 정규인원(PT01) 중 숫자형 인원ID 의 다음 값(자동 채번). 없으면 기본 400001. */
+  String selectNextPersonId();
+
   int insert(TbPerson row);
 
   int update(TbPerson row);

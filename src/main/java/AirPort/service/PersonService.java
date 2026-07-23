@@ -141,6 +141,12 @@ public class PersonService {
     return syncBiostarUser(form);
   }
 
+  /** 다음 인원ID 자동 채번 — 등록 모달의 인원ID 초기값. 사용자가 바꿀 수 있고, 중복은 저장 시 막힌다. */
+  public String nextPersonId(TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireCreate(actor, menuId);
+    return personMapper.selectNextPersonId();
+  }
+
   /** 인원의 등록사진(BASE64) — 수정 모달에서 기존 얼굴 표시용. */
   public String photo(String personId, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
@@ -314,8 +320,8 @@ public class PersonService {
     row.setSecurityEduScore(form.getSecurityEduScore());
     row.setFinalApproveDt(form.getFinalApproveDt());
     row.setApproveFile(form.getApproveFile());
-    row.setAccessStartDt(dbDateTime(form.getAccessStartDt(), "00:00"));
-    row.setAccessEndDt(dbDateTime(form.getAccessEndDt(), "23:59"));
+    row.setAccessStartDt(withSeconds(form.getAccessStartDt(), "00:00"));
+    row.setAccessEndDt(withSeconds(form.getAccessEndDt(), "23:59"));
     row.setRemark(form.getRemark());
     return row;
   }
@@ -406,11 +412,7 @@ public class PersonService {
     return v == null ? null : v + ".00Z";
   }
 
-  /** DB(datetime2) 저장용 — 초까지 채운 ISO 문자열. 값이 없으면 null. */
-  private static String dbDateTime(String value, String defaultTime) {
-    return withSeconds(value, defaultTime);
-  }
-
+  /** "YYYY-MM-DDTHH:mm"(또는 날짜만) → 초까지 채운 ISO 문자열. DB(datetime2) 저장·BiostarX 변환 공통. */
   private static String withSeconds(String value, String defaultTime) {
     if (value == null || value.isBlank()) {
       return null;

@@ -205,6 +205,7 @@ A -X DELETE -o /dev/null "$BASE_URL/company/company?companyCode=SMKCO1" || true
 echo "== 정규인원등록(tb_person) =="
 # 등록 성공 경로는 BiostarX 에 실제 사용자를 생성하므로 smoke 에서 제외(외부 부작용 방지).
 # 읽기 전용 경로 + 입력 검증(외부 호출 전에 실패)만 확인한다.
+check "다음 인원ID 채번" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/nextId")"
 check "인원 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/person/person")"
 check "인원 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/person/person/list?size=5")"
 check "기관 선택 팝업(공용)" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/company/company/picker")"
