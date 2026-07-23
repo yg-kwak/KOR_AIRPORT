@@ -38,6 +38,7 @@
         <div class="grid-actions">
           <button class="btn btn-danger" id="btnDeleteSel" th:if="${perm.canDelete}" style="display:none">선택 삭제</button>
           <button class="btn" id="btnNew" th:if="${perm.canCreate}">등록</button>
+          <button class="btn" id="btnExcelImport" th:if="${perm.canCreate}">엑셀 등록</button>
           <select id="pageSize" class="input">
             <option value="30">30개씩 보기</option>
             <option value="50">50개씩 보기</option>
@@ -215,6 +216,7 @@
 <div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
 <div th:replace="~{fragments/components/code-picker-modal :: codePicker}"></div>
 <div th:replace="~{fragments/components/company-picker-modal :: companyPicker}"></div>
+<div th:replace="~{fragments/components/excel-import-modal :: excelImportModal}"></div>
 <div th:replace="~{fragments/components/card-list :: cardPicker}"></div>
 
 <script th:inline="javascript">

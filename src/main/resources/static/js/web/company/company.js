@@ -210,47 +210,6 @@
     load();
   }
 
-  // ---- 엑셀 일괄등록 모달 ----
-  let excelPicked = null; // 선택한 파일(업로드 버튼을 눌러야 전송)
-
-  function openImport() {
-    excelPicked = null;
-    $('excelFile').value = '';
-    $('excelFileName').textContent = '선택된 파일 없음';
-    $('excelFileName').classList.add('empty-text');
-    $('importModal').classList.add('open');
-  }
-  function closeImport() { $('importModal').classList.remove('open'); }
-
-  function templateDownload() { location.href = BASE + '/excel/template'; }
-
-  function pickExcel(file) {
-    excelPicked = file || null;
-    $('excelFileName').textContent = excelPicked ? excelPicked.name : '선택된 파일 없음';
-    $('excelFileName').classList.toggle('empty-text', !excelPicked);
-  }
-
-  // 엑셀 업로드 → 행별 성공/실패 요약. 성공분이 있으면 목록 갱신 + 모달 닫기
-  async function excelImport() {
-    const file = excelPicked;
-    if (!file) { toast.warning('업로드할 파일을 선택하세요.'); return; }
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await fetch(BASE + '/excel/import', {
-      method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd,
-    });
-    const json = await res.json().catch(() => null);
-    if (!res.ok || !json || json.success === false) {
-      toast.error((json && json.message) || '엑셀 업로드에 실패했습니다.');
-      return;
-    }
-    const r = json.data;
-    if (r.fail === 0) toast.success(`등록 ${r.success}건 완료`);
-    else toast.warning(`등록 ${r.success}건 / 실패 ${r.fail}건 — ${r.errors.slice(0, 5).join(' · ')}` +
-      (r.errors.length > 5 ? ` 외 ${r.errors.length - 5}건` : ''));
-    if (r.success > 0) { load(); closeImport(); }
-  }
-
   function bind() {
     $('btnSearch').addEventListener('click', search);
     $('btnReset').addEventListener('click', reset);
@@ -281,14 +240,11 @@
     });
 
     $('btnExcel').addEventListener('click', excelDownload);
-    if ($('btnExcelImport')) $('btnExcelImport').addEventListener('click', openImport);
-    if ($('btnTemplate')) $('btnTemplate').addEventListener('click', templateDownload);
-    if ($('btnPickExcel')) $('btnPickExcel').addEventListener('click', () => $('excelFile').click());
-    if ($('excelFile')) $('excelFile').addEventListener('change', (e) =>
-      pickExcel(e.target.files && e.target.files[0]));
-    if ($('btnDoImport')) $('btnDoImport').addEventListener('click', excelImport);
-    if ($('importCancel')) $('importCancel').addEventListener('click', closeImport);
-    if ($('importClose')) $('importClose').addEventListener('click', closeImport);
+    if ($('btnExcelImport')) $('btnExcelImport').addEventListener('click', () => excelImport.open({
+      baseUrl: BASE,
+      hint: '① 양식을 내려받아 기관 정보를 채우고 ② 파일을 선택해 업로드하세요. <b>기관코드·기관명</b>은 필수입니다.',
+      onDone: load,
+    }));
     $('btnSave').addEventListener('click', save);
     $('btnCancel').addEventListener('click', closeModal);
     $('modalClose').addEventListener('click', closeModal);

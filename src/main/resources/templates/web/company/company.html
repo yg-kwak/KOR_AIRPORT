@@ -171,35 +171,7 @@
   </div>
 </div>
 
-<!-- 엑셀 일괄등록 모달 (양식 다운로드 → 파일 업로드) -->
-<div class="modal-overlay" id="importModal">
-  <div class="modal-container small">
-    <div class="modal-header">
-      <h2 class="modal-title">엑셀 등록</h2>
-      <button class="modal-close" id="importClose" aria-label="닫기">&times;</button>
-    </div>
-    <div class="modal-body">
-      <p class="form-hint">① 양식을 내려받아 기관 정보를 채우고 ② 파일을 선택해 업로드하세요.
-        <b>기관코드·기관명</b>은 필수입니다.</p>
-      <div class="form-group" style="margin-top:12px">
-        <label>1. 등록 양식</label>
-        <button type="button" class="btn" id="btnTemplate">양식 다운로드</button>
-      </div>
-      <div class="form-group" style="margin-top:12px">
-        <label>2. 작성한 파일</label>
-        <div class="file-field-row">
-          <input type="file" id="excelFile" accept=".xlsx" class="file-input"/>
-          <button type="button" class="btn" id="btnPickExcel">파일 선택</button>
-          <span class="file-field-name empty-text" id="excelFileName">선택된 파일 없음</span>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" id="importCancel">닫기</button>
-      <button class="btn btn-primary" id="btnDoImport">업로드</button>
-    </div>
-  </div>
-</div>
+<div th:replace="~{fragments/components/excel-import-modal :: excelImportModal}"></div>
 
 <!-- 공통 확인/입력/코드팝업 모달 (fragments/components — 제목/내용은 JS 로 주입) -->
 <div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>

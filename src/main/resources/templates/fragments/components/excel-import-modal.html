@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 엑셀 일괄등록 모달 (공용) — 짝 스크립트: static/js/core/components/excel-import.js
+     사용: <div th:replace="~{fragments/components/excel-import-modal :: excelImportModal}"></div>
+           excelImport.open({ baseUrl: '/company/company', hint: '...', onDone: load });
+     서버는 {baseUrl}/excel/template(양식) · {baseUrl}/excel/import(업로드) 를 제공해야 한다. -->
+<div th:fragment="excelImportModal" class="modal-overlay" id="importModal">
+  <div class="modal-container small">
+    <div class="modal-header">
+      <h2 class="modal-title">엑셀 등록</h2>
+      <button type="button" class="modal-close" id="importClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-hint" id="importHint"></p>
+      <div class="form-group" style="margin-top:12px">
+        <label>1. 등록 양식</label>
+        <button type="button" class="btn" id="btnTemplate">양식 다운로드</button>
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>2. 작성한 파일</label>
+        <div class="file-field-row">
+          <input type="file" id="excelFile" accept=".xlsx" class="file-input"/>
+          <button type="button" class="btn" id="btnPickExcel">파일 선택</button>
+          <span class="file-field-name empty-text" id="excelFileName">선택된 파일 없음</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="importCancel">닫기</button>
+      <button type="button" class="btn btn-primary" id="btnDoImport">업로드</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

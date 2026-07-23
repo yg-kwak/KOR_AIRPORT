@@ -12,6 +12,7 @@ import AirPort.model.PersonSearchParam;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbPerson;
 import AirPort.model.TbCard;
+import AirPort.model.ExcelImportResult;
 import AirPort.model.TbPersonFile;
 import AirPort.service.AcGroupService;
 import AirPort.service.CardService;
@@ -19,6 +20,7 @@ import AirPort.service.MenuAuthService;
 import AirPort.service.MenuService;
 import AirPort.service.PersonFaceService;
 import AirPort.service.PersonFileService;
+import AirPort.service.PersonImportService;
 import AirPort.service.PersonService;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -52,6 +54,7 @@ public class PersonController {
 
   private final PersonService personService;
   private final PersonFileService personFileService;
+  private final PersonImportService personImportService;
   private final PersonFaceService personFaceService;
   private final CardService cardService;
   private final AcGroupService acGroupService;
@@ -62,6 +65,7 @@ public class PersonController {
   public PersonController(
       PersonService personService,
       PersonFileService personFileService,
+      PersonImportService personImportService,
       PersonFaceService personFaceService,
       CardService cardService,
       AcGroupService acGroupService,
@@ -70,6 +74,7 @@ public class PersonController {
       CurrentMenu currentMenu) {
     this.personService = personService;
     this.personFileService = personFileService;
+    this.personImportService = personImportService;
     this.personFaceService = personFaceService;
     this.cardService = cardService;
     this.acGroupService = acGroupService;
@@ -100,6 +105,28 @@ public class PersonController {
   @ResponseBody
   public ApiResponse<String> nextId(HttpSession session) {
     return ApiResponse.ok(personService.nextPersonId(actor(session), menuId()));
+  }
+
+  /** 엑셀 일괄등록 양식 다운로드 — 헤더만 있는 빈 양식(기관코드*·성명* 필수). */
+  @GetMapping("/excel/template")
+  public void excelTemplate(HttpServletResponse response) throws java.io.IOException {
+    AirPort.util.ExcelUtil.download(
+        response, "정규인원등록양식.xlsx", PersonImportService.IMPORT_HEADERS, java.util.List.of());
+  }
+
+  /** 엑셀 일괄등록 (AJAX, multipart) — 사용자권한·카드정보 제외. 행별 성공/실패 요약. */
+  @PostMapping("/excel/import")
+  @ResponseBody
+  public ApiResponse<ExcelImportResult> excelImport(
+      @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+      HttpSession session)
+      throws java.io.IOException {
+    if (file == null || file.isEmpty()) {
+      return ApiResponse.fail(
+          AirPort.common.exception.ErrorCode.INVALID_INPUT.code(), "업로드할 파일을 선택하세요.");
+    }
+    return ApiResponse.ok(
+        personImportService.importExcel(file.getInputStream(), actor(session), menuId()));
   }
 
   /** 목록 (AJAX) */
