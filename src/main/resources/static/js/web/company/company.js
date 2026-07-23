@@ -210,12 +210,30 @@
     load();
   }
 
-  // 엑셀 일괄등록 양식 다운로드(빈 헤더)
+  // ---- 엑셀 일괄등록 모달 ----
+  let excelPicked = null; // 선택한 파일(업로드 버튼을 눌러야 전송)
+
+  function openImport() {
+    excelPicked = null;
+    $('excelFile').value = '';
+    $('excelFileName').textContent = '선택된 파일 없음';
+    $('excelFileName').classList.add('empty-text');
+    $('importModal').classList.add('open');
+  }
+  function closeImport() { $('importModal').classList.remove('open'); }
+
   function templateDownload() { location.href = BASE + '/excel/template'; }
 
-  // 엑셀 업로드 → 행별 성공/실패 요약. 성공분이 있으면 목록 갱신
-  async function excelImport(file) {
-    if (!file) return;
+  function pickExcel(file) {
+    excelPicked = file || null;
+    $('excelFileName').textContent = excelPicked ? excelPicked.name : '선택된 파일 없음';
+    $('excelFileName').classList.toggle('empty-text', !excelPicked);
+  }
+
+  // 엑셀 업로드 → 행별 성공/실패 요약. 성공분이 있으면 목록 갱신 + 모달 닫기
+  async function excelImport() {
+    const file = excelPicked;
+    if (!file) { toast.warning('업로드할 파일을 선택하세요.'); return; }
     const fd = new FormData();
     fd.append('file', file);
     const res = await fetch(BASE + '/excel/import', {
@@ -230,7 +248,7 @@
     if (r.fail === 0) toast.success(`등록 ${r.success}건 완료`);
     else toast.warning(`등록 ${r.success}건 / 실패 ${r.fail}건 — ${r.errors.slice(0, 5).join(' · ')}` +
       (r.errors.length > 5 ? ` 외 ${r.errors.length - 5}건` : ''));
-    if (r.success > 0) load();
+    if (r.success > 0) { load(); closeImport(); }
   }
 
   function bind() {
@@ -263,13 +281,14 @@
     });
 
     $('btnExcel').addEventListener('click', excelDownload);
+    if ($('btnExcelImport')) $('btnExcelImport').addEventListener('click', openImport);
     if ($('btnTemplate')) $('btnTemplate').addEventListener('click', templateDownload);
-    if ($('btnImport')) $('btnImport').addEventListener('click', () => $('excelFile').click());
-    if ($('excelFile')) $('excelFile').addEventListener('change', (e) => {
-      const f = e.target.files && e.target.files[0];
-      e.target.value = ''; // 같은 파일 재선택 허용
-      excelImport(f);
-    });
+    if ($('btnPickExcel')) $('btnPickExcel').addEventListener('click', () => $('excelFile').click());
+    if ($('excelFile')) $('excelFile').addEventListener('change', (e) =>
+      pickExcel(e.target.files && e.target.files[0]));
+    if ($('btnDoImport')) $('btnDoImport').addEventListener('click', excelImport);
+    if ($('importCancel')) $('importCancel').addEventListener('click', closeImport);
+    if ($('importClose')) $('importClose').addEventListener('click', closeImport);
     $('btnSave').addEventListener('click', save);
     $('btnCancel').addEventListener('click', closeModal);
     $('modalClose').addEventListener('click', closeModal);
