@@ -3,6 +3,7 @@ package AirPort.service;
 import AirPort.adapter.BiostarResult;
 import AirPort.adapter.BiostarUserAdapter;
 import AirPort.adapter.BiostarUserRequest;
+import AirPort.mapper.TbAcGroupMapper;
 import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbPersonMapper;
 import AirPort.mapper.TbSystemMapper;
@@ -26,16 +27,19 @@ public class VisitBiostarService {
   private final TbSystemMapper systemMapper;
   private final TbCommonMapper commonMapper;
   private final TbPersonMapper personMapper;
+  private final TbAcGroupMapper acGroupMapper;
   private final BiostarUserAdapter biostarUserAdapter;
 
   public VisitBiostarService(
       TbSystemMapper systemMapper,
       TbCommonMapper commonMapper,
       TbPersonMapper personMapper,
+      TbAcGroupMapper acGroupMapper,
       BiostarUserAdapter biostarUserAdapter) {
     this.systemMapper = systemMapper;
     this.commonMapper = commonMapper;
     this.personMapper = personMapper;
+    this.acGroupMapper = acGroupMapper;
     this.biostarUserAdapter = biostarUserAdapter;
   }
 
@@ -60,6 +64,11 @@ public class VisitBiostarService {
     String ip = cfg.getBiostarIp();
     String id = cfg.getBiostarId();
     String pw = cfg.getBiostarPw() == null ? "" : ARIAUtil.ariaDecrypt(cfg.getBiostarPw());
+    // 선택한 사용자출입그룹(tb_ac_group) → BiostarX 출입그룹(biostar_ac_id) 목록
+    List<Integer> accessGroupIds =
+        (acGroupIds == null || acGroupIds.isEmpty())
+            ? null
+            : acGroupMapper.selectBiostarAcIdsByGroupIds(acGroupIds);
 
     List<String> fails = new java.util.ArrayList<>();
     for (String pid : personIds) {
@@ -78,7 +87,7 @@ public class VisitBiostarService {
               datetime(p.getAccessStartDt(), "00:00"),
               datetime(p.getAccessEndDt(), "23:59"),
               null,
-              null,
+              accessGroupIds,
               null,
               null,
               null,

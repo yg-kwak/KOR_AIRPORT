@@ -18,6 +18,9 @@ public interface TbAcGroupMapper {
   /** 이미 매핑된 biostar_ac_id 목록(중복 추가 방지용). */
   List<Integer> selectUsedBiostarIds();
 
+  /** 주어진 ac_group_id 들의 biostar_ac_id 목록(방문객 BiostarX 출입그룹 전송용). */
+  List<Integer> selectBiostarAcIdsByGroupIds(@Param("acGroupIds") List<Integer> acGroupIds);
+
   int insert(TbAcGroup row); // useGeneratedKeys → acGroupId
 
   int update(TbAcGroup row); // 이름·biostar 매핑만

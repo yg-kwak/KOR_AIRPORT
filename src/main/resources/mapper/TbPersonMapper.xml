@@ -139,6 +139,7 @@
         title_code = #{titleCode},
         status_code = #{statusCode},
         main_task = #{mainTask},
+        affiliation = #{affiliation},
         access_start_dt = #{accessStartDt},
         access_end_dt = #{accessEndDt},
         remark = #{remark},

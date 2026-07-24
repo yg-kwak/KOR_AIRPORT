@@ -26,6 +26,18 @@
     SELECT biostar_ac_id FROM tb_ac_group WHERE biostar_ac_id IS NOT NULL
   </select>
 
+  <select id="selectBiostarAcIdsByGroupIds" resultType="int">
+    SELECT biostar_ac_id FROM tb_ac_group
+    WHERE biostar_ac_id IS NOT NULL
+    <if test="acGroupIds != null and acGroupIds.size() > 0">
+      AND ac_group_id IN
+      <foreach collection="acGroupIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </if>
+    <if test="acGroupIds == null or acGroupIds.size() == 0">
+      AND 1 = 0
+    </if>
+  </select>
+
   <insert id="insert" parameterType="TbAcGroup" useGeneratedKeys="true" keyProperty="acGroupId">
     INSERT INTO tb_ac_group
       (ac_group_name, parent_ac_group_id, ar_code, ac_group_level, ac_group_order,

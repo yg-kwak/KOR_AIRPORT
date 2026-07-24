@@ -156,7 +156,7 @@ public class VisitService {
     TbVisit row = toRow(form);
     row.setStatusCode(form.getStatusCode() == null ? DEFAULT_STATUS : form.getStatusCode());
     visitMapper.insert(row);
-    String warn = saveChildren(row.getVisitNo(), form, actor, menuId, false);
+    String warn = saveChildren(row.getVisitNo(), form);
     auditService.log(actor, AuditService.CREATE, menuId, "방문 등록: " + row.getVisitNo());
     return warn;
   }
@@ -173,7 +173,7 @@ public class VisitService {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
     visitMapper.update(toRow(form));
-    String warn = saveChildren(form.getVisitNo(), form, actor, menuId, true);
+    String warn = saveChildren(form.getVisitNo(), form);
     auditService.log(actor, AuditService.UPDATE, menuId, "방문 수정: " + form.getVisitNo());
     return warn;
   }
@@ -198,11 +198,7 @@ public class VisitService {
    *
    * @return BiostarX 방문객 동기화 경고(성공/미대상이면 null)
    */
-  private String saveChildren(
-      int visitNo, VisitForm form, TbLoginUser actor, Integer menuId, boolean rebuild) {
-    if (rebuild) {
-      clearRoster(visitNo);
-    }
+  private String saveChildren(int visitNo, VisitForm form) {
     // 인솔자
     visitMapper.deleteManagers(visitNo);
     if (notEmpty(form.getManagerIds())) {
@@ -217,20 +213,39 @@ public class VisitService {
     if (notEmpty(form.getCarAcCodes())) {
       visitMapper.insertCarAcGroups(visitNo, form.getCarAcCodes());
     }
-    // 방문객(tb_person) + 카드
+    // 방문객(tb_person) — 유지 인원은 갱신, 폼에서 빠진 인원만 카드 회수 후 소프트삭제
+    List<String> keptIds = new ArrayList<>();
+    if (form.getVisitors() != null) {
+      for (VisitorForm vf : form.getVisitors()) {
+        if (vf.getPersonId() != null && !vf.getPersonId().isBlank()) {
+          keptIds.add(vf.getPersonId());
+        }
+      }
+    }
+    for (String pid : visitMapper.selectPersonIds(visitNo)) {
+      if (!keptIds.contains(pid)) {
+        cardMapper.releaseByPerson(pid);
+        personMapper.softDelete(pid);
+      }
+    }
     visitMapper.deletePersons(visitNo);
     List<String> personIds = new ArrayList<>();
     if (form.getVisitors() != null) {
       for (VisitorForm vf : form.getVisitors()) {
-        String pid = insertVisitor(vf, form);
+        String pid = upsertVisitor(vf, form);
         visitMapper.insertPerson(visitNo, pid);
+        cardMapper.releaseByPerson(pid); // 이전 카드 해제 후 재배정
         if (vf.getCardId() != null) {
           cardMapper.assignPerson(vf.getCardId(), pid);
         }
         personIds.add(pid);
       }
     }
-    // 방문 차량(tb_car) + 카드
+    // 방문 차량(tb_car) — 전체 재구성(기존 차량 카드 회수·소프트삭제 후 새로 발급)
+    for (Integer carId : visitMapper.selectCarIds(visitNo)) {
+      cardMapper.releaseByCar(carId);
+      carMapper.softDelete(carId);
+    }
     visitMapper.deleteCars(visitNo);
     if (form.getCars() != null) {
       for (VisitCarForm cf : form.getCars()) {
@@ -244,23 +259,28 @@ public class VisitService {
         }
       }
     }
-    // BiostarX 방문객 동기화(PT→PTD code_tag 부모 그룹) — 실패해도 저장은 유지
+    // BiostarX 방문객 동기화(PT→PTD code_tag 부모 그룹 + 선택 출입그룹) — 실패해도 저장은 유지
     return visitBiostar.syncVisitors(form.getVisitType(), personIds, form.getAcGroupIds());
   }
 
-  /** 방문객 tb_person 생성 — person_type=visit_type, 성명·생년월일 ARIA, 출입기간=작업기간. */
-  private String insertVisitor(VisitorForm vf, VisitForm form) {
+  /** 방문객 tb_person 저장 — personId 있으면 갱신(기존 인원 유지), 없으면 IS 채번 신규. */
+  private String upsertVisitor(VisitorForm vf, VisitForm form) {
     require(vf.getPersonName(), "방문객 성명");
+    boolean isNew = vf.getPersonId() == null || vf.getPersonId().isBlank();
     TbPerson p = new TbPerson();
-    p.setPersonId(vf.getPersonId() != null ? vf.getPersonId() : personMapper.selectNextVisitorId());
+    p.setPersonId(isNew ? personMapper.selectNextVisitorId() : vf.getPersonId());
     p.setPersonName(ARIAUtil.ariaEncrypt(vf.getPersonName()));
     p.setBirthDate(encryptOrNull(vf.getBirthDate()));
     p.setAffiliation(vf.getAffiliation());
     p.setPersonType(form.getVisitType());
-    p.setStatusCode(DEFAULT_STATUS.equals(form.getStatusCode()) ? "01" : "01");
+    p.setStatusCode("01");
     p.setAccessStartDt(withSeconds(form.getWorkStartDt()));
     p.setAccessEndDt(withSeconds(form.getWorkEndDt()));
-    personMapper.insert(p);
+    if (isNew) {
+      personMapper.insert(p);
+    } else {
+      personMapper.update(p);
+    }
     return p.getPersonId();
   }
 
