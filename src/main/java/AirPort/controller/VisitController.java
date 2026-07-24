@@ -94,12 +94,30 @@ public class VisitController {
     return ApiResponse.ok(visitService.acGroupTree(actor(session), menuId()));
   }
 
-  /** 미할당 카드 (AJAX) — 방문객/차량 카드 선택 */
+  /** 미할당 방문객(인원) 카드 (AJAX) — 검색 지원 */
   @GetMapping("/cards/unassigned")
   @ResponseBody
   public ApiResponse<List<TbCard>> unassignedCards(
       @RequestParam(required = false) String keyword, HttpSession session) {
-    return ApiResponse.ok(cardService.listUnassigned(keyword, actor(session), menuId()));
+    return ApiResponse.ok(
+        cardService.listUnassigned(
+            keyword, CardService.CARD_TYPE_PERSON, actor(session), menuId()));
+  }
+
+  /** 미할당 차량 카드 (AJAX) — 검색 지원(스캔 없음) */
+  @GetMapping("/cards/unassigned/car")
+  @ResponseBody
+  public ApiResponse<List<TbCard>> unassignedCarCards(
+      @RequestParam(required = false) String keyword, HttpSession session) {
+    return ApiResponse.ok(
+        cardService.listUnassigned(keyword, CardService.CARD_TYPE_CAR, actor(session), menuId()));
+  }
+
+  /** 카드 스캔 (AJAX) — 방문객 카드용(리더로 카드번호 읽기). 차량 카드는 스캔 미지원. */
+  @PostMapping("/card/scan")
+  @ResponseBody
+  public ApiResponse<AirPort.adapter.BiostarCard> scanCard(HttpSession session) {
+    return ApiResponse.ok(cardService.scan(actor(session), menuId()));
   }
 
   /** 인솔자 후보 (AJAX) — 정규인원(PT01) 검색 */

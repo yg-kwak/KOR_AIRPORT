@@ -115,6 +115,9 @@
     <include refid="listJoins"/>
     <where>
       c.del_yn = 'N' AND c.person_id IS NULL AND c.car_id IS NULL
+      <if test="cardType != null and cardType != ''">
+        AND c.card_type = #{cardType}
+      </if>
       <if test="keyword != null and keyword != ''">
         AND (c.biostar_card_value LIKE '%' + #{keyword} + '%'
              OR c.card_name LIKE '%' + #{keyword} + '%')

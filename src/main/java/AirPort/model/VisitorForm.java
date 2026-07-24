@@ -11,4 +11,5 @@ public class VisitorForm {
   private String birthDate;
   private String affiliation; // 소속 (자유입력)
   private Integer cardId; // 선택한 카드(tb_card.card_id), 없으면 null
+  private String cardLabel; // 표시용 카드번호(응답 전용) — 저장 시 무시
 }

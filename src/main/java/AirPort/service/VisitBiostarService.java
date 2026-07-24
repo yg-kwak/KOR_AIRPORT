@@ -3,7 +3,9 @@ package AirPort.service;
 import AirPort.adapter.BiostarResult;
 import AirPort.adapter.BiostarUserAdapter;
 import AirPort.adapter.BiostarUserRequest;
+import AirPort.adapter.BiostarUserCard;
 import AirPort.mapper.TbAcGroupMapper;
+import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbPersonMapper;
 import AirPort.mapper.TbSystemMapper;
@@ -33,6 +35,7 @@ public class VisitBiostarService {
   private final TbCommonMapper commonMapper;
   private final TbPersonMapper personMapper;
   private final TbAcGroupMapper acGroupMapper;
+  private final TbCardMapper cardMapper;
   private final BiostarUserAdapter biostarUserAdapter;
 
   public VisitBiostarService(
@@ -40,11 +43,13 @@ public class VisitBiostarService {
       TbCommonMapper commonMapper,
       TbPersonMapper personMapper,
       TbAcGroupMapper acGroupMapper,
+      TbCardMapper cardMapper,
       BiostarUserAdapter biostarUserAdapter) {
     this.systemMapper = systemMapper;
     this.commonMapper = commonMapper;
     this.personMapper = personMapper;
     this.acGroupMapper = acGroupMapper;
+    this.cardMapper = cardMapper;
     this.biostarUserAdapter = biostarUserAdapter;
   }
 
@@ -90,6 +95,8 @@ public class VisitBiostarService {
       if (expiry == null) {
         expiry = PERMANENT_EXPIRY;
       }
+      // 방문객에게 배정된 카드 → BiostarX 사용자 payload 의 cards[]
+      List<BiostarUserCard> cards = CardService.toBiostarCardsOf(cardMapper.selectByPerson(pid));
       BiostarUserRequest req =
           new BiostarUserRequest(
               pid,
@@ -105,7 +112,7 @@ public class VisitBiostarService {
               null,
               null,
               null,
-              null);
+              cards);
       boolean exists = biostarUserAdapter.userExists(ip, id, pw, pid);
       BiostarResult res =
           exists

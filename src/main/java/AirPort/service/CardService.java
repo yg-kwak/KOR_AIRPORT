@@ -35,10 +35,10 @@ public class CardService {
   private static final Logger log = LoggerFactory.getLogger(CardService.class);
 
   /** 카드종류 — 인원 화면이 발급하는 카드는 '인원'(tb_common CDT) 고정. 화면 값을 믿지 않고 서버가 정한다. */
-  private static final String CARD_TYPE_PERSON = "CDT01";
+  public static final String CARD_TYPE_PERSON = "CDT01";
 
   /** 차량 카드 — 패스구분(사람의 출입 패스 구분)을 쓰지 않는다. tb_common(CDT) */
-  private static final String CARD_TYPE_CAR = "CDT02";
+  public static final String CARD_TYPE_CAR = "CDT02";
 
   private final TbCardMapper cardMapper;
   private final TbSystemMapper systemMapper;
@@ -193,8 +193,14 @@ public class CardService {
 
   /** 미할당 카드 목록 — 할당하기 팝업(회수되어 다시 쓸 수 있는 카드). */
   public List<TbCard> listUnassigned(String keyword, TbLoginUser actor, Integer menuId) {
+    return listUnassigned(keyword, null, actor, menuId);
+  }
+
+  /** 미할당 카드 — cardType(CDT01 인원 / CDT02 차량) 으로 걸러 조회. null 이면 전체. */
+  public List<TbCard> listUnassigned(
+      String keyword, String cardType, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
-    return cardMapper.selectUnassigned(keyword);
+    return cardMapper.selectUnassigned(keyword, cardType);
   }
 
   /** 장치 리더로 카드번호 읽기 — 로그인 계정의 장치(tb_login_user.dev_id). */

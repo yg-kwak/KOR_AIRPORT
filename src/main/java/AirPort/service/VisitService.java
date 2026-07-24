@@ -36,6 +36,12 @@ public class VisitService {
   /** 방문 기본 상태 — tb_common(VS) 신청. */
   private static final String DEFAULT_STATUS = "VS01";
 
+  /** 입실 중 — 방문객 전원 카드 발급 시 자동 승격(VS). */
+  private static final String STATUS_ENTERED = "VS03";
+
+  /** 퇴실 완료 — 자동 승격에서 제외(되돌리지 않음). */
+  private static final String STATUS_LEFT = "VS04";
+
   /** 임시인원등록 방문유형 — 임시 고정(tb_common PT02). */
   private static final String VISIT_TYPE = "PT02";
 
@@ -129,7 +135,13 @@ public class VisitService {
         f.setPersonName(decrypt(p.getPersonName()));
         f.setBirthDate(decrypt(p.getBirthDate()));
         f.setAffiliation(p.getAffiliation());
-        cardMapper.selectByPerson(pid).stream().findFirst().ifPresent(c -> f.setCardId(c.getCardId()));
+        cardMapper.selectByPerson(pid).stream()
+            .findFirst()
+            .ifPresent(
+                c -> {
+                  f.setCardId(c.getCardId());
+                  f.setCardLabel(c.getBiostarCardValue());
+                });
         d.visitors.add(f);
       }
     }
@@ -142,7 +154,13 @@ public class VisitService {
         f.setCarNo(c.getCarNo());
         f.setCarName(c.getCarName());
         f.setCarType(c.getCarType());
-        cardMapper.selectByCar(carId).stream().findFirst().ifPresent(k -> f.setCardId(k.getCardId()));
+        cardMapper.selectByCar(carId).stream()
+            .findFirst()
+            .ifPresent(
+                k -> {
+                  f.setCardId(k.getCardId());
+                  f.setCardLabel(k.getBiostarCardValue());
+                });
         d.cars.add(f);
       }
     }
@@ -154,7 +172,7 @@ public class VisitService {
     menuAuthService.requireCreate(actor, menuId);
     validate(form);
     TbVisit row = toRow(form);
-    row.setStatusCode(form.getStatusCode() == null ? DEFAULT_STATUS : form.getStatusCode());
+    row.setStatusCode(effectiveStatus(form));
     visitMapper.insert(row);
     String warn = saveChildren(row.getVisitNo(), form);
     auditService.log(actor, AuditService.CREATE, menuId, "방문 등록: " + row.getVisitNo());
@@ -172,7 +190,9 @@ public class VisitService {
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
-    visitMapper.update(toRow(form));
+    TbVisit row = toRow(form);
+    row.setStatusCode(effectiveStatus(form));
+    visitMapper.update(row);
     String warn = saveChildren(form.getVisitNo(), form);
     auditService.log(actor, AuditService.UPDATE, menuId, "방문 수정: " + form.getVisitNo());
     return warn;
@@ -331,6 +351,18 @@ public class VisitService {
   private void validate(VisitForm form) {
     require(form.getVisitType(), "방문유형");
     require(form.getCompanyName(), "업체명");
+  }
+
+  /** 방문 상태 — 방문객이 있고 전원 카드 발급이면 '입실 중'(VS03)으로 승격. 퇴실완료는 유지. */
+  private static String effectiveStatus(VisitForm form) {
+    String base =
+        (form.getStatusCode() == null || form.getStatusCode().isBlank())
+            ? DEFAULT_STATUS
+            : form.getStatusCode();
+    List<VisitorForm> vs = form.getVisitors();
+    boolean allCarded =
+        vs != null && !vs.isEmpty() && vs.stream().allMatch(v -> v.getCardId() != null);
+    return (allCarded && !STATUS_LEFT.equals(base)) ? STATUS_ENTERED : base;
   }
 
   private static void require(String v, String label) {

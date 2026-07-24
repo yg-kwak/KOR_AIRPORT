@@ -1,5 +1,5 @@
-/* 임시인원등록(방문) — 그룹/인솔자/방문객/차량 탭. 사용자출입그룹은 공용 ac-group-tree, 차량출입그룹은 CAR 체크박스.
-   방문객=tb_person(person_type=방문유형), 차량=tb_car, 카드는 미할당 카드 select. 저장 시 BiostarX 편입(서버). */
+/* 임시인원등록(방문) — 그룹/인솔자/방문객/차량 탭. 카드는 검색 팝업 선택(방문객=스캔 지원, 차량=스캔 없음).
+   방문객=tb_person, 차량=tb_car. 저장 시 방문객을 BiostarX 사용자로 편입하고 카드/출입그룹 전달(서버). */
 (function () {
   const BASE = '/visitor/visitor';
   const AC_TREE = 'acTree';
@@ -21,7 +21,6 @@
 
   let carCodes = []; // tb_common(CAR)
   let carTypes = []; // tb_common(CT)
-  let freeCards = []; // 미할당 카드
   let editMode = 'create';
 
   // ---- 목록 ----
@@ -73,10 +72,9 @@
 
   // ---- 참조 데이터 ----
   async function loadRefs() {
-    [carCodes, carTypes, freeCards] = await Promise.all([
+    [carCodes, carTypes] = await Promise.all([
       api.get('/system/common/picker?cmmId=CAR'),
       api.get('/system/common/picker?cmmId=CT'),
-      api.get(BASE + '/cards/unassigned?keyword='),
     ]).then((a) => a.map((x) => x || []));
   }
 
@@ -88,14 +86,14 @@
   }
   const carAcSelected = () => [...$('carAcBox').querySelectorAll('input:checked')].map((c) => c.value);
 
-  // 카드 select 옵션 — 미할당 카드 + 현재 배정된 카드(id/label)
-  function cardOptions(currentId, currentLabel) {
-    let html = '<option value="">카드 없음</option>';
-    if (currentId && !freeCards.some((c) => c.cardId === currentId)) {
-      html += `<option value="${currentId}" selected>${esc(currentLabel || currentId)}</option>`;
-    }
-    html += freeCards.map((c) => `<option value="${c.cardId}"${c.cardId === currentId ? ' selected' : ''}>${esc(c.biostarCardValue)}</option>`).join('');
-    return html;
+  // 카드 셀 — 선택된 카드번호 표시 + 선택 버튼(팝업). kind=vis|car
+  function cardCell(obj, i, kind) {
+    const label = obj.cardId
+      ? esc(obj.cardLabel || obj.cardId)
+      : '<span class="form-hint">카드 없음</span>';
+    return `<div class="file-field-row">
+      <span class="card-picked" data-i="${i}" style="min-width:90px">${label}</span>
+      <button type="button" class="btn btn-sm" data-act="${kind}-card" data-idx="${i}">선택</button></div>`;
   }
 
   // ---- 탭 ----
@@ -121,7 +119,7 @@
           <td><input class="input" data-f="personName" data-i="${i}" value="${esc(v.personName)}"/></td>
           <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="1990-01-01" value="${esc(v.birthDate)}"/></td>
           <td><input class="input" data-f="affiliation" data-i="${i}" value="${esc(v.affiliation)}"/></td>
-          <td><select class="input" data-f="cardId" data-i="${i}">${cardOptions(v.cardId, v.cardLabel)}</select></td>
+          <td>${cardCell(v, i, 'vis')}</td>
           <td><button class="btn btn-sm btn-danger" data-act="vis-del" data-idx="${i}">제거</button></td></tr>`).join('')
       : '<tr><td colspan="5" class="empty">방문객이 없습니다.</td></tr>';
   }
@@ -137,7 +135,7 @@
           <td><input class="input" data-f="carNo" data-i="${i}" value="${esc(c.carNo)}"/></td>
           <td><input class="input" data-f="carName" data-i="${i}" value="${esc(c.carName)}"/></td>
           <td><select class="input" data-f="carType" data-i="${i}">${carTypeOptions(c.carType)}</select></td>
-          <td><select class="input" data-f="cardId" data-i="${i}">${cardOptions(c.cardId, c.cardLabel)}</select></td>
+          <td>${cardCell(c, i, 'car')}</td>
           <td><button class="btn btn-sm btn-danger" data-act="car-del" data-idx="${i}">제거</button></td></tr>`).join('')
       : '<tr><td colspan="5" class="empty">차량이 없습니다.</td></tr>';
   }
@@ -156,7 +154,7 @@
     }
     if ($('btnDelete')) $('btnDelete').style.display = mode === 'edit' ? '' : 'none';
     showTab('group');
-    if (!freeCards.length && !carCodes.length) await loadRefs(); else await loadRefs();
+    await loadRefs();
     acGroupTree.set(AC_TREE, []);
     carAcRender([]);
     mgrRender(); visRender(); carRender();
@@ -251,6 +249,55 @@
     $('mgrPickBody').dataset.rows = JSON.stringify(rows);
   }
 
+  // ---- 카드 선택 팝업 (방문객=검색+스캔 / 차량=검색만) ----
+  let cardPick = { kind: null, index: -1, chosen: null };
+  function openCardPicker(kind, index) {
+    collectRows();
+    cardPick = { kind, index, chosen: null };
+    $('vcpTitle').textContent = kind === 'vis' ? '방문객 카드 선택' : '차량 카드 선택';
+    $('vcpScan').style.display = kind === 'vis' ? '' : 'none'; // 차량카드는 스캔 없음
+    $('vcpKeyword').value = '';
+    $('vcpModal').classList.add('open');
+    loadCardPick();
+  }
+  function closeCardPicker() { $('vcpModal').classList.remove('open'); }
+  async function loadCardPick() {
+    const url = (cardPick.kind === 'car' ? BASE + '/cards/unassigned/car' : BASE + '/cards/unassigned')
+      + '?keyword=' + encodeURIComponent($('vcpKeyword').value.trim());
+    const rows = (await api.get(url)) || [];
+    $('vcpBody').innerHTML = rows.length
+      ? rows.map((c, i) => `<tr class="row-click vcp-row" data-idx="${i}">
+          <td><input type="radio" name="vcp" value="${i}"/></td>
+          <td>${esc(c.biostarCardValue)}</td>
+          <td style="text-align:left">${esc(c.cardName)}</td>
+          <td>${esc(c.cardStatusName || '')}</td></tr>`).join('')
+      : '<tr><td colspan="4" class="empty">미할당 카드가 없습니다.</td></tr>';
+    $('vcpBody').dataset.rows = JSON.stringify(rows);
+  }
+  async function scanCardPick() {
+    const res = await api.post(BASE + '/card/scan', {});
+    if (!res || !res.success) { toast.warning((res && res.message) || '카드 스캔에 실패했습니다.'); return; }
+    $('vcpKeyword').value = res.cardNo || '';
+    await loadCardPick();
+    const rows = JSON.parse($('vcpBody').dataset.rows || '[]');
+    const idx = rows.findIndex((c) => String(c.biostarCardValue) === String(res.cardNo));
+    if (idx >= 0) {
+      const tr = $('vcpBody').querySelector(`.vcp-row[data-idx="${idx}"]`);
+      if (tr) { tr.querySelector('input[type=radio]').checked = true; cardPick.chosen = rows[idx]; }
+    } else {
+      toast.warning('스캔한 카드가 미할당 목록에 없습니다. (카드관리에서 등록·회수 여부 확인)');
+    }
+  }
+  function applyCardPick(card) {
+    const arr = cardPick.kind === 'car' ? cars : visitors;
+    const row = arr[cardPick.index];
+    if (!row) return;
+    row.cardId = card ? Number(card.cardId) : null;
+    row.cardLabel = card ? card.biostarCardValue : '';
+    if (cardPick.kind === 'car') carRender(); else visRender();
+    closeCardPicker();
+  }
+
   function bind() {
     $('btnSearch').addEventListener('click', search);
     $('btnReset').addEventListener('click', reset);
@@ -291,13 +338,15 @@
     $('mgrBody').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-act="mgr-del"]'); if (b) { managers.splice(b.dataset.idx, 1); mgrRender(); }
     });
-    $('btnAddVis').addEventListener('click', () => { collectRows(); visitors.push({ personName: '', birthDate: '', affiliation: '', cardId: '' }); visRender(); });
+    $('btnAddVis').addEventListener('click', () => { collectRows(); visitors.push({ personName: '', birthDate: '', affiliation: '', cardId: null, cardLabel: '' }); visRender(); });
     $('visBody').addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-act="vis-del"]'); if (b) { collectRows(); visitors.splice(b.dataset.idx, 1); visRender(); }
+      const del = e.target.closest('button[data-act="vis-del"]'); if (del) { collectRows(); visitors.splice(del.dataset.idx, 1); visRender(); return; }
+      const card = e.target.closest('button[data-act="vis-card"]'); if (card) openCardPicker('vis', Number(card.dataset.idx));
     });
-    $('btnAddCar').addEventListener('click', () => { collectRows(); cars.push({ carNo: '', carName: '', carType: '', cardId: '' }); carRender(); });
+    $('btnAddCar').addEventListener('click', () => { collectRows(); cars.push({ carNo: '', carName: '', carType: '', cardId: null, cardLabel: '' }); carRender(); });
     $('carBody').addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-act="car-del"]'); if (b) { collectRows(); cars.splice(b.dataset.idx, 1); carRender(); }
+      const del = e.target.closest('button[data-act="car-del"]'); if (del) { collectRows(); cars.splice(del.dataset.idx, 1); carRender(); return; }
+      const card = e.target.closest('button[data-act="car-card"]'); if (card) openCardPicker('car', Number(card.dataset.idx));
     });
 
     // 인솔자 팝업
@@ -314,6 +363,23 @@
     });
     $('mgrCancel').addEventListener('click', closeMgr);
     $('mgrClose').addEventListener('click', closeMgr);
+
+    // 카드 선택 팝업
+    $('vcpSearch').addEventListener('click', loadCardPick);
+    $('vcpKeyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadCardPick(); });
+    $('vcpScan').addEventListener('click', scanCardPick);
+    $('vcpBody').addEventListener('click', (e) => {
+      const row = e.target.closest('.vcp-row'); if (!row) return;
+      row.querySelector('input[type=radio]').checked = true;
+      cardPick.chosen = JSON.parse($('vcpBody').dataset.rows)[Number(row.dataset.idx)];
+    });
+    $('vcpOk').addEventListener('click', () => {
+      if (!cardPick.chosen) { toast.warning('카드를 선택하세요.'); return; }
+      applyCardPick(cardPick.chosen);
+    });
+    $('vcpClear').addEventListener('click', () => applyCardPick(null));
+    $('vcpCancel').addEventListener('click', closeCardPicker);
+    $('vcpClose').addEventListener('click', closeCardPicker);
 
     if ($('btnSave')) $('btnSave').addEventListener('click', save);
     if ($('btnDelete')) $('btnDelete').addEventListener('click', () => remove($('visitNo').value));
