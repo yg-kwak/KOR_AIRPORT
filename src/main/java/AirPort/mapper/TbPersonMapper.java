@@ -24,6 +24,9 @@ public interface TbPersonMapper {
   /** 정규인원(PT01) 중 숫자형 인원ID 의 다음 값(자동 채번). 없으면 기본 400001. */
   String selectNextPersonId();
 
+  /** 임시(방문)인원 다음 ID — IS000001 부터 채번. */
+  String selectNextVisitorId();
+
   int insert(TbPerson row);
 
   int update(TbPerson row);

@@ -447,6 +447,8 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 }
 .modal-container.small { width: 420px; }
 .modal-container.wide { width: 640px; }
+/* 임시인원 등록 — 인솔자/방문객/차량 표를 넓게 보기 위해 폭 확대 */
+.modal-container.visit-modal { width: 980px; max-width: 96vw; }
 .modal-container.confirm { width: 400px; }
 /* 편집 모달 우측에 나란히 붙는 보조 패널(카드 입력). 좁은 화면에서는 아래로 접힌다 */
 .modal-overlay { gap: 16px; flex-wrap: wrap; }

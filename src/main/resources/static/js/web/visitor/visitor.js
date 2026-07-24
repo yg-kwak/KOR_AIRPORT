@@ -3,6 +3,7 @@
 (function () {
   const BASE = '/visitor/visitor';
   const AC_TREE = 'acTree';
+  const VISIT_TYPE = { id: 'PT02', name: '임시' }; // 임시인원등록 — 방문유형 고정(tb_common PT02)
   const state = { page: 1, size: 30, keyword: '', visitType: '', statusCode: '', sort: 'visitNo', dir: 'desc' };
 
   const $ = (id) => document.getElementById(id);
@@ -141,6 +142,7 @@
     ['visitNo', 'visitType', 'visitTypeName', 'statusCode', 'statusName', 'companyName', 'companyType',
       'workStartDt', 'workEndDt', 'permitDt', 'receiver', 'returner', 'workPurpose', 'remark'].forEach((id) => { $(id).value = ''; });
     managers = []; visitors = []; cars = [];
+    $('visitType').value = VISIT_TYPE.id; $('visitTypeName').value = VISIT_TYPE.name; // 임시 고정
     if ($('btnDelete')) $('btnDelete').style.display = mode === 'edit' ? '' : 'none';
     showTab('group');
     if (!freeCards.length && !carCodes.length) await loadRefs(); else await loadRefs();
@@ -196,14 +198,13 @@
       visitors: visitors.map((v) => ({ personId: v.personId || null, personName: (v.personName || '').trim() || null,
         birthDate: (v.birthDate || '').trim() || null, affiliation: (v.affiliation || '').trim() || null,
         cardId: v.cardId ? Number(v.cardId) : null })),
-      cars: cars.map((c) => ({ carId: c.carId || null, carNo: (c.carNo || '').trim() || null,
-        carName: (c.carName || '').trim() || null, carType: c.carType || null,
-        cardId: c.cardId ? Number(c.cardId) : null })),
+      cars: cars.filter((c) => (c.carNo || '').trim()) // 차량은 선택 — 번호 없는 행은 제외
+        .map((c) => ({ carId: c.carId || null, carNo: (c.carNo || '').trim(),
+          carName: (c.carName || '').trim() || null, carType: c.carType || null,
+          cardId: c.cardId ? Number(c.cardId) : null })),
     };
-    if (!payload.visitType) { toast.warning('방문유형은 필수입니다.'); return; }
     if (!payload.companyName) { toast.warning('업체명은 필수입니다.'); return; }
     if (payload.visitors.some((v) => !v.personName)) { toast.warning('방문객 성명은 필수입니다.'); return; }
-    if (payload.cars.some((c) => !c.carNo)) { toast.warning('차량번호는 필수입니다.'); return; }
 
     if (editMode === 'create') await api.post(BASE, payload);
     else await api.put(BASE, payload);
@@ -267,11 +268,7 @@
 
     document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
-    // 그룹 탭 코드팝업
-    $('visitTypeName').addEventListener('click', async () => {
-      const s = await codePicker.open({ cmmId: 'PT', cmmName: '방문유형' });
-      if (s) { $('visitType').value = s.codeId; $('visitTypeName').value = s.codeName; }
-    });
+    // 그룹 탭 코드팝업 (방문유형은 임시 고정 — 팝업 없음)
     $('statusName').addEventListener('click', async () => {
       const s = await codePicker.open({ cmmId: 'VS', cmmName: '상태' });
       if (s) { $('statusCode').value = s.codeId; $('statusName').value = s.codeName; }

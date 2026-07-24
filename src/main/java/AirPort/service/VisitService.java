@@ -199,6 +199,9 @@ public class VisitService {
     visitMapper.deleteCars(visitNo);
     if (form.getCars() != null) {
       for (VisitCarForm cf : form.getCars()) {
+        if (cf.getCarNo() == null || cf.getCarNo().isBlank()) {
+          continue; // 차량은 선택 — 번호 없는 행은 저장하지 않는다
+        }
         int carId = insertVisitCar(cf, form);
         visitMapper.insertCar(visitNo, carId);
         if (cf.getCardId() != null) {
@@ -214,7 +217,7 @@ public class VisitService {
   private String insertVisitor(VisitorForm vf, VisitForm form) {
     require(vf.getPersonName(), "방문객 성명");
     TbPerson p = new TbPerson();
-    p.setPersonId(vf.getPersonId() != null ? vf.getPersonId() : personMapper.selectNextPersonId());
+    p.setPersonId(vf.getPersonId() != null ? vf.getPersonId() : personMapper.selectNextVisitorId());
     p.setPersonName(ARIAUtil.ariaEncrypt(vf.getPersonName()));
     p.setBirthDate(encryptOrNull(vf.getBirthDate()));
     p.setAffiliation(vf.getAffiliation());
