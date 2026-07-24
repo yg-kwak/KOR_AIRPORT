@@ -11,7 +11,6 @@ import AirPort.model.TbPerson;
 import AirPort.model.TbVisit;
 import AirPort.model.VisitForm;
 import AirPort.model.VisitSearchParam;
-import AirPort.service.AcGroupService;
 import AirPort.service.CardService;
 import AirPort.service.MenuAuthService;
 import AirPort.service.MenuService;
@@ -40,7 +39,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class VisitController {
 
   private final VisitService visitService;
-  private final AcGroupService acGroupService;
   private final CardService cardService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
@@ -48,13 +46,11 @@ public class VisitController {
 
   public VisitController(
       VisitService visitService,
-      AcGroupService acGroupService,
       CardService cardService,
       MenuService menuService,
       MenuAuthService menuAuthService,
       CurrentMenu currentMenu) {
     this.visitService = visitService;
-    this.acGroupService = acGroupService;
     this.cardService = cardService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
@@ -91,11 +87,11 @@ public class VisitController {
     return ApiResponse.ok(visitService.detail(visitNo, actor(session), menuId()));
   }
 
-  /** 출입권한 선택 트리 (AJAX) — tb_ac_group 재사용 */
+  /** 출입권한 선택 트리 (AJAX) — 방문유형 구역범위(code_remark)에 따라 최상위/세부 노출 */
   @GetMapping("/acGroups")
   @ResponseBody
   public ApiResponse<List<AirPort.model.TbAcGroup>> acGroups(HttpSession session) {
-    return ApiResponse.ok(acGroupService.tree(actor(session), menuId()));
+    return ApiResponse.ok(visitService.acGroupTree(actor(session), menuId()));
   }
 
   /** 미할당 카드 (AJAX) — 방문객/차량 카드 선택 */

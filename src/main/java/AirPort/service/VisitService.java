@@ -5,9 +5,12 @@ import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCarMapper;
 import AirPort.mapper.TbCardMapper;
+import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbPersonMapper;
 import AirPort.mapper.TbVisitMapper;
+import AirPort.model.TbAcGroup;
 import AirPort.model.TbCar;
+import AirPort.model.TbCommon;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbPerson;
 import AirPort.model.TbVisit;
@@ -33,11 +36,16 @@ public class VisitService {
   /** 방문 기본 상태 — tb_common(VS) 신청. */
   private static final String DEFAULT_STATUS = "VS01";
 
+  /** 임시인원등록 방문유형 — 임시 고정(tb_common PT02). */
+  private static final String VISIT_TYPE = "PT02";
+
   private final TbVisitMapper visitMapper;
   private final TbPersonMapper personMapper;
   private final TbCarMapper carMapper;
   private final TbCardMapper cardMapper;
+  private final TbCommonMapper commonMapper;
   private final VisitBiostarService visitBiostar;
+  private final AcGroupService acGroupService;
   private final MenuAuthService menuAuthService;
   private final AuditService auditService;
 
@@ -46,16 +54,36 @@ public class VisitService {
       TbPersonMapper personMapper,
       TbCarMapper carMapper,
       TbCardMapper cardMapper,
+      TbCommonMapper commonMapper,
       VisitBiostarService visitBiostar,
+      AcGroupService acGroupService,
       MenuAuthService menuAuthService,
       AuditService auditService) {
     this.visitMapper = visitMapper;
     this.personMapper = personMapper;
     this.carMapper = carMapper;
     this.cardMapper = cardMapper;
+    this.commonMapper = commonMapper;
     this.visitBiostar = visitBiostar;
+    this.acGroupService = acGroupService;
     this.menuAuthService = menuAuthService;
     this.auditService = auditService;
+  }
+
+  /**
+   * 사용자출입그룹 트리 — 방문유형 구역범위(tb_common PT.code_remark)가 'Y'가 아니면 최상위 그룹만 노출한다. 임시(PT02)는
+   * 최상위만(code_remark='N'). tb_ac_group 조회는 정규와 동일 트리를 재사용한다.
+   */
+  public List<TbAcGroup> acGroupTree(TbLoginUser actor, Integer menuId) {
+    List<TbAcGroup> tree = acGroupService.tree(actor, menuId);
+    TbCommon pt = commonMapper.selectOne("PT", VISIT_TYPE);
+    boolean detail = pt != null && "Y".equals(pt.getCodeRemark());
+    if (!detail) {
+      for (TbAcGroup root : tree) {
+        root.getChildren().clear(); // 최상위만 — 하위 세부트리 숨김
+      }
+    }
+    return tree;
   }
 
   public PageResult<TbVisit> list(VisitSearchParam param, TbLoginUser actor, Integer menuId) {
@@ -82,7 +110,14 @@ public class VisitService {
     }
     VisitDetail d = new VisitDetail();
     d.visit = visit;
-    d.managerIds = visitMapper.selectManagerIds(visitNo);
+    d.managers = new ArrayList<>();
+    for (String pid : visitMapper.selectManagerIds(visitNo)) {
+      VisitorForm mf = new VisitorForm();
+      mf.setPersonId(pid);
+      TbPerson mp = personMapper.selectById(pid);
+      mf.setPersonName(mp != null ? decrypt(mp.getPersonName()) : "");
+      d.managers.add(mf);
+    }
     d.acGroupIds = visitMapper.selectAcGroupIds(visitNo);
     d.carAcCodes = visitMapper.selectCarAcCodes(visitNo);
     d.visitors = new ArrayList<>();
@@ -309,7 +344,7 @@ public class VisitService {
   /** 방문 상세(수정 모달용) — 그룹 + 자식 목록. */
   public static class VisitDetail {
     public TbVisit visit;
-    public List<String> managerIds;
+    public List<VisitorForm> managers;
     public List<Integer> acGroupIds;
     public List<String> carAcCodes;
     public List<VisitorForm> visitors;

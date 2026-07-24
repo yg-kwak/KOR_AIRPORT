@@ -10,6 +10,13 @@
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
   const fmtDt = (v) => (v == null ? '' : String(v).replace('T', ' '));
+  const pad2 = (n) => String(n).padStart(2, '0');
+  // 오늘 날짜의 datetime-local 값. now=true 면 현재 시각, 아니면 hh:mm
+  const todayAt = (hh, mm, now) => {
+    const d = new Date();
+    const date = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    return `${date}T${now ? pad2(d.getHours()) + ':' + pad2(d.getMinutes()) : pad2(hh) + ':' + pad2(mm)}`;
+  };
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
   let carCodes = []; // tb_common(CAR)
@@ -143,6 +150,10 @@
       'workStartDt', 'workEndDt', 'permitDt', 'receiver', 'returner', 'workPurpose', 'remark'].forEach((id) => { $(id).value = ''; });
     managers = []; visitors = []; cars = [];
     $('visitType').value = VISIT_TYPE.id; $('visitTypeName').value = VISIT_TYPE.name; // 임시 고정
+    if (mode === 'create') { // 작업기간 기본: 시작=오늘 현재시각, 종료=오늘 18:00
+      $('workStartDt').value = todayAt(0, 0, true);
+      $('workEndDt').value = todayAt(18, 0, false);
+    }
     if ($('btnDelete')) $('btnDelete').style.display = mode === 'edit' ? '' : 'none';
     showTab('group');
     if (!freeCards.length && !carCodes.length) await loadRefs(); else await loadRefs();
@@ -162,7 +173,7 @@
       .forEach(([id, val]) => { $(id).value = val != null ? val : ''; });
     acGroupTree.set(AC_TREE, d.acGroupIds || []);
     carAcRender(d.carAcCodes || []);
-    managers = (d.managerIds || []).map((pid) => ({ personId: pid, personName: '' }));
+    managers = (d.managers || []).map((m) => ({ personId: m.personId, personName: m.personName || '' }));
     mgrRender();
     visitors = (d.visitors || []).map((x) => ({ ...x }));
     visRender();
@@ -198,13 +209,14 @@
       visitors: visitors.map((v) => ({ personId: v.personId || null, personName: (v.personName || '').trim() || null,
         birthDate: (v.birthDate || '').trim() || null, affiliation: (v.affiliation || '').trim() || null,
         cardId: v.cardId ? Number(v.cardId) : null })),
-      cars: cars.filter((c) => (c.carNo || '').trim()) // 차량은 선택 — 번호 없는 행은 제외
-        .map((c) => ({ carId: c.carId || null, carNo: (c.carNo || '').trim(),
-          carName: (c.carName || '').trim() || null, carType: c.carType || null,
-          cardId: c.cardId ? Number(c.cardId) : null })),
+      cars: cars.map((c) => ({ carId: c.carId || null, carNo: (c.carNo || '').trim() || null,
+        carName: (c.carName || '').trim() || null, carType: c.carType || null,
+        cardId: c.cardId ? Number(c.cardId) : null })),
     };
     if (!payload.companyName) { toast.warning('업체명은 필수입니다.'); return; }
     if (payload.visitors.some((v) => !v.personName)) { toast.warning('방문객 성명은 필수입니다.'); return; }
+    // 차량은 선택이지만, 행을 추가했으면 차량번호는 필수
+    if (payload.cars.some((c) => !c.carNo)) { toast.warning('차량번호는 필수입니다.'); return; }
 
     if (editMode === 'create') await api.post(BASE, payload);
     else await api.put(BASE, payload);
