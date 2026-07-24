@@ -127,8 +127,8 @@ public class VisitController {
   @DeleteMapping
   @ResponseBody
   public ApiResponse<Void> delete(@RequestParam int visitNo, HttpSession session) {
-    visitService.delete(visitNo, actor(session), menuId());
-    return ApiResponse.okMessage("삭제되었습니다.");
+    return ApiResponse.okMessage(
+        withWarning("삭제되었습니다.", visitService.delete(visitNo, actor(session), menuId())));
   }
 
   private static String withWarning(String message, String warn) {

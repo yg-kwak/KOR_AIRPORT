@@ -24,6 +24,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class VisitBiostarService {
 
+  /** BiostarX 상시 유효기간 폴백 — 작업기간 미입력 시 사용(start/expiry 필수). */
+  private static final String PERMANENT_START = "2001-01-01T00:00:00.00Z";
+
+  private static final String PERMANENT_EXPIRY = "2037-12-31T23:59:00.00Z";
+
   private final TbSystemMapper systemMapper;
   private final TbCommonMapper commonMapper;
   private final TbPersonMapper personMapper;
@@ -76,6 +81,15 @@ public class VisitBiostarService {
       if (p == null) {
         continue;
       }
+      // BiostarX 는 start/expiry 필수(없으면 사용자 생성 실패) — 작업기간이 비면 상시 유효기간으로 폴백
+      String start = datetime(p.getAccessStartDt(), "00:00");
+      String expiry = datetime(p.getAccessEndDt(), "23:59");
+      if (start == null) {
+        start = PERMANENT_START;
+      }
+      if (expiry == null) {
+        expiry = PERMANENT_EXPIRY;
+      }
       BiostarUserRequest req =
           new BiostarUserRequest(
               pid,
@@ -84,8 +98,8 @@ public class VisitBiostarService {
               null,
               parentGroupId,
               null,
-              datetime(p.getAccessStartDt(), "00:00"),
-              datetime(p.getAccessEndDt(), "23:59"),
+              start,
+              expiry,
               null,
               accessGroupIds,
               null,
@@ -101,6 +115,37 @@ public class VisitBiostarService {
         fails.add(pid + "(" + res.message() + ")");
       } else {
         personMapper.updateBiostarUserId(pid, pid);
+      }
+    }
+    return fails.isEmpty() ? null : String.join(", ", fails);
+  }
+
+  /**
+   * 방문객 BiostarX 사용자 삭제(방문 삭제 시) — 부모 그룹에서 제거. 실패해도 방문 삭제는 진행되며 경고만 반환.
+   *
+   * @return 실패 방문객이 있으면 경고 문자열, 전부 성공/미대상이면 null
+   */
+  public String deleteVisitors(String visitType, List<String> personIds) {
+    if (personIds == null || personIds.isEmpty()) {
+      return null;
+    }
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      return "BiostarX 설정이 없습니다.";
+    }
+    Integer parentGroupId = parentGroupId(visitType);
+    String ip = cfg.getBiostarIp();
+    String id = cfg.getBiostarId();
+    String pw = cfg.getBiostarPw() == null ? "" : ARIAUtil.ariaDecrypt(cfg.getBiostarPw());
+
+    List<String> fails = new java.util.ArrayList<>();
+    for (String pid : personIds) {
+      if (!biostarUserAdapter.userExists(ip, id, pw, pid)) {
+        continue;
+      }
+      BiostarResult res = biostarUserAdapter.deleteUser(ip, id, pw, pid, parentGroupId);
+      if (!res.success()) {
+        fails.add(pid + "(" + res.message() + ")");
       }
     }
     return fails.isEmpty() ? null : String.join(", ", fails);

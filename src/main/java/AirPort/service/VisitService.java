@@ -179,18 +179,21 @@ public class VisitService {
   }
 
   @Transactional
-  public void delete(int visitNo, TbLoginUser actor, Integer menuId) {
+  public String delete(int visitNo, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireDelete(actor, menuId);
     TbVisit v = visitMapper.selectById(visitNo);
     if (v == null || "Y".equals(v.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
+    // BiostarX 방문객 사용자 삭제(부모 그룹에서 제거) — 실패해도 방문 삭제는 진행
+    String warn = visitBiostar.deleteVisitors(v.getVisitType(), visitMapper.selectPersonIds(visitNo));
     clearRoster(visitNo); // 방문객/차량 정리(카드 회수 포함)
     visitMapper.deleteManagers(visitNo);
     visitMapper.deleteAcGroups(visitNo);
     visitMapper.deleteCarAcGroups(visitNo);
     visitMapper.softDelete(visitNo);
     auditService.log(actor, AuditService.DELETE, menuId, "방문 삭제: " + visitNo);
+    return warn;
   }
 
   /**
