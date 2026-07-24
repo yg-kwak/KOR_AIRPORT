@@ -151,6 +151,7 @@
       $('workEndDt').value = todayAt(18, 0, false);
     }
     if ($('btnDelete')) $('btnDelete').style.display = 'none'; // 삭제는 신청/신청취소일 때만(로드 후 노출)
+    if ($('btnSave')) $('btnSave').style.display = ''; // 퇴실완료면 로드 후 숨김(읽기전용)
     showTab('group');
     await loadRefs();
     acGroupTree.set(AC_TREE, []);
@@ -167,8 +168,9 @@
       ['workStartDt', v.workStartDt], ['workEndDt', v.workEndDt], ['permitDt', v.permitDt],
       ['receiver', v.receiver], ['returner', v.returner], ['workPurpose', v.workPurpose], ['remark', v.remark]]
       .forEach(([id, val]) => { $(id).value = val != null ? val : ''; });
-    // 삭제 버튼: 신청(VS01)·신청취소(VS02) 상태만 노출
+    // 삭제 버튼: 신청(VS01)·신청취소(VS02)만 노출 / 저장: 퇴실완료(VS04)면 숨김(수정 불가)
     if ($('btnDelete')) $('btnDelete').style.display = (v.statusCode === 'VS01' || v.statusCode === 'VS02') ? '' : 'none';
+    if ($('btnSave')) $('btnSave').style.display = v.statusCode === 'VS04' ? 'none' : '';
     acGroupTree.set(AC_TREE, d.acGroupIds || []);
     carAcRender(d.carAcCodes || []);
     managers = (d.managers || []).map((m) => ({ personId: m.personId, personName: m.personName || '' }));
@@ -215,6 +217,10 @@
     if (payload.visitors.some((v) => !v.personName)) { toast.warning('방문객 성명은 필수입니다.'); return; }
     // 차량은 선택이지만, 행을 추가했으면 차량번호는 필수
     if (payload.cars.some((c) => !c.carNo)) { toast.warning('차량번호는 필수입니다.'); return; }
+    const hasVis = payload.visitors.length > 0, hasCar = payload.cars.length > 0;
+    if (payload.acGroupIds.length && !hasVis) { toast.warning('사용자 출입그룹을 선택하면 방문객을 입력해야 합니다.'); return; }
+    if (payload.carAcCodes.length && !hasCar) { toast.warning('차량 출입그룹을 선택하면 차량을 입력해야 합니다.'); return; }
+    if (hasVis && !payload.managerIds.length) { toast.warning('방문객이 있으면 인솔자를 지정해야 합니다.'); return; }
 
     if (editMode === 'create') await api.post(BASE, payload);
     else await api.put(BASE, payload);
@@ -328,12 +334,7 @@
     });
 
     document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
-
-    // 그룹 탭 코드팝업 (방문유형은 임시 고정 — 팝업 없음)
-    $('statusName').addEventListener('click', async () => {
-      const s = await codePicker.open({ cmmId: 'VS', cmmName: '상태' });
-      if (s) { $('statusCode').value = s.codeId; $('statusName').value = s.codeName; }
-    });
+    // 방문유형·상태는 사용자가 변경 불가(고정/서버관리) — 모달 코드팝업 없음
 
     // 인솔자/방문객/차량 목록 조작
     $('btnAddMgr').addEventListener('click', openMgr);

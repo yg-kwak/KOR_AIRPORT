@@ -175,7 +175,7 @@ public class VisitService {
     menuAuthService.requireCreate(actor, menuId);
     validate(form);
     TbVisit row = toRow(form);
-    row.setStatusCode(effectiveStatus(form));
+    row.setStatusCode(effectiveStatus(DEFAULT_STATUS, form)); // 상태는 서버가 관리(신청→전원카드 시 입실중)
     visitMapper.insert(row);
     String warn = saveChildren(row.getVisitNo(), form);
     auditService.log(actor, AuditService.CREATE, menuId, "방문 등록: " + row.getVisitNo());
@@ -193,8 +193,12 @@ public class VisitService {
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
+    if (STATUS_LEFT.equals(existing.getStatusCode())) { // 퇴실완료는 수정 불가
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "퇴실 완료된 방문은 수정할 수 없습니다.");
+    }
     TbVisit row = toRow(form);
-    row.setStatusCode(effectiveStatus(form));
+    // 상태는 서버가 관리(사용자 변경 불가) — 기존 상태를 기준으로 전원 카드 발급 시 입실중 승격
+    row.setStatusCode(effectiveStatus(existing.getStatusCode(), form));
     visitMapper.update(row);
     String warn = saveChildren(form.getVisitNo(), form);
     auditService.log(actor, AuditService.UPDATE, menuId, "방문 수정: " + form.getVisitNo());
@@ -383,14 +387,25 @@ public class VisitService {
   private void validate(VisitForm form) {
     require(form.getVisitType(), "방문유형");
     require(form.getCompanyName(), "업체명");
+    boolean hasVisitors = form.getVisitors() != null && !form.getVisitors().isEmpty();
+    boolean hasCars =
+        form.getCars() != null
+            && form.getCars().stream().anyMatch(c -> c.getCarNo() != null && !c.getCarNo().isBlank());
+    // 출입그룹을 선택했으면 대상(방문객/차량) 입력 강제
+    if (notEmpty(form.getAcGroupIds()) && !hasVisitors) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "사용자 출입그룹을 선택하면 방문객을 입력해야 합니다.");
+    }
+    if (notEmpty(form.getCarAcCodes()) && !hasCars) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "차량 출입그룹을 선택하면 차량을 입력해야 합니다.");
+    }
+    // 방문객이 있으면 인솔자 필수
+    if (hasVisitors && !notEmpty(form.getManagerIds())) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "방문객이 있으면 인솔자를 지정해야 합니다.");
+    }
   }
 
-  /** 방문 상태 — 방문객이 있고 전원 카드 발급이면 '입실 중'(VS03)으로 승격. 퇴실완료는 유지. */
-  private static String effectiveStatus(VisitForm form) {
-    String base =
-        (form.getStatusCode() == null || form.getStatusCode().isBlank())
-            ? DEFAULT_STATUS
-            : form.getStatusCode();
+  /** 방문 상태 — 방문객이 있고 전원 카드 발급이면 '입실 중'(VS03)으로 승격. 퇴실완료는 유지. base 는 서버가 정한다. */
+  private static String effectiveStatus(String base, VisitForm form) {
     List<VisitorForm> vs = form.getVisitors();
     boolean allCarded =
         vs != null && !vs.isEmpty() && vs.stream().allMatch(v -> v.getCardId() != null);
