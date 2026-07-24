@@ -158,6 +158,58 @@ public class VisitBiostarService {
     return fails.isEmpty() ? null : String.join(", ", fails);
   }
 
+  /**
+   * 방문객 BiostarX 사용자 비활성화(퇴실) — {@code disabled=true} 로 바꾸고 부착 카드를 제거해 카드를 재대여 가능하게 한다.
+   * 사용자·출입그룹은 남겨 이력을 유지하되 출입은 막는다. 실패해도 퇴실은 진행되며 경고만 반환.
+   *
+   * @return 실패 방문객이 있으면 경고 문자열, 전부 성공/미대상이면 null
+   */
+  public String disableVisitors(List<String> personIds) {
+    if (personIds == null || personIds.isEmpty()) {
+      return null;
+    }
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      return "BiostarX 설정이 없습니다.";
+    }
+    String ip = cfg.getBiostarIp();
+    String id = cfg.getBiostarId();
+    String pw = cfg.getBiostarPw() == null ? "" : ARIAUtil.ariaDecrypt(cfg.getBiostarPw());
+
+    List<String> fails = new java.util.ArrayList<>();
+    for (String pid : personIds) {
+      if (!biostarUserAdapter.userExists(ip, id, pw, pid)) {
+        continue;
+      }
+      // before 에 현재 카드를 담아야 after=[] 로 장비에서 카드가 제거된다(대여 가능화).
+      List<BiostarUserCard> current = CardService.toBiostarCardsOf(cardMapper.selectByPerson(pid));
+      BiostarUserRequest before =
+          new BiostarUserRequest(
+              pid, null, null, null, null, null, null, null, null, null, null, null, null, current);
+      BiostarUserRequest after =
+          new BiostarUserRequest(
+              pid,
+              null,
+              null,
+              null,
+              null,
+              "true", // disabled
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              java.util.List.of()); // 카드 전체 제거
+      BiostarResult res = biostarUserAdapter.updateUser(ip, id, pw, before, after);
+      if (!res.success()) {
+        fails.add(pid + "(" + res.message() + ")");
+      }
+    }
+    return fails.isEmpty() ? null : String.join(", ", fails);
+  }
+
   /** visit_type(PT).code_tag = PTDxx → PTDxx.code_tag = BiostarX 부모 그룹 ID. */
   private Integer parentGroupId(String visitType) {
     TbCommon pt = code("PT", visitType);

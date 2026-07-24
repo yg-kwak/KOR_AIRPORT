@@ -36,6 +36,9 @@ public class VisitService {
   /** 방문 기본 상태 — tb_common(VS) 신청. */
   private static final String DEFAULT_STATUS = "VS01";
 
+  /** 신청 취소 — 삭제 가능 상태(VS). */
+  private static final String STATUS_CANCELLED = "VS02";
+
   /** 입실 중 — 방문객 전원 카드 발급 시 자동 승격(VS). */
   private static final String STATUS_ENTERED = "VS03";
 
@@ -205,6 +208,11 @@ public class VisitService {
     if (v == null || "Y".equals(v.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
+    // 신청(VS01)·신청취소(VS02) 상태만 삭제 가능 — 입실중/퇴실완료는 이력 보존
+    if (!DEFAULT_STATUS.equals(v.getStatusCode()) && !STATUS_CANCELLED.equals(v.getStatusCode())) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT, "신청·신청취소 상태의 방문만 삭제할 수 있습니다.");
+    }
     // BiostarX 방문객 사용자 삭제(부모 그룹에서 제거) — 실패해도 방문 삭제는 진행
     String warn = visitBiostar.deleteVisitors(v.getVisitType(), visitMapper.selectPersonIds(visitNo));
     clearRoster(visitNo); // 방문객/차량 정리(카드 회수 포함)
@@ -213,6 +221,30 @@ public class VisitService {
     visitMapper.deleteCarAcGroups(visitNo);
     visitMapper.softDelete(visitNo);
     auditService.log(actor, AuditService.DELETE, menuId, "방문 삭제: " + visitNo);
+    return warn;
+  }
+
+  /** 퇴실(입실중→퇴실완료) — BiostarX 사용자 비활성화 + 카드 제거, DB 카드 회수(재대여 가능). */
+  @Transactional
+  public String checkout(int visitNo, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireCreate(actor, menuId);
+    TbVisit v = visitMapper.selectById(visitNo);
+    if (v == null || "Y".equals(v.getDelYn())) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    if (!STATUS_ENTERED.equals(v.getStatusCode())) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "입실 중인 방문만 퇴실할 수 있습니다.");
+    }
+    List<String> personIds = visitMapper.selectPersonIds(visitNo);
+    String warn = visitBiostar.disableVisitors(personIds); // 장비: 비활성 + 카드 제거
+    for (String pid : personIds) {
+      cardMapper.releaseByPerson(pid); // 카드 재대여 가능하도록 DB 회수
+    }
+    for (Integer carId : visitMapper.selectCarIds(visitNo)) {
+      cardMapper.releaseByCar(carId);
+    }
+    visitMapper.updateStatus(visitNo, STATUS_LEFT); // VS04 퇴실 완료
+    auditService.log(actor, AuditService.UPDATE, menuId, "방문 퇴실: " + visitNo);
     return warn;
   }
 

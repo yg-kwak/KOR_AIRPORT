@@ -149,6 +149,14 @@ public class VisitController {
         withWarning("삭제되었습니다.", visitService.delete(visitNo, actor(session), menuId())));
   }
 
+  /** 퇴실 처리 — 입실 중 방문을 퇴실완료로. BiostarX 사용자 비활성화 + 카드 회수. */
+  @PostMapping("/checkout")
+  @ResponseBody
+  public ApiResponse<Void> checkout(@RequestParam int visitNo, HttpSession session) {
+    return ApiResponse.okMessage(
+        withWarning("퇴실 처리되었습니다.", visitService.checkout(visitNo, actor(session), menuId())));
+  }
+
   private static String withWarning(String message, String warn) {
     return warn == null ? message : message + " (BiostarX 동기화 실패: " + warn + ")";
   }

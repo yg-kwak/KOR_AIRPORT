@@ -20,6 +20,9 @@ public interface TbVisitMapper {
 
   int softDelete(@Param("visitNo") int visitNo);
 
+  /** 상태만 변경 — 퇴실(VS04) 처리용. */
+  int updateStatus(@Param("visitNo") int visitNo, @Param("statusCode") String statusCode);
+
   // ── 인솔자 ──
   List<String> selectManagerIds(@Param("visitNo") int visitNo);
 

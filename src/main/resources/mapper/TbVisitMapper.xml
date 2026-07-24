@@ -82,6 +82,10 @@
     UPDATE tb_visit SET del_yn = 'Y', mod_dt = getdate() WHERE visit_no = #{visitNo}
   </update>
 
+  <update id="updateStatus">
+    UPDATE tb_visit SET status_code = #{statusCode}, mod_dt = getdate() WHERE visit_no = #{visitNo}
+  </update>
+
   <!-- ── 인솔자 ── -->
   <select id="selectManagerIds" resultType="string">
     SELECT person_id FROM tb_visit_manager WHERE visit_no = #{visitNo} ORDER BY seq
