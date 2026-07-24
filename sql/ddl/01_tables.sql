@@ -159,6 +159,7 @@ CREATE TABLE dbo.tb_person (
   person_type        nvarchar(50)   NULL,                   -- 발급유형(정규/임시/상주 등) → tb_common(cmm_id='PT')
   status_code        nvarchar(50)   NULL,                   -- 상태 → tb_common(cmm_id='PS')
   main_task          nvarchar(200)  NULL,                   -- 주요업무
+  affiliation        nvarchar(100)  NULL,                   -- 소속 (방문객 자유입력; 정규는 tb_company 사용)
   id_check_dt        datetime2(0)   NULL,                   -- 신원조회 회보일
   id_check_file      nvarchar(500)  NULL,                   -- 회보근거문서 파일명 (실체는 tb_person_file)
   security_edu_dt    datetime2(0)   NULL,                   -- 보안교육 합격일
@@ -244,6 +245,79 @@ CREATE TABLE dbo.tb_person_ac_group (
   reg_dt      datetime2(0) NOT NULL DEFAULT getdate(),
   mod_dt      datetime2(0) NOT NULL DEFAULT getdate(),
   CONSTRAINT PK_tb_person_ac_group PRIMARY KEY (person_id, ac_group_id)
+);
+
+/* 방문/작업 그룹 (임시·장기 출입). 정규(tb_company 기반)와 달리 BiostarX 기관 그룹을
+   만들지 않고 PT(임시/장기) 부모 그룹 아래로 편입한다(integration.md). 업체는 자유입력 text */
+CREATE TABLE dbo.tb_visit (
+  visit_no      int IDENTITY(1,1) NOT NULL,           -- 그룹번호 (PK)
+  visit_type    nvarchar(50)   NULL,                  -- 유형(임시/장기 등) → tb_common(cmm_id='PT'). 소속 인원 person_type·카드 pass_type 결정
+  status_code   nvarchar(50)   NULL,                  -- 방문상태 → tb_common(cmm_id='VS')
+  work_purpose  nvarchar(500)  NULL,                  -- 작업목적
+  permit_dt     datetime2(0)   NULL,                  -- 작업 허가일자
+  work_start_dt datetime2(0)   NULL,                  -- 작업기간 시작
+  work_end_dt   datetime2(0)   NULL,                  -- 작업기간 종료
+  company_type  nvarchar(100)  NULL,                  -- 업체구분 (자유입력 text)
+  company_name  nvarchar(100)  NULL,                  -- 업체명 (자유입력 text)
+  receiver      nvarchar(100)  NULL,                  -- 수령자 (방문객, text)
+  returner      nvarchar(100)  NULL,                  -- 반납자 (방문객, text)
+  evidence_file nvarchar(260)  NULL,                  -- 근거문서 파일명 (text)
+  remark        nvarchar(1000) NULL,                  -- 메모
+  del_yn        nchar(1)       NOT NULL DEFAULT 'N',  -- 삭제여부 (소프트 삭제)
+  reg_dt        datetime2(0)   NOT NULL DEFAULT getdate(),
+  mod_dt        datetime2(0)   NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_visit PRIMARY KEY (visit_no),
+  CONSTRAINT CHK_tb_visit_del_yn CHECK (del_yn IN ('Y','N'))
+);
+
+/* 인솔자 (1 visit : N) — 정규인원(tb_person, person_type='PT01').
+   같은 인솔자가 여러 visit 에 지정될 수 있어 seq 로 구분(임시 중복금지 등은 visit_type 별 서비스 검증) */
+CREATE TABLE dbo.tb_visit_manager (
+  visit_no  int          NOT NULL,                    -- → tb_visit.visit_no
+  seq       int          NOT NULL,                    -- 순번
+  person_id nvarchar(30) NOT NULL,                    -- 정규사용자ID → tb_person.person_id (PT01)
+  reg_dt    datetime2(0) NOT NULL DEFAULT getdate(),
+  mod_dt    datetime2(0) NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_visit_manager PRIMARY KEY (visit_no, seq)
+);
+
+/* 방문 인원 명단 (visit 1 : 인원 N) — 인원은 tb_person(person_type=방문유형) */
+CREATE TABLE dbo.tb_visit_person (
+  visit_no  int          NOT NULL,                    -- → tb_visit.visit_no
+  person_id nvarchar(30) NOT NULL,                    -- → tb_person.person_id
+  reg_dt    datetime2(0) NOT NULL DEFAULT getdate(),
+  mod_dt    datetime2(0) NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_visit_person PRIMARY KEY (visit_no, person_id)
+);
+
+/* 방문 차량 명단 (visit 1 : 차량 N) */
+CREATE TABLE dbo.tb_visit_car (
+  visit_no int          NOT NULL,                     -- → tb_visit.visit_no
+  car_id   int          NOT NULL,                     -- → tb_car.car_id
+  reg_dt   datetime2(0) NOT NULL DEFAULT getdate(),
+  mod_dt   datetime2(0) NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_visit_car PRIMARY KEY (visit_no, car_id)
+);
+
+/* 공통 인원구역 — tb_ac_group 최상위 노드 선택. 방문유형(PT).code_remark='Y' 면 하위 세부 트리도
+   선택 가능, 아니면 최상위만(서비스에서 강제). 승인 시 각 방문 인원에게 최상위→하위 biostar 매핑
+   그룹으로 확장해 tb_person_ac_group 에 기록한다(integration.md) */
+CREATE TABLE dbo.tb_visit_ac_group (
+  visit_no    int          NOT NULL,                  -- → tb_visit.visit_no
+  ac_group_id int          NOT NULL,                  -- → tb_ac_group.ac_group_id
+  reg_dt      datetime2(0) NOT NULL DEFAULT getdate(),
+  mod_dt      datetime2(0) NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_visit_ac_group PRIMARY KEY (visit_no, ac_group_id)
+);
+
+/* 공통 차량구역 — 차량은 BiostarX 대상이 아니므로 CAR 공통코드(tb_car_ac_group 과 동일).
+   승인 시 각 방문 차량에게 tb_car_ac_group 으로 복제 */
+CREATE TABLE dbo.tb_visit_car_ac_group (
+  visit_no int          NOT NULL,                     -- → tb_visit.visit_no
+  code_id  nvarchar(50) NOT NULL,                     -- 출입구역 → tb_common(cmm_id='CAR').code_id
+  reg_dt   datetime2(0) NOT NULL DEFAULT getdate(),
+  mod_dt   datetime2(0) NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_visit_car_ac_group PRIMARY KEY (visit_no, code_id)
 );
 
 /* 감사추적 (이력) */

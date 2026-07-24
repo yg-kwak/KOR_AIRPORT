@@ -199,6 +199,7 @@ PK: `person_id`. **`tb_login_user`(로그인 계정)와 다른 개체** — 혼�
 | person_type | nvarchar(50) | | | 발급유형 | 정규/임시/상주 등 → `tb_common`(cmm_id='PT').code_id. 발급 절차가 유형별로 달라짐 |
 | status_code | nvarchar(50) | | | 상태 | → `tb_common`(cmm_id='PS').code_id |
 | main_task | nvarchar(200) | | | 주요업무 | |
+| affiliation | nvarchar(100) | | | 소속 | 방문객 자유입력(정규는 `company_code` 사용) |
 | id_check_dt | datetime2(0) | | | 신원조회 회보일 | |
 | id_check_file | nvarchar(500) | | | 회보근거문서 | 표시용 원본 파일명. 실체는 `tb_person_file`(file_type='ID_CHECK') |
 | security_edu_dt | datetime2(0) | | | 보안교육 합격일 | |
@@ -277,6 +278,75 @@ PK: `person_id` + `ac_group_id` (복합). **인원 N : 출입그룹 M** — 인�
 | ac_group_id | int | Y | 출입그룹ID | → `tb_ac_group.ac_group_id` |
 | reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
 
+### tb_visit — 방문/작업 그룹 (임시·장기 출입)
+PK: `visit_no` (IDENTITY). 임시·장기 출입자의 방문 1건. **정규(`tb_company` 기반)와 달리 BiostarX 기관 그룹을 만들지 않고 `PT`(임시/장기) 부모 그룹 아래로 편입**한다(`integration.md`). 업체는 등록기관이 아니라 자유입력 text. 삭제는 `del_yn='Y'` 소프트 삭제.
+
+| 컬럼 | 타입 | PK | 설명 | 비고 |
+|------|------|----|------|------|
+| visit_no | int | Y | 그룹번호 | IDENTITY(1,1) |
+| visit_type | nvarchar(50) | | 유형 | → `tb_common`(cmm_id='PT'). 소속 인원 `person_type`·카드 `pass_type` 결정 |
+| status_code | nvarchar(50) | | 방문상태 | → `tb_common`(cmm_id='VS'): 신청/신청취소/입실중/퇴실완료 |
+| work_purpose | nvarchar(500) | | 작업목적 | |
+| permit_dt | datetime2(0) | | 작업 허가일자 | |
+| work_start_dt | datetime2(0) | | 작업기간 시작 | 승인 시 인원 `access_start_dt` 로 전파 |
+| work_end_dt | datetime2(0) | | 작업기간 종료 | 승인 시 인원 `access_end_dt` 로 전파 |
+| company_type | nvarchar(100) | | 업체구분 | 자유입력 text |
+| company_name | nvarchar(100) | | 업체명 | 자유입력 text |
+| receiver | nvarchar(100) | | 수령자 | 방문객, text |
+| returner | nvarchar(100) | | 반납자 | 방문객, text |
+| evidence_file | nvarchar(260) | | 근거문서 | 파일명 text |
+| remark | nvarchar(1000) | | 메모 | |
+| del_yn | nchar(1) | | 삭제여부 | 기본 'N', CHK Y/N |
+| reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
+
+### tb_visit_manager — 인솔자 (방문 1 : N)
+PK: `visit_no` + `seq` (복합). 인솔자는 정규인원(`tb_person`, `person_type='PT01'`). 같은 인솔자가 여러 visit 에 지정될 수 있어 `seq` 로 구분한다. **"임시는 인솔자 중복 불가, 장기는 가능" 같은 규칙은 `visit_type` 조건부라 서비스 계층에서 검증**(정적 제약으로는 불가).
+
+| 컬럼 | 타입 | PK | 설명 | 비고 |
+|------|------|----|------|------|
+| visit_no | int | Y | 그룹번호 | → `tb_visit.visit_no` |
+| seq | int | Y | 순번 | |
+| person_id | nvarchar(30) | | 정규사용자ID | → `tb_person.person_id` (PT01) |
+| reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
+
+### tb_visit_person — 방문 인원 명단 (방문 1 : 인원 N)
+PK: `visit_no` + `person_id`. 방문에 속한 인원. 인원 실체는 `tb_person`(`person_type`=방문유형), 카드는 `tb_card.person_id`.
+
+| 컬럼 | 타입 | PK | 설명 | 비고 |
+|------|------|----|------|------|
+| visit_no | int | Y | 그룹번호 | → `tb_visit.visit_no` |
+| person_id | nvarchar(30) | Y | 인원ID | → `tb_person.person_id` |
+| reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
+
+### tb_visit_car — 방문 차량 명단 (방문 1 : 차량 N)
+PK: `visit_no` + `car_id`. 방문에 속한 차량. 카드는 `tb_card.car_id`.
+
+| 컬럼 | 타입 | PK | 설명 | 비고 |
+|------|------|----|------|------|
+| visit_no | int | Y | 그룹번호 | → `tb_visit.visit_no` |
+| car_id | int | Y | 차량ID | → `tb_car.car_id` |
+| reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
+
+### tb_visit_ac_group — 방문 공통 인원구역
+PK: `visit_no` + `ac_group_id`. 방문 전체에 적용할 공통 인원 출입구역. **`tb_ac_group` 최상위 노드 선택** — 방문유형(`PT`)의 `code_remark='Y'` 면 하위 세부 트리도 선택 가능, 아니면 최상위만(서비스에서 강제).
+
+> **materialize(승인 시)**: 저장된 최상위 그룹을 **하위 BiostarX 매핑그룹으로 확장**해 각 방문 인원의 `tb_person_ac_group` 에 기록 → 정규와 동일 경로로 BiostarX 전송. (`integration.md`)
+
+| 컬럼 | 타입 | PK | 설명 | 비고 |
+|------|------|----|------|------|
+| visit_no | int | Y | 그룹번호 | → `tb_visit.visit_no` |
+| ac_group_id | int | Y | 출입그룹ID | → `tb_ac_group.ac_group_id` (최상위) |
+| reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
+
+### tb_visit_car_ac_group — 방문 공통 차량구역
+PK: `visit_no` + `code_id`. 방문 전체에 적용할 공통 차량 출입구역. 차량은 BiostarX 대상이 아니므로 `CAR` 공통코드(`tb_car_ac_group` 과 동일). 승인 시 각 방문 차량의 `tb_car_ac_group` 으로 복제.
+
+| 컬럼 | 타입 | PK | 설명 | 비고 |
+|------|------|----|------|------|
+| visit_no | int | Y | 그룹번호 | → `tb_visit.visit_no` |
+| code_id | nvarchar(50) | Y | 출입구역 | → `tb_common`(cmm_id='CAR').code_id |
+| reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
+
 ### tb_system_log — 감사추적 (이력, 불변식)
 PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략히 적재**한다. 정책은 `security.md`.
 
@@ -308,6 +378,10 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 - `tb_card.person_id` → `tb_person.person_id` (**1:N** — 인원 1명이 카드 여러 장)
 - `tb_card.card_type` → `tb_common`(cmm_id='CDT'), `card_status` → (cmm_id='CS'), `issue_type` → (cmm_id='IS')
 - `tb_person` ←(`tb_person_ac_group`)→ `tb_ac_group` (**N:M** 인원별 출입권한 부여)
+- `tb_visit.visit_type` → `tb_common`(cmm_id='PT'), `tb_visit.status_code` → `tb_common`(cmm_id='VS')
+- `tb_visit` ─1:N─ `tb_visit_manager`(인솔자 → `tb_person` PT01) · `tb_visit_person`(→ `tb_person`) · `tb_visit_car`(→ `tb_car`)
+- `tb_visit` 공통구역: `tb_visit_ac_group`(→ `tb_ac_group` 최상위) · `tb_visit_car_ac_group`(→ `tb_common` cmm_id='CAR')
+- 방문 카드는 별도 테이블 없이 `tb_card`(`person_id`/`car_id`, `pass_type`=방문유형) 재사용. 승인 시 공통구역을 인원별 `tb_person_ac_group`·차량별 `tb_car_ac_group` 으로 materialize
 
 ## 마이그레이션
 - 스키마 원천: `D:\작업\2026\청주공항\설계\table.xlsx` (설계) → 본 문서 → 실행 스크립트 `sql/`.

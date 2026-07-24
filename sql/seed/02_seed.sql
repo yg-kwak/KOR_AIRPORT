@@ -45,12 +45,14 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
   ('CO', N'기관구분', '44', N'항공사', 'Y'),
   ('CO', N'기관구분', '55', N'업체',   'Y');
 
-/* 인원구분(PT) — code_tag = 대응하는 발급구분(PTD) 코드 */
-INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_yn) VALUES
-  ('PT', N'인원구분', 'PT01', N'정규', 'PTD01', 'Y'),
-  ('PT', N'인원구분', 'PT02', N'임시', 'PTD02', 'Y'),
-  ('PT', N'인원구분', 'PT03', N'장기', 'PTD03', 'Y'),
-  ('PT', N'인원구분', 'PT04', N'상주', 'PTD03', 'Y');
+/* 인원구분(PT) — code_tag = 대응하는 발급구분(PTD) 코드.
+   code_remark = 방문 출입구역 선택 시 하위 세부 트리 노출 여부('Y'=하위트리 선택 가능, 그 외=최상위만).
+   ⚠️ 값은 운영 정책에 맞게 조정: 임시=최상위만, 장기·상주=세부까지 (tb_visit_ac_group 규칙) */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, use_yn) VALUES
+  ('PT', N'인원구분', 'PT01', N'정규', 'PTD01', 'N', 'Y'),
+  ('PT', N'인원구분', 'PT02', N'임시', 'PTD02', 'N', 'Y'),
+  ('PT', N'인원구분', 'PT03', N'장기', 'PTD03', 'Y', 'Y'),
+  ('PT', N'인원구분', 'PT04', N'상주', 'PTD03', 'Y', 'Y');
 
 /* 발급구분(PTD) — code_tag = BiostarX 부모 사용자그룹 ID.
    ⚠️ BiostarX 환경마다 다르므로 대상 서버의 실제 그룹 ID 로 교체할 것. (integration.md) */
@@ -81,9 +83,18 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
   ('IS', N'발급구분', 'IS02', N'재발급', 'Y'),
   ('IS', N'발급구분', 'IS03', N'분실재발급', 'Y');
 
+/* 방문상태(VS) — tb_visit.status_code. 신청→입실 중→퇴실 완료 흐름, 신청 취소는 반려 */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
+  ('VS', N'방문상태', 'VS01', N'신청',     'Y'),
+  ('VS', N'방문상태', 'VS02', N'신청 취소', 'Y'),
+  ('VS', N'방문상태', 'VS03', N'입실 중',   'Y'),
+  ('VS', N'방문상태', 'VS04', N'퇴실 완료', 'Y');
+
 /* 메뉴 (level 1 그룹은 menu_icon 지정 — 사이드바 아이콘) */
 INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn) VALUES
-  (200, N'정규인원관리', NULL, NULL,                 1, 1, 'card',     'Y'),
+  (100, N'임시인원관리', NULL, NULL,                 1, 1, 'guard',    'Y'),
+  (101, N'임시인원등록', 100,  '/visitor/visitor',    2, 1, NULL,       'Y'),
+  (200, N'정규인원관리', NULL, NULL,                 1, 2, 'card',     'Y'),
   (201, N'정규인원등록', 200,  '/person/person',      2, 1, NULL,      'Y'),
   (300, N'시스템관리',   NULL, NULL,                 1, 2, 'settings', 'Y'),
   (302, N'설정관리',     300,  '/system/system',     2, 1, NULL,       'Y'),
@@ -115,7 +126,8 @@ VALUES (@authId, 301, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 701, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 201, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 801, 'Y', 'Y', 'Y', 'Y'),
-       (@authId, 702, 'Y', 'Y', 'Y', 'Y');
+       (@authId, 702, 'Y', 'Y', 'Y', 'Y'),
+       (@authId, 101, 'Y', 'Y', 'Y', 'Y');
 
 /* 관리자 계정: 아이디 admin / 비밀번호 admin123 (ARIA 암호문) */
 INSERT INTO dbo.tb_login_user
@@ -140,7 +152,8 @@ VALUES (@viewerAuthId, 301, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 701, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 201, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 801, 'Y', 'N', 'N', 'N'),
-       (@viewerAuthId, 702, 'Y', 'N', 'N', 'N');
+       (@viewerAuthId, 702, 'Y', 'N', 'N', 'N'),
+       (@viewerAuthId, 101, 'Y', 'N', 'N', 'N');
 
 INSERT INTO dbo.tb_login_user
   (user_id, user_name, password, dept_name, use_yn, root_yn, auth_id, start_menu_id, work_location_code)

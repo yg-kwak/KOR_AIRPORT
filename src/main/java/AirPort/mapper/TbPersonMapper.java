@@ -16,6 +16,9 @@ public interface TbPersonMapper {
   /** 기관의 정규인원 목록 — 차량관리자 선택 팝업(성명은 ARIA 암호문, 서비스가 복호화). */
   List<TbPerson> selectByCompany(@Param("companyCode") String companyCode);
 
+  /** 정규인원(PT01) 키워드 조회 — 인솔자 선택 팝업. 성명은 암호문이라 인원ID 로 검색. */
+  List<TbPerson> selectRegular(@Param("keyword") String keyword);
+
   TbPerson selectById(@Param("personId") String personId);
 
   /** 정규인원(PT01) 중 숫자형 인원ID 의 다음 값(자동 채번). 없으면 기본 400001. */

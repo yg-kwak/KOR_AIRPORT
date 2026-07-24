@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbVisitMapper">
+
+  <sql id="searchWhere">
+    <where>
+      v.del_yn = 'N'
+      <if test="visitType != null and visitType != ''">AND v.visit_type = #{visitType}</if>
+      <if test="statusCode != null and statusCode != ''">AND v.status_code = #{statusCode}</if>
+      <if test="keyword != null and keyword != ''">
+        AND (v.company_name LIKE '%' + #{keyword} + '%' OR v.work_purpose LIKE '%' + #{keyword} + '%')
+      </if>
+    </where>
+  </sql>
+
+  <sql id="orderBy">
+    ORDER BY
+    <choose>
+      <when test="sort == 'companyName'">v.company_name <if test="desc">DESC</if>, v.visit_no</when>
+      <when test="sort == 'workStartDt'">v.work_start_dt <if test="desc">DESC</if>, v.visit_no</when>
+      <when test="sort == 'regDt'">v.reg_dt <if test="desc">DESC</if>, v.visit_no</when>
+      <otherwise>v.visit_no DESC</otherwise>
+    </choose>
+  </sql>
+
+  <sql id="cols">
+    v.visit_no, v.visit_type, v.status_code, v.work_purpose, v.company_type, v.company_name,
+    v.receiver, v.returner, v.evidence_file, v.remark, v.del_yn, v.reg_dt, v.mod_dt,
+    CONVERT(varchar(10), v.permit_dt, 23)      AS permit_dt,
+    CONVERT(varchar(16), v.work_start_dt, 126) AS work_start_dt,
+    CONVERT(varchar(16), v.work_end_dt, 126)   AS work_end_dt,
+    pt.code_name AS visit_type_name, vs.code_name AS status_name,
+    (SELECT COUNT(*) FROM tb_visit_person vp WHERE vp.visit_no = v.visit_no) AS person_count,
+    (SELECT COUNT(*) FROM tb_visit_car vc WHERE vc.visit_no = v.visit_no) AS car_count
+  </sql>
+
+  <sql id="joins">
+    FROM tb_visit v
+    LEFT JOIN tb_common pt ON pt.cmm_id = 'PT' AND pt.code_id = v.visit_type
+    LEFT JOIN tb_common vs ON vs.cmm_id = 'VS' AND vs.code_id = v.status_code
+  </sql>
+
+  <select id="selectList" parameterType="AirPort.model.VisitSearchParam" resultType="TbVisit">
+    SELECT <include refid="cols"/>
+    <include refid="joins"/>
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="selectCount" parameterType="AirPort.model.VisitSearchParam" resultType="long">
+    SELECT COUNT(*) FROM tb_visit v
+    <include refid="searchWhere"/>
+  </select>
+
+  <select id="selectById" resultType="TbVisit">
+    SELECT <include refid="cols"/>
+    <include refid="joins"/>
+    WHERE v.visit_no = #{visitNo}
+  </select>
+
+  <insert id="insert" parameterType="TbVisit" useGeneratedKeys="true" keyProperty="visitNo">
+    INSERT INTO tb_visit
+      (visit_type, status_code, work_purpose, permit_dt, work_start_dt, work_end_dt,
+       company_type, company_name, receiver, returner, evidence_file, remark)
+    VALUES
+      (#{visitType}, #{statusCode}, #{workPurpose}, #{permitDt}, #{workStartDt}, #{workEndDt},
+       #{companyType}, #{companyName}, #{receiver}, #{returner}, #{evidenceFile}, #{remark})
+  </insert>
+
+  <update id="update" parameterType="TbVisit">
+    UPDATE tb_visit
+    SET visit_type = #{visitType}, status_code = #{statusCode}, work_purpose = #{workPurpose},
+        permit_dt = #{permitDt}, work_start_dt = #{workStartDt}, work_end_dt = #{workEndDt},
+        company_type = #{companyType}, company_name = #{companyName},
+        receiver = #{receiver}, returner = #{returner}, remark = #{remark}, mod_dt = getdate()
+    WHERE visit_no = #{visitNo}
+  </update>
+
+  <update id="softDelete">
+    UPDATE tb_visit SET del_yn = 'Y', mod_dt = getdate() WHERE visit_no = #{visitNo}
+  </update>
+
+  <!-- ── 인솔자 ── -->
+  <select id="selectManagerIds" resultType="string">
+    SELECT person_id FROM tb_visit_manager WHERE visit_no = #{visitNo} ORDER BY seq
+  </select>
+  <delete id="deleteManagers">DELETE FROM tb_visit_manager WHERE visit_no = #{visitNo}</delete>
+  <insert id="insertManagers">
+    INSERT INTO tb_visit_manager (visit_no, seq, person_id) VALUES
+    <foreach collection="personIds" item="pid" index="i" separator=",">
+      (#{visitNo}, #{i} + 1, #{pid})
+    </foreach>
+  </insert>
+
+  <!-- ── 방문객 ── -->
+  <select id="selectPersonIds" resultType="string">
+    SELECT person_id FROM tb_visit_person WHERE visit_no = #{visitNo}
+  </select>
+  <delete id="deletePersons">DELETE FROM tb_visit_person WHERE visit_no = #{visitNo}</delete>
+  <insert id="insertPerson">
+    INSERT INTO tb_visit_person (visit_no, person_id) VALUES (#{visitNo}, #{personId})
+  </insert>
+
+  <!-- ── 방문 차량 ── -->
+  <select id="selectCarIds" resultType="int">
+    SELECT car_id FROM tb_visit_car WHERE visit_no = #{visitNo}
+  </select>
+  <delete id="deleteCars">DELETE FROM tb_visit_car WHERE visit_no = #{visitNo}</delete>
+  <insert id="insertCar">
+    INSERT INTO tb_visit_car (visit_no, car_id) VALUES (#{visitNo}, #{carId})
+  </insert>
+
+  <!-- ── 사용자출입그룹 ── -->
+  <select id="selectAcGroupIds" resultType="int">
+    SELECT ac_group_id FROM tb_visit_ac_group WHERE visit_no = #{visitNo}
+  </select>
+  <delete id="deleteAcGroups">DELETE FROM tb_visit_ac_group WHERE visit_no = #{visitNo}</delete>
+  <insert id="insertAcGroups">
+    INSERT INTO tb_visit_ac_group (visit_no, ac_group_id) VALUES
+    <foreach collection="acGroupIds" item="id" separator=",">(#{visitNo}, #{id})</foreach>
+  </insert>
+
+  <!-- ── 차량출입그룹(CAR) ── -->
+  <select id="selectCarAcCodes" resultType="string">
+    SELECT code_id FROM tb_visit_car_ac_group WHERE visit_no = #{visitNo} ORDER BY code_id
+  </select>
+  <delete id="deleteCarAcGroups">DELETE FROM tb_visit_car_ac_group WHERE visit_no = #{visitNo}</delete>
+  <insert id="insertCarAcGroups">
+    INSERT INTO tb_visit_car_ac_group (visit_no, code_id) VALUES
+    <foreach collection="codeIds" item="code" separator=",">(#{visitNo}, #{code})</foreach>
+  </insert>
+
+</mapper>

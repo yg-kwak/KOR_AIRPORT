@@ -45,7 +45,7 @@
   <!-- 사진(tb_person_photo)은 조인하지 않는다(행 크기·성능·생체정보 보호) -->
   <sql id="listColumns">
     p.person_id, p.person_name, p.birth_date, p.person_phone, p.company_code, p.title_code,
-    p.person_type, p.status_code, p.main_task, p.remark, p.biostar_user_id,
+    p.person_type, p.status_code, p.main_task, p.affiliation, p.remark, p.biostar_user_id,
     p.id_check_file, p.security_edu_score, p.approve_file,
     CONVERT(varchar(10), p.id_check_dt, 23)      AS id_check_dt,
     CONVERT(varchar(10), p.security_edu_dt, 23)  AS security_edu_dt,
@@ -76,6 +76,16 @@
     <include refid="searchWhere"/>
   </select>
 
+  <!-- 정규인원(PT01) — 인솔자 선택 팝업. 성명 암호문이라 인원ID LIKE -->
+  <select id="selectRegular" resultType="TbPerson">
+    SELECT TOP 50 p.person_id, p.person_name, p.company_code, co.company_name
+    FROM tb_person p
+    LEFT JOIN tb_company co ON co.company_code = p.company_code
+    WHERE p.del_yn = 'N' AND p.person_type = 'PT01'
+      <if test="keyword != null and keyword != ''">AND p.person_id LIKE '%' + #{keyword} + '%'</if>
+    ORDER BY p.person_id
+  </select>
+
   <!-- 기관의 정규인원 — 차량관리자 선택 팝업 -->
   <select id="selectByCompany" resultType="TbPerson">
     SELECT p.person_id, p.person_name, p.company_code, p.title_code, ut.code_name AS title_name
@@ -101,12 +111,12 @@
   <insert id="insert" parameterType="TbPerson">
     INSERT INTO tb_person
       (person_id, person_name, birth_date, person_phone, company_code, title_code,
-       person_type, status_code, main_task, access_start_dt, access_end_dt, remark,
+       person_type, status_code, main_task, affiliation, access_start_dt, access_end_dt, remark,
        id_check_dt, id_check_file, security_edu_dt, security_edu_score,
        final_approve_dt, approve_file, use_yn)
     VALUES
       (#{personId}, #{personName}, #{birthDate}, #{personPhone}, #{companyCode}, #{titleCode},
-       #{personType}, #{statusCode}, #{mainTask}, #{accessStartDt}, #{accessEndDt}, #{remark},
+       #{personType}, #{statusCode}, #{mainTask}, #{affiliation}, #{accessStartDt}, #{accessEndDt}, #{remark},
        #{idCheckDt}, #{idCheckFile}, #{securityEduDt}, #{securityEduScore},
        #{finalApproveDt}, #{approveFile}, ISNULL(#{useYn}, 'Y'))
   </insert>

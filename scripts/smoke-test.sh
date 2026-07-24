@@ -244,6 +244,15 @@ check "미발급 필터(인원·차량 공통)" 200 "$(A -o /dev/null -w '%{http
 check "없는 카드 수정 404" 404 "$(A -H 'Content-Type: application/json' -X PUT --data '{"cardId":999999,"biostarCardValue":"1","cardType":"CDT01","passType":"PT01","cardName":"x","cardStatus":"CS01"}' -o /dev/null -w '%{http_code}' "$BASE_URL/card/card")"
 check "없는 카드 삭제 404" 404 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/card/card?cardId=999999")"
 
+echo "== 임시인원등록(tb_visit) =="
+check "방문 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/visitor/visitor")"
+check "방문 목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/visitor/visitor/list?size=5")"
+check "방문 인솔자 후보 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/visitor/visitor/managers?keyword=")"
+check "방문 미할당카드 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/visitor/visitor/cards/unassigned?keyword=")"
+check "방문유형 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"companyName":"x"}' -o /dev/null -w '%{http_code}' "$BASE_URL/visitor/visitor")"
+check "업체명 필수 400" 400 "$(A -H 'Content-Type: application/json' -X POST --data '{"visitType":"PT02"}' -o /dev/null -w '%{http_code}' "$BASE_URL/visitor/visitor")"
+check "없는 방문 삭제 404" 404 "$(A -X DELETE -o /dev/null -w '%{http_code}' "$BASE_URL/visitor/visitor?visitNo=999999")"
+
 echo "== 기관차량등록(tb_car + tb_card) ==" 
 check "기관차량 화면" 200 "$(curl -s -b "$CK_A" -o /dev/null -w '%{http_code}' "$BASE_URL/company/companyCar")"
 check "기관차량 기관목록 조회" 200 "$(A -o /dev/null -w '%{http_code}' "$BASE_URL/company/companyCar/list?size=5")"

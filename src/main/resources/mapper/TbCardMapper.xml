@@ -85,6 +85,17 @@
     ORDER BY c.card_id
   </select>
 
+  <!-- 카드 인원 배정/회수 — 방문객 카드 선택 -->
+  <update id="assignPerson">
+    UPDATE tb_card SET person_id = #{personId}, use_yn = 'Y', del_yn = 'N', mod_dt = getdate()
+    WHERE card_id = #{cardId}
+  </update>
+
+  <!-- 차량의 카드 전부 회수 -->
+  <update id="releaseByCar">
+    UPDATE tb_card SET car_id = NULL, mod_dt = getdate() WHERE car_id = #{carId} AND del_yn = 'N'
+  </update>
+
   <!-- 차량 카드 발급/회수 — carId 가 null 이면 회수(카드는 살아 있어 다른 차량이 재사용) -->
   <update id="assignCar">
     UPDATE tb_card SET car_id = #{carId}, use_yn = 'Y', del_yn = 'N', mod_dt = getdate()

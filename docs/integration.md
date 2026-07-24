@@ -66,6 +66,9 @@
   - **실패 정책**: 연동 실패(예: 이름 중복 `code 65646` "User group name is duplicated.")여도 **기관 저장은 유지**하고 경고 메시지로 알린다. 어댑터: `BiostarAdapter.searchUserGroups/createUserGroup/updateUserGroupName`.
 - **사용자관리 장치ID**(`/system/loginUser`): 장치ID(`dev_id`) 선택 팝업 — `POST /api/v2/devices/search`(`feature_types=[card]`)로 장치(`DeviceCollection.rows[].{id,name}`) 조회 후 선택한 `id` 를 `tb_login_user.dev_id` 에 저장. 어댑터: `BiostarAdapter.searchDevices`. 클라이언트에서 장치ID/장치명으로 필터.
 - **출입권한관리 화면**(`/security/acGroup`): 최상위=tb_common(cmm_id='AR') 동기화(진입 시 insert/delete), 하위=`POST /api/v2/access_groups/search` 로 가져온 출입그룹(id/name)을 매핑 저장. 어댑터: `BiostarAdapter.searchAccessGroups`(로그인→세션→검색).
+- **방문(임시·장기) ↔ BiostarX**(`tb_visit`): 정규(`tb_company` 기반)와 달리 **기관 사용자그룹을 만들지 않는다**. 방문 인원(`tb_person`, `person_type`=임시/장기)의 `user_group_id` 는 `PT`→`PTD` 체인의 **임시/장기 부모 그룹(code_tag) 아래로 직접** 편입한다(중간 기관 그룹 없음). 방문 카드는 별도 테이블 없이 정규와 **동일한 `tb_card`**(`person_id`/`car_id`, `pass_type`=방문유형)로 발급하며, 인원 카드(CDT01)만 `POST /api/cards`, 차량 카드는 BiostarX 미등록(정규 규칙과 동일).
+  - **공통구역 materialize(승인 시)**: `tb_visit_ac_group`(최상위 출입그룹)을 **하위 BiostarX 매핑그룹(`biostar_ac_id`)으로 확장**해 각 방문 인원의 `tb_person_ac_group` 에 기록 → `POST/PUT /api/users` 의 `access_groups` 로 정규와 동일하게 전송. 차량은 `tb_visit_car_ac_group`(CAR)을 각 차량 `tb_car_ac_group` 으로 복제(BiostarX 미전송). `work_start_dt/work_end_dt` 는 인원 `access_start_dt/access_end_dt` 로 전파.
+  - **구역 선택 범위**: 방문유형(`tb_common` cmm_id='PT')의 **`code_remark='Y'` 면 하위 세부 트리까지 선택 가능**, 아니면 **최상위 그룹만**(선택 팝업이 `parent_ac_group_id IS NULL` 만 노출 + 저장 시 재검증). 예: 임시=최상위만, 장기·상주=세부까지.
 - TODO: 사용자/카드/얼굴 등 나머지 도메인 모델 ↔ BiostarX 모델 매핑 표.
 - TODO: 실시간 이벤트 수신 방식(폴링 `events/search` vs 웹훅) 확정.
 

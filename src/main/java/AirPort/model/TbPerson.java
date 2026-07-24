@@ -20,6 +20,7 @@ public class TbPerson {
   private String personType; // → tb_common(PT). 본 화면은 PT01 고정
   private String statusCode; // → tb_common(PS)
   private String mainTask;
+  private String affiliation; // 소속 (방문객 자유입력)
   private String idCheckDt; // 신원조회 회보일 (YYYY-MM-DD)
   private String idCheckFile; // 회보근거문서(경로/파일명)
   private String securityEduDt; // 보안교육 합격일
