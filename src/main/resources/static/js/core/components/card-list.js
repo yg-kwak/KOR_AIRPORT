@@ -17,13 +17,14 @@ window.cardList = (function () {
       body.innerHTML = '<tr><td colspan="5" class="empty">등록된 카드가 없습니다.</td></tr>';
       return;
     }
+    const canPrint = !!state[id].print;
     body.innerHTML = rows.map((c, i) => `
       <tr class="row-click card-list-row" data-idx="${i}">
         <td>${esc(c.cardNo)}</td>
         <td>${esc(c.passTypeName)}</td>
         <td>${esc(c.cardName)}</td>
         <td>${esc(c.cardStatusName)}</td>
-        <td><button type="button" class="btn btn-sm btn-danger card-list-del" data-idx="${i}">제외</button></td>
+        <td>${canPrint && c.cardId ? `<button type="button" class="btn btn-sm card-list-print" data-idx="${i}">프린트</button> ` : ''}<button type="button" class="btn btn-sm btn-danger card-list-del" data-idx="${i}">제외</button></td>
       </tr>`).join('');
   }
 
@@ -181,10 +182,15 @@ window.cardList = (function () {
 
   /** 컨테이너와 엔드포인트를 연결한다(화면당 1회). */
   function init(id, opts) {
-    state[id] = { baseUrl: opts.baseUrl, cardTypeName: opts.cardTypeName, rows: [], editIdx: null };
+    state[id] = {
+      baseUrl: opts.baseUrl, cardTypeName: opts.cardTypeName,
+      print: opts.print || null, rows: [], editIdx: null,
+    };
     const box = document.getElementById(id);
     box.querySelector('.card-list-add').addEventListener('click', () => openPanel(id, null));
     box.addEventListener('click', (e) => {
+      const prt = e.target.closest('.card-list-print');
+      if (prt) { state[id].print(state[id].rows[Number(prt.dataset.idx)]); return; }
       const del = e.target.closest('.card-list-del');
       if (del) {
         state[id].rows.splice(Number(del.dataset.idx), 1); // 인원 저장 시 회수(미배정)된다

@@ -382,7 +382,11 @@
   document.addEventListener('DOMContentLoaded', () => {
     bind();
     acGroupTree.init(AC_TREE, BASE + '/acGroups');
-    cardList.init(CARD_LIST, { baseUrl: BASE, cardTypeName: '인원' });
+    cardList.init(CARD_LIST, { baseUrl: BASE, cardTypeName: '인원',
+      print: (row) => { // 프린트: 얼굴+카드 등록 인원만
+        if (!face.image) { toast.warning('얼굴이 등록된 인원만 출력할 수 있습니다.'); return; }
+        window.cardPrint.open($('personId').value, row.cardId);
+      } });
     load();
   });
 })();

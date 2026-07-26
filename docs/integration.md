@@ -76,5 +76,15 @@
 - 외부 장애 시 우리 시스템이 멈추지 않도록 경계 설정(타임아웃/서킷브레이커). TODO.
 - 멱등성: 도어 제어/권한 부여 재시도 시 중복 방지. TODO.
 
+## 카드 프린트 (adapter/cardprint)
+
+- 디자인 export(card_project) JSON을 템플릿으로 **앞/뒤 카드 이미지를 렌더**해 카드 프린터로 출력한다.
+- 계층: `CardPrintAdapter`(템플릿 로드·프린터 출력, 외부 경계) ← `CardPrintRenderer`(한 면 렌더) ← `CardPrintService`(인원·카드·얼굴 매핑, 미리보기/인쇄).
+- 좌표는 디자인 캔버스 좌표계(폭 `card-print.canvas-width`, 기본 540)라 **배경 이미지 해상도로 스케일**해 사진·텍스트를 얹는다. 템플릿 폰트(Arial 등)가 한글을 못 그리면 `Malgun Gothic` 폴백.
+- 텍스트 `{컬럼}` 바인딩 매핑: `{이름}`=성명, `{회사명}`=기관명, `{직책}`=직책, `{발급번호}`=카드명칭, `{발급일}`=오늘.
+- **얼굴(tb_person_photo)·카드가 모두 등록된 인원만** 출력(서버 검증 + 화면 게이트).
+- 설정: `card-print.project-file`(템플릿 경로, `card-templates/`는 대용량이라 저장소 제외), `card-print.printer-name`(부분일치, 비우면 기본 프린터 — 실제값은 application-local).
+- 화면: 정규인원 수정 모달 카드정보 탭 관리 열의 **프린트** 버튼 → 미리보기(앞/뒤) 후 인쇄. (`/person/person/card/print/preview`, `/card/print`)
+
 ## 관련 문서
 [architecture.md](architecture.md) · [security.md](security.md) · [backend.md](backend.md)

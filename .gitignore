@@ -39,3 +39,6 @@ Thumbs.db
 
 # Claude Code 로컬 설정(개인)
 .claude/settings.local.json
+
+# 카드 프린트 템플릿(디자인 export, 대용량 base64 포함)
+card-templates/

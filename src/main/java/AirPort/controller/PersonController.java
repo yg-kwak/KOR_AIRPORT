@@ -15,6 +15,7 @@ import AirPort.model.TbCard;
 import AirPort.model.ExcelImportResult;
 import AirPort.model.TbPersonFile;
 import AirPort.service.AcGroupService;
+import AirPort.service.CardPrintService;
 import AirPort.service.CardService;
 import AirPort.service.MenuAuthService;
 import AirPort.service.MenuService;
@@ -57,6 +58,7 @@ public class PersonController {
   private final PersonImportService personImportService;
   private final PersonFaceService personFaceService;
   private final CardService cardService;
+  private final CardPrintService cardPrintService;
   private final AcGroupService acGroupService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
@@ -68,6 +70,7 @@ public class PersonController {
       PersonImportService personImportService,
       PersonFaceService personFaceService,
       CardService cardService,
+      CardPrintService cardPrintService,
       AcGroupService acGroupService,
       MenuService menuService,
       MenuAuthService menuAuthService,
@@ -77,6 +80,7 @@ public class PersonController {
     this.personImportService = personImportService;
     this.personFaceService = personFaceService;
     this.cardService = cardService;
+    this.cardPrintService = cardPrintService;
     this.acGroupService = acGroupService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
@@ -219,6 +223,29 @@ public class PersonController {
   public ApiResponse<BiostarCard> cardRegister(
       @RequestBody Map<String, String> body, HttpSession session) {
     return ApiResponse.ok(cardService.register(body.get("cardNo"), actor(session), menuId()));
+  }
+
+  /** 카드 프린트 미리보기 — 얼굴·카드 등록 인원의 앞/뒤 카드 이미지(data URL) */
+  @PostMapping("/card/print/preview")
+  @ResponseBody
+  public ApiResponse<List<String>> cardPrintPreview(
+      @RequestBody CardPrintReq req, HttpSession session) {
+    return ApiResponse.ok(
+        cardPrintService.preview(req.personId, req.cardId, actor(session), menuId()));
+  }
+
+  /** 카드 프린트 출력 — 카드 프린터로 인쇄 */
+  @PostMapping("/card/print")
+  @ResponseBody
+  public ApiResponse<Void> cardPrint(@RequestBody CardPrintReq req, HttpSession session) {
+    cardPrintService.print(req.personId, req.cardId, actor(session), menuId());
+    return ApiResponse.okMessage("인쇄를 요청했습니다.");
+  }
+
+  /** 카드 프린트 요청 DTO. */
+  public static class CardPrintReq {
+    public String personId;
+    public int cardId;
   }
 
   /** 증빙문서 다운로드 — 브라우저가 파일로 받도록 attachment 로 전송한다. */

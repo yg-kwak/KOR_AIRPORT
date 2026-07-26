@@ -219,12 +219,31 @@
 <div th:replace="~{fragments/components/excel-import-modal :: excelImportModal}"></div>
 <div th:replace="~{fragments/components/card-list :: cardPicker}"></div>
 
+<!-- 카드 프린트 미리보기(앞/뒤) → 인쇄 -->
+<div class="modal-overlay" id="cardPrintModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2 class="modal-title">카드 프린트 미리보기</h2>
+      <button type="button" class="modal-close" id="cpClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-hint">아래 미리보기를 확인한 뒤 인쇄하세요. 얼굴·카드가 등록된 인원만 출력됩니다.</p>
+      <div id="cpImages" class="cp-images"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="cpCancel">닫기</button>
+      <button type="button" class="btn btn-primary" id="cpPrint">인쇄</button>
+    </div>
+  </div>
+</div>
+
 <script th:inline="javascript">
   window.PAGE_PERM = {
     canCreate: [[${perm.canCreate}]],
     canDelete: [[${perm.canDelete}]]
   };
 </script>
+<script src="/js/web/person/card-print.js" defer></script>
 <script src="/js/web/person/person.js" defer></script>
 </body>
 </html>

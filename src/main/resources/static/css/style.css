@@ -450,6 +450,11 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 /* 임시인원 등록 — 인솔자/방문객/차량 표를 넓게 보기 위해 폭 확대 */
 .modal-container.visit-modal { width: 980px; max-width: 96vw; }
 .modal-container.confirm { width: 400px; }
+/* 카드 프린트 미리보기 — 앞/뒤 카드 이미지를 나란히 */
+.cp-images { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.cp-side { margin: 0; text-align: center; }
+.cp-side img { width: 200px; height: auto; border: 1px solid var(--color-tertiary-active); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.cp-side figcaption { margin-top: 6px; font-size: 13px; color: var(--color-secondary); }
 /* 편집 모달 우측에 나란히 붙는 보조 패널(카드 입력). 좁은 화면에서는 아래로 접힌다 */
 .modal-overlay { gap: 16px; flex-wrap: wrap; }
 .modal-container.card-side { display: none; width: 440px; }
