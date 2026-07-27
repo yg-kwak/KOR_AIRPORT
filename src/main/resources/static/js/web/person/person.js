@@ -181,9 +181,10 @@
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     const b64 = await fileToBase64(file);
-    const res = await api.post(BASE + '/face/upload', { image: b64 }); // {success,message,image,...}
+    const res = await api.post(BASE + '/face/upload', { image: b64 }); // {success,message,image,template9/5}
     if (!res || !res.success) { toast.error((res && res.message) || '사진 업로드에 실패했습니다.'); return; }
-    setFace(res.image, res.template9, res.template5);
+    // 파일 선택은 원본 이미지를 보관(tb_person_photo·BiostarX 이미지), 인증 템플릿만 API 결과 사용
+    setFace(b64, res.template9, res.template5);
     toast.success('사진을 등록했습니다.');
   }
 
