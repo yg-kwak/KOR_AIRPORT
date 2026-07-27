@@ -24,20 +24,47 @@
     close();
   }
 
-  // 목록 일괄 출력 — 선택 인원(카드 1장·얼굴 보유자)만. 서버가 전량 검증 후 출력.
+  // 목록 일괄 출력 — 대상 명단 확인 후 출력. 카드 1장·얼굴 보유자만 대상(전량 검증).
+  const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
+  let bulkIds = [];
+
   async function bulk(ids) {
     if (!ids || !ids.length) { toast.warning('인원을 선택하세요.'); return; }
-    const ok = await confirmModal.open({ title: '카드 일괄 출력', confirmText: '출력',
-      message: `선택한 ${ids.length}명의 카드를 출력하시겠습니까? (카드 1장·얼굴 등록 인원만 대상)` });
-    if (!ok) return;
-    try { await api.post(BASE + '/card/print/bulk', ids); } catch (e) { /* 검증 실패 메시지는 api 계층 토스트 */ }
+    bulkIds = ids;
+    const c = await api.post(BASE + '/card/print/bulk/check', ids);
+    const problems = [
+      ['2장 이상 카드 보유', c.multi], ['카드 없음', c.noCard], ['얼굴 없음', c.noFace],
+    ].filter(([, v]) => v && v.length);
+    $('bpWarn').innerHTML = problems.length
+      ? '<div class="form-error">문제 인원이 있어 출력할 수 없습니다.<br>'
+        + problems.map(([t, v]) => `· ${t} ( 인원ID : ${esc(v.join(', '))} )`).join('<br>') + '</div>'
+      : '';
+    $('bpInfo').textContent = `출력 대상 ${c.targets.length}명`;
+    $('bpBody').innerHTML = c.targets.length
+      ? c.targets.map((t) => `<tr><td>${esc(t.personId)}</td><td>${esc(t.personName)}</td><td>${esc(t.cardName)}</td></tr>`).join('')
+      : '<tr><td colspan="3" class="empty">출력 대상이 없습니다.</td></tr>';
+    const printable = !problems.length && c.targets.length > 0;
+    $('bpPrint').disabled = !printable;
+    $('bulkPrintModal').classList.add('open');
+  }
+  function closeBulk() { $('bulkPrintModal').classList.remove('open'); }
+  async function doBulkPrint() {
+    closeBulk();
+    try { await api.post(BASE + '/card/print/bulk', bulkIds); } catch (e) { /* 서버 메시지 토스트는 api 계층 */ }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    if (!$('cardPrintModal')) return;
-    $('cpPrint').addEventListener('click', doPrint);
-    $('cpCancel').addEventListener('click', close);
-    $('cpClose').addEventListener('click', close);
+    if ($('cardPrintModal')) {
+      $('cpPrint').addEventListener('click', doPrint);
+      $('cpCancel').addEventListener('click', close);
+      $('cpClose').addEventListener('click', close);
+    }
+    if ($('bulkPrintModal')) {
+      $('bpPrint').addEventListener('click', doBulkPrint);
+      $('bpCancel').addEventListener('click', closeBulk);
+      $('bpClose').addEventListener('click', closeBulk);
+    }
   });
 
   window.cardPrint = { open, bulk };

@@ -242,6 +242,14 @@ public class PersonController {
     return ApiResponse.okMessage("인쇄를 요청했습니다.");
   }
 
+  /** 카드 일괄 출력 사전점검 — 대상 명단 + 문제 인원 분류(출력 안 함) */
+  @PostMapping("/card/print/bulk/check")
+  @ResponseBody
+  public ApiResponse<CardPrintService.BulkCheck> cardPrintBulkCheck(
+      @RequestBody List<String> personIds, HttpSession session) {
+    return ApiResponse.ok(cardPrintService.checkBulk(personIds, actor(session), menuId()));
+  }
+
   /** 카드 일괄 출력 — 선택 인원(카드 1장·얼굴 보유자) 카드 출력 */
   @PostMapping("/card/print/bulk")
   @ResponseBody

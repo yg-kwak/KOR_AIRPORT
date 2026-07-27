@@ -88,6 +88,33 @@ public class CardPrintService {
     auditService.log(actor, AuditService.CREATE, menuId, "카드 프린트 출력: " + personId + " / 카드 " + cardId);
   }
 
+  /** 일괄 출력 사전 점검 — 출력하지 않고 대상 명단 + 문제(2장이상/카드없음/얼굴없음) 분류만 반환. */
+  public BulkCheck checkBulk(List<String> personIds, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireRead(actor, menuId);
+    BulkCheck r = new BulkCheck();
+    if (personIds == null) {
+      return r;
+    }
+    for (String pid : personIds) {
+      List<TbCard> cards = cardMapper.selectByPerson(pid);
+      if (cards.size() >= 2) {
+        r.multi.add(pid);
+      } else if (cards.isEmpty() || cards.get(0).getBiostarCardId() == null) {
+        r.noCard.add(pid);
+      } else if (isBlank(photoMapper.selectPhoto(pid))) {
+        r.noFace.add(pid);
+      } else {
+        TbPerson p = personMapper.selectById(pid);
+        Target t = new Target();
+        t.personId = pid;
+        t.personName = p != null ? decrypt(p.getPersonName()) : "";
+        t.cardName = cards.get(0).getCardName();
+        r.targets.add(t);
+      }
+    }
+    return r;
+  }
+
   /**
    * 일괄 출력 — 선택 인원 전량 검증 후 각자 카드 출력. 카드 1장·얼굴 보유자만 대상.
    *
@@ -208,5 +235,25 @@ public class CardPrintService {
   private static class Ctx {
     Map<String, String> fields;
     String face;
+  }
+
+  /** 일괄 출력 사전 점검 결과 — 대상 명단 + 문제 인원ID 분류. */
+  public static class BulkCheck {
+    public List<Target> targets = new ArrayList<>();
+    public List<String> multi = new ArrayList<>(); // 카드 2장 이상
+    public List<String> noCard = new ArrayList<>(); // 카드 없음
+    public List<String> noFace = new ArrayList<>(); // 얼굴 없음
+
+    /** 문제 인원이 없고 대상이 1명 이상이면 출력 가능. */
+    public boolean printable() {
+      return multi.isEmpty() && noCard.isEmpty() && noFace.isEmpty() && !targets.isEmpty();
+    }
+  }
+
+  /** 출력 대상 1명 — 화면 명단 표시용. */
+  public static class Target {
+    public String personId;
+    public String personName;
+    public String cardName;
   }
 }

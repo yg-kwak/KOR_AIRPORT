@@ -451,6 +451,9 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 /* 임시인원 등록 — 인솔자/방문객/차량 표를 넓게 보기 위해 폭 확대 */
 .modal-container.visit-modal { width: 980px; max-width: 96vw; }
 .modal-container.confirm { width: 400px; }
+/* 경고/오류 안내 블록 (일괄 출력 문제 인원 등) */
+.form-error { margin: 0 0 10px; padding: 8px 12px; border-radius: 6px; font-size: 13px; line-height: 1.6;
+  color: var(--color-danger, #c0392b); background: rgba(192,57,43,.08); border: 1px solid rgba(192,57,43,.25); }
 /* 얼굴 사진 촬영 — 웹캠 실시간 화면 */
 .facecam-stage { display: flex; justify-content: center; background: #000; border-radius: 8px; overflow: hidden; }
 .facecam-stage video { width: 100%; max-width: 480px; height: auto; display: block; transform: scaleX(-1); /* 거울 */ }

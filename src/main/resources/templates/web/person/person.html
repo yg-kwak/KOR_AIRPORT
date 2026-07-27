@@ -221,6 +221,30 @@
 <div th:replace="~{fragments/components/excel-import-modal :: excelImportModal}"></div>
 <div th:replace="~{fragments/components/card-list :: cardPicker}"></div>
 
+<!-- 카드 일괄 출력 — 대상 명단 확인 → 출력 -->
+<div class="modal-overlay" id="bulkPrintModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2 class="modal-title">카드 일괄 출력</h2>
+      <button type="button" class="modal-close" id="bpClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="bpWarn"></div>
+      <p class="form-hint" id="bpInfo"></p>
+      <div class="matrix-wrap">
+        <table class="grid">
+          <thead><tr><th class="w-140">인원ID</th><th>성명</th><th>카드명칭</th></tr></thead>
+          <tbody id="bpBody"><tr><td colspan="3" class="empty">확인 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="bpCancel">닫기</button>
+      <button type="button" class="btn btn-primary" id="bpPrint">출력</button>
+    </div>
+  </div>
+</div>
+
 <!-- 얼굴 사진 촬영 — 클라이언트 PC 웹캠 실시간 미리보기 → 촬영 -->
 <div class="modal-overlay" id="faceCamModal">
   <div class="modal-container">
