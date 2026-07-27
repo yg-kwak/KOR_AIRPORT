@@ -9,6 +9,9 @@
 
   let managers = []; // [{personId, personName}]
   let visitors = []; // [{personName, birthDate, affiliation}]
+  let cars = []; // [{carNo, carName, carType}]
+  let carCodes = []; // tb_common(CAR) 차량구역
+  let carTypes = []; // tb_common(CT) 차종
   const pad2 = (n) => String(n).padStart(2, '0');
   const todayAt = (hh, mm, now) => {
     const d = new Date();
@@ -23,7 +26,9 @@
 
   // ---- 인솔자 ----
   async function searchMgr() {
-    const rows = (await api.get(BASE + '/managers?keyword=' + encodeURIComponent($('mgrKeyword').value.trim()))) || [];
+    const kw = $('mgrKeyword').value.trim();
+    if (!kw) { toast.warning('검색어(인원ID 또는 성명)를 입력하세요.'); return; }
+    const rows = (await api.get(BASE + '/managers?keyword=' + encodeURIComponent(kw))) || [];
     $('mgrResultWrap').style.display = '';
     $('mgrResult').innerHTML = rows.length
       ? rows.map((p) => `<tr class="row-click mgr-pick" data-id="${esc(p.personId)}" data-name="${esc(p.personName)}">
@@ -52,8 +57,34 @@
     $('visBody').querySelectorAll('input').forEach((el) => { visitors[el.dataset.i][el.dataset.f] = el.value; });
   }
 
+  // ---- 차량구역(CAR) ----
+  function carAcRender() {
+    $('carAcBox').innerHTML = carCodes.length
+      ? carCodes.map((c) => `<label class="ac-select-item"><input type="checkbox" value="${esc(c.codeId)}"/><span>${esc(c.codeName)}</span></label>`).join('')
+      : '<div class="empty">등록된 차량구역이 없습니다.</div>';
+  }
+  const carAcSelected = () => [...$('carAcBox').querySelectorAll('input:checked')].map((c) => c.value);
+
+  // ---- 차량 정보 ----
+  function carTypeOptions(sel) {
+    return '<option value="">선택</option>' + carTypes.map((c) => `<option value="${c.codeId}"${c.codeId === sel ? ' selected' : ''}>${esc(c.codeName)}</option>`).join('');
+  }
+  function carRender() {
+    $('carBody').innerHTML = cars.length
+      ? cars.map((c, i) => `<tr>
+          <td><input class="input" data-f="carNo" data-i="${i}" value="${esc(c.carNo)}"/></td>
+          <td><input class="input" data-f="carName" data-i="${i}" value="${esc(c.carName)}"/></td>
+          <td><select class="input" data-f="carType" data-i="${i}">${carTypeOptions(c.carType)}</select></td>
+          <td><button type="button" class="btn btn-sm btn-danger" data-act="car-del" data-idx="${i}">제거</button></td></tr>`).join('')
+      : '<tr><td colspan="4" class="empty">차량이 없습니다.</td></tr>';
+  }
+  function collectCars() {
+    $('carBody').querySelectorAll('input,select').forEach((el) => { cars[el.dataset.i][el.dataset.f] = el.value; });
+  }
+
   async function save() {
-    collectVis();
+    collectVis(); collectCars();
+    const carAcCodes = carAcSelected();
     const payload = {
       workStartDt: $('workStartDt').value || null,
       workEndDt: $('workEndDt').value || null,
@@ -61,10 +92,14 @@
       workPurpose: $('workPurpose').value.trim() || null,
       managerIds: managers.map((m) => m.personId),
       acGroupIds: acGroupTree.get(AC_TREE),
+      carAcCodes,
       visitors: visitors.map((v) => ({
         personName: (v.personName || '').trim() || null,
         birthDate: (v.birthDate || '').trim() || null,
         affiliation: (v.affiliation || '').trim() || null,
+      })),
+      cars: cars.filter((c) => (c.carNo || '').trim()).map((c) => ({
+        carNo: (c.carNo || '').trim(), carName: (c.carName || '').trim() || null, carType: c.carType || null,
       })),
     };
     if (!payload.workStartDt) { toast.warning('작업기간 시작을 입력하세요.'); return; }
@@ -76,27 +111,39 @@
     if (!payload.visitors.length || payload.visitors.some((v) => !v.personName)) {
       toast.warning('방문객 성명을 입력하세요.'); return;
     }
+    if (payload.carAcCodes.length && !payload.cars.length) {
+      toast.warning('차량구역을 선택하면 차량정보를 입력하세요.'); return;
+    }
     await api.post(BASE, payload);
     reset();
   }
 
   function reset() {
-    managers = []; visitors = [];
+    managers = []; visitors = []; cars = [];
     ['workStartDt', 'workEndDt', 'companyName', 'workPurpose'].forEach((id) => { $(id).value = ''; });
     $('mgrKeyword').value = '';
     $('mgrResultWrap').style.display = 'none';
     $('mgrResult').innerHTML = '';
     acGroupTree.set(AC_TREE, []);
-    mgrRender(); visRender();
+    carAcRender();
+    mgrRender(); visRender(); carRender();
     showForm(false);
+  }
+
+  async function loadCodes() {
+    [carCodes, carTypes] = await Promise.all([
+      api.get(BASE + '/codes?cmmId=CAR'),
+      api.get(BASE + '/codes?cmmId=CT'),
+    ]).then((a) => a.map((x) => x || []));
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     acGroupTree.init(AC_TREE, BASE + '/acGroups');
+    loadCodes().then(carAcRender);
     $('btnStart').addEventListener('click', () => {
       $('workStartDt').value = todayAt(0, 0, true); // 시작=오늘 현재시각
       $('workEndDt').value = todayAt(18, 0, false); // 종료=오늘 18:00
-      showForm(true); mgrRender(); visRender();
+      showForm(true); mgrRender(); visRender(); carRender();
     });
     $('btnCancel').addEventListener('click', reset);
     $('btnMgrSearch').addEventListener('click', searchMgr);
@@ -113,6 +160,10 @@
     $('btnAddVis').addEventListener('click', () => { collectVis(); visitors.push({ personName: '', birthDate: '', affiliation: '' }); visRender(); });
     $('visBody').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-act="vis-del"]'); if (b) { collectVis(); visitors.splice(b.dataset.idx, 1); visRender(); }
+    });
+    $('btnAddCar').addEventListener('click', () => { collectCars(); cars.push({ carNo: '', carName: '', carType: '' }); carRender(); });
+    $('carBody').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-act="car-del"]'); if (b) { collectCars(); cars.splice(b.dataset.idx, 1); carRender(); }
     });
     $('btnSave').addEventListener('click', save);
   });

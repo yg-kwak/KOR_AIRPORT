@@ -35,7 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class VisitService {
 
   /** 방문 기본 상태 — tb_common(VS) 신청. */
-  private static final String DEFAULT_STATUS = "VS01";
+  static final String DEFAULT_STATUS = "VS01";
 
   /** 신청 취소 — 삭제 가능 상태(VS). */
   private static final String STATUS_CANCELLED = "VS02";
@@ -47,7 +47,7 @@ public class VisitService {
   private static final String STATUS_LEFT = "VS04";
 
   /** 임시인원등록 방문유형 — 임시 고정(tb_common PT02). */
-  private static final String VISIT_TYPE = "PT02";
+  static final String VISIT_TYPE = "PT02";
 
   private final TbVisitMapper visitMapper;
   private final TbPersonMapper personMapper;
@@ -88,13 +88,8 @@ public class VisitService {
     return pruneAreaScope(acGroupService.tree(actor, menuId));
   }
 
-  /** 키오스크(무인증) 방문구역 트리 — 권한/감사 없이, 구역범위 규칙만 동일 적용. */
-  public List<TbAcGroup> acGroupTreeKiosk() {
-    return pruneAreaScope(acGroupService.treeNoAuth());
-  }
-
-  /** 방문유형 구역범위(code_remark)가 'Y'가 아니면 최상위 그룹만 남긴다. */
-  private List<TbAcGroup> pruneAreaScope(List<TbAcGroup> tree) {
+  /** 방문유형 구역범위(code_remark)가 'Y'가 아니면 최상위 그룹만 남긴다. (키오스크 재사용 — package-private) */
+  List<TbAcGroup> pruneAreaScope(List<TbAcGroup> tree) {
     TbCommon pt = commonMapper.selectOne("PT", VISIT_TYPE);
     boolean detail = pt != null && "Y".equals(pt.getCodeRemark());
     if (!detail) {
@@ -199,35 +194,6 @@ public class VisitService {
     return warn;
   }
 
-  /**
-   * 키오스크(무인증) 방문 신청 — 인솔자·방문구역·방문객만 저장. 임시(PT02)·신청(VS01) 고정. 카드·차량·BiostarX 연동은
-   * 없음(관리자가 임시인원등록에서 확인 후 카드 부여 시 연동).
-   */
-  @Transactional
-  public int createFromKiosk(VisitForm form) {
-    List<VisitorForm> visitors =
-        (form.getVisitors() == null ? List.<VisitorForm>of() : form.getVisitors()).stream()
-            .filter(v -> v.getPersonName() != null && !v.getPersonName().isBlank())
-            .toList();
-    require(form.getWorkStartDt(), "작업기간 시작"); // 키오스크 필수값
-    require(form.getWorkEndDt(), "작업기간 종료");
-    require(form.getCompanyName(), "업체명");
-    require(form.getWorkPurpose(), "작업목적");
-    check(!notEmpty(form.getManagerIds()), "인솔자를 선택하세요.");
-    check(!notEmpty(form.getAcGroupIds()), "방문구역을 선택하세요.");
-    check(visitors.isEmpty(), "방문객 성명을 1명 이상 입력하세요.");
-    form.setVisitType(VISIT_TYPE); // 임시 고정
-    TbVisit row = toRow(form);
-    row.setVisitType(VISIT_TYPE);
-    row.setStatusCode(DEFAULT_STATUS); // 신청
-    visitMapper.insert(row);
-    int visitNo = row.getVisitNo();
-    if (notEmpty(form.getManagerIds())) visitMapper.insertManagers(visitNo, form.getManagerIds());
-    if (notEmpty(form.getAcGroupIds())) visitMapper.insertAcGroups(visitNo, form.getAcGroupIds());
-    for (VisitorForm vf : visitors) visitMapper.insertPerson(visitNo, upsertVisitor(vf, form));
-    auditService.log(null, AuditService.CREATE, null, "키오스크 방문 신청: " + visitNo);
-    return visitNo;
-  }
 
   @Transactional
   public String update(VisitForm form, TbLoginUser actor, Integer menuId) {
@@ -370,7 +336,7 @@ public class VisitService {
   }
 
   /** 방문객 tb_person 저장 — personId 있으면 갱신(기존 인원 유지), 없으면 IS 채번 신규. */
-  private String upsertVisitor(VisitorForm vf, VisitForm form) {
+  String upsertVisitor(VisitorForm vf, VisitForm form) {
     require(vf.getPersonName(), "방문객 성명");
     boolean isNew = vf.getPersonId() == null || vf.getPersonId().isBlank();
     TbPerson p = new TbPerson();
@@ -390,7 +356,7 @@ public class VisitService {
     return p.getPersonId();
   }
 
-  private int insertVisitCar(VisitCarForm cf, VisitForm form) {
+  int insertVisitCar(VisitCarForm cf, VisitForm form) {
     require(cf.getCarNo(), "차량번호");
     TbCar c = new TbCar();
     c.setCarNo(cf.getCarNo());
@@ -414,7 +380,7 @@ public class VisitService {
     visitMapper.deleteCars(visitNo);
   }
 
-  private TbVisit toRow(VisitForm form) {
+  TbVisit toRow(VisitForm form) {
     TbVisit r = new TbVisit();
     r.setVisitNo(form.getVisitNo());
     r.setVisitType(form.getVisitType());

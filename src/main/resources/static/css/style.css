@@ -459,6 +459,8 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .kiosk-start { font-size: 22px; padding: 18px 48px; border-radius: 12px; }
 .kiosk-card { background: #fff; border: 1px solid var(--color-tertiary-active, #e5e7eb); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
 .kiosk-card h2 { font-size: 16px; font-weight: 700; margin: 0 0 12px; }
+.kiosk-area { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.kiosk-area .form-group-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
 .kiosk-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
 .kiosk-actions .btn { padding: 12px 32px; font-size: 16px; }
 /* 경고/오류 안내 블록 (일괄 출력 문제 인원 등) */

@@ -69,7 +69,16 @@
 
     <div class="kiosk-card">
       <h2>방문구역 <span class="req">*</span></h2>
-      <div class="ac-select-tree" id="acTree"><div class="empty">불러오는 중...</div></div>
+      <div class="kiosk-area">
+        <div>
+          <div class="form-group-label">인원 출입구역</div>
+          <div class="ac-select-tree" id="acTree"><div class="empty">불러오는 중...</div></div>
+        </div>
+        <div>
+          <div class="form-group-label">차량 출입구역</div>
+          <div class="ac-select-tree" id="carAcBox"><div class="empty">불러오는 중...</div></div>
+        </div>
+      </div>
     </div>
 
     <div class="kiosk-card">
@@ -81,6 +90,18 @@
       <table class="grid">
         <thead><tr><th class="w-200">성명 *</th><th class="w-160">생년월일</th><th>소속</th><th class="w-80">관리</th></tr></thead>
         <tbody id="visBody"><tr><td colspan="4" class="empty">방문객이 없습니다.</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="kiosk-card">
+      <h2>차량 정보</h2>
+      <div class="grid-toolbar" style="padding:0 0 8px">
+        <span class="form-hint">차량구역을 선택하면 차량정보를 입력해야 합니다. (카드는 관리자가 발급)</span>
+        <div class="grid-actions"><button type="button" class="btn btn-sm" id="btnAddCar">차량 추가</button></div>
+      </div>
+      <table class="grid">
+        <thead><tr><th class="w-200">차량번호 *</th><th>차량명칭</th><th class="w-120">차종</th><th class="w-80">관리</th></tr></thead>
+        <tbody id="carBody"><tr><td colspan="4" class="empty">차량이 없습니다.</td></tr></tbody>
       </table>
     </div>
 
