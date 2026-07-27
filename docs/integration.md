@@ -85,7 +85,8 @@
 - 앞/뒤는 **한 잡의 두 페이지 + `Sides.DUPLEX`** 로 보내 한 장에 양면 인쇄한다(별도 잡이면 뒷면 누락).
 - **얼굴(tb_person_photo)·카드가 모두 등록된 인원만** 출력(서버 검증 + 화면 게이트).
 - 설정: `card-print.project-file`(템플릿 경로, `card-templates/`는 대용량이라 저장소 제외), `card-print.printer-name`(부분일치, 비우면 기본 프린터 — 실제값은 application-local).
-- 화면: 정규인원 수정 모달 카드정보 탭 관리 열의 **프린트** 버튼 → 미리보기(앞/뒤) 후 인쇄. (`/person/person/card/print/preview`, `/card/print`)
+- 화면: 정규인원 수정 모달 카드정보 탭 관리 열의 **출력** 버튼 → 미리보기(앞/뒤) 후 인쇄. (`/person/person/card/print/preview`, `/card/print`)
+- **일괄 출력**: 목록에서 인원 선택 → **카드 출력**(선택 삭제 왼쪽). 전량 검증(카드 1장·얼굴 보유) 후 각자 출력. 카드 2장 이상 보유자가 있으면 인원ID를 알리고 아무것도 출력하지 않는다. (`/card/print/bulk`)
 
 ## 관련 문서
 [architecture.md](architecture.md) · [security.md](security.md) · [backend.md](backend.md)

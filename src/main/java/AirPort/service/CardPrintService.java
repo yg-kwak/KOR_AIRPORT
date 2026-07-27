@@ -88,6 +88,58 @@ public class CardPrintService {
     auditService.log(actor, AuditService.CREATE, menuId, "카드 프린트 출력: " + personId + " / 카드 " + cardId);
   }
 
+  /**
+   * 일괄 출력 — 선택 인원 전량 검증 후 각자 카드 출력. 카드 1장·얼굴 보유자만 대상.
+   *
+   * <p>카드 2장 이상 보유자가 있으면 아무것도 출력하지 않고 해당 인원ID를 알려주며 반환한다.
+   */
+  public void printBulk(List<String> personIds, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireCreate(actor, menuId);
+    if (personIds == null || personIds.isEmpty()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "선택된 인원이 없습니다.");
+    }
+    List<String> multi = new ArrayList<>();
+    List<String> noCard = new ArrayList<>();
+    List<String> noFace = new ArrayList<>();
+    Map<String, Integer> targets = new LinkedHashMap<>();
+    for (String pid : personIds) {
+      List<TbCard> cards = cardMapper.selectByPerson(pid);
+      if (cards.size() >= 2) {
+        multi.add(pid);
+      } else if (cards.isEmpty() || cards.get(0).getBiostarCardId() == null) {
+        noCard.add(pid);
+      } else if (isBlank(photoMapper.selectPhoto(pid))) {
+        noFace.add(pid);
+      } else {
+        targets.put(pid, cards.get(0).getCardId());
+      }
+    }
+    // 전량 검증(하나라도 문제면 출력하지 않음)
+    reject(multi, "2장 이상의 카드를 보유한 사용자가 있습니다");
+    reject(noCard, "카드가 없는 사용자가 있습니다");
+    reject(noFace, "얼굴이 없는 사용자가 있습니다");
+    for (Map.Entry<String, Integer> e : targets.entrySet()) {
+      Ctx ctx = prepare(e.getKey(), e.getValue());
+      try {
+        adapter.print(renderSides(ctx));
+      } catch (Exception ex) {
+        throw new BusinessException(ErrorCode.INTERNAL, "카드 인쇄 실패(" + e.getKey() + "): " + ex.getMessage());
+      }
+    }
+    auditService.log(actor, AuditService.CREATE, menuId, "카드 프린트 일괄 출력: " + targets.size() + "건");
+  }
+
+  private static void reject(List<String> ids, String reason) {
+    if (!ids.isEmpty()) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT, reason + "( 인원ID : " + String.join(", ", ids) + " )");
+    }
+  }
+
+  private static boolean isBlank(String s) {
+    return s == null || s.isBlank();
+  }
+
   /** 인원·카드·얼굴 조회 + 검증(얼굴·카드 모두 필수). */
   private Ctx prepare(String personId, int cardId) {
     TbPerson p = personMapper.selectById(personId);

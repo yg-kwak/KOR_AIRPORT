@@ -36,6 +36,7 @@
       <div class="grid-toolbar">
         <span class="grid-total" id="totalInfo"></span>
         <div class="grid-actions">
+          <button class="btn" id="btnPrintSel" th:if="${perm.canCreate}" style="display:none">카드 출력</button>
           <button class="btn btn-danger" id="btnDeleteSel" th:if="${perm.canDelete}" style="display:none">선택 삭제</button>
           <button class="btn" id="btnNew" th:if="${perm.canCreate}">등록</button>
           <button class="btn" id="btnExcelImport" th:if="${perm.canCreate}">엑셀 등록</button>
@@ -148,10 +149,10 @@
               <span class="face-empty">얼굴 없음</span>
             </div>
             <div class="face-actions">
-              <input type="file" id="faceFile" accept="image/*" class="file-input"/>
-              <label class="btn" for="faceFile">파일 선택</label>
               <button type="button" class="btn" id="btnFaceCam">사진 촬영</button>
               <button type="button" class="btn" id="btnCapture">장치에서 촬영</button>
+              <input type="file" id="faceFile" accept="image/*" class="file-input"/>
+              <label class="btn" for="faceFile">파일 선택</label>
               <button type="button" class="btn" id="btnFaceClear">얼굴 지우기</button>
               <span class="form-hint">파일 선택·사진 촬영은 원본 이미지를 저장하고 인증 템플릿만 BiostarX 결과를 씁니다.
                 장치에서 촬영은 로그인 계정에 지정된 장치(dev_id)로 수행합니다.</span>

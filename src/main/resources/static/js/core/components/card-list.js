@@ -24,7 +24,7 @@ window.cardList = (function () {
         <td>${esc(c.passTypeName)}</td>
         <td>${esc(c.cardName)}</td>
         <td>${esc(c.cardStatusName)}</td>
-        <td>${canPrint && c.cardId ? `<button type="button" class="btn btn-sm card-list-print" data-idx="${i}">프린트</button> ` : ''}<button type="button" class="btn btn-sm btn-danger card-list-del" data-idx="${i}">제외</button></td>
+        <td>${canPrint && c.cardId ? `<button type="button" class="btn btn-sm card-list-print" data-idx="${i}">출력</button> ` : ''}<button type="button" class="btn btn-sm btn-danger card-list-del" data-idx="${i}">제외</button></td>
       </tr>`).join('');
   }
 

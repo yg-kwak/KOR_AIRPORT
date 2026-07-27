@@ -145,11 +145,10 @@
   function syncSelection() {
     const ids = selectedIds();
     const boxes = $('gridBody').querySelectorAll('.row-chk');
-    const btn = $('btnDeleteSel');
-    if (btn) {
-      btn.style.display = ids.length ? '' : 'none';
-      btn.textContent = `선택 삭제 (${ids.length})`;
-    }
+    const del = $('btnDeleteSel');
+    const prt = $('btnPrintSel');
+    if (del) { del.style.display = ids.length ? '' : 'none'; del.textContent = `선택 삭제 (${ids.length})`; }
+    if (prt) { prt.style.display = ids.length ? '' : 'none'; prt.textContent = `카드 출력 (${ids.length})`; }
     $('checkAll').checked = boxes.length > 0 && ids.length === boxes.length;
   }
 
@@ -332,6 +331,7 @@
       onDone: load,
     }));
     if ($('btnDeleteSel')) $('btnDeleteSel').addEventListener('click', removeSelected);
+    if ($('btnPrintSel')) $('btnPrintSel').addEventListener('click', () => window.cardPrint.bulk(selectedIds()));
     if ($('btnDelete')) $('btnDelete').addEventListener('click', () => remove($('personId').value));
 
     // 전체선택 / 행 클릭 → 수정 (체크박스 클릭은 선택 토글만)

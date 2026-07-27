@@ -242,6 +242,14 @@ public class PersonController {
     return ApiResponse.okMessage("인쇄를 요청했습니다.");
   }
 
+  /** 카드 일괄 출력 — 선택 인원(카드 1장·얼굴 보유자) 카드 출력 */
+  @PostMapping("/card/print/bulk")
+  @ResponseBody
+  public ApiResponse<Void> cardPrintBulk(@RequestBody List<String> personIds, HttpSession session) {
+    cardPrintService.printBulk(personIds, actor(session), menuId());
+    return ApiResponse.okMessage("카드를 출력했습니다. (" + personIds.size() + "건)");
+  }
+
   /** 카드 프린트 요청 DTO. */
   public static class CardPrintReq {
     public String personId;

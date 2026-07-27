@@ -24,6 +24,15 @@
     close();
   }
 
+  // 목록 일괄 출력 — 선택 인원(카드 1장·얼굴 보유자)만. 서버가 전량 검증 후 출력.
+  async function bulk(ids) {
+    if (!ids || !ids.length) { toast.warning('인원을 선택하세요.'); return; }
+    const ok = await confirmModal.open({ title: '카드 일괄 출력', confirmText: '출력',
+      message: `선택한 ${ids.length}명의 카드를 출력하시겠습니까? (카드 1장·얼굴 등록 인원만 대상)` });
+    if (!ok) return;
+    try { await api.post(BASE + '/card/print/bulk', ids); } catch (e) { /* 검증 실패 메시지는 api 계층 토스트 */ }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     if (!$('cardPrintModal')) return;
     $('cpPrint').addEventListener('click', doPrint);
@@ -31,5 +40,5 @@
     $('cpClose').addEventListener('click', close);
   });
 
-  window.cardPrint = { open };
+  window.cardPrint = { open, bulk };
 })();
