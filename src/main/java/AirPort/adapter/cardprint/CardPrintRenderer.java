@@ -31,13 +31,18 @@ public class CardPrintRenderer {
   /** 한글 폴백 폰트 — 템플릿 폰트(Arial 등)가 한글 글리프가 없을 때 사용. */
   private static final String KOREAN_FONT = "Malgun Gothic";
 
+  /** CR-80 카드 세로형 가로 폭(mm) — 배경 실효 DPI 산출용(폰트 pt→px). */
+  private static final double CARD_WIDTH_MM = 54.0;
+
   /** 한 면 렌더 — photoOverride 가 있으면 템플릿 샘플 사진 대신 사용(실제 얼굴). */
   public BufferedImage render(CardProject.Side side, Map<String, String> fields, String photoOverride,
       double canvasWidth) {
     BufferedImage bg = decode(side.backgroundImageData);
     int w = bg != null ? bg.getWidth() : 638;
     int h = bg != null ? bg.getHeight() : 1012;
-    double scale = w / canvasWidth; // 디자인 좌표 → 배경 해상도
+    double scale = w / canvasWidth; // 위치(캔버스 px) → 배경 해상도
+    // 폰트 크기는 pt 단위 — 배경 실효 DPI(=w px / 카드폭 inch)로 px 변환
+    double fontScale = w * 25.4 / (CARD_WIDTH_MM * 72.0);
 
     BufferedImage card = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
     Graphics2D g = card.createGraphics();
@@ -58,7 +63,7 @@ public class CardPrintRenderer {
 
     if (side.textElements != null) {
       for (CardProject.TextEl t : side.textElements) {
-        drawText(g, t, bind(t.text, fields), scale);
+        drawText(g, t, bind(t.text, fields), scale, fontScale);
       }
     }
     g.dispose();
@@ -107,12 +112,13 @@ public class CardPrintRenderer {
     g.drawImage(src, dx, dy, dx + dw, dy + dh, sx, sy, sx + sw, sy + sh, null);
   }
 
-  private void drawText(Graphics2D g, CardProject.TextEl t, String value, double scale) {
+  private void drawText(
+      Graphics2D g, CardProject.TextEl t, String value, double scale, double fontScale) {
     if (value == null || value.isEmpty()) {
       return;
     }
     int style = Font.PLAIN | (t.bold ? Font.BOLD : 0) | (t.italic ? Font.ITALIC : 0);
-    int size = (int) Math.round(t.fontSize * scale);
+    int size = (int) Math.round(t.fontSize * fontScale); // fontSize 는 pt
     Font font = new Font(t.fontFamily, style, size);
     if (font.canDisplayUpTo(value) != -1) {
       font = new Font(KOREAN_FONT, style, size); // 지정 폰트(예 Arial)가 한글을 못 그리면 폴백
@@ -136,8 +142,8 @@ public class CardPrintRenderer {
         drawX = boxLeft;
         break;
     }
-    // 디자인 y 는 텍스트 상단 — 상단 정렬(baseline = top + ascent)
-    int baseline = (int) Math.round(t.y * scale + fm.getAscent());
+    // 디자인 y 는 텍스트 baseline 기준(큰 폰트에서도 박스 안에 맞음)
+    int baseline = (int) Math.round(t.y * scale);
     drawString(g, value, (int) Math.round(drawX), baseline, spacing);
   }
 
