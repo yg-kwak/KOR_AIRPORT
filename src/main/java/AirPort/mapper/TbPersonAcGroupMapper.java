@@ -15,4 +15,7 @@ public interface TbPersonAcGroupMapper {
 
   /** BiostarX 사용자 생성 payload 의 access_groups 용 — 매핑된 출입그룹의 biostar_ac_id 목록. */
   List<Integer> selectBiostarAcIds(@Param("personId") String personId);
+
+  /** 카드 구역 표기용 — 매핑된 출입그룹의 최상위 구역코드(ar_code, 자식은 부모 상속) 중복 제거 목록. */
+  List<String> selectAreaCodes(@Param("personId") String personId);
 }

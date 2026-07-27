@@ -5,6 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.awt.print.PageFormat;
+import java.awt.print.Pageable;
 import java.awt.print.Paper;
 import java.awt.print.Printable;
 import java.awt.print.PrinterException;
@@ -13,6 +14,9 @@ import java.io.File;
 import java.util.List;
 import javax.print.PrintService;
 import javax.print.PrintServiceLookup;
+import javax.print.attribute.HashPrintRequestAttributeSet;
+import javax.print.attribute.PrintRequestAttributeSet;
+import javax.print.attribute.standard.Sides;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,61 +58,76 @@ public class CardPrintAdapter {
     return cached;
   }
 
-  /** 여러 면(앞/뒤)을 순서대로 인쇄한다. */
+  /** 앞/뒤 면을 한 잡의 페이지로 묶어 인쇄한다(양면이면 DUPLEX — 한 장에 양면). */
   public void print(List<BufferedImage> sides) throws PrinterException {
     PrintService svc = findPrinter();
     if (svc == null) {
       throw new PrinterException("카드 프린터를 찾을 수 없습니다: " + printerName);
     }
-    for (BufferedImage img : sides) {
-      printOne(svc, img);
-    }
-    log.info("카드 인쇄 완료: {}면 → {}", sides.size(), svc.getName());
-  }
-
-  private void printOne(PrintService svc, BufferedImage image) throws PrinterException {
     PrinterJob job = PrinterJob.getPrinterJob();
     job.setPrintService(svc);
     job.setJobName("CJAirPort Card");
+    job.setPageable(
+        new Pageable() {
+          @Override
+          public int getNumberOfPages() {
+            return sides.size();
+          }
 
+          @Override
+          public PageFormat getPageFormat(int i) {
+            return pageFormat(sides.get(i));
+          }
+
+          @Override
+          public Printable getPrintable(int i) {
+            return printable(sides.get(i));
+          }
+        });
+    PrintRequestAttributeSet attrs = new HashPrintRequestAttributeSet();
+    if (sides.size() > 1) {
+      attrs.add(Sides.DUPLEX); // 앞/뒤를 한 장에
+    }
+    job.print(attrs);
+    log.info("카드 인쇄 완료: {}면 → {}", sides.size(), svc.getName());
+  }
+
+  private PageFormat pageFormat(BufferedImage image) {
     double mmToPt = 72.0 / 25.4;
     double cardW = 86 * mmToPt;
     double cardH = 54 * mmToPt;
-    Paper paper = new Paper();
     boolean portrait = image.getHeight() > image.getWidth();
     double pw = portrait ? cardH : cardW;
     double ph = portrait ? cardW : cardH;
+    Paper paper = new Paper();
     paper.setSize(pw, ph);
     paper.setImageableArea(0, 0, pw, ph);
     PageFormat pf = new PageFormat();
     pf.setPaper(paper);
     pf.setOrientation(portrait ? PageFormat.PORTRAIT : PageFormat.LANDSCAPE);
+    return pf;
+  }
 
-    job.setPrintable(
-        (graphics, pageFormat, pageIndex) -> {
-          if (pageIndex > 0) {
-            return Printable.NO_SUCH_PAGE;
-          }
-          Graphics2D g = (Graphics2D) graphics;
-          g.setRenderingHint(
-              RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-          double scale =
-              Math.min(
-                  pageFormat.getImageableWidth() / image.getWidth(),
-                  pageFormat.getImageableHeight() / image.getHeight());
-          double ox =
-              pageFormat.getImageableX()
-                  + (pageFormat.getImageableWidth() - image.getWidth() * scale) / 2;
-          double oy =
-              pageFormat.getImageableY()
-                  + (pageFormat.getImageableHeight() - image.getHeight() * scale) / 2;
-          g.translate(ox, oy);
-          g.scale(scale, scale);
-          g.drawImage(image, 0, 0, null);
-          return Printable.PAGE_EXISTS;
-        },
-        pf);
-    job.print();
+  private Printable printable(BufferedImage image) {
+    return (graphics, pageFormat, pageIndex) -> {
+      Graphics2D g = (Graphics2D) graphics;
+      g.setRenderingHint(
+          RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+      double scale =
+          Math.min(
+              pageFormat.getImageableWidth() / image.getWidth(),
+              pageFormat.getImageableHeight() / image.getHeight());
+      double ox =
+          pageFormat.getImageableX()
+              + (pageFormat.getImageableWidth() - image.getWidth() * scale) / 2;
+      double oy =
+          pageFormat.getImageableY()
+              + (pageFormat.getImageableHeight() - image.getHeight() * scale) / 2;
+      g.translate(ox, oy);
+      g.scale(scale, scale);
+      g.drawImage(image, 0, 0, null);
+      return Printable.PAGE_EXISTS;
+    };
   }
 
   private PrintService findPrinter() {

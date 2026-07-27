@@ -136,10 +136,8 @@ public class CardPrintRenderer {
         drawX = boxLeft;
         break;
     }
-    // 디자인 y 는 박스 상단 — 박스 높이 안에서 세로 중앙 정렬
-    double boxTop = t.y * scale;
-    double boxH = t.boxHeight * scale;
-    int baseline = (int) Math.round(boxTop + (boxH - fm.getHeight()) / 2 + fm.getAscent());
+    // 디자인 y 는 텍스트 상단 — 상단 정렬(baseline = top + ascent)
+    int baseline = (int) Math.round(t.y * scale + fm.getAscent());
     drawString(g, value, (int) Math.round(drawX), baseline, spacing);
   }
 
