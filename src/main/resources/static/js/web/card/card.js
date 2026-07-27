@@ -213,6 +213,13 @@
     $('assignedFilter').addEventListener('change', search);
     $('pageSize').addEventListener('change', (e) => { state.size = Number(e.target.value); state.page = 1; load(); });
     if ($('btnNew')) $('btnNew').addEventListener('click', () => openModal('create', null));
+    if ($('btnExcelImport')) $('btnExcelImport').addEventListener('click', () => excelImport.open({
+      baseUrl: BASE,
+      hint: '① 양식을 내려받아 카드정보를 채우고 ② 업로드하세요. <b>카드번호·카드구분·카드명칭</b>은 필수입니다.'
+        + ' 카드구분·패스구분·카드상태는 공통코드 ID(예: CDT01, PT01, CS01)로 입력하고, 카드상태를 비우면 정상(CS01)으로 등록됩니다.'
+        + ' 인원 카드는 BiostarX 장비 등록까지 성공해야 저장되며, 미발급 상태로 들어갑니다.',
+      onDone: load,
+    }));
 
     // 검색조건 코드팝업(카드구분·카드상태·패스구분) — 선택/삭제(전체) 시 즉시 재조회
     [['typeFilterName', 'typeFilter', 'CDT', '카드구분'],

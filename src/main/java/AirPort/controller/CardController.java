@@ -6,9 +6,11 @@ import AirPort.common.CurrentMenu;
 import AirPort.common.PageResult;
 import AirPort.common.SessionKeys;
 import AirPort.model.CardSearchParam;
+import AirPort.model.ExcelImportResult;
 import AirPort.model.MenuPermission;
 import AirPort.model.TbCard;
 import AirPort.model.TbLoginUser;
+import AirPort.service.CardImportService;
 import AirPort.service.CardService;
 import AirPort.service.MenuAuthService;
 import AirPort.service.MenuService;
@@ -28,24 +30,27 @@ import org.springframework.web.bind.annotation.ResponseBody;
 /**
  * 카드등록관리 CRUD (tb_card) — 카드 마스터. 골든 샘플(CarController) 구조를 따른다.
  *
- * <p>카드구분(CDT)·패스구분(PT)·카드상태(CS)는 공통 코드팝업으로 고르므로 별도 refs 엔드포인트가 없다. 인원 부여/회수는 정규인원등록 화면이
- * 담당한다(여기서는 할당 인원을 표시만 한다).
+ * <p>카드구분(CDT)·패스구분(PT)·카드상태(CS)는 공통 코드팝업으로 고르므로 별도 refs 엔드포인트가 없다. 인원 부여/회수는 정규인원등록 화면이 담당한다(여기서는
+ * 할당 인원을 표시만 한다).
  */
 @Controller
 @RequestMapping("/card/card")
 public class CardController {
 
   private final CardService cardService;
+  private final CardImportService cardImportService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
   private final CurrentMenu currentMenu; // 요청 URL 로 해석된 menu_id (하드코딩 대체)
 
   public CardController(
       CardService cardService,
+      CardImportService cardImportService,
       MenuService menuService,
       MenuAuthService menuAuthService,
       CurrentMenu currentMenu) {
     this.cardService = cardService;
+    this.cardImportService = cardImportService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
     this.currentMenu = currentMenu;
@@ -97,6 +102,28 @@ public class CardController {
   public ApiResponse<Void> update(@RequestBody TbCard row, HttpSession session) {
     cardService.updateCard(row, actor(session), menuId());
     return ApiResponse.okMessage("수정되었습니다.");
+  }
+
+  /** 엑셀 일괄등록 양식 다운로드 — 헤더만 있는 빈 양식(카드번호*·카드구분*·카드명칭* 필수). */
+  @GetMapping("/excel/template")
+  public void excelTemplate(HttpServletResponse response) throws java.io.IOException {
+    AirPort.util.ExcelUtil.download(
+        response, "카드등록양식.xlsx", CardImportService.IMPORT_HEADERS, java.util.List.of());
+  }
+
+  /** 엑셀 일괄등록 (AJAX, multipart) — 행별 성공/실패 요약. 미발급 카드로 등록된다. */
+  @PostMapping("/excel/import")
+  @ResponseBody
+  public ApiResponse<ExcelImportResult> excelImport(
+      @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+      HttpSession session)
+      throws java.io.IOException {
+    if (file == null || file.isEmpty()) {
+      return ApiResponse.fail(
+          AirPort.common.exception.ErrorCode.INVALID_INPUT.code(), "업로드할 파일을 선택하세요.");
+    }
+    return ApiResponse.ok(
+        cardImportService.importExcel(file.getInputStream(), actor(session), menuId()));
   }
 
   /** 삭제 (AJAX) — 소프트 삭제. 인원에게 할당된 카드는 거부 */

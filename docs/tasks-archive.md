@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 카드 엑셀 일괄등록 — 카드등록관리에 '엑셀 등록' 추가. 양식 다운로드(/card/card/excel/template)+업로드(/excel/import). 공용 excel-import 모달/컴포넌트·ExcelUtil·ExcelImportResult 재사용, CardImportService가 행마다 CardService.createCard(프록시=독립 트랜잭션) 호출→중복/필수/BiostarX 검증 재사용, 실패 행은 사유와 함께 요약. 카드상태 비면 CS01 기본, 미발급으로 등록 — sjpark2, 2026-07-27
 - [x] 인솔자 겹침 규칙 — 임시(PT02)끼리는 같은 인솔자 중복 불가, 임시↔장기·상주(PT03/PT04) 및 장기끼리는 허용. '겹침'=진행중(신청 VS01·입실중 VS03) 판정(퇴실완료 VS04·취소 VS02·삭제 제외). 등록 대상이 임시일 때만 검사(create/update/키오스크 저장 전). TbVisitMapper.selectActiveTempManagers + VisitService.checkManagerOverlap — sjpark2, 2026-07-27
 - [x] 장기출입등록 메뉴(102) — 임시인원관리 하위 /visitor/longterm. 임시인원등록(101)과 동일 구성이나 방문유형을 PTD03 계열(장기 PT03·상주 PT04) select 로 선택, 목록은 PTD03 계열만. 화면(web/visitor/visitor)·VisitService 공유, 차이는 window.VISIT_CFG 서버주입. LongTermController 신규. seed 메뉴/권한 + 개발DB 반영 — sjpark2, 2026-07-27
 - [x] 키오스크(무인증) 방문 신청 — /kiosk/visit 공개 화면. 방문그룹정보·인솔자(정규인원 검색)·방문구역(인원/차량 2단)·방문객·차량 입력→임시(PT02)·신청(VS01) 저장(카드/BiostarX 없음, 관리자 카드발급 단계로 위임). KioskController/KioskVisitService. 리뷰 2026-07-27 — sjpark2, 2026-07-27
