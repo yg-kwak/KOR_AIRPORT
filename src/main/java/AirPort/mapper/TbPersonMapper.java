@@ -17,7 +17,8 @@ public interface TbPersonMapper {
   List<TbPerson> selectByCompany(@Param("companyCode") String companyCode);
 
   /** 정규인원(PT01) 키워드 조회 — 인솔자 선택 팝업. 성명은 암호문이라 인원ID 로 검색. */
-  List<TbPerson> selectRegular(@Param("keyword") String keyword);
+  /** 정규인원(PT01) 후보 전체 — 성명이 ARIA 암호문이라 키워드 검색은 서비스에서 복호화 후 필터. */
+  List<TbPerson> selectRegular();
 
   TbPerson selectById(@Param("personId") String personId);
 

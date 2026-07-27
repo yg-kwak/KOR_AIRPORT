@@ -10,6 +10,7 @@ import AirPort.mapper.TbPersonMapper;
 import AirPort.mapper.TbVisitMapper;
 import AirPort.model.TbAcGroup;
 import AirPort.model.TbCar;
+import AirPort.model.TbCard;
 import AirPort.model.TbCommon;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbPerson;
@@ -117,10 +118,16 @@ public class VisitService {
     return searchManagersPublic(keyword);
   }
 
-  /** 인솔자 후보 — 무인증(키오스크)용. 성명 복호화만. */
+  /** 인솔자 후보 — 무인증(키오스크)용. 성명 복호화 후 인원ID·성명으로 필터(최대 50). */
   public List<TbPerson> searchManagersPublic(String keyword) {
-    List<TbPerson> rows = personMapper.selectRegular(keyword);
-    rows.forEach(p -> p.setPersonName(decrypt(p.getPersonName())));
+    String kw = keyword == null ? "" : keyword.trim();
+    List<TbPerson> rows = new ArrayList<>();
+    for (TbPerson p : personMapper.selectRegular()) {
+      p.setPersonName(decrypt(p.getPersonName()));
+      boolean hit = kw.isEmpty() || p.getPersonId().contains(kw)
+          || (p.getPersonName() != null && p.getPersonName().contains(kw));
+      if (hit && rows.size() < 50) rows.add(p);
+    }
     return rows;
   }
 
@@ -152,13 +159,11 @@ public class VisitService {
         f.setPersonName(decrypt(p.getPersonName()));
         f.setBirthDate(decrypt(p.getBirthDate()));
         f.setAffiliation(p.getAffiliation());
-        cardMapper.selectByPerson(pid).stream()
-            .findFirst()
-            .ifPresent(
-                c -> {
-                  f.setCardId(c.getCardId());
-                  f.setCardLabel(c.getBiostarCardValue());
-                });
+        List<TbCard> pc = cardMapper.selectByPerson(pid);
+        if (!pc.isEmpty()) {
+          f.setCardId(pc.get(0).getCardId());
+          f.setCardLabel(pc.get(0).getBiostarCardValue());
+        }
         d.visitors.add(f);
       }
     }
@@ -171,13 +176,11 @@ public class VisitService {
         f.setCarNo(c.getCarNo());
         f.setCarName(c.getCarName());
         f.setCarType(c.getCarType());
-        cardMapper.selectByCar(carId).stream()
-            .findFirst()
-            .ifPresent(
-                k -> {
-                  f.setCardId(k.getCardId());
-                  f.setCardLabel(k.getBiostarCardValue());
-                });
+        List<TbCard> cc = cardMapper.selectByCar(carId);
+        if (!cc.isEmpty()) {
+          f.setCardId(cc.get(0).getCardId());
+          f.setCardLabel(cc.get(0).getBiostarCardValue());
+        }
         d.cars.add(f);
       }
     }
@@ -206,9 +209,13 @@ public class VisitService {
         (form.getVisitors() == null ? List.<VisitorForm>of() : form.getVisitors()).stream()
             .filter(v -> v.getPersonName() != null && !v.getPersonName().isBlank())
             .toList();
-    if (visitors.isEmpty()) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "방문객을 1명 이상 입력하세요.");
-    }
+    require(form.getWorkStartDt(), "작업기간 시작"); // 키오스크 필수값
+    require(form.getWorkEndDt(), "작업기간 종료");
+    require(form.getCompanyName(), "업체명");
+    require(form.getWorkPurpose(), "작업목적");
+    check(!notEmpty(form.getManagerIds()), "인솔자를 선택하세요.");
+    check(!notEmpty(form.getAcGroupIds()), "방문구역을 선택하세요.");
+    check(visitors.isEmpty(), "방문객 성명을 1명 이상 입력하세요.");
     form.setVisitType(VISIT_TYPE); // 임시 고정
     TbVisit row = toRow(form);
     row.setVisitType(VISIT_TYPE);
@@ -217,9 +224,7 @@ public class VisitService {
     int visitNo = row.getVisitNo();
     if (notEmpty(form.getManagerIds())) visitMapper.insertManagers(visitNo, form.getManagerIds());
     if (notEmpty(form.getAcGroupIds())) visitMapper.insertAcGroups(visitNo, form.getAcGroupIds());
-    for (VisitorForm vf : visitors) {
-      visitMapper.insertPerson(visitNo, upsertVisitor(vf, form)); // tb_person(카드·BiostarX 없음)
-    }
+    for (VisitorForm vf : visitors) visitMapper.insertPerson(visitNo, upsertVisitor(vf, form));
     auditService.log(null, AuditService.CREATE, null, "키오스크 방문 신청: " + visitNo);
     return visitNo;
   }
@@ -433,17 +438,10 @@ public class VisitService {
     boolean hasCars =
         form.getCars() != null
             && form.getCars().stream().anyMatch(c -> c.getCarNo() != null && !c.getCarNo().isBlank());
-    // 출입그룹을 선택했으면 대상(방문객/차량) 입력 강제
-    if (notEmpty(form.getAcGroupIds()) && !hasVisitors) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "사용자 출입그룹을 선택하면 방문객을 입력해야 합니다.");
-    }
-    if (notEmpty(form.getCarAcCodes()) && !hasCars) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "차량 출입그룹을 선택하면 차량을 입력해야 합니다.");
-    }
-    // 방문객이 있으면 인솔자 필수
-    if (hasVisitors && !notEmpty(form.getManagerIds())) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "방문객이 있으면 인솔자를 지정해야 합니다.");
-    }
+    // 출입그룹을 선택했으면 대상(방문객/차량) 입력 강제, 방문객이 있으면 인솔자 필수
+    check(notEmpty(form.getAcGroupIds()) && !hasVisitors, "사용자 출입그룹을 선택하면 방문객을 입력해야 합니다.");
+    check(notEmpty(form.getCarAcCodes()) && !hasCars, "차량 출입그룹을 선택하면 차량을 입력해야 합니다.");
+    check(hasVisitors && !notEmpty(form.getManagerIds()), "방문객이 있으면 인솔자를 지정해야 합니다.");
   }
 
   /** 방문 상태 — 방문객이 있고 전원 카드 발급이면 '입실 중'(VS03)으로 승격. 퇴실완료는 유지. base 는 서버가 정한다. */
@@ -455,8 +453,13 @@ public class VisitService {
   }
 
   private static void require(String v, String label) {
-    if (v == null || v.isBlank()) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, label + "은(는) 필수입니다.");
+    check(v == null || v.isBlank(), label + "은(는) 필수입니다.");
+  }
+
+  /** 조건이 참이면 입력 오류. */
+  private static void check(boolean bad, String message) {
+    if (bad) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, message);
     }
   }
 

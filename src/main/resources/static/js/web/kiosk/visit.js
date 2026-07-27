@@ -67,6 +67,12 @@
         affiliation: (v.affiliation || '').trim() || null,
       })),
     };
+    if (!payload.workStartDt) { toast.warning('작업기간 시작을 입력하세요.'); return; }
+    if (!payload.workEndDt) { toast.warning('작업기간 종료를 입력하세요.'); return; }
+    if (!payload.companyName) { toast.warning('업체명을 입력하세요.'); return; }
+    if (!payload.workPurpose) { toast.warning('작업목적을 입력하세요.'); return; }
+    if (!payload.managerIds.length) { toast.warning('인솔자를 선택하세요.'); return; }
+    if (!payload.acGroupIds.length) { toast.warning('방문구역을 선택하세요.'); return; }
     if (!payload.visitors.length || payload.visitors.some((v) => !v.personName)) {
       toast.warning('방문객 성명을 입력하세요.'); return;
     }

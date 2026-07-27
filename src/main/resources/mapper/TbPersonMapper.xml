@@ -78,11 +78,11 @@
 
   <!-- 정규인원(PT01) — 인솔자 선택 팝업. 성명 암호문이라 인원ID LIKE -->
   <select id="selectRegular" resultType="TbPerson">
-    SELECT TOP 50 p.person_id, p.person_name, p.company_code, co.company_name
+    <!-- 성명은 ARIA 암호문이라 SQL 검색 불가 → 후보 전체 반환, 서비스에서 복호화 후 ID·성명 필터 -->
+    SELECT p.person_id, p.person_name, p.company_code, co.company_name
     FROM tb_person p
     LEFT JOIN tb_company co ON co.company_code = p.company_code
     WHERE p.del_yn = 'N' AND p.person_type = 'PT01'
-      <if test="keyword != null and keyword != ''">AND p.person_id LIKE '%' + #{keyword} + '%'</if>
     ORDER BY p.person_id
   </select>
 

@@ -30,26 +30,26 @@
       <h2>방문 그룹 정보</h2>
       <div class="form-grid">
         <div class="form-group">
-          <label>작업기간 시작</label>
+          <label>작업기간 시작 <span class="req">*</span></label>
           <input type="datetime-local" id="workStartDt" class="input" max="2037-12-31T23:59"/>
         </div>
         <div class="form-group">
-          <label>작업기간 종료</label>
+          <label>작업기간 종료 <span class="req">*</span></label>
           <input type="datetime-local" id="workEndDt" class="input" max="2037-12-31T23:59"/>
         </div>
         <div class="form-group">
-          <label>업체명</label>
+          <label>업체명 <span class="req">*</span></label>
           <input type="text" id="companyName" class="input" maxlength="100" autocomplete="off"/>
         </div>
         <div class="form-group full">
-          <label>작업목적</label>
+          <label>작업목적 <span class="req">*</span></label>
           <input type="text" id="workPurpose" class="input" maxlength="500" autocomplete="off"/>
         </div>
       </div>
     </div>
 
     <div class="kiosk-card">
-      <h2>인솔자</h2>
+      <h2>인솔자 <span class="req">*</span></h2>
       <div class="file-field-row">
         <input type="text" id="mgrKeyword" class="input" style="flex:1"
                placeholder="인솔자(정규인원) ID 또는 성명 검색" autocomplete="off"/>
@@ -57,7 +57,7 @@
       </div>
       <div class="matrix-wrap" id="mgrResultWrap" style="display:none; margin-top:8px">
         <table class="grid">
-          <thead><tr><th class="w-40"></th><th class="w-160">인원ID</th><th style="text-align:left">성명</th></tr></thead>
+          <thead><tr><th class="w-80"></th><th class="w-160">인원ID</th><th style="text-align:left">성명</th></tr></thead>
           <tbody id="mgrResult"></tbody>
         </table>
       </div>
@@ -68,7 +68,7 @@
     </div>
 
     <div class="kiosk-card">
-      <h2>방문구역</h2>
+      <h2>방문구역 <span class="req">*</span></h2>
       <div class="ac-select-tree" id="acTree"><div class="empty">불러오는 중...</div></div>
     </div>
 
