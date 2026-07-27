@@ -163,7 +163,8 @@ DOMContentLoaded → bind()  → load()
 ## 8. 포맷팅 · 커밋 · 주석
 - Java: **google-java-format** (spotless `googleJavaFormat()`, `/commit` 시 자동).
 - 프론트(HTML/JS/CSS): prettier (PostToolUse 훅).
-- 커밋: Conventional Commits(한국어). 타입 `feat|fix|refactor|docs|style|test|chore|perf`. scope 예: `common|visitor|acgroup|menu|biostar|auth|audit|ui|db|infra|deploy`.
+- 커밋: Conventional Commits(한국어). 타입 `feat|fix|refactor|docs|style|test|chore|perf`. scope 예: `common|visitor|acgroup|menu|biostar|auth|audit|ui|db|infra|deploy|card|person|kiosk`.
+  (`kiosk` = 무인증 방문 신청 등 키오스크/공개 화면, `card`/`person` = 카드·인원 도메인)
 - 주석: "무엇"이 아니라 "왜". 정책 결정(예: 등록/수정=create_auth)은 결정 지점에 주석으로 남긴다.
 
 ## 9. 강제 (Enforcement)

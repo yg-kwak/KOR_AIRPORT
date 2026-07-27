@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 키오스크(무인증) 방문 신청 — /kiosk/visit 공개 화면. 방문그룹정보·인솔자(정규인원 검색)·방문구역(인원/차량 2단)·방문객·차량 입력→임시(PT02)·신청(VS01) 저장(카드/BiostarX 없음, 관리자 카드발급 단계로 위임). KioskController/KioskVisitService. 리뷰 2026-07-27 — sjpark2, 2026-07-27
 - [x] 정규인원 카드 프린트 — 카드정보 탭 프린트 버튼(미리보기 후 인쇄), 얼굴+카드 등록 인원만. card_project(디자인 export) JSON을 배경 해상도로 스케일 렌더(앞/뒤), 한글 폰트 폴백. adapter/cardprint(CardPrintAdapter/Renderer)+CardPrintService — sjpark2, 2026-07-27
 - [x] 임시인원등록(방문, tb_visit) — 임시인원관리(100)/임시인원등록(101), /visitor/visitor. 4탭(그룹정보·인솔자·방문객·차량): 사용자출입그룹(tb_ac_group)·차량출입그룹(CAR), 인솔자(정규인원), 방문객(tb_person+affiliation 신규컬럼)·차량(tb_car)+카드선택. 저장 시 방문객 BiostarX PT→PTD code_tag 부모그룹 편입(VisitBiostarService). 카드·출입그룹은 정규와 동일 테이블 재사용 — sjpark2, 2026-07-24
 - [x] 정규인원 엑셀 일괄등록 + 엑셀등록 공용 컴포넌트화 — 정규인원등록에 엑셀 등록(PersonImportService, 행별 create 재사용·독립 트랜잭션, 기관코드·성명 필수, 인원ID 자동채번, 사용자권한·카드정보 제외). 기관/인원이 공유하는 excel-import 컴포넌트 신설(기관 화면도 이행) — sjpark2, 2026-07-23
