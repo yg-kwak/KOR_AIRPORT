@@ -101,6 +101,22 @@
     </foreach>
   </insert>
 
+  <!-- 임시끼리 인솔자 겹침 검사 — 진행중(신청 VS01·입실중 VS03) 다른 임시(PT02) 방문에 이미 인솔자인 person_id.
+       임시↔장기·상주(PT03/PT04) 및 장기끼리는 허용이므로 PT02 방문만 대상으로 한다. -->
+  <select id="selectActiveTempManagers" resultType="string">
+    SELECT DISTINCT m.person_id
+    FROM tb_visit_manager m
+    JOIN tb_visit v ON v.visit_no = m.visit_no
+    WHERE v.visit_type = 'PT02'
+      AND v.del_yn = 'N'
+      AND v.status_code IN ('VS01', 'VS03')
+      AND m.person_id IN
+      <foreach collection="personIds" item="pid" open="(" separator="," close=")">#{pid}</foreach>
+    <if test="excludeVisitNo != null">
+      AND v.visit_no &lt;&gt; #{excludeVisitNo}
+    </if>
+  </select>
+
   <!-- ── 방문객 ── -->
   <select id="selectPersonIds" resultType="string">
     SELECT person_id FROM tb_visit_person WHERE visit_no = #{visitNo}

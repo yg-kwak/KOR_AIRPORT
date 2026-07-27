@@ -77,6 +77,7 @@ public class KioskVisitService {
     bad(has(form.getCarAcCodes()) && cars.isEmpty(), "차량구역을 선택하면 차량정보를 입력해야 합니다.");
 
     form.setVisitType(VisitService.VISIT_TYPE);
+    visitService.checkManagerOverlap(form, null); // 임시끼리 인솔자 겹침 금지
     TbVisit row = visitService.toRow(form);
     row.setVisitType(VisitService.VISIT_TYPE);
     row.setStatusCode(VisitService.DEFAULT_STATUS); // 신청

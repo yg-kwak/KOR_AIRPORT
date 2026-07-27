@@ -30,6 +30,10 @@ public interface TbVisitMapper {
 
   int insertManagers(@Param("visitNo") int visitNo, @Param("personIds") List<String> personIds);
 
+  /** 임시(PT02) 인솔자 겹침 — 진행중(신청·입실중) 다른 임시 방문에 이미 인솔자인 person_id 목록. */
+  List<String> selectActiveTempManagers(
+      @Param("personIds") List<String> personIds, @Param("excludeVisitNo") Integer excludeVisitNo);
+
   // ── 방문객(person_id) ──
   List<String> selectPersonIds(@Param("visitNo") int visitNo);
 

@@ -200,6 +200,7 @@ public class VisitService {
   public String create(VisitForm form, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
     validate(form);
+    checkManagerOverlap(form, null);
     TbVisit row = toRow(form);
     row.setStatusCode(effectiveStatus(DEFAULT_STATUS, form)); // 상태는 서버가 관리(신청→전원카드 시 입실중)
     visitMapper.insert(row);
@@ -215,6 +216,7 @@ public class VisitService {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "방문번호가 필요합니다.");
     }
     validate(form);
+    checkManagerOverlap(form, form.getVisitNo());
     TbVisit existing = visitMapper.selectById(form.getVisitNo());
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
@@ -422,6 +424,20 @@ public class VisitService {
     check(notEmpty(form.getAcGroupIds()) && !hasVisitors, "사용자 출입그룹을 선택하면 방문객을 입력해야 합니다.");
     check(notEmpty(form.getCarAcCodes()) && !hasCars, "차량 출입그룹을 선택하면 차량을 입력해야 합니다.");
     check(hasVisitors && !notEmpty(form.getManagerIds()), "방문객이 있으면 인솔자를 지정해야 합니다.");
+  }
+
+  /**
+   * 임시(PT02)끼리 인솔자 겹침 금지 — 진행중(신청·입실중)인 다른 임시 방문에 이미 인솔자면 차단한다. 임시↔장기·상주 및
+   * 장기끼리는 허용하므로 등록 대상이 임시일 때만 검사한다.
+   */
+  void checkManagerOverlap(VisitForm form, Integer excludeVisitNo) {
+    if (!VISIT_TYPE.equals(form.getVisitType()) || !notEmpty(form.getManagerIds())) {
+      return;
+    }
+    List<String> dup = visitMapper.selectActiveTempManagers(form.getManagerIds(), excludeVisitNo);
+    check(
+        notEmpty(dup),
+        "이미 진행 중인 임시 방문의 인솔자입니다(임시끼리 중복 불가): " + String.join(", ", dup));
   }
 
   /** 방문 상태 — 방문객이 있고 전원 카드 발급이면 '입실 중'(VS03)으로 승격. 퇴실완료는 유지. base 는 서버가 정한다. */
