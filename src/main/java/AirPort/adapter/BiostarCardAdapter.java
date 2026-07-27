@@ -72,6 +72,54 @@ public class BiostarCardAdapter {
   }
 
   /**
+   * 카드 차단(블랙리스트 등록) — {@code POST /api/cards/blacklist}, {@code
+   * {"Blacklist":{"card_id":{"id":"<biostarCardId>"}}}}. biostarCardId 는 카드 등록 응답의 id(tb_card.biostar_card_id).
+   */
+  public BiostarResult blacklistCard(
+      String ip, String loginId, String password, String biostarCardId) {
+    if (ip == null || ip.isBlank()) {
+      return BiostarResult.fail("BiostarX IP가 설정되어 있지 않습니다. 설정관리에서 등록하세요.");
+    }
+    if (biostarCardId == null || biostarCardId.isBlank()) {
+      return BiostarResult.fail("BiostarX 카드ID가 없습니다.");
+    }
+    try {
+      ObjectNode root = objectMapper.createObjectNode();
+      root.putObject("Blacklist").putObject("card_id").put("id", biostarCardId);
+      HttpResponse<String> resp =
+          session.post(
+              baseUrl(ip),
+              loginId,
+              password,
+              "/api/cards/blacklist",
+              objectMapper.writeValueAsString(root));
+      String err = BiostarAdapter.responseError(objectMapper, resp);
+      return err == null ? BiostarResult.ok() : BiostarResult.fail(err);
+    } catch (Exception e) {
+      return BiostarResult.fail(friendlyError(e, "카드 차단"));
+    }
+  }
+
+  /** 카드 차단 해제 — {@code DELETE /api/cards/blacklist?id={biostarCardId}}. */
+  public BiostarResult removeBlacklist(
+      String ip, String loginId, String password, String biostarCardId) {
+    if (ip == null || ip.isBlank()) {
+      return BiostarResult.fail("BiostarX IP가 설정되어 있지 않습니다. 설정관리에서 등록하세요.");
+    }
+    if (biostarCardId == null || biostarCardId.isBlank()) {
+      return BiostarResult.fail("BiostarX 카드ID가 없습니다.");
+    }
+    try {
+      HttpResponse<String> resp =
+          session.delete(baseUrl(ip), loginId, password, "/api/cards/blacklist?id=" + biostarCardId);
+      String err = BiostarAdapter.responseError(objectMapper, resp);
+      return err == null ? BiostarResult.ok() : BiostarResult.fail(err);
+    } catch (Exception e) {
+      return BiostarResult.fail(friendlyError(e, "카드 차단 해제"));
+    }
+  }
+
+  /**
    * 장치 리더로 카드 읽기 — {@code POST /api/devices/{devId}/scan_card}. 응답 {@code Card.card_id} 만 사용한다(등록
    * 전이라 {@code id} 는 "0").
    */

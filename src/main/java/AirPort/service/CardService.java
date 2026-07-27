@@ -7,11 +7,13 @@ import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCardMapper;
+import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbSystemMapper;
 import AirPort.model.CardForm;
 import AirPort.model.CardSearchParam;
 import AirPort.model.TbCard;
 import AirPort.model.TbLoginUser;
+import AirPort.model.TbCommon;
 import AirPort.model.TbSystem;
 import AirPort.security.ARIAUtil;
 import java.util.ArrayList;
@@ -42,6 +44,7 @@ public class CardService {
 
   private final TbCardMapper cardMapper;
   private final TbSystemMapper systemMapper;
+  private final TbCommonMapper commonMapper;
   private final BiostarCardAdapter biostarCardAdapter;
   private final MenuAuthService menuAuthService;
   private final AuditService auditService;
@@ -49,14 +52,43 @@ public class CardService {
   public CardService(
       TbCardMapper cardMapper,
       TbSystemMapper systemMapper,
+      TbCommonMapper commonMapper,
       BiostarCardAdapter biostarCardAdapter,
       MenuAuthService menuAuthService,
       AuditService auditService) {
     this.cardMapper = cardMapper;
     this.systemMapper = systemMapper;
+    this.commonMapper = commonMapper;
     this.biostarCardAdapter = biostarCardAdapter;
     this.menuAuthService = menuAuthService;
     this.auditService = auditService;
+  }
+
+  /**
+   * 카드 상태(tb_common CS)에 따라 BiostarX 블랙리스트 동기화 — code_tag='Y'면 차단, 아니면 해제. 실패해도 저장은 유지하고
+   * 경고만 남긴다(외부 연동 실패가 업무를 막지 않음).
+   */
+  private void syncBlacklist(String biostarCardId, String cardStatus) {
+    if (biostarCardId == null || biostarCardId.isBlank()) {
+      return;
+    }
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      return;
+    }
+    TbCommon cs = commonMapper.selectOne("CS", cardStatus);
+    boolean block = cs != null && "Y".equals(cs.getCodeTag());
+    AirPort.adapter.BiostarResult res =
+        block
+            ? biostarCardAdapter.blacklistCard(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), biostarCardId)
+            : biostarCardAdapter.removeBlacklist(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), biostarCardId);
+    if (!res.success()) {
+      log.warn(
+          "카드 블랙리스트 동기화 실패(cardId={}, {}): {}",
+          biostarCardId,
+          block ? "차단" : "해제",
+          res.message());
+    }
   }
 
   // ── 카드등록관리(/card/card) — 카드 마스터 CRUD ────────────────────────────
@@ -136,6 +168,7 @@ public class CardService {
     validateCard(row);
     normalize(row);
     cardMapper.updateInfo(row);
+    syncBlacklist(existing.getBiostarCardId(), row.getCardStatus()); // 상태 변경 → BiostarX 차단/해제
     auditService.log(actor, AuditService.UPDATE, menuId, "카드 수정: " + existing.getBiostarCardValue());
   }
 
@@ -279,6 +312,7 @@ public class CardService {
         cardMapper.update(row); // update 가 person_id 재배정 + del_yn='N' 복원
         form.setCardId(row.getCardId());
       }
+      syncBlacklist(row.getBiostarCardId(), row.getCardStatus()); // 상태에 따라 BiostarX 차단/해제
     }
   }
 

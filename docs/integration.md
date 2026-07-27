@@ -76,6 +76,12 @@
 - 외부 장애 시 우리 시스템이 멈추지 않도록 경계 설정(타임아웃/서킷브레이커). TODO.
 - 멱등성: 도어 제어/권한 부여 재시도 시 중복 방지. TODO.
 
+## 카드 차단/해제 (블랙리스트)
+
+- 카드 상태(tb_common CS)의 `code_tag`로 BiostarX 블랙리스트를 동기화한다. **`code_tag='Y'`면 차단, 아니면 해제.** (CS01 정상=N, CS02 분실·CS03 반납·CS04 정지·CS05 회수=Y)
+- 차단: `POST /api/cards/blacklist` `{"Blacklist":{"card_id":{"id":"<biostar_card_id>"}}}` / 해제: `DELETE /api/cards/blacklist?id=<biostar_card_id>`. (`BiostarCardAdapter.blacklistCard`/`removeBlacklist`)
+- 호출 시점: 카드 상태가 저장되는 곳 — 카드관리 수정(`CardService.updateCard`)과 인원 저장의 카드 반영(`saveCards`). 실패해도 저장은 유지하고 경고만 남긴다(best-effort). id 는 `tb_card.biostar_card_id`.
+
 ## 카드 프린트 (adapter/cardprint)
 
 - 디자인 export(card_project) JSON을 템플릿으로 **앞/뒤 카드 이미지를 렌더**해 카드 프린터로 출력한다.
