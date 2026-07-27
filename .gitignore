@@ -42,3 +42,6 @@ Thumbs.db
 
 # 카드 프린트 템플릿(디자인 export, 대용량 base64 포함)
 card-templates/
+
+# TLS 키스토어(자체서명 인증서) — 커밋 금지
+certs/

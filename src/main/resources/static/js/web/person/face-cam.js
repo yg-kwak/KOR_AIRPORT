@@ -8,7 +8,10 @@
   async function open(onCapture) {
     onCaptureCb = onCapture;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      toast.error('이 브라우저(또는 보안 컨텍스트)에서는 카메라를 사용할 수 없습니다.');
+      const insecure = !window.isSecureContext; // http+IP 접속이면 카메라 API 자체가 없음
+      toast.error(insecure
+        ? '카메라는 보안 접속에서만 됩니다. localhost 또는 https 로 접속하세요. (장치에서 촬영은 사용 가능)'
+        : '이 브라우저에서는 카메라를 사용할 수 없습니다.');
       return;
     }
     $('faceCamModal').classList.add('open');
