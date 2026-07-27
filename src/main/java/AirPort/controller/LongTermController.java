@@ -30,13 +30,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
- * 임시인원등록(방문) — 그룹/인솔자/방문객/차량 탭 CRUD. (docs/backend.md)
+ * 장기출입등록(방문) — 임시인원등록과 동일 구성이나 방문유형을 PTD03 계열(장기·상주)에서 선택한다. (docs/backend.md)
  *
- * <p>출입그룹 트리·미할당 카드는 정규 화면과 같은 조회를 재사용한다. 인솔자 후보는 정규인원(PT01) 검색.
+ * <p>화면·CRUD 는 {@link VisitService} 와 임시인원등록 화면(web/visitor/visitor)을 공유하고, 방문유형 계열(codeTag)만 PTD03
+ * 로 달리한다. 목록은 PTD03 계열만 노출한다.
  */
 @Controller
-@RequestMapping("/visitor/visitor")
-public class VisitController {
+@RequestMapping("/visitor/longterm")
+public class LongTermController {
+
+  private static final String CODE_TAG = "PTD03"; // 장기·상주 발급구분
+  private static final String AREA_TYPE = "PT03"; // 구역범위 대표(장기, code_remark='Y' → 세부트리)
 
   private final VisitService visitService;
   private final CardService cardService;
@@ -44,7 +48,7 @@ public class VisitController {
   private final MenuAuthService menuAuthService;
   private final CurrentMenu currentMenu;
 
-  public VisitController(
+  public LongTermController(
       VisitService visitService,
       CardService cardService,
       MenuService menuService,
@@ -70,12 +74,12 @@ public class VisitController {
     }
     model.addAttribute("menus", menuService.tree(actor(session)));
     model.addAttribute("perm", perm);
-    model.addAttribute("screenTitle", "임시인원등록");
-    model.addAttribute("base", "/visitor/visitor");
-    model.addAttribute("codeTag", "PTD02");
-    model.addAttribute("fixedVisitType", "PT02"); // 임시 고정
-    model.addAttribute("fixedVisitTypeName", "임시");
-    model.addAttribute("visitTypes", java.util.List.of());
+    model.addAttribute("screenTitle", "장기출입등록");
+    model.addAttribute("base", "/visitor/longterm");
+    model.addAttribute("codeTag", CODE_TAG);
+    model.addAttribute("fixedVisitType", null); // 방문유형은 select 로 선택
+    model.addAttribute("fixedVisitTypeName", null);
+    model.addAttribute("visitTypes", visitService.visitTypes(CODE_TAG)); // PTD03 계열(장기·상주)
     return "web/visitor/visitor";
   }
 
@@ -83,11 +87,10 @@ public class VisitController {
   @ResponseBody
   public ApiResponse<PageResult<TbVisit>> list(VisitSearchParam param, HttpSession session) {
     menuAuthService.requireRead(actor(session), menuId());
-    param.setCodeTag("PTD02"); // 임시(PTD02) 계열만
+    param.setCodeTag(CODE_TAG); // PTD03 계열만
     return ApiResponse.ok(visitService.list(param, actor(session), menuId()));
   }
 
-  /** 상세 (AJAX) — 수정 모달용 그룹 + 인솔자/방문객/차량/출입그룹 */
   @GetMapping("/detail")
   @ResponseBody
   public ApiResponse<VisitService.VisitDetail> detail(
@@ -95,14 +98,12 @@ public class VisitController {
     return ApiResponse.ok(visitService.detail(visitNo, actor(session), menuId()));
   }
 
-  /** 출입권한 선택 트리 (AJAX) — 방문유형 구역범위(code_remark)에 따라 최상위/세부 노출 */
   @GetMapping("/acGroups")
   @ResponseBody
   public ApiResponse<List<AirPort.model.TbAcGroup>> acGroups(HttpSession session) {
-    return ApiResponse.ok(visitService.acGroupTree("PT02", actor(session), menuId()));
+    return ApiResponse.ok(visitService.acGroupTree(AREA_TYPE, actor(session), menuId()));
   }
 
-  /** 미할당 방문객(인원) 카드 (AJAX) — 검색 지원 */
   @GetMapping("/cards/unassigned")
   @ResponseBody
   public ApiResponse<List<TbCard>> unassignedCards(
@@ -112,7 +113,6 @@ public class VisitController {
             keyword, CardService.CARD_TYPE_PERSON, actor(session), menuId()));
   }
 
-  /** 미할당 차량 카드 (AJAX) — 검색 지원(스캔 없음) */
   @GetMapping("/cards/unassigned/car")
   @ResponseBody
   public ApiResponse<List<TbCard>> unassignedCarCards(
@@ -121,14 +121,12 @@ public class VisitController {
         cardService.listUnassigned(keyword, CardService.CARD_TYPE_CAR, actor(session), menuId()));
   }
 
-  /** 카드 스캔 (AJAX) — 방문객 카드용(리더로 카드번호 읽기). 차량 카드는 스캔 미지원. */
   @PostMapping("/card/scan")
   @ResponseBody
   public ApiResponse<AirPort.adapter.BiostarCard> scanCard(HttpSession session) {
     return ApiResponse.ok(cardService.scan(actor(session), menuId()));
   }
 
-  /** 인솔자 후보 (AJAX) — 정규인원(PT01) 검색 */
   @GetMapping("/managers")
   @ResponseBody
   public ApiResponse<List<TbPerson>> managers(
@@ -157,7 +155,6 @@ public class VisitController {
         withWarning("삭제되었습니다.", visitService.delete(visitNo, actor(session), menuId())));
   }
 
-  /** 퇴실 처리 — 입실 중 방문을 퇴실완료로. BiostarX 사용자 비활성화 + 카드 회수. */
   @PostMapping("/checkout")
   @ResponseBody
   public ApiResponse<Void> checkout(@RequestParam int visitNo, HttpSession session) {

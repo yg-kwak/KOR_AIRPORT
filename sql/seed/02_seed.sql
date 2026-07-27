@@ -94,6 +94,7 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
 INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn) VALUES
   (100, N'임시인원관리', NULL, NULL,                 1, 1, 'guard',    'Y'),
   (101, N'임시인원등록', 100,  '/visitor/visitor',    2, 1, NULL,       'Y'),
+  (102, N'장기출입등록', 100,  '/visitor/longterm',   2, 2, NULL,       'Y'),
   (200, N'정규인원관리', NULL, NULL,                 1, 2, 'card',     'Y'),
   (201, N'정규인원등록', 200,  '/person/person',      2, 1, NULL,      'Y'),
   (300, N'시스템관리',   NULL, NULL,                 1, 2, 'settings', 'Y'),
@@ -127,7 +128,8 @@ VALUES (@authId, 301, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 201, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 801, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 702, 'Y', 'Y', 'Y', 'Y'),
-       (@authId, 101, 'Y', 'Y', 'Y', 'Y');
+       (@authId, 101, 'Y', 'Y', 'Y', 'Y'),
+       (@authId, 102, 'Y', 'Y', 'Y', 'Y');
 
 /* 관리자 계정: 아이디 admin / 비밀번호 admin123 (ARIA 암호문) */
 INSERT INTO dbo.tb_login_user
@@ -153,7 +155,8 @@ VALUES (@viewerAuthId, 301, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 201, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 801, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 702, 'Y', 'N', 'N', 'N'),
-       (@viewerAuthId, 101, 'Y', 'N', 'N', 'N');
+       (@viewerAuthId, 101, 'Y', 'N', 'N', 'N'),
+       (@viewerAuthId, 102, 'Y', 'N', 'N', 'N');
 
 INSERT INTO dbo.tb_login_user
   (user_id, user_name, password, dept_name, use_yn, root_yn, auth_id, start_menu_id, work_location_code)

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head('임시인원등록')}"></head>
+<head th:replace="~{fragments/head :: head(${screenTitle})}"></head>
 <body>
 <div th:replace="~{fragments/main :: header}"></div>
 <div class="layout-container">
   <div th:replace="~{fragments/sidebar :: sidebar(${menus})}"></div>
   <main class="layout-content">
-    <h2>임시인원등록</h2>
+    <h2 th:text="${screenTitle}">임시인원등록</h2>
 
     <section class="search-section">
       <div class="search-field">
@@ -83,10 +83,17 @@
       <div class="tab-panel active" id="tab-group">
         <div class="form-grid">
           <div class="form-group">
-            <label>방문유형</label>
-            <input type="hidden" id="visitType"/>
-            <input type="text" id="visitTypeName" class="input" readonly
-                   value="임시" placeholder="임시" autocomplete="off"/>
+            <label>방문유형 <span class="req" th:if="${fixedVisitType == null}">*</span></label>
+            <!-- 임시: 고정 표시 / 장기: PTD03 계열(장기·상주) select -->
+            <th:block th:if="${fixedVisitType != null}">
+              <input type="hidden" id="visitType" th:value="${fixedVisitType}"/>
+              <input type="text" id="visitTypeName" class="input" readonly
+                     th:value="${fixedVisitTypeName}" autocomplete="off"/>
+            </th:block>
+            <select th:if="${fixedVisitType == null}" id="visitType" class="input">
+              <option value="">선택</option>
+              <option th:each="t : ${visitTypes}" th:value="${t.codeId}" th:text="${t.codeName}"></option>
+            </select>
           </div>
           <div class="form-group">
             <label>상태 <span class="form-hint">(자동 — 변경 불가)</span></label>
@@ -246,6 +253,7 @@
 
 <script th:inline="javascript">
   window.PAGE_PERM = { canCreate: [[${perm.canCreate}]], canDelete: [[${perm.canDelete}]] };
+  window.VISIT_CFG = { base: [[${base}]], fixedType: [[${fixedVisitType}]], fixedTypeName: [[${fixedVisitTypeName}]] };
 </script>
 <script src="/js/web/visitor/visitor.js" defer></script>
 </body>

@@ -6,6 +6,9 @@
   <sql id="searchWhere">
     <where>
       v.del_yn = 'N'
+      <if test="codeTag != null and codeTag != ''">
+        AND v.visit_type IN (SELECT code_id FROM tb_common WHERE cmm_id = 'PT' AND code_tag = #{codeTag})
+      </if>
       <if test="visitType != null and visitType != ''">AND v.visit_type = #{visitType}</if>
       <if test="statusCode != null and statusCode != ''">AND v.status_code = #{statusCode}</if>
       <if test="keyword != null and keyword != ''">

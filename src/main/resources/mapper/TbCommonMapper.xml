@@ -92,6 +92,13 @@
     ORDER BY code_id
   </select>
 
+  <select id="selectByCodeTag" resultType="TbCommon">
+    SELECT cmm_id, cmm_name, code_id, code_name, code_tag
+    FROM tb_common
+    WHERE cmm_id = #{cmmId} AND code_tag = #{codeTag} AND use_yn = 'Y'
+    ORDER BY code_id
+  </select>
+
   <insert id="insert" parameterType="TbCommon">
     INSERT INTO tb_common
       (cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_input, use_yn)

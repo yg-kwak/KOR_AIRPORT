@@ -160,6 +160,10 @@ DOMContentLoaded → bind()  → load()
 ⑧ 검증: 로그인→목록→CRUD→권한(viewer)→감사 이력 확인
 ```
 
+**변형 화면(같은 화면·다른 계열)**: 동일 구성의 화면을 코드계열만 달리해 재사용할 때는 템플릿·JS 를 복제하지 않는다.
+- 하나의 `templates/web/{영역}/{화면}.html` + `static/js/.../{화면}.js` 를 공유하고, 차이는 **서버 주입 config**(`window.{도메인}_CFG`)로만 전달한다. JS 는 `CFG` 를 읽어 분기(고정값 vs 화면 select).
+- 컨트롤러는 화면당 하나(각자 고유 `@RequestMapping`==`menu_url`). 목록 필터는 `tb_common.code_tag` **계열**로 좁힌다(예: 임시=PTD02, 장기=PTD03). 예: `VisitController`(/visitor/visitor)·`LongTermController`(/visitor/longterm) 가 `web/visitor/visitor` 공유.
+
 ## 8. 포맷팅 · 커밋 · 주석
 - Java: **google-java-format** (spotless `googleJavaFormat()`, `/commit` 시 자동).
 - 프론트(HTML/JS/CSS): prettier (PostToolUse 훅).

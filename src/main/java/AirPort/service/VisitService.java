@@ -84,13 +84,22 @@ public class VisitService {
    * 사용자출입그룹 트리 — 방문유형 구역범위(tb_common PT.code_remark)가 'Y'가 아니면 최상위 그룹만 노출한다. 임시(PT02)는
    * 최상위만(code_remark='N'). tb_ac_group 조회는 정규와 동일 트리를 재사용한다.
    */
-  public List<TbAcGroup> acGroupTree(TbLoginUser actor, Integer menuId) {
-    return pruneAreaScope(acGroupService.tree(actor, menuId));
+  public List<TbAcGroup> acGroupTree(String visitType, TbLoginUser actor, Integer menuId) {
+    return pruneAreaScope(acGroupService.tree(actor, menuId), visitType);
+  }
+
+  /** 방문유형별 선택지 — PT 중 code_tag(발급구분) 계열 목록(장기출입등록 방문유형 select 등). */
+  public List<TbCommon> visitTypes(String codeTag) {
+    return commonMapper.selectByCodeTag("PT", codeTag);
   }
 
   /** 방문유형 구역범위(code_remark)가 'Y'가 아니면 최상위 그룹만 남긴다. (키오스크 재사용 — package-private) */
   List<TbAcGroup> pruneAreaScope(List<TbAcGroup> tree) {
-    TbCommon pt = commonMapper.selectOne("PT", VISIT_TYPE);
+    return pruneAreaScope(tree, VISIT_TYPE);
+  }
+
+  List<TbAcGroup> pruneAreaScope(List<TbAcGroup> tree, String visitType) {
+    TbCommon pt = commonMapper.selectOne("PT", visitType);
     boolean detail = pt != null && "Y".equals(pt.getCodeRemark());
     if (!detail) {
       for (TbAcGroup root : tree) {
@@ -114,8 +123,8 @@ public class VisitService {
   }
 
   /**
-   * 인솔자 후보 — 무인증(키오스크)용. 개인정보 노출 최소화: <b>빈 검색어는 결과 없음</b>, 인원ID는 부분일치, 성명은
-   * <b>완전일치</b>만 노출(성명 부분검색으로 직원 명단을 훑는 것을 막는다). 최대 50건.
+   * 인솔자 후보 — 무인증(키오스크)용. 개인정보 노출 최소화: <b>빈 검색어는 결과 없음</b>, 인원ID는 부분일치, 성명은 <b>완전일치</b>만 노출(성명
+   * 부분검색으로 직원 명단을 훑는 것을 막는다). 최대 50건.
    */
   public List<TbPerson> searchManagersPublic(String keyword) {
     String kw = keyword == null ? "" : keyword.trim();
@@ -199,7 +208,6 @@ public class VisitService {
     return warn;
   }
 
-
   @Transactional
   public String update(VisitForm form, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
@@ -232,11 +240,11 @@ public class VisitService {
     }
     // 신청(VS01)·신청취소(VS02) 상태만 삭제 가능 — 입실중/퇴실완료는 이력 보존
     if (!DEFAULT_STATUS.equals(v.getStatusCode()) && !STATUS_CANCELLED.equals(v.getStatusCode())) {
-      throw new BusinessException(
-          ErrorCode.INVALID_INPUT, "신청·신청취소 상태의 방문만 삭제할 수 있습니다.");
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "신청·신청취소 상태의 방문만 삭제할 수 있습니다.");
     }
     // BiostarX 방문객 사용자 삭제(부모 그룹에서 제거) — 실패해도 방문 삭제는 진행
-    String warn = visitBiostar.deleteVisitors(v.getVisitType(), visitMapper.selectPersonIds(visitNo));
+    String warn =
+        visitBiostar.deleteVisitors(v.getVisitType(), visitMapper.selectPersonIds(visitNo));
     clearRoster(visitNo); // 방문객/차량 정리(카드 회수 포함)
     visitMapper.deleteManagers(visitNo);
     visitMapper.deleteAcGroups(visitNo);
@@ -408,7 +416,8 @@ public class VisitService {
     boolean hasVisitors = form.getVisitors() != null && !form.getVisitors().isEmpty();
     boolean hasCars =
         form.getCars() != null
-            && form.getCars().stream().anyMatch(c -> c.getCarNo() != null && !c.getCarNo().isBlank());
+            && form.getCars().stream()
+                .anyMatch(c -> c.getCarNo() != null && !c.getCarNo().isBlank());
     // 출입그룹을 선택했으면 대상(방문객/차량) 입력 강제, 방문객이 있으면 인솔자 필수
     check(notEmpty(form.getAcGroupIds()) && !hasVisitors, "사용자 출입그룹을 선택하면 방문객을 입력해야 합니다.");
     check(notEmpty(form.getCarAcCodes()) && !hasCars, "차량 출입그룹을 선택하면 차량을 입력해야 합니다.");

@@ -27,6 +27,9 @@ public interface TbCommonMapper {
   List<TbCommon> selectCodesForPicker(
       @Param("cmmId") String cmmId, @Param("keyword") String keyword);
 
+  /** 특정 code_tag 를 가진 코드 목록 — 방문유형(PT) 중 발급구분(PTD)별 선택지 등. */
+  List<TbCommon> selectByCodeTag(@Param("cmmId") String cmmId, @Param("codeTag") String codeTag);
+
   int insert(TbCommon row);
 
   int update(TbCommon row);

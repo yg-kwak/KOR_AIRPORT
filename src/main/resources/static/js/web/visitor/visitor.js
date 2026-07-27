@@ -1,14 +1,15 @@
 /* 임시인원등록(방문) — 그룹/인솔자/방문객/차량 탭. 카드는 검색 팝업 선택(방문객=스캔 지원, 차량=스캔 없음).
    방문객=tb_person, 차량=tb_car. 저장 시 방문객을 BiostarX 사용자로 편입하고 카드/출입그룹 전달(서버). */
 (function () {
-  const BASE = '/visitor/visitor';
+  const CFG = window.VISIT_CFG || {};
+  const BASE = CFG.base || '/visitor/visitor'; // 임시=/visitor/visitor, 장기=/visitor/longterm
   const AC_TREE = 'acTree';
-  const VISIT_TYPE = { id: 'PT02', name: '임시' }; // 임시인원등록 — 방문유형 고정(tb_common PT02)
+  // fixedType 있으면 방문유형 고정(임시=PT02), 없으면 화면 select 값 사용(장기=PTD03 선택)
+  const VISIT_TYPE = CFG.fixedType ? { id: CFG.fixedType, name: CFG.fixedTypeName } : null;
   const state = { page: 1, size: 30, keyword: '', visitType: '', statusCode: '', sort: 'visitNo', dir: 'desc' };
 
   const $ = (id) => document.getElementById(id);
-  const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
+  const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
   const fmtDt = (v) => (v == null ? '' : String(v).replace('T', ' '));
   const pad2 = (n) => String(n).padStart(2, '0');
   // 오늘 날짜의 datetime-local 값. now=true 면 현재 시각, 아니면 hh:mm
@@ -141,11 +142,12 @@
   // ---- 모달 ----
   async function openModal(mode, visitNo) {
     editMode = mode;
-    $('modalTitle').textContent = mode === 'create' ? '임시인원 등록' : '임시인원 수정';
+    $('modalTitle').textContent = mode === 'create' ? '방문 등록' : '방문 수정';
     ['visitNo', 'visitType', 'visitTypeName', 'statusCode', 'statusName', 'companyName', 'companyType',
-      'workStartDt', 'workEndDt', 'permitDt', 'receiver', 'returner', 'workPurpose', 'remark'].forEach((id) => { $(id).value = ''; });
+      'workStartDt', 'workEndDt', 'permitDt', 'receiver', 'returner', 'workPurpose', 'remark']
+      .forEach((id) => { const el = $(id); if (el) el.value = ''; });
     managers = []; visitors = []; cars = [];
-    $('visitType').value = VISIT_TYPE.id; $('visitTypeName').value = VISIT_TYPE.name; // 임시 고정
+    if (VISIT_TYPE) { $('visitType').value = VISIT_TYPE.id; if ($('visitTypeName')) $('visitTypeName').value = VISIT_TYPE.name; } // 임시 고정
     if (mode === 'create') { // 작업기간 기본: 시작=오늘 현재시각, 종료=오늘 18:00
       $('workStartDt').value = todayAt(0, 0, true);
       $('workEndDt').value = todayAt(18, 0, false);
@@ -167,7 +169,7 @@
       ['statusName', v.statusName], ['companyName', v.companyName], ['companyType', v.companyType],
       ['workStartDt', v.workStartDt], ['workEndDt', v.workEndDt], ['permitDt', v.permitDt],
       ['receiver', v.receiver], ['returner', v.returner], ['workPurpose', v.workPurpose], ['remark', v.remark]]
-      .forEach(([id, val]) => { $(id).value = val != null ? val : ''; });
+      .forEach(([id, val]) => { const el = $(id); if (el) el.value = val != null ? val : ''; });
     // 삭제 버튼: 신청(VS01)·신청취소(VS02)만 노출 / 저장: 퇴실완료(VS04)면 숨김(수정 불가)
     if ($('btnDelete')) $('btnDelete').style.display = (v.statusCode === 'VS01' || v.statusCode === 'VS02') ? '' : 'none';
     if ($('btnSave')) $('btnSave').style.display = v.statusCode === 'VS04' ? 'none' : '';
@@ -184,12 +186,8 @@
 
   function collectRows() {
     // 인라인 input 값을 모델에 반영
-    $('visBody').querySelectorAll('input,select').forEach((el) => {
-      visitors[el.dataset.i][el.dataset.f] = el.value;
-    });
-    $('carBody').querySelectorAll('input,select').forEach((el) => {
-      cars[el.dataset.i][el.dataset.f] = el.value;
-    });
+    $('visBody').querySelectorAll('input,select').forEach((el) => { visitors[el.dataset.i][el.dataset.f] = el.value; });
+    $('carBody').querySelectorAll('input,select').forEach((el) => { cars[el.dataset.i][el.dataset.f] = el.value; });
   }
 
   async function save() {
@@ -213,6 +211,7 @@
         carName: (c.carName || '').trim() || null, carType: c.carType || null,
         cardId: c.cardId ? Number(c.cardId) : null })),
     };
+    if (!payload.visitType) { toast.warning('방문유형을 선택하세요.'); return; }
     if (!payload.companyName) { toast.warning('업체명은 필수입니다.'); return; }
     if (payload.visitors.some((v) => !v.personName)) { toast.warning('방문객 성명은 필수입니다.'); return; }
     // 차량은 선택이지만, 행을 추가했으면 차량번호는 필수

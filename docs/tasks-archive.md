@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 장기출입등록 메뉴(102) — 임시인원관리 하위 /visitor/longterm. 임시인원등록(101)과 동일 구성이나 방문유형을 PTD03 계열(장기 PT03·상주 PT04) select 로 선택, 목록은 PTD03 계열만. 화면(web/visitor/visitor)·VisitService 공유, 차이는 window.VISIT_CFG 서버주입. LongTermController 신규. seed 메뉴/권한 + 개발DB 반영 — sjpark2, 2026-07-27
 - [x] 키오스크(무인증) 방문 신청 — /kiosk/visit 공개 화면. 방문그룹정보·인솔자(정규인원 검색)·방문구역(인원/차량 2단)·방문객·차량 입력→임시(PT02)·신청(VS01) 저장(카드/BiostarX 없음, 관리자 카드발급 단계로 위임). KioskController/KioskVisitService. 리뷰 2026-07-27 — sjpark2, 2026-07-27
 - [x] 정규인원 카드 프린트 — 카드정보 탭 프린트 버튼(미리보기 후 인쇄), 얼굴+카드 등록 인원만. card_project(디자인 export) JSON을 배경 해상도로 스케일 렌더(앞/뒤), 한글 폰트 폴백. adapter/cardprint(CardPrintAdapter/Renderer)+CardPrintService — sjpark2, 2026-07-27
 - [x] 임시인원등록(방문, tb_visit) — 임시인원관리(100)/임시인원등록(101), /visitor/visitor. 4탭(그룹정보·인솔자·방문객·차량): 사용자출입그룹(tb_ac_group)·차량출입그룹(CAR), 인솔자(정규인원), 방문객(tb_person+affiliation 신규컬럼)·차량(tb_car)+카드선택. 저장 시 방문객 BiostarX PT→PTD code_tag 부모그룹 편입(VisitBiostarService). 카드·출입그룹은 정규와 동일 테이블 재사용 — sjpark2, 2026-07-24

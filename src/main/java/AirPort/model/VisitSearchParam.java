@@ -10,4 +10,5 @@ import lombok.Setter;
 public class VisitSearchParam extends PageParam {
   private String visitType; // tb_common(PT)
   private String statusCode; // tb_common(VS)
+  private String codeTag; // 방문유형 계열 필터 — PT.code_tag (PTD02 임시 / PTD03 장기·상주). 서버가 화면별로 설정
 }
