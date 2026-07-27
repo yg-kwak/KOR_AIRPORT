@@ -452,7 +452,7 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .modal-container.visit-modal { width: 980px; max-width: 96vw; }
 .modal-container.confirm { width: 400px; }
 /* 키오스크(무인증 방문 신청) — 독립 레이아웃 */
-.kiosk { max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; }
+.kiosk { max-width: 960px; margin: 0 auto; padding: 24px 28px 60px; }
 .kiosk-header h1 { font-size: 26px; font-weight: 800; text-align: center; margin: 8px 0 24px; }
 .kiosk-landing { text-align: center; padding: 60px 0; }
 .kiosk-lead { font-size: 16px; color: var(--color-secondary, #555); margin-bottom: 28px; }

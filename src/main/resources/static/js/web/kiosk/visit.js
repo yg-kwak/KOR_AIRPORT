@@ -9,6 +9,12 @@
 
   let managers = []; // [{personId, personName}]
   let visitors = []; // [{personName, birthDate, affiliation}]
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const todayAt = (hh, mm, now) => {
+    const d = new Date();
+    const date = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    return `${date}T${now ? pad2(d.getHours()) + ':' + pad2(d.getMinutes()) : pad2(hh) + ':' + pad2(mm)}`;
+  };
 
   function showForm(on) {
     $('landing').style.display = on ? 'none' : '';
@@ -49,6 +55,10 @@
   async function save() {
     collectVis();
     const payload = {
+      workStartDt: $('workStartDt').value || null,
+      workEndDt: $('workEndDt').value || null,
+      companyName: $('companyName').value.trim() || null,
+      workPurpose: $('workPurpose').value.trim() || null,
       managerIds: managers.map((m) => m.personId),
       acGroupIds: acGroupTree.get(AC_TREE),
       visitors: visitors.map((v) => ({
@@ -66,6 +76,7 @@
 
   function reset() {
     managers = []; visitors = [];
+    ['workStartDt', 'workEndDt', 'companyName', 'workPurpose'].forEach((id) => { $(id).value = ''; });
     $('mgrKeyword').value = '';
     $('mgrResultWrap').style.display = 'none';
     $('mgrResult').innerHTML = '';
@@ -76,7 +87,11 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     acGroupTree.init(AC_TREE, BASE + '/acGroups');
-    $('btnStart').addEventListener('click', () => { showForm(true); mgrRender(); visRender(); });
+    $('btnStart').addEventListener('click', () => {
+      $('workStartDt').value = todayAt(0, 0, true); // 시작=오늘 현재시각
+      $('workEndDt').value = todayAt(18, 0, false); // 종료=오늘 18:00
+      showForm(true); mgrRender(); visRender();
+    });
     $('btnCancel').addEventListener('click', reset);
     $('btnMgrSearch').addEventListener('click', searchMgr);
     $('mgrKeyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') searchMgr(); });
