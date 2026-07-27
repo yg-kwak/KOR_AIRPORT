@@ -150,10 +150,11 @@
             <div class="face-actions">
               <input type="file" id="faceFile" accept="image/*" class="file-input"/>
               <label class="btn" for="faceFile">파일 선택</label>
+              <button type="button" class="btn" id="btnFaceCam">사진 촬영</button>
               <button type="button" class="btn" id="btnCapture">장치에서 촬영</button>
               <button type="button" class="btn" id="btnFaceClear">얼굴 지우기</button>
-              <span class="form-hint">파일을 올리면 BiostarX 가 정규화한 얼굴을 사용합니다.
-                촬영은 로그인 계정에 지정된 장치(dev_id)로 수행합니다.</span>
+              <span class="form-hint">파일 선택·사진 촬영은 원본 이미지를 저장하고 인증 템플릿만 BiostarX 결과를 씁니다.
+                장치에서 촬영은 로그인 계정에 지정된 장치(dev_id)로 수행합니다.</span>
             </div>
           </div>
         </form>
@@ -219,6 +220,24 @@
 <div th:replace="~{fragments/components/excel-import-modal :: excelImportModal}"></div>
 <div th:replace="~{fragments/components/card-list :: cardPicker}"></div>
 
+<!-- 얼굴 사진 촬영 — 클라이언트 PC 웹캠 실시간 미리보기 → 촬영 -->
+<div class="modal-overlay" id="faceCamModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2 class="modal-title">사진 촬영</h2>
+      <button type="button" class="modal-close" id="faceCamClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-hint">카메라 화면을 확인하고 [촬영]을 누르면 BiostarX 에 등록됩니다.</p>
+      <div class="facecam-stage"><video id="faceCamVideo" playsinline muted></video></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="faceCamCancel">취소</button>
+      <button type="button" class="btn btn-primary" id="faceCamShot">촬영</button>
+    </div>
+  </div>
+</div>
+
 <!-- 카드 프린트 미리보기(앞/뒤) → 인쇄 -->
 <div class="modal-overlay" id="cardPrintModal">
   <div class="modal-container">
@@ -243,6 +262,7 @@
     canDelete: [[${perm.canDelete}]]
   };
 </script>
+<script src="/js/web/person/face-cam.js" defer></script>
 <script src="/js/web/person/card-print.js" defer></script>
 <script src="/js/web/person/person.js" defer></script>
 </body>

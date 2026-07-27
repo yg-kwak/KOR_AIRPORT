@@ -177,15 +177,17 @@
     });
   }
 
-  async function onFaceFile(e) {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    const b64 = await fileToBase64(file);
+  // 파일선택·웹캠 촬영 공용: 원본 이미지 보관(tb_person_photo·BiostarX 이미지), 인증 템플릿만 API 결과 사용
+  async function useFaceImage(b64) {
     const res = await api.post(BASE + '/face/upload', { image: b64 }); // {success,message,image,template9/5}
-    if (!res || !res.success) { toast.error((res && res.message) || '사진 업로드에 실패했습니다.'); return; }
-    // 파일 선택은 원본 이미지를 보관(tb_person_photo·BiostarX 이미지), 인증 템플릿만 API 결과 사용
+    if (!res || !res.success) { toast.error((res && res.message) || '사진 등록에 실패했습니다.'); return; }
     setFace(b64, res.template9, res.template5);
     toast.success('사진을 등록했습니다.');
+  }
+
+  async function onFaceFile(e) {
+    const file = e.target.files && e.target.files[0];
+    if (file) await useFaceImage(await fileToBase64(file));
   }
 
   async function onCapture() {
@@ -370,6 +372,7 @@
 
     $('faceFile').addEventListener('change', onFaceFile);
     $('btnCapture').addEventListener('click', onCapture);
+    if ($('btnFaceCam')) $('btnFaceCam').addEventListener('click', () => window.faceCam.open(useFaceImage));
     $('btnFaceClear').addEventListener('click', () => { $('faceFile').value = ''; setFace(null); });
 
     $('btnSave').addEventListener('click', save);
