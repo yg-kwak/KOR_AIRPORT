@@ -451,6 +451,16 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 /* 임시인원 등록 — 인솔자/방문객/차량 표를 넓게 보기 위해 폭 확대 */
 .modal-container.visit-modal { width: 980px; max-width: 96vw; }
 .modal-container.confirm { width: 400px; }
+/* 키오스크(무인증 방문 신청) — 독립 레이아웃 */
+.kiosk { max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; }
+.kiosk-header h1 { font-size: 26px; font-weight: 800; text-align: center; margin: 8px 0 24px; }
+.kiosk-landing { text-align: center; padding: 60px 0; }
+.kiosk-lead { font-size: 16px; color: var(--color-secondary, #555); margin-bottom: 28px; }
+.kiosk-start { font-size: 22px; padding: 18px 48px; border-radius: 12px; }
+.kiosk-card { background: #fff; border: 1px solid var(--color-tertiary-active, #e5e7eb); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
+.kiosk-card h2 { font-size: 16px; font-weight: 700; margin: 0 0 12px; }
+.kiosk-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+.kiosk-actions .btn { padding: 12px 32px; font-size: 16px; }
 /* 경고/오류 안내 블록 (일괄 출력 문제 인원 등) */
 .form-error { margin: 0 0 10px; padding: 8px 12px; border-radius: 6px; font-size: 13px; line-height: 1.6;
   color: var(--color-danger, #c0392b); background: rgba(192,57,43,.08); border: 1px solid rgba(192,57,43,.25); }

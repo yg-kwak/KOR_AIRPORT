@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="_csrf" th:content="${_csrf != null} ? ${_csrf.token} : ''"/>
+  <title>방문자 등록 · 청주공항</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+  <!-- 키오스크(무인증) 전용 최소 스크립트 — 사이드바/헤더 등 관리자 UI 제외 -->
+  <script src="/js/core/toast.js" defer></script>
+  <script src="/js/core/app.js" defer></script>
+  <script src="/js/core/components/ac-group-tree.js" defer></script>
+  <script src="/js/web/kiosk/visit.js" defer></script>
+</head>
+<body>
+<div class="kiosk">
+  <header class="kiosk-header">
+    <h1>청주공항 방문자 등록</h1>
+  </header>
+
+  <!-- 시작 화면 -->
+  <section class="kiosk-landing" id="landing">
+    <p class="kiosk-lead">방문 신청을 시작하려면 아래 버튼을 눌러주세요.</p>
+    <button type="button" class="btn btn-primary kiosk-start" id="btnStart">방문자 등록</button>
+  </section>
+
+  <!-- 등록 폼 -->
+  <section class="kiosk-form" id="form" style="display:none">
+    <div class="kiosk-card">
+      <h2>인솔자</h2>
+      <div class="file-field-row">
+        <input type="text" id="mgrKeyword" class="input" style="flex:1"
+               placeholder="인솔자(정규인원) ID 또는 성명 검색" autocomplete="off"/>
+        <button type="button" class="btn" id="btnMgrSearch">검색</button>
+      </div>
+      <div class="matrix-wrap" id="mgrResultWrap" style="display:none; margin-top:8px">
+        <table class="grid">
+          <thead><tr><th class="w-40"></th><th class="w-160">인원ID</th><th style="text-align:left">성명</th></tr></thead>
+          <tbody id="mgrResult"></tbody>
+        </table>
+      </div>
+      <table class="grid" style="margin-top:8px">
+        <thead><tr><th class="w-160">인원ID</th><th>성명</th><th class="w-80">관리</th></tr></thead>
+        <tbody id="mgrBody"><tr><td colspan="3" class="empty">선택된 인솔자가 없습니다.</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="kiosk-card">
+      <h2>방문구역</h2>
+      <div class="ac-select-tree" id="acTree"><div class="empty">불러오는 중...</div></div>
+    </div>
+
+    <div class="kiosk-card">
+      <h2>방문객 정보</h2>
+      <div class="grid-toolbar" style="padding:0 0 8px">
+        <span class="form-hint">성명·생년월일·소속을 입력하세요. (카드는 관리자가 발급합니다)</span>
+        <div class="grid-actions"><button type="button" class="btn btn-sm" id="btnAddVis">방문객 추가</button></div>
+      </div>
+      <table class="grid">
+        <thead><tr><th class="w-200">성명 *</th><th class="w-160">생년월일</th><th>소속</th><th class="w-80">관리</th></tr></thead>
+        <tbody id="visBody"><tr><td colspan="4" class="empty">방문객이 없습니다.</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="kiosk-actions">
+      <button type="button" class="btn" id="btnCancel">취소</button>
+      <button type="button" class="btn btn-primary" id="btnSave">저장</button>
+    </div>
+  </section>
+</div>
+</body>
+</html>

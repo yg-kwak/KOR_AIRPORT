@@ -46,6 +46,7 @@ echo "== [4] 컨트롤러 @RequestMapping(/{영역}/{stem}) ↔ tb_menu.menu_url
 SEED="sql/seed/02_seed.sql"; MAP_FAIL=0
 while IFS= read -r path; do
   [ -z "$path" ] && continue
+  [[ "$path" == /kiosk/* ]] && continue  # 키오스크(무인증 공개 경로)는 메뉴 대상 아님
   if ! grep -q "'$path'" "$SEED"; then
     echo "  ❌ $path — seed 의 menu_url 에 없음. tb_menu 에 등록하거나 @RequestMapping 을 menu_url 과 일치시키세요(메뉴 해석·권한 근거). (docs/architecture.md §5)"
     FAIL=1; MAP_FAIL=1

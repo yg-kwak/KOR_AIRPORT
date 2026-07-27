@@ -82,6 +82,15 @@ public class AcGroupService {
     menuAuthService.requireRead(actor, menuId);
     List<TbAcGroup> all = acGroupMapper.selectList();
     auditService.log(actor, AuditService.READ, menuId, "출입권한 그룹 조회 (" + all.size() + "건)");
+    return buildTree(all);
+  }
+
+  /** 무인증 트리 — 키오스크(공개 방문 신청) 방문구역 선택용. 감사·권한 없이 구조만. */
+  public List<TbAcGroup> treeNoAuth() {
+    return buildTree(acGroupMapper.selectList());
+  }
+
+  private List<TbAcGroup> buildTree(List<TbAcGroup> all) {
     Map<Integer, TbAcGroup> byId = new LinkedHashMap<>();
     for (TbAcGroup g : all) {
       byId.put(g.getAcGroupId(), g);

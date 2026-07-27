@@ -12,6 +12,7 @@
 ## 인증 (Authentication)
 - **세션 기반 커스텀 인증**. Spring Security 미사용, eGov 보안 모듈 미사용.
 - 로그인/정적/공개 경로를 제외한 요청은 `AuthInterceptor`(HandlerInterceptor)가 세션을 검증.
+- **키오스크(무인증 방문 신청)**: `/kiosk/**` 는 `WebConfig.EXCLUDES` 로 인증·메뉴통제 제외한 공개 경로. 방문객이 로그인 없이 인솔자·방문구역·방문객을 입력해 신청하면 임시(PT02)·신청(VS01) tb_visit 로 접수되고, 관리자가 임시인원등록에서 확인 후 카드를 발급한다(그때 BiostarX 연동). 공개 경로이므로 여기서는 카드·BiostarX 쓰기·개인정보 조회를 하지 않는다.
 - ⚠️ `WebConfig.addInterceptors()` 에 인터셉터가 **실제 등록**되어야 보안 경계가 성립한다. 등록 누락은 보안 회귀 — `/review` 시 최우선 확인 항목.
 - 계정 잠금: `tb_login_user.login_fail_cnt` 로 실패 횟수 관리. 비밀번호 변경주기: `password_change_dt`.
 

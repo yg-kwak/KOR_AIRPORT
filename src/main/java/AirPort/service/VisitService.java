@@ -84,7 +84,16 @@ public class VisitService {
    * 최상위만(code_remark='N'). tb_ac_group 조회는 정규와 동일 트리를 재사용한다.
    */
   public List<TbAcGroup> acGroupTree(TbLoginUser actor, Integer menuId) {
-    List<TbAcGroup> tree = acGroupService.tree(actor, menuId);
+    return pruneAreaScope(acGroupService.tree(actor, menuId));
+  }
+
+  /** 키오스크(무인증) 방문구역 트리 — 권한/감사 없이, 구역범위 규칙만 동일 적용. */
+  public List<TbAcGroup> acGroupTreeKiosk() {
+    return pruneAreaScope(acGroupService.treeNoAuth());
+  }
+
+  /** 방문유형 구역범위(code_remark)가 'Y'가 아니면 최상위 그룹만 남긴다. */
+  private List<TbAcGroup> pruneAreaScope(List<TbAcGroup> tree) {
     TbCommon pt = commonMapper.selectOne("PT", VISIT_TYPE);
     boolean detail = pt != null && "Y".equals(pt.getCodeRemark());
     if (!detail) {
@@ -105,6 +114,11 @@ public class VisitService {
   /** 인솔자 후보(정규인원 PT01) — 성명 복호화. */
   public List<TbPerson> searchManagers(String keyword, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
+    return searchManagersPublic(keyword);
+  }
+
+  /** 인솔자 후보 — 무인증(키오스크)용. 성명 복호화만. */
+  public List<TbPerson> searchManagersPublic(String keyword) {
     List<TbPerson> rows = personMapper.selectRegular(keyword);
     rows.forEach(p -> p.setPersonName(decrypt(p.getPersonName())));
     return rows;
@@ -180,6 +194,34 @@ public class VisitService {
     String warn = saveChildren(row.getVisitNo(), form);
     auditService.log(actor, AuditService.CREATE, menuId, "방문 등록: " + row.getVisitNo());
     return warn;
+  }
+
+  /**
+   * 키오스크(무인증) 방문 신청 — 인솔자·방문구역·방문객만 저장. 임시(PT02)·신청(VS01) 고정. 카드·차량·BiostarX 연동은
+   * 없음(관리자가 임시인원등록에서 확인 후 카드 부여 시 연동).
+   */
+  @Transactional
+  public int createFromKiosk(VisitForm form) {
+    List<VisitorForm> visitors =
+        (form.getVisitors() == null ? List.<VisitorForm>of() : form.getVisitors()).stream()
+            .filter(v -> v.getPersonName() != null && !v.getPersonName().isBlank())
+            .toList();
+    if (visitors.isEmpty()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "방문객을 1명 이상 입력하세요.");
+    }
+    form.setVisitType(VISIT_TYPE); // 임시 고정
+    TbVisit row = toRow(form);
+    row.setVisitType(VISIT_TYPE);
+    row.setStatusCode(DEFAULT_STATUS); // 신청
+    visitMapper.insert(row);
+    int visitNo = row.getVisitNo();
+    if (notEmpty(form.getManagerIds())) visitMapper.insertManagers(visitNo, form.getManagerIds());
+    if (notEmpty(form.getAcGroupIds())) visitMapper.insertAcGroups(visitNo, form.getAcGroupIds());
+    for (VisitorForm vf : visitors) {
+      visitMapper.insertPerson(visitNo, upsertVisitor(vf, form)); // tb_person(카드·BiostarX 없음)
+    }
+    auditService.log(null, AuditService.CREATE, null, "키오스크 방문 신청: " + visitNo);
+    return visitNo;
   }
 
   @Transactional

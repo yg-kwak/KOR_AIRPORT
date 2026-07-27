@@ -13,6 +13,7 @@ public class WebConfig implements WebMvcConfigurer {
     "/logout",
     "/error",
     "/favicon.ico",
+    "/kiosk/**", // 무인증 방문 신청(키오스크) — 로그인·메뉴통제 제외
     "/css/**",
     "/js/**",
     "/ic/**",
