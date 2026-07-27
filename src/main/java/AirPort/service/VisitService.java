@@ -113,14 +113,19 @@ public class VisitService {
     return searchManagersPublic(keyword);
   }
 
-  /** 인솔자 후보 — 무인증(키오스크)용. 성명 복호화 후 인원ID·성명으로 필터(최대 50). */
+  /**
+   * 인솔자 후보 — 무인증(키오스크)용. 개인정보 노출 최소화: <b>빈 검색어는 결과 없음</b>, 인원ID는 부분일치, 성명은
+   * <b>완전일치</b>만 노출(성명 부분검색으로 직원 명단을 훑는 것을 막는다). 최대 50건.
+   */
   public List<TbPerson> searchManagersPublic(String keyword) {
     String kw = keyword == null ? "" : keyword.trim();
     List<TbPerson> rows = new ArrayList<>();
+    if (kw.isEmpty()) {
+      return rows;
+    }
     for (TbPerson p : personMapper.selectRegular()) {
       p.setPersonName(decrypt(p.getPersonName()));
-      boolean hit = kw.isEmpty() || p.getPersonId().contains(kw)
-          || (p.getPersonName() != null && p.getPersonName().contains(kw));
+      boolean hit = p.getPersonId().contains(kw) || kw.equals(p.getPersonName());
       if (hit && rows.size() < 50) rows.add(p);
     }
     return rows;
