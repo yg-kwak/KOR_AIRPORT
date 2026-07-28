@@ -17,7 +17,10 @@ window.excelImport = (function () {
     picked = null;
     $('excelFile').value = '';
     setName(null);
-    $('importHint').innerHTML = cfg.hint || '';
+    // hint 는 문자열 또는 배열(배열이면 항목별 불릿 목록으로 들여쓰기 렌더)
+    $('importHint').innerHTML = Array.isArray(cfg.hint)
+      ? '<ul class="hint-list">' + cfg.hint.map((s) => `<li>${s}</li>`).join('') + '</ul>'
+      : (cfg.hint || '');
     $('importModal').classList.add('open');
   }
   function close() { $('importModal').classList.remove('open'); }

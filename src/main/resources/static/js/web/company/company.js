@@ -242,8 +242,8 @@
     $('btnExcel').addEventListener('click', excelDownload);
     if ($('btnExcelImport')) $('btnExcelImport').addEventListener('click', () => excelImport.open({
       baseUrl: BASE,
-      hint: '① 양식을 내려받아 기관 정보를 채우고 ② 파일을 선택해 업로드하세요. <b>기관코드·기관명</b>은 필수입니다.'
-        + ' 2행은 예시이니 지우거나 덮어써서 입력하세요(그대로 두면 등록 시 건너뜁니다).',
+      hint: ['양식을 내려받아 기관 정보를 채운 뒤 파일을 선택해 업로드하세요.', '<b>기관코드·기관명</b>은 필수입니다.',
+        '2행은 예시이니 지우거나 덮어써서 입력하세요(그대로 두면 등록 시 건너뜁니다).'],
       onDone: load,
     }));
     $('btnSave').addEventListener('click', save);

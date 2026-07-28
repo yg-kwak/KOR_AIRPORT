@@ -330,8 +330,8 @@
     if ($('btnNew')) $('btnNew').addEventListener('click', () => openModal('create', null));
     if ($('btnExcelImport')) $('btnExcelImport').addEventListener('click', () => excelImport.open({
       baseUrl: BASE,
-      hint: '① 양식을 내려받아 인원 정보를 채우고 ② 업로드하세요. <b>기관코드·성명</b>은 필수이며,'
-        + ' 사용자권한·카드정보는 제외됩니다. 인원ID 를 비우면 자동 채번됩니다. 2행은 예시이니 지우거나 덮어써서 입력하세요.',
+      hint: ['양식을 내려받아 인원 정보를 채운 뒤 업로드하세요.', '<b>기관코드·성명</b>은 필수입니다.',
+        '사용자권한·카드정보는 제외되고, 인원ID 를 비우면 자동 채번됩니다.', '2행은 예시이니 지우거나 덮어써서 입력하세요.'],
       onDone: load,
     }));
     if ($('btnDeleteSel')) $('btnDeleteSel').addEventListener('click', removeSelected);
