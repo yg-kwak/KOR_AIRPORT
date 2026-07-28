@@ -5,6 +5,7 @@
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
 - [x] 임시·장기 방문객 탭에 인원ID 표시 — 방문객이 BiostarX 사용자로 편입되면 부여되는 인원ID(=biostar_user_id)를 방문객 탭 성명 왼쪽에 읽기전용 컬럼으로 노출(신규는 '저장 후 부여'). 성명·생년월일·카드 폭을 줄여 공간 확보. detail 이 이미 personId 반환하므로 프론트만 변경(visitor.html/js 공유) — sjpark2, 2026-07-28
+- [x] 정규인원 수정도 BiostarX 동기화 필수화 — 등록에 이어 수정(update)도 BiostarX 동기화 성공해야 커밋(실패=기관 그룹 없음·장비오류면 롤백+사유 예외). 등록/수정 공통 헬퍼 syncPersonToBiostar(form, before)로 통합(등록=before empty, 수정=변경전 스냅샷). 장비-DB 정합성 최우선. docs/integration.md 정책 갱신 — sjpark2, 2026-07-28
 - [x] 기관코드 자동 채번 + 정규인원 등록 BiostarX 필수화 — (1) 기관 등록 모달에서 기관코드를 다음 번호로 자동 채움(TbCompanyMapper.selectNextCompanyCode=숫자형 max+1, CompanyController /nextCode, company.js). (2) 정규인원 등록은 BiostarX 사용자 생성이 성공해야 커밋 — 실패(설정/기관 biostar_group_id 없음·장비 오류)면 트랜잭션 롤백 + 사유 예외(유령 인원 방지). 그룹 없으면 BiostarX 호출 전 차단하고 "기관 먼저 동기화" 안내. 수정은 기존 정책 유지 — sjpark2, 2026-07-28
 - [x] 검색조건 개편(임시·장기·정규·기관차량) — 임시/장기: 방문유형 검색 제거, keyword 로 방문객명·인솔자명(ARIA 완전일치)·차량번호·카드번호(부분) 조회(EXISTS 서브쿼리). 정규인원: 주요업무 검색 제거, 성명(완전일치)·카드번호(부분) 추가. 기관차량: 검색어에 소속 차량번호 추가(searchCar 플래그로 기관등록관리와 격리). PageParam.keywordEnc(성명 암호화 완전일치) 신설 — sjpark2, 2026-07-28
 - [x] form-hint 12px + 엑셀 안내문 항목별 목록화 — 전역 .form-hint 폰트 11→12px. 엑셀 등록 모달 안내(hint)를 문자열→배열로 받아 .hint-list 불릿 목록(들여쓰기·줄바꿈)으로 렌더(excel-import 컴포넌트/모달 div화). 카드·정규인원·기관 화면 hint 배열화 — sjpark2, 2026-07-27

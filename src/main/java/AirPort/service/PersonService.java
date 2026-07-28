@@ -33,7 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 정규인원(tb_person, person_type='PT01') 등록관리. (docs/backend.md)
  *
  * <p>성명·생년월일·연락처는 ARIA 암호화 저장. 얼굴·출입권한·카드도 함께 저장한다. BiostarX 사용자는 존재 확인 후 upsert.
- * <b>등록은 BiostarX 사용자 생성 성공해야 커밋</b>(실패=설정/기관그룹 없음·장비오류면 롤백+사유 예외, 유령 인원 방지). 수정은 연동 실패해도 저장 유지.
+ * <b>등록·수정 모두 BiostarX 동기화가 성공해야 커밋</b>(실패=설정/기관그룹 없음·장비오류면 롤백+사유 예외). 장비-DB 정합성이 최우선(유령 인원 방지).
  */
 @Service
 public class PersonService {
@@ -131,10 +131,11 @@ public class PersonService {
     saveAcGroups(form.getPersonId(), form.getAcGroupIds());
     personFileService.apply(form);
     cardService.saveCards(form.getPersonId(), form.getCards());
-    String fail = syncBiostarUser(form); // 실패면 등록 취소(트랜잭션 롤백)
+    // BiostarX 동기화 실패면 등록 취소(롤백) — 장비-DB 정합성이 최우선
+    String fail = syncPersonToBiostar(form, empty(form.getPersonId()));
     if (fail != null) {
       throw new BusinessException(
-          ErrorCode.INVALID_INPUT, "BiostarX 사용자 생성 실패로 등록이 취소되었습니다. 사유: " + fail);
+          ErrorCode.INVALID_INPUT, "BiostarX 동기화 실패로 등록이 취소되었습니다. 사유: " + fail);
     }
     auditService.log(actor, AuditService.CREATE, menuId, "정규인원 등록: " + form.getPersonId());
     return null;
@@ -152,11 +153,7 @@ public class PersonService {
     return photoMapper.selectPhoto(personId);
   }
 
-  /**
-   * 정규인원 수정 — 변경분만 BiostarX 로 동기화한다(PUT /api/users/{인원ID}).
-   *
-   * @return BiostarX 연동 경고(성공이면 null)
-   */
+  /** 정규인원 수정 — 변경분 BiostarX 동기화(PUT). 등록과 동일하게 동기화 실패면 롤백 + 사유 예외. return 은 항상 null. */
   @Transactional
   public String update(PersonForm form, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId); // 정책: 등록/수정은 create_auth 로 판정
@@ -184,18 +181,14 @@ public class PersonService {
     saveAcGroups(form.getPersonId(), form.getAcGroupIds());
     personFileService.apply(form);
     cardService.saveCards(form.getPersonId(), form.getCards());
-
-    auditService.log(actor, AuditService.UPDATE, menuId, "정규인원 수정: " + form.getPersonId());
-
-    TbSystem cfg = systemMapper.selectOne();
-    if (cfg == null) {
-      return "BiostarX 설정이 없습니다.";
+    // BiostarX 동기화 실패면 수정 취소(롤백) — before 대비 변경분 전송, 장비에 없으면 새로 등록
+    String fail = syncPersonToBiostar(form, before);
+    if (fail != null) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT, "BiostarX 동기화 실패로 수정이 취소되었습니다. 사유: " + fail);
     }
-    BiostarUserRequest after =
-        biostarRequest(form, acGroupMapper.selectBiostarAcIds(form.getPersonId()));
-    // BiostarX 에 없으면(수동 삭제 등) 변경분 전송이 무의미하므로 새로 등록한다
-    BiostarResult res = syncUser(cfg, before, after);
-    return res.success() ? null : res.message();
+    auditService.log(actor, AuditService.UPDATE, menuId, "정규인원 수정: " + form.getPersonId());
+    return null;
   }
 
   /**
@@ -336,20 +329,22 @@ public class PersonService {
   }
 
   /** BiostarX 사용자 생성. 성공 시 biostar_user_id(=인원ID) 반영. 실패는 경고 문자열 반환. */
-  private String syncBiostarUser(PersonForm form) {
+  /**
+   * BiostarX 사용자 동기화(등록·수정 공통) — 실패 사유 문자열, 성공이면 null. 설정 없음/소속 기관 그룹 없음이면 장비 호출 전에 막는다.
+   * 반환이 null 이 아니면 호출자가 트랜잭션을 롤백해야 한다(장비-DB 정합성 유지).
+   */
+  private String syncPersonToBiostar(PersonForm form, BiostarUserRequest before) {
     TbSystem cfg = systemMapper.selectOne();
     if (cfg == null) {
       return "BiostarX 설정이 없습니다. 설정관리에서 먼저 등록하세요.";
     }
-    // 소속 기관에 BiostarX 사용자그룹이 없으면 사용자를 만들 수 없다 — 유령 인원 방지 위해 등록을 막는다
+    // 소속 기관에 BiostarX 사용자그룹이 없으면 사용자를 만들 수 없다 — 유령 인원 방지 위해 막는다
     if (companyGroupId(form.getCompanyCode()) == null) {
-      return "소속 기관에 BiostarX 사용자그룹이 없습니다. 기관등록관리에서 해당 기관을 저장(동기화)해 그룹을 만든 뒤 다시 등록하세요.";
+      return "소속 기관에 BiostarX 사용자그룹이 없습니다. 기관등록관리에서 해당 기관을 저장(동기화)해 그룹을 만든 뒤 다시 시도하세요.";
     }
     BiostarUserRequest after =
         biostarRequest(form, acGroupMapper.selectBiostarAcIds(form.getPersonId()));
-
-    // 이미 BiostarX 에 있는 인원ID 면 생성 대신 덮어쓴다(before 를 비워 전 항목을 보낸다)
-    BiostarResult res = syncUser(cfg, empty(form.getPersonId()), after);
+    BiostarResult res = syncUser(cfg, before, after);
     if (!res.success()) {
       return res.message();
     }
