@@ -216,6 +216,10 @@
   function closeIssue() { $('issueModal').classList.remove('open'); }
 
   async function issue() {
+    // 출입구역이 없으면 실제로 못 여는 무효 카드가 되므로, 발급 전에 이 차량의 출입구역 지정을 강제한다
+    if (!selectedAcCodes().length) {
+      toast.warning('카드를 발급하려면 이 차량의 출입구역을 먼저 지정(저장)하세요.'); return;
+    }
     const carId = Number($('carId').value);
     const payload = {
       carId,

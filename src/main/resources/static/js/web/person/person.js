@@ -298,6 +298,10 @@
     if (titleName && !TITLE_ALLOWED.test(titleName)) {
       toast.warning('직위에 특수문자를 사용할 수 없습니다.'); return;
     }
+    // 카드 발급 시 출입구역이 없으면 실제로 못 여는 무효 카드가 되므로 구역 선택을 강제한다
+    if (payload.cards.length && !payload.acGroupIds.length) {
+      toast.warning('카드를 발급하려면 출입구역을 선택하세요.'); return;
+    }
     // 서버 메시지(연동 경고 포함) 자동 토스트. 수정은 변경분만 BiostarX 로 전송된다.
     if (editMode === 'create') await api.post(BASE, payload);
     else await api.put(BASE, payload);

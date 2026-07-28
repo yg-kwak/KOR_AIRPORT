@@ -220,11 +220,12 @@
     if (payload.acGroupIds.length && !hasVis) { toast.warning('사용자 출입그룹을 선택하면 방문객을 입력해야 합니다.'); return; }
     if (payload.carAcCodes.length && !hasCar) { toast.warning('차량 출입그룹을 선택하면 차량을 입력해야 합니다.'); return; }
     if (hasVis && !payload.managerIds.length) { toast.warning('방문객이 있으면 인솔자를 지정해야 합니다.'); return; }
-
+    // 카드 발급(cardId) 시 해당 출입구역 미선택이면 무효 카드가 되므로 구역 선택을 강제
+    if (payload.visitors.some((v) => v.cardId) && !payload.acGroupIds.length) { toast.warning('방문객에게 카드를 발급하려면 인원 출입구역을 선택하세요.'); return; }
+    if (payload.cars.some((c) => c.cardId) && !payload.carAcCodes.length) { toast.warning('차량에 카드를 발급하려면 차량 출입구역을 선택하세요.'); return; }
     if (editMode === 'create') await api.post(BASE, payload);
     else await api.put(BASE, payload);
-    closeModal();
-    load();
+    closeModal(); load();
   }
 
   async function remove(visitNo) {
