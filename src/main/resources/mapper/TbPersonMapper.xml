@@ -3,8 +3,8 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="AirPort.mapper.TbPersonMapper">
 
-  <!-- 조회는 항상 del_yn='N'. person_name/birth_date/person_phone 은 ARIA 암호문이라 검색 대상 제외
-       (인원ID/주요업무 등 평문만 LIKE — docs/database.md 검색 제약) -->
+  <!-- 조회는 항상 del_yn='N'. person_name 등은 ARIA 암호문이라 부분(LIKE) 검색 불가 → 성명은 완전일치(=keywordEnc).
+       인원ID·카드번호(tb_card.biostar_card_value)는 평문이라 부분(LIKE). (docs/database.md 검색 제약) -->
   <sql id="searchWhere">
     <where>
       p.del_yn = 'N'
@@ -14,10 +14,16 @@
       <if test="keyword != null and keyword != ''">
         <choose>
           <when test="searchType == 'personId'">AND p.person_id LIKE '%' + #{keyword} + '%'</when>
-          <when test="searchType == 'mainTask'">AND p.main_task LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'personName'">AND p.person_name = #{keywordEnc}</when>
+          <when test="searchType == 'cardNo'">
+            AND EXISTS (SELECT 1 FROM tb_card cd WHERE cd.person_id = p.person_id AND cd.del_yn = 'N'
+                        AND cd.biostar_card_value LIKE '%' + #{keyword} + '%')
+          </when>
           <otherwise>
             AND (p.person_id LIKE '%' + #{keyword} + '%'
-                 OR p.main_task LIKE '%' + #{keyword} + '%')
+                 <if test="keywordEnc != null and keywordEnc != ''">OR p.person_name = #{keywordEnc}</if>
+                 OR EXISTS (SELECT 1 FROM tb_card cd WHERE cd.person_id = p.person_id AND cd.del_yn = 'N'
+                            AND cd.biostar_card_value LIKE '%' + #{keyword} + '%'))
           </otherwise>
         </choose>
       </if>

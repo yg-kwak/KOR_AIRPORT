@@ -22,9 +22,11 @@
           <select id="searchType" class="input w-120">
             <option value="all">전체</option>
             <option value="personId">인원ID</option>
-            <option value="mainTask">주요업무</option>
+            <option value="personName">성명</option>
+            <option value="cardNo">카드번호</option>
           </select>
-          <input type="text" id="keyword" class="input w-300" placeholder="검색어를 입력해주세요"/>
+          <input type="text" id="keyword" class="input w-300"
+                 placeholder="인원ID·카드번호는 부분, 성명은 전체 일치"/>
         </div>
       </div>
       <button class="btn btn-primary" id="btnSearch">검색</button>

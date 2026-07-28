@@ -10,6 +10,7 @@ public class PageParam {
   private int page = 1; // 1-base
   private int size = 30;
   private String keyword;
+  private String keywordEnc; // 암호화 컬럼(성명 등) 완전일치 검색용 — 서비스가 keyword 를 ARIA 암호화해 설정
   private String searchType = "all"; // 검색 조건(도메인별 화면에서 정의)
   private String sort; // 정렬 컬럼 키(화이트리스트)
   private String dir = "asc"; // asc | desc
@@ -44,6 +45,14 @@ public class PageParam {
 
   public void setKeyword(String keyword) {
     this.keyword = keyword;
+  }
+
+  public String getKeywordEnc() {
+    return keywordEnc;
+  }
+
+  public void setKeywordEnc(String keywordEnc) {
+    this.keywordEnc = keywordEnc;
   }
 
   public String getSearchType() {

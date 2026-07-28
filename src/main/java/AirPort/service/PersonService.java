@@ -88,6 +88,7 @@ public class PersonService {
   /** 목록 조회(정규 PT01 고정) — 성명 복호화(표시용) + 검색조건·건수 감사(READ). */
   public PageResult<TbPerson> list(PersonSearchParam param, TbLoginUser actor, Integer menuId) {
     param.setPersonType(PERSON_TYPE_REGULAR);
+    param.setKeywordEnc(encryptOrNull(param.getKeyword())); // 성명(ARIA 암호문) 완전일치 검색용
     long total = personMapper.selectCount(param);
     List<TbPerson> rows = personMapper.selectList(param);
     rows.forEach(this::decrypt);
@@ -332,8 +333,6 @@ public class PersonService {
       acGroupMapper.insertBatch(personId, acGroupIds);
     }
   }
-
-  // ── BiostarX 연동 ────────────────────────────────────────────────────────
 
   private String pw(TbSystem cfg) {
     return cfg.getBiostarPw() == null ? "" : ARIAUtil.ariaDecrypt(cfg.getBiostarPw());

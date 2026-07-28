@@ -11,9 +11,18 @@
         <choose>
           <when test="searchType == 'companyCode'">AND c.company_code LIKE '%' + #{keyword} + '%'</when>
           <when test="searchType == 'companyName'">AND c.company_name LIKE '%' + #{keyword} + '%'</when>
+          <!-- 차량번호 검색은 기관차량등록 전용(searchCar) — 기관 소속 차량(tb_car.car_no) EXISTS -->
+          <when test="searchType == 'carNo'">
+            AND EXISTS (SELECT 1 FROM tb_car k WHERE k.company_code = c.company_code AND k.del_yn = 'N'
+                        AND k.car_no LIKE '%' + #{keyword} + '%')
+          </when>
           <otherwise>
             AND (c.company_code LIKE '%' + #{keyword} + '%'
-                 OR c.company_name LIKE '%' + #{keyword} + '%')
+                 OR c.company_name LIKE '%' + #{keyword} + '%'
+                 <if test="searchCar">
+                   OR EXISTS (SELECT 1 FROM tb_car k WHERE k.company_code = c.company_code AND k.del_yn = 'N'
+                              AND k.car_no LIKE '%' + #{keyword} + '%')
+                 </if>)
           </otherwise>
         </choose>
       </if>

@@ -60,6 +60,7 @@ public class CompanyCarService {
 
   /** 목록 조회 — <b>기관</b> 목록(삭제되지 않은 기관) + 등록차량 수. 차량 자체는 기관을 눌러 모달에서 다룬다. */
   public PageResult<TbCompany> list(CompanySearchParam param, TbLoginUser actor, Integer menuId) {
+    param.setSearchCar(true); // 기관차량등록 — 기본 검색어에 소속 차량번호도 포함
     long total = companyMapper.selectCount(param);
     List<TbCompany> rows = companyMapper.selectCarOwnerList(param);
     auditService.log(actor, AuditService.READ, menuId, "기관차량 기관 목록 조회 (결과 " + total + "건)");

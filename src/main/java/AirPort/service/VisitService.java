@@ -110,6 +110,8 @@ public class VisitService {
   }
 
   public PageResult<TbVisit> list(VisitSearchParam param, TbLoginUser actor, Integer menuId) {
+    // 방문객·인솔자 성명(ARIA 암호문)은 완전일치로만 검색 — keyword 를 암호화해 넘긴다
+    param.setKeywordEnc(param.getKeyword() == null ? null : encryptOrNull(param.getKeyword().trim()));
     long total = visitMapper.selectCount(param);
     List<TbVisit> rows = visitMapper.selectList(param);
     auditService.log(actor, AuditService.READ, menuId, "방문 목록 조회 (결과 " + total + "건)");

@@ -144,6 +144,8 @@ DOMContentLoaded → bind()  → load()
 - **정렬**은 `<sql id="orderBy">` + **화이트리스트 `<choose>`** 로만 컬럼 매핑(SQL 인젝션 방지). 각 분기에 tie-breaker(PK) 포함, `<otherwise>` 는 기본 정렬.
 - **페이징**은 MSSQL `OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY` (offset 계산은 `PageParam.getOffset()`).
 - null 기본값은 `ISNULL(#{x}, '기본')`. (jdbcTypeForNull=VARCHAR 설정 전제 — `mybatis-config`)
+- **암호화(ARIA) 컬럼 검색**: 성명 등 ARIA 컬럼은 결정적(ECB)이라 **부분(LIKE)·정렬 불가, 완전일치만** 가능. 서비스가 `keyword` 를 `ariaEncrypt` 해 `PageParam.keywordEnc` 로 넣고, mapper 는 `= #{keywordEnc}` 로 비교(`<if test="keywordEnc != null ...">` 가드). 카드번호·차량번호 등 평문은 LIKE.
+- **연관 테이블 검색은 `EXISTS` 상관 서브쿼리**로(JOIN 중복행 방지). 예: 방문 목록에서 방문객/인솔자(tb_visit_person·tb_visit_manager→tb_person)·차량(tb_car)·카드(tb_card) 검색.
 
 **검색 파라미터 모델**: 공통 `PageParam`(page/size/keyword/searchType/sort/dir) 을 상속한 `{도메인}SearchParam` 에 도메인 필터(useYn 등)를 추가한다.
 
@@ -167,7 +169,7 @@ DOMContentLoaded → bind()  → load()
 ## 8. 포맷팅 · 커밋 · 주석
 - Java: **google-java-format** (spotless `googleJavaFormat()`, `/commit` 시 자동).
 - 프론트(HTML/JS/CSS): prettier (PostToolUse 훅).
-- 커밋: Conventional Commits(한국어). 타입 `feat|fix|refactor|docs|style|test|chore|perf`. scope 예: `common|visitor|acgroup|menu|biostar|auth|audit|ui|db|infra|deploy|card|person|kiosk`.
+- 커밋: Conventional Commits(한국어). 타입 `feat|fix|refactor|docs|style|test|chore|perf`. scope 예: `common|visitor|acgroup|menu|biostar|auth|audit|ui|db|infra|deploy|card|person|company|kiosk|search`.
   (`kiosk` = 무인증 방문 신청 등 키오스크/공개 화면, `card`/`person` = 카드·인원 도메인)
 - 주석: "무엇"이 아니라 "왜". 정책 결정(예: 등록/수정=create_auth)은 결정 지점에 주석으로 남긴다.
 

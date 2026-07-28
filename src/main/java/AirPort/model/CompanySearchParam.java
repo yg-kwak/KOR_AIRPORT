@@ -6,6 +6,7 @@ import AirPort.common.PageParam;
 public class CompanySearchParam extends PageParam {
 
   private String useYn; // "" (전체) | "Y" | "N"
+  private boolean searchCar; // true 면 기본 검색어에 소속 차량번호(tb_car.car_no)도 포함 — 기관차량등록만 설정
 
   public String getUseYn() {
     return useYn;
@@ -13,5 +14,13 @@ public class CompanySearchParam extends PageParam {
 
   public void setUseYn(String useYn) {
     this.useYn = useYn;
+  }
+
+  public boolean isSearchCar() {
+    return searchCar;
+  }
+
+  public void setSearchCar(boolean searchCar) {
+    this.searchCar = searchCar;
   }
 }
