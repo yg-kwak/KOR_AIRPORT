@@ -295,6 +295,8 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 /* 테이블 */
 .grid { width: 100%; border-collapse: collapse; }
 .grid th, .grid td { padding: 10px 12px; border-bottom: 1px solid var(--color-tertiary-active); text-align: center; font-size: 14px; }
+/* 표 안 버튼(선택·제거 등)은 좁은 칸에서도 글자가 줄바꿈되지 않도록 */
+.grid td .btn { white-space: nowrap; }
 /* 셀 간 세로 구분선(희미하게) — 첫 칸 앞/마지막 칸 뒤는 제외 */
 .grid th + th, .grid td + td { border-left: 1px solid var(--color-tertiary-active); }
 .grid thead th { background: var(--color-tertiary-hover); font-weight: 700; color: var(--neutral-700); }
