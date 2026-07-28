@@ -10,28 +10,51 @@
         AND v.visit_type IN (SELECT code_id FROM tb_common WHERE cmm_id = 'PT' AND code_tag = #{codeTag})
       </if>
       <if test="statusCode != null and statusCode != ''">AND v.status_code = #{statusCode}</if>
-      <!-- 검색어: 업체명·작업목적·차량번호·카드번호는 부분(LIKE), 방문객·인솔자 성명은 ARIA 암호문이라 완전일치(=keywordEnc) -->
+      <!-- 검색어: searchType 로 대상 선택. 업체명·차량번호·카드번호는 부분(LIKE), 방문객·인솔자 성명은 ARIA 암호문이라 완전일치(=keywordEnc) -->
       <if test="keyword != null and keyword != ''">
-        AND (
-          v.company_name LIKE '%' + #{keyword} + '%'
-          OR v.work_purpose LIKE '%' + #{keyword} + '%'
-          OR EXISTS (SELECT 1 FROM tb_visit_car vc JOIN tb_car car ON car.car_id = vc.car_id
-                     WHERE vc.visit_no = v.visit_no AND car.car_no LIKE '%' + #{keyword} + '%')
-          OR EXISTS (SELECT 1 FROM tb_visit_person vp JOIN tb_card cd ON cd.person_id = vp.person_id
-                     WHERE vp.visit_no = v.visit_no AND cd.del_yn = 'N'
-                       AND cd.biostar_card_value LIKE '%' + #{keyword} + '%')
-          OR EXISTS (SELECT 1 FROM tb_visit_car vc2 JOIN tb_card cd2 ON cd2.car_id = vc2.car_id
-                     WHERE vc2.visit_no = v.visit_no AND cd2.del_yn = 'N'
-                       AND cd2.biostar_card_value LIKE '%' + #{keyword} + '%')
-          <if test="keywordEnc != null and keywordEnc != ''">
-            OR EXISTS (SELECT 1 FROM tb_visit_person vp2 JOIN tb_person pr ON pr.person_id = vp2.person_id
-                       WHERE vp2.visit_no = v.visit_no AND pr.person_name = #{keywordEnc})
-            OR EXISTS (SELECT 1 FROM tb_visit_manager vm JOIN tb_person pm ON pm.person_id = vm.person_id
-                       WHERE vm.visit_no = v.visit_no AND pm.person_name = #{keywordEnc})
-          </if>
-        )
+        <choose>
+          <when test="searchType == 'companyName'">AND v.company_name LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'carNo'">AND <include refid="exCar"/></when>
+          <when test="searchType == 'cardNo'">AND (<include refid="exPersonCard"/> OR <include refid="exCarCard"/>)</when>
+          <when test="searchType == 'visitorName'">AND <include refid="exVisitorName"/></when>
+          <when test="searchType == 'managerName'">AND <include refid="exManagerName"/></when>
+          <otherwise>
+            AND (
+              v.company_name LIKE '%' + #{keyword} + '%'
+              OR v.work_purpose LIKE '%' + #{keyword} + '%'
+              OR <include refid="exCar"/>
+              OR <include refid="exPersonCard"/>
+              OR <include refid="exCarCard"/>
+              <if test="keywordEnc != null and keywordEnc != ''">
+                OR <include refid="exVisitorName"/>
+                OR <include refid="exManagerName"/>
+              </if>)
+          </otherwise>
+        </choose>
       </if>
     </where>
+  </sql>
+
+  <!-- 검색어 EXISTS 조각(searchWhere 재사용) — 방문의 차량번호·발급카드·방문객명·인솔자명 -->
+  <sql id="exCar">
+    EXISTS (SELECT 1 FROM tb_visit_car vc JOIN tb_car car ON car.car_id = vc.car_id
+            WHERE vc.visit_no = v.visit_no AND car.car_no LIKE '%' + #{keyword} + '%')
+  </sql>
+  <sql id="exPersonCard">
+    EXISTS (SELECT 1 FROM tb_visit_person vp JOIN tb_card cd ON cd.person_id = vp.person_id
+            WHERE vp.visit_no = v.visit_no AND cd.del_yn = 'N' AND cd.biostar_card_value LIKE '%' + #{keyword} + '%')
+  </sql>
+  <sql id="exCarCard">
+    EXISTS (SELECT 1 FROM tb_visit_car vc2 JOIN tb_card cd2 ON cd2.car_id = vc2.car_id
+            WHERE vc2.visit_no = v.visit_no AND cd2.del_yn = 'N' AND cd2.biostar_card_value LIKE '%' + #{keyword} + '%')
+  </sql>
+  <sql id="exVisitorName">
+    EXISTS (SELECT 1 FROM tb_visit_person vp3 JOIN tb_person pr ON pr.person_id = vp3.person_id
+            WHERE vp3.visit_no = v.visit_no AND pr.person_name = #{keywordEnc})
+  </sql>
+  <sql id="exManagerName">
+    EXISTS (SELECT 1 FROM tb_visit_manager vm JOIN tb_person pm ON pm.person_id = vm.person_id
+            WHERE vm.visit_no = v.visit_no AND pm.person_name = #{keywordEnc})
   </sql>
 
   <sql id="orderBy">

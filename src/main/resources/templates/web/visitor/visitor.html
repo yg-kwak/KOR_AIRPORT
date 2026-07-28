@@ -17,8 +17,17 @@
       </div>
       <div class="search-field">
         <label>검색어</label>
-        <input type="text" id="keyword" class="input w-300"
-               placeholder="업체명·작업목적·차량번호·카드번호 / 방문객·인솔자명(전체 일치)"/>
+        <div class="search-keyword">
+          <select id="searchType" class="input w-140">
+            <option value="all">전체</option>
+            <option value="companyName">업체명</option>
+            <option value="visitorName">방문객명(전체일치)</option>
+            <option value="managerName">인솔자명(전체일치)</option>
+            <option value="carNo">차량번호</option>
+            <option value="cardNo">카드번호</option>
+          </select>
+          <input type="text" id="keyword" class="input w-300" placeholder="검색어를 입력하세요"/>
+        </div>
       </div>
       <button class="btn btn-primary" id="btnSearch">검색</button>
       <button class="btn" id="btnReset">초기화</button>

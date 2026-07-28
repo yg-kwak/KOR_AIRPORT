@@ -6,7 +6,7 @@
   const AC_TREE = 'acTree';
   // fixedType 있으면 방문유형 고정(임시=PT02), 없으면 화면 select 값 사용(장기=PTD03 선택)
   const VISIT_TYPE = CFG.fixedType ? { id: CFG.fixedType, name: CFG.fixedTypeName } : null;
-  const state = { page: 1, size: 30, keyword: '', statusCode: '', sort: 'visitNo', dir: 'desc' };
+  const state = { page: 1, size: 30, keyword: '', searchType: 'all', statusCode: '', sort: 'visitNo', dir: 'desc' };
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
@@ -27,7 +27,7 @@
   // ---- 목록 ----
   async function load() {
     const q = `?page=${state.page}&size=${state.size}&keyword=${encodeURIComponent(state.keyword)}` +
-      `&statusCode=${encodeURIComponent(state.statusCode)}` +
+      `&searchType=${state.searchType}&statusCode=${encodeURIComponent(state.statusCode)}` +
       `&sort=${state.sort}&dir=${state.dir}`;
     const data = await api.get(BASE + '/list' + q);
     const body = $('gridBody');
@@ -59,13 +59,15 @@
 
   function search() {
     state.keyword = $('keyword').value.trim();
+    state.searchType = $('searchType').value;
     state.statusCode = $('statusFilter').value;
     state.page = 1;
     load();
   }
   function reset() {
     ['keyword', 'statusFilter', 'statusFilterName'].forEach((id) => { $(id).value = ''; });
-    Object.assign(state, { page: 1, size: 30, keyword: '', statusCode: '', sort: 'visitNo', dir: 'desc' });
+    $('searchType').value = 'all';
+    Object.assign(state, { page: 1, size: 30, keyword: '', searchType: 'all', statusCode: '', sort: 'visitNo', dir: 'desc' });
     $('pageSize').value = '30';
     load();
   }
