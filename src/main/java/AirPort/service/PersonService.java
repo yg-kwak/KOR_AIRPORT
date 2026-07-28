@@ -88,7 +88,8 @@ public class PersonService {
   /** 목록 조회(정규 PT01 고정) — 성명 복호화(표시용) + 검색조건·건수 감사(READ). */
   public PageResult<TbPerson> list(PersonSearchParam param, TbLoginUser actor, Integer menuId) {
     param.setPersonType(PERSON_TYPE_REGULAR);
-    param.setKeywordEnc(encryptOrNull(param.getKeyword())); // 성명(ARIA 암호문) 완전일치 검색용
+    // 성명(ARIA 암호문)은 완전일치로만 검색 — keyword 를 trim 후 암호화해 넘긴다(VisitService 와 동일)
+    param.setKeywordEnc(param.getKeyword() == null ? null : encryptOrNull(param.getKeyword().trim()));
     long total = personMapper.selectCount(param);
     List<TbPerson> rows = personMapper.selectList(param);
     rows.forEach(this::decrypt);

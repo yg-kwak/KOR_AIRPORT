@@ -65,6 +65,8 @@ class ArchitectureTest {
       classes()
           .that()
           .resideInAPackage("..controller..")
+          .and()
+          .areTopLevelClasses() // 중첩 요청/응답 DTO 는 접미사 규칙 대상 아님
           .should()
           .haveSimpleNameEndingWith("Controller")
           .orShould()
@@ -76,6 +78,8 @@ class ArchitectureTest {
       classes()
           .that()
           .resideInAPackage("..service..")
+          .and()
+          .areTopLevelClasses() // 중첩 DTO(예: VisitService.VisitDetail)는 접미사 규칙 대상 아님
           .should()
           .haveSimpleNameEndingWith("Service")
           .because("service 패키지는 *Service 만 둔다");
