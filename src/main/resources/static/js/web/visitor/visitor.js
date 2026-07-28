@@ -156,6 +156,7 @@
     }
     if ($('btnDelete')) $('btnDelete').style.display = 'none'; // 삭제는 신청/신청취소일 때만(로드 후 노출)
     if ($('btnSave')) $('btnSave').style.display = ''; // 퇴실완료면 로드 후 숨김(읽기전용)
+    $('editModal').querySelector('.visit-modal').classList.remove('readonly'); // 읽기전용 해제(VS04면 로드 후 재설정)
     showTab('group');
     await loadRefs();
     acGroupTree.set(AC_TREE, []);
@@ -175,6 +176,7 @@
     // 삭제 버튼: 신청(VS01)·신청취소(VS02)만 노출 / 저장: 퇴실완료(VS04)면 숨김(수정 불가)
     if ($('btnDelete')) $('btnDelete').style.display = (v.statusCode === 'VS01' || v.statusCode === 'VS02') ? '' : 'none';
     if ($('btnSave')) $('btnSave').style.display = v.statusCode === 'VS04' ? 'none' : '';
+    if (v.statusCode === 'VS04') { $('editModal').querySelector('.visit-modal').classList.add('readonly'); $('modalTitle').textContent = '방문 상세 (퇴실완료 — 수정 불가)'; } // 읽기전용
     acGroupTree.set(AC_TREE, d.acGroupIds || []);
     carAcRender(d.carAcCodes || []);
     managers = (d.managers || []).map((m) => ({ personId: m.personId, personName: m.personName || '' }));
