@@ -114,12 +114,13 @@
   function visRender() {
     $('visBody').innerHTML = visitors.length
       ? visitors.map((v, i) => `<tr>
+          <td>${v.personId ? esc(v.personId) : '<span class="form-hint">저장 후 부여</span>'}</td>
           <td><input class="input" data-f="personName" data-i="${i}" value="${esc(v.personName)}"/></td>
           <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="1990-01-01" value="${esc(v.birthDate)}"/></td>
           <td><input class="input" data-f="affiliation" data-i="${i}" value="${esc(v.affiliation)}"/></td>
           <td>${cardCell(v, i, 'vis')}</td>
           <td><button class="btn btn-sm btn-danger" data-act="vis-del" data-idx="${i}">제거</button></td></tr>`).join('')
-      : '<tr><td colspan="5" class="empty">방문객이 없습니다.</td></tr>';
+      : '<tr><td colspan="6" class="empty">방문객이 없습니다.</td></tr>';
   }
 
   // ---- 차량 ----
