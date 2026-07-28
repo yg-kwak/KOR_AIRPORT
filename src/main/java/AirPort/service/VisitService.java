@@ -175,6 +175,7 @@ public class VisitService {
           f.setCardId(pc.get(0).getCardId());
           f.setCardLabel(pc.get(0).getBiostarCardValue());
         }
+        f.setLastCardNo(visitMapper.selectVisitorLastCard(visitNo, pid)); // 회수 후에도 보존된 마지막 카드
         d.visitors.add(f);
       }
     }
@@ -326,6 +327,7 @@ public class VisitService {
         cardMapper.releaseByPerson(pid); // 이전 카드 해제 후 재배정
         if (vf.getCardId() != null) {
           cardMapper.assignPerson(vf.getCardId(), pid);
+          visitMapper.updateVisitorLastCard(visitNo, pid, vf.getCardId()); // 마지막 카드 스냅샷
         }
         personIds.add(pid);
       }

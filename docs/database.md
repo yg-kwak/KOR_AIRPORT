@@ -316,6 +316,7 @@ PK: `visit_no` + `person_id`. 방문에 속한 인원. 인원 실체는 `tb_pers
 |------|------|----|------|------|
 | visit_no | int | Y | 그룹번호 | → `tb_visit.visit_no` |
 | person_id | nvarchar(30) | Y | 인원ID | → `tb_person.person_id` |
+| last_card_no | nvarchar(255) | | 마지막 배정 카드번호 | 카드 배정 시 스냅샷. 회수(`tb_card.person_id`=NULL)·재사용 후에도 보존 |
 | reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
 
 ### tb_visit_car — 방문 차량 명단 (방문 1 : 차량 N)

@@ -90,7 +90,7 @@
 
   // 카드 셀 — 선택된 카드번호 표시 + 선택 버튼(팝업). kind=vis|car
   function cardCell(obj, i, kind) {
-    const label = obj.cardId ? esc(obj.cardLabel || obj.cardId) : '<span class="form-hint">카드 없음</span>';
+    const label = obj.cardId ? esc(obj.cardLabel || obj.cardId) : (obj.lastCardNo ? `<span class="form-hint">회수됨(${esc(obj.lastCardNo)})</span>` : '<span class="form-hint">카드 없음</span>');
     return `<div class="file-field-row">
       <span class="card-picked" data-i="${i}" style="min-width:90px">${label}</span>
       <button type="button" class="btn btn-sm" data-act="${kind}-card" data-idx="${i}">선택</button></div>`;

@@ -165,6 +165,15 @@
   <insert id="insertPerson">
     INSERT INTO tb_visit_person (visit_no, person_id) VALUES (#{visitNo}, #{personId})
   </insert>
+  <!-- 마지막 배정 카드번호 스냅샷 — 카드 회수(person_id=NULL)·재사용 후에도 방문객이 어떤 카드를 썼는지 남긴다 -->
+  <update id="updateVisitorLastCard">
+    UPDATE tb_visit_person
+    SET last_card_no = (SELECT biostar_card_value FROM tb_card WHERE card_id = #{cardId}), mod_dt = getdate()
+    WHERE visit_no = #{visitNo} AND person_id = #{personId}
+  </update>
+  <select id="selectVisitorLastCard" resultType="string">
+    SELECT last_card_no FROM tb_visit_person WHERE visit_no = #{visitNo} AND person_id = #{personId}
+  </select>
 
   <!-- ── 방문 차량 ── -->
   <select id="selectCarIds" resultType="int">

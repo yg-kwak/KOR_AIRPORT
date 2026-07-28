@@ -283,10 +283,11 @@ CREATE TABLE dbo.tb_visit_manager (
 
 /* 방문 인원 명단 (visit 1 : 인원 N) — 인원은 tb_person(person_type=방문유형) */
 CREATE TABLE dbo.tb_visit_person (
-  visit_no  int          NOT NULL,                    -- → tb_visit.visit_no
-  person_id nvarchar(30) NOT NULL,                    -- → tb_person.person_id
-  reg_dt    datetime2(0) NOT NULL DEFAULT getdate(),
-  mod_dt    datetime2(0) NOT NULL DEFAULT getdate(),
+  visit_no     int          NOT NULL,                 -- → tb_visit.visit_no
+  person_id    nvarchar(30) NOT NULL,                 -- → tb_person.person_id
+  last_card_no nvarchar(255) NULL,                    -- 마지막 배정 카드번호 스냅샷(회수/재사용 후에도 보존)
+  reg_dt       datetime2(0) NOT NULL DEFAULT getdate(),
+  mod_dt       datetime2(0) NOT NULL DEFAULT getdate(),
   CONSTRAINT PK_tb_visit_person PRIMARY KEY (visit_no, person_id)
 );
 

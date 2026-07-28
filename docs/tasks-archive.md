@@ -5,6 +5,7 @@
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
 - [x] 임시·장기 방문객 탭에 인원ID 표시 — 방문객이 BiostarX 사용자로 편입되면 부여되는 인원ID(=biostar_user_id)를 방문객 탭 성명 왼쪽에 읽기전용 컬럼으로 노출(신규는 '저장 후 부여'). 성명·생년월일·카드 폭을 줄여 공간 확보. detail 이 이미 personId 반환하므로 프론트만 변경(visitor.html/js 공유) — sjpark2, 2026-07-28
+- [x] 방문객 마지막 사용 카드 기록 — 카드가 퇴실 시 회수(person_id=NULL)·재사용돼 추적 불가하던 문제. tb_visit_person.last_card_no(스냅샷) 추가, 카드 배정 시 기록(saveChildren→updateVisitorLastCard, 카드번호=biostar_card_value). 회수 후에도 보존, 최종값 1건. detail 이 lastCardNo 반환→방문객 탭 카드칸에 '회수됨(번호)' 표시 — sjpark2, 2026-07-29
 - [x] 퇴실완료 방문 읽기전용 처리 — 임시·장기 방문 수정 모달에서 퇴실완료(VS04)면 입력·버튼을 비활성화(회색·클릭불가, 탭 전환은 허용)하고 제목을 '방문 상세 (퇴실완료 — 수정 불가)'로 표시. 기존엔 저장 버튼만 숨겨 헷갈렸던 것 개선. .visit-modal.readonly CSS + visitor.js 토글 — sjpark2, 2026-07-28
 - [x] 정규인원 수정도 BiostarX 동기화 필수화 — 등록에 이어 수정(update)도 BiostarX 동기화 성공해야 커밋(실패=기관 그룹 없음·장비오류면 롤백+사유 예외). 등록/수정 공통 헬퍼 syncPersonToBiostar(form, before)로 통합(등록=before empty, 수정=변경전 스냅샷). 장비-DB 정합성 최우선. docs/integration.md 정책 갱신 — sjpark2, 2026-07-28
 - [x] 기관코드 자동 채번 + 정규인원 등록 BiostarX 필수화 — (1) 기관 등록 모달에서 기관코드를 다음 번호로 자동 채움(TbCompanyMapper.selectNextCompanyCode=숫자형 max+1, CompanyController /nextCode, company.js). (2) 정규인원 등록은 BiostarX 사용자 생성이 성공해야 커밋 — 실패(설정/기관 biostar_group_id 없음·장비 오류)면 트랜잭션 롤백 + 사유 예외(유령 인원 방지). 그룹 없으면 BiostarX 호출 전 차단하고 "기관 먼저 동기화" 안내. 수정은 기존 정책 유지 — sjpark2, 2026-07-28
