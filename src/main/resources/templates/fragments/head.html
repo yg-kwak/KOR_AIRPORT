@@ -4,7 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="_csrf" th:content="${_csrf != null} ? ${_csrf.token} : ''"/>
-  <title th:text="${title} ?: '청주공항 출입관리시스템'">청주공항 출입관리시스템</title>
+  <!-- 탭 제목은 메뉴별로 바꾸지 않고 고정한다(title 파라미터는 무시) -->
+  <title>출입관리시스템</title>
   <link rel="icon" href="/favicon.ico" sizes="any"/>
   <link rel="icon" type="image/png" href="/ic/amblem_logo.png"/>
   <link rel="stylesheet" href="/css/style.css"/>
