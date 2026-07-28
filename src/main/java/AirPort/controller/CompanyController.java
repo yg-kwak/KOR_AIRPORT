@@ -140,6 +140,13 @@ public class CompanyController {
     return ApiResponse.ok(companyService.pickerCompanies());
   }
 
+  /** 다음 기관코드 (AJAX) — 등록 모달의 기관코드 초기값 자동 채번. */
+  @GetMapping("/nextCode")
+  @ResponseBody
+  public ApiResponse<String> nextCode(HttpSession session) {
+    return ApiResponse.ok(companyService.nextCompanyCode(actor(session), menuId()));
+  }
+
   /** BiostarX 사용자그룹 목록 (AJAX) — PTD01 하위만. 기관 등록 모달의 선택 팝업용 */
   @GetMapping("/biostarGroups")
   @ResponseBody

@@ -93,6 +93,13 @@
     WHERE c.company_code = #{companyCode}
   </select>
 
+  <!-- 다음 기관코드 채번 — 숫자형 코드 최댓값+1(삭제 포함, PK 충돌 방지). 기본 1000 → 1001부터 -->
+  <select id="selectNextCompanyCode" resultType="string">
+    SELECT CAST(ISNULL(MAX(CAST(company_code AS bigint)), 1000) + 1 AS varchar(30))
+    FROM tb_company
+    WHERE company_code NOT LIKE '%[^0-9]%'
+  </select>
+
   <!-- 인원 등록 등에서 쓰는 기관 select 옵션 -->
   <select id="selectOptions" resultType="TbCompany">
     SELECT company_code, company_name

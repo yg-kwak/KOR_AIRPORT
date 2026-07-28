@@ -32,9 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 정규인원(tb_person, person_type='PT01') 등록관리. (docs/backend.md)
  *
- * <p>성명·생년월일·연락처는 ARIA 암호화 저장. 얼굴(tb_person_photo)·출입권한(tb_person_ac_group)·카드도 함께 저장한다.
- * BiostarX 사용자는 등록·수정 모두 <b>존재 확인 후 upsert</b>({@code GET /api/users/{인원ID}} → 있으면 PUT, 없으면 POST)
- * 한다. 연동 실패해도 인원 저장은 유지하고 경고를 돌려준다(기관 연동과 동일 정책).
+ * <p>성명·생년월일·연락처는 ARIA 암호화 저장. 얼굴·출입권한·카드도 함께 저장한다. BiostarX 사용자는 존재 확인 후 upsert.
+ * <b>등록은 BiostarX 사용자 생성 성공해야 커밋</b>(실패=설정/기관그룹 없음·장비오류면 롤백+사유 예외, 유령 인원 방지). 수정은 연동 실패해도 저장 유지.
  */
 @Service
 public class PersonService {
@@ -114,11 +113,7 @@ public class PersonService {
     return acGroupMapper.selectAcGroupIds(personId);
   }
 
-  /**
-   * 정규인원 등록 — 인원·사진·출입권한 저장 후 BiostarX 사용자 생성.
-   *
-   * @return BiostarX 연동 경고(성공이면 null) — 연동 실패해도 인원 등록은 유지한다
-   */
+  /** 정규인원 등록 — 저장 후 BiostarX 사용자 생성이 성공해야 커밋(실패면 전체 롤백 + 사유 예외). return 은 항상 null. */
   @Transactional
   public String create(PersonForm form, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
@@ -126,21 +121,23 @@ public class PersonService {
     if (personMapper.selectById(form.getPersonId()) != null) {
       throw new BusinessException(ErrorCode.DUPLICATE, "이미 존재하는 인원ID 입니다.");
     }
-
     TbPerson row = toRow(form);
     row.setPersonType(PERSON_TYPE_REGULAR);
     row.setUseYn(form.getUseYn());
     personMapper.insert(row);
-
     if (form.getFaceImage() != null && !form.getFaceImage().isBlank()) {
       photoMapper.upsert(form.getPersonId(), form.getFaceImage());
     }
     saveAcGroups(form.getPersonId(), form.getAcGroupIds());
     personFileService.apply(form);
     cardService.saveCards(form.getPersonId(), form.getCards());
-
+    String fail = syncBiostarUser(form); // 실패면 등록 취소(트랜잭션 롤백)
+    if (fail != null) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT, "BiostarX 사용자 생성 실패로 등록이 취소되었습니다. 사유: " + fail);
+    }
     auditService.log(actor, AuditService.CREATE, menuId, "정규인원 등록: " + form.getPersonId());
-    return syncBiostarUser(form);
+    return null;
   }
 
   /** 다음 인원ID 자동 채번 — 등록 모달의 인원ID 초기값. 사용자가 바꿀 수 있고, 중복은 저장 시 막힌다. */
@@ -240,7 +237,6 @@ public class PersonService {
     }
     personMapper.softDelete(personId);
     auditService.log(actor, AuditService.DELETE, menuId, "정규인원 삭제: " + personId);
-
     TbSystem cfg = systemMapper.selectOne();
     if (cfg == null) {
       return "BiostarX 설정이 없습니다.";
@@ -343,7 +339,11 @@ public class PersonService {
   private String syncBiostarUser(PersonForm form) {
     TbSystem cfg = systemMapper.selectOne();
     if (cfg == null) {
-      return "BiostarX 설정이 없습니다.";
+      return "BiostarX 설정이 없습니다. 설정관리에서 먼저 등록하세요.";
+    }
+    // 소속 기관에 BiostarX 사용자그룹이 없으면 사용자를 만들 수 없다 — 유령 인원 방지 위해 등록을 막는다
+    if (companyGroupId(form.getCompanyCode()) == null) {
+      return "소속 기관에 BiostarX 사용자그룹이 없습니다. 기관등록관리에서 해당 기관을 저장(동기화)해 그룹을 만든 뒤 다시 등록하세요.";
     }
     BiostarUserRequest after =
         biostarRequest(form, acGroupMapper.selectBiostarAcIds(form.getPersonId()));

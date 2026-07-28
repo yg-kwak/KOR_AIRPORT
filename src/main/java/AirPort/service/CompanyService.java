@@ -154,6 +154,12 @@ public class CompanyService {
     return companyMapper.selectOptions();
   }
 
+  /** 다음 기관코드 자동 채번 — 등록 모달의 기관코드 초기값. 사용자가 바꿀 수 있고, 중복은 저장 시 막힌다. */
+  public String nextCompanyCode(TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireCreate(actor, menuId);
+    return companyMapper.selectNextCompanyCode();
+  }
+
   /** 목록 조회 — 대표자 복호화(표시용) + 검색조건·결과 건수 감사(READ). */
   public PageResult<TbCompany> list(CompanySearchParam param, TbLoginUser actor, Integer menuId) {
     long total = companyMapper.selectCount(param);

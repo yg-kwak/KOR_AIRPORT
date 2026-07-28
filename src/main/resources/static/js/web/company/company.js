@@ -155,12 +155,14 @@
   }
 
   // ---- 등록/수정 모달 ----
-  function openModal(mode, row) {
+  async function openModal(mode, row) {
     $('mode').value = mode;
     $('modalTitle').textContent = mode === 'create' ? '기관 등록' : '기관 수정';
     const isEdit = mode === 'edit';
     $('companyCode').value = row ? row.companyCode : '';
     $('companyCode').readOnly = isEdit; // PK 는 수정 불가
+    // 등록이면 다음 기관코드 자동 채움(편집 가능, 중복은 저장 시 차단)
+    if (mode === 'create') { $('companyCode').value = (await api.get(BASE + '/nextCode')) || ''; }
     $('companyType').value = row ? row.companyType || '' : '';
     $('companyTypeName').value = row ? row.companyTypeName || '' : ''; // 코드명 표시(조인)
     $('companyName').value = row ? row.companyName || '' : '';

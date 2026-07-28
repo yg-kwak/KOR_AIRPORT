@@ -24,6 +24,9 @@ public interface TbCompanyMapper {
   /** 기관 select 옵션 — 사용중인 기관만(코드/기관명). */
   List<TbCompany> selectOptions();
 
+  /** 다음 기관코드 자동 채번 — 숫자형 코드의 최댓값+1(삭제분 포함, PK 충돌 방지). */
+  String selectNextCompanyCode();
+
   int insert(TbCompany row);
 
   /** 소프트 삭제된 기관코드 재등록 — 전체 필드 갱신 + del_yn='N' 되살림. */
