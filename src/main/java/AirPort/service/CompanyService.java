@@ -202,6 +202,9 @@ public class CompanyService {
   /** 엑셀 일괄 등록의 열 순서(양식 헤더와 일치): 기관코드 · 기관명 · 기관구분코드 · 대표자 · 연락처. */
   public static final String[] IMPORT_HEADERS = {"기관코드*", "기관명*", "기관구분코드", "대표자", "연락처"};
 
+  /** 양식 2행에 넣는 예시 행 — 그대로 두거나 지우면 등록에서 건너뛴다(사용자가 덮어쓰면 정상 등록). */
+  public static final String[] EXAMPLE_ROW = {"C001", "예시기관", "", "홍길동", "02-1234-5678"};
+
   /**
    * 엑셀 일괄 등록 — 행마다 {@link #create}를 호출한다(행 단위 독립 트랜잭션이라 한 행 실패가 나머지를 막지 않는다).
    *
@@ -224,6 +227,9 @@ public class CompanyService {
     int line = 1; // 헤더가 1행 → 데이터는 2행부터
     for (String[] r : rows) {
       line++;
+      if (java.util.Arrays.equals(r, EXAMPLE_ROW)) {
+        continue; // 안내용 예시 행 — 건너뛴다
+      }
       try {
         TbCompany row = new TbCompany();
         row.setCompanyCode(blankToNull(r[0]));

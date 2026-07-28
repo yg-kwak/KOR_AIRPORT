@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 엑셀 양식에 예시 행 추가 — 카드·정규인원·기관 양식 다운로드 시 2행에 예시 데이터를 넣어 입력 형식을 안내. 예시 행(EXAMPLE_ROW)은 임포트 시 Arrays.equals 로 걸러 건너뜀(사용자가 덮어쓰거나 지우면 정상 등록). ExcelUtil.download 는 List.<String[]>of(EXAMPLE_ROW) 로 호출 — sjpark2, 2026-07-27
 - [x] 카드 발급 시 출입구역 선택 강제(프론트 가드) — 카드를 발급했는데 해당 출입구역이 없으면 실제로 못 여는 무효 카드가 되므로, 저장/발급 전 토스트로 차단. 임시·장기(visitor): 방문객 카드→인원 출입구역, 차량 카드→차량 출입구역. 정규인원(person): 카드→출입구역. 기관차량등록(companyCar): 카드 발급 전 차량 출입구역 지정 강제. 프론트 검증만(백엔드 미변경) — sjpark2, 2026-07-27
 - [x] 카드 엑셀 일괄등록 — 카드등록관리에 '엑셀 등록' 추가. 양식 다운로드(/card/card/excel/template)+업로드(/excel/import). 공용 excel-import 모달/컴포넌트·ExcelUtil·ExcelImportResult 재사용, CardImportService가 행마다 CardService.createCard(프록시=독립 트랜잭션) 호출→중복/필수/BiostarX 검증 재사용, 실패 행은 사유와 함께 요약. 카드상태 비면 CS01 기본, 미발급으로 등록 — sjpark2, 2026-07-27
 - [x] 인솔자 겹침 규칙 — 임시(PT02)끼리는 같은 인솔자 중복 불가, 임시↔장기·상주(PT03/PT04) 및 장기끼리는 허용. '겹침'=진행중(신청 VS01·입실중 VS03) 판정(퇴실완료 VS04·취소 VS02·삭제 제외). 등록 대상이 임시일 때만 검사(create/update/키오스크 저장 전). TbVisitMapper.selectActiveTempManagers + VisitService.checkManagerOverlap — sjpark2, 2026-07-27

@@ -111,11 +111,14 @@ public class PersonController {
     return ApiResponse.ok(personService.nextPersonId(actor(session), menuId()));
   }
 
-  /** 엑셀 일괄등록 양식 다운로드 — 헤더만 있는 빈 양식(기관코드*·성명* 필수). */
+  /** 엑셀 일괄등록 양식 다운로드 — 헤더 + 예시 1행(기관코드*·성명* 필수). 예시 행은 등록 시 건너뛴다. */
   @GetMapping("/excel/template")
   public void excelTemplate(HttpServletResponse response) throws java.io.IOException {
     AirPort.util.ExcelUtil.download(
-        response, "정규인원등록양식.xlsx", PersonImportService.IMPORT_HEADERS, java.util.List.of());
+        response,
+        "정규인원등록양식.xlsx",
+        PersonImportService.IMPORT_HEADERS,
+        java.util.List.<String[]>of(PersonImportService.EXAMPLE_ROW));
   }
 
   /** 엑셀 일괄등록 (AJAX, multipart) — 사용자권한·카드정보 제외. 행별 성공/실패 요약. */

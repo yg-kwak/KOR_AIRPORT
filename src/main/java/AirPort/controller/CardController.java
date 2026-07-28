@@ -108,7 +108,10 @@ public class CardController {
   @GetMapping("/excel/template")
   public void excelTemplate(HttpServletResponse response) throws java.io.IOException {
     AirPort.util.ExcelUtil.download(
-        response, "카드등록양식.xlsx", CardImportService.IMPORT_HEADERS, java.util.List.of());
+        response,
+        "카드등록양식.xlsx",
+        CardImportService.IMPORT_HEADERS,
+        java.util.List.<String[]>of(CardImportService.EXAMPLE_ROW));
   }
 
   /** 엑셀 일괄등록 (AJAX, multipart) — 행별 성공/실패 요약. 미발급 카드로 등록된다. */

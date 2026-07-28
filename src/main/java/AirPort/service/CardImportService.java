@@ -23,6 +23,11 @@ public class CardImportService {
     "카드번호*", "카드구분*", "패스구분", "카드명칭*", "카드상태", "발급사유", "메모"
   };
 
+  /** 양식 2행에 넣는 예시 행 — 그대로 두거나 지우면 등록에서 건너뛴다(사용자가 덮어쓰면 정상 등록). */
+  public static final String[] EXAMPLE_ROW = {
+    "1234567890", "CDT01", "PT01", "출입카드", "CS01", "신규발급", "예시 행 — 지우거나 덮어써서 입력하세요"
+  };
+
   /** 카드상태 기본값 — tb_common(CS) 정상. 비면 정상으로 등록한다. */
   private static final String DEFAULT_STATUS = "CS01";
 
@@ -53,6 +58,9 @@ public class CardImportService {
     int line = 1; // 헤더가 1행 → 데이터는 2행부터
     for (String[] r : rows) {
       line++;
+      if (java.util.Arrays.equals(r, EXAMPLE_ROW)) {
+        continue; // 안내용 예시 행 — 건너뛴다
+      }
       try {
         cardService.createCard(toRow(r), actor, menuId); // 프록시 경유 — 행마다 독립 트랜잭션
         result.addSuccess();

@@ -109,10 +109,14 @@ public class CompanyController {
     ExcelUtil.download(response, filename, headers, data);
   }
 
-  /** 엑셀 일괄등록 양식 다운로드 — 헤더만 있는 빈 양식(기관코드*·기관명* 필수). */
+  /** 엑셀 일괄등록 양식 다운로드 — 헤더 + 예시 1행(기관코드*·기관명* 필수). 예시 행은 등록 시 건너뛴다. */
   @GetMapping("/excel/template")
   public void excelTemplate(HttpServletResponse response) throws IOException {
-    ExcelUtil.download(response, "기관등록양식.xlsx", CompanyService.IMPORT_HEADERS, List.of());
+    ExcelUtil.download(
+        response,
+        "기관등록양식.xlsx",
+        CompanyService.IMPORT_HEADERS,
+        List.<String[]>of(CompanyService.EXAMPLE_ROW));
   }
 
   /** 엑셀 일괄등록 (AJAX, multipart) — 행별 성공/실패를 요약해 돌려준다. */

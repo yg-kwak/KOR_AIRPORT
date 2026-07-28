@@ -26,6 +26,12 @@ public class PersonImportService {
     "직위코드", "상태코드", "출입시작일", "출입종료일", "주요업무", "메모"
   };
 
+  /** 양식 2행에 넣는 예시 행 — 그대로 두거나 지우면 등록에서 건너뛴다(사용자가 덮어쓰면 정상 등록). */
+  public static final String[] EXAMPLE_ROW = {
+    "C001", "", "홍길동", "1990-01-01", "010-1234-5678",
+    "", "01", "2026-01-01T09:00", "2026-12-31T18:00", "출입관리", "예시 행 — 지우거나 덮어써서 입력하세요"
+  };
+
   /** 상태 기본값 — tb_common(PS) 신규. */
   private static final String DEFAULT_STATUS = "01";
 
@@ -64,6 +70,9 @@ public class PersonImportService {
     int line = 1; // 헤더가 1행 → 데이터는 2행부터
     for (String[] r : rows) {
       line++;
+      if (java.util.Arrays.equals(r, EXAMPLE_ROW)) {
+        continue; // 안내용 예시 행 — 건너뛴다
+      }
       try {
         personService.create(toForm(r), actor, menuId); // 프록시 경유 — 행마다 독립 트랜잭션
         result.addSuccess();
