@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.net.http.HttpResponse;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +32,8 @@ public class BiostarUserAdapter {
 
   /**
    * 사진 파일 업로드 → 정규화 얼굴 — {@code PUT /api/users/check/upload_picture}. 응답의 {@code image} 를 사진으로,
-   * {@code image_template}/{@code image_template_2} 를 템플릿(9/5)으로 매핑한다.
+   * <b>{@code image_template}=bin_type 5, {@code image_template_2}=bin_type 9</b> 로 매핑한다(장치 촬영과 순서가
+   * 반대). 템플릿은 고정 버퍼라 뒤가 널로 채워져 오므로 {@link #normalizeTemplate} 로 잘라 보낸다.
    */
   public BiostarFace uploadPicture(String ip, String loginId, String password, String base64Image) {
     if (ip == null || ip.isBlank()) {
@@ -49,10 +52,11 @@ public class BiostarUserAdapter {
       if (image == null || image.isBlank()) {
         return BiostarFace.fail("응답에 사진(image)이 없습니다.");
       }
+      // 응답 매핑: image_template = bin_type 5, image_template_2 = bin_type 9 (장치 촬영과 반대 순서)
       return BiostarFace.ok(
           image,
-          root.path("image_template").asText(null),
-          root.path("image_template_2").asText(null));
+          normalizeTemplate(root.path("image_template_2").asText(null)),
+          normalizeTemplate(root.path("image_template").asText(null)));
     } catch (Exception e) {
       return BiostarFace.fail(friendlyError(e, "사진 업로드"));
     }
@@ -105,14 +109,10 @@ public class BiostarUserAdapter {
   }
 
   /**
-   * BiostarX 사용자 존재 확인 — {@code GET /api/users/{userId}}. 호출이 성공하면 등록돼 있다는 뜻이다.
+   * BiostarX 사용자 존재 확인 — {@code GET /api/users/{userId}}. 있으면 true, 없으면 false.
    *
-   * <p>확인 자체가 실패하면(없는 사용자·통신 오류) {@code false} 로 본다. 통신 오류라면 이어지는 생성 호출도 같은 이유로 실패해 경고가 남으므로, 데이터가
-   * 잘못될 여지는 없다.
-   */
-  /**
-   * 사용자 존재 확인 — 있으면 true, 없으면 false. <b>통신 오류는 '없음'과 구분해 예외로 전파</b>한다(장비 장애 시 skip 로직이 성공으로 오판해
-   * 퇴실/삭제가 조용히 커밋되는 것을 막는다 — 정합성 판단용 3상).
+   * <p><b>통신 오류는 '없음'과 구분해 예외로 전파</b>한다(장비 장애 시 skip 로직이 성공으로 오판해 퇴실/삭제가 조용히 커밋되는 것을 막는다 — 정합성 판단용
+   * 3상).
    */
   public boolean userExists(String ip, String loginId, String password, String userId) {
     if (ip == null || ip.isBlank() || userId == null || userId.isBlank()) {
@@ -334,6 +334,27 @@ public class BiostarUserAdapter {
     ObjectNode root = objectMapper.createObjectNode();
     root.set("User", user);
     return objectMapper.writeValueAsString(root);
+  }
+
+  /**
+   * upload_picture 템플릿 정규화 — 응답 템플릿은 <b>고정 길이 버퍼</b>라 실제 데이터 뒤가 널(0x00)로 채워져 온다. 사용자 payload 의
+   * {@code template_ex} 는 그 널 꼬리를 뺀 값이어야 하므로 잘라내고 표준 base64 로 다시 만든다(패딩 {@code ==} 포함). JSON 의
+   * {@code \/} 이스케이프는 파싱 단계에서 이미 {@code /} 로 풀린다.
+   */
+  static String normalizeTemplate(String base64) {
+    if (base64 == null || base64.isBlank()) {
+      return null;
+    }
+    try {
+      byte[] raw = Base64.getDecoder().decode(base64.trim());
+      int end = raw.length;
+      while (end > 0 && raw[end - 1] == 0) {
+        end--; // 뒤쪽 널 패딩 제거(앞쪽 헤더의 0x00 은 그대로 유지)
+      }
+      return Base64.getEncoder().encodeToString(Arrays.copyOf(raw, end));
+    } catch (IllegalArgumentException e) {
+      return base64; // base64 가 아니면 원본 그대로(예상 밖 응답 방어)
+    }
   }
 
   private static void addTemplate(ArrayNode templates, String templateEx, String binType) {
