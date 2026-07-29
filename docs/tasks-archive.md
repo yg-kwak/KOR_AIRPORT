@@ -5,6 +5,7 @@
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
 - [x] 임시·장기 방문객 탭에 인원ID 표시 — 방문객이 BiostarX 사용자로 편입되면 부여되는 인원ID(=biostar_user_id)를 방문객 탭 성명 왼쪽에 읽기전용 컬럼으로 노출(신규는 '저장 후 부여'). 성명·생년월일·카드 폭을 줄여 공간 확보. detail 이 이미 personId 반환하므로 프론트만 변경(visitor.html/js 공유) — sjpark2, 2026-07-28
+- [x] 카드 인쇄 꽉 채움(stretch-fill) — 기존 비율유지 맞춤(min-fit)+중앙배치라 오른쪽/아래 흰 여백 발생. 인쇄영역을 가로·세로 모두 채우도록 변경(카드 규격 디자인이라 왜곡 무시 수준). scale(풀블리드)·offset(위치)와 병행 — sjpark2, 2026-07-29
 - [x] 카드 인쇄 배율 보정 옵션 — 프린터 여백 등으로 출력이 템플릿보다 작게 나올 때 card-print.scale(기본 1.0)로 확대(중앙 기준, min-fit 스케일에 곱). 재빌드 없이 프린터별 조정 — sjpark2, 2026-07-29
 - [x] 카드 인쇄 위치 보정 옵션 — 프린터 원점 오차로 카드가 왼쪽 위로 쏠릴 때 보정. card-print.offset-x-mm/offset-y-mm(기본 0, 양수=오른쪽/아래) 추가, CardPrintAdapter.printable 의 중앙배치 좌표에 mm→pt 더함. 재빌드 없이 프린터별 조정 — sjpark2, 2026-07-29
 - [x] 방문객 마지막 사용 카드 기록 — 카드가 퇴실 시 회수(person_id=NULL)·재사용돼 추적 불가하던 문제. tb_visit_person.last_card_no(스냅샷) 추가, 카드 배정 시 기록(saveChildren→updateVisitorLastCard, 카드번호=biostar_card_value). 회수 후에도 보존, 최종값 1건. detail 이 lastCardNo 반환→방문객 탭 카드칸에 '회수됨(번호)' 표시 — sjpark2, 2026-07-29

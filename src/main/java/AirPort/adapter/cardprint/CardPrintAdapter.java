@@ -124,21 +124,26 @@ public class CardPrintAdapter {
       Graphics2D g = (Graphics2D) graphics;
       g.setRenderingHint(
           RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-      double scale =
-          Math.min(
-                  pageFormat.getImageableWidth() / image.getWidth(),
-                  pageFormat.getImageableHeight() / image.getHeight())
-              * printScale; // 1.0=카드에 맞춤, >1=꽉 차게 확대(중앙 기준)
-      double ox =
+      double mmToPt = 72.0 / 25.4;
+      // 인쇄영역을 가로·세로 모두 꽉 채운다(비율 유지 아님) — 카드 규격 디자인이라 왜곡은 무시할 수준.
+      // printScale=1.0 이면 영역에 딱 채우고, >1 이면 경계를 넘겨 확대(가장자리 잘림=풀블리드). 오프셋으로 위치 보정.
+      double dw = pageFormat.getImageableWidth() * printScale;
+      double dh = pageFormat.getImageableHeight() * printScale;
+      double dx =
           pageFormat.getImageableX()
-              + (pageFormat.getImageableWidth() - image.getWidth() * scale) / 2;
-      double oy =
+              + (pageFormat.getImageableWidth() - dw) / 2
+              + offsetXmm * mmToPt;
+      double dy =
           pageFormat.getImageableY()
-              + (pageFormat.getImageableHeight() - image.getHeight() * scale) / 2;
-      double mmToPt = 72.0 / 25.4; // 오프셋(mm) → 페이지 point 로 보정(양수=오른쪽/아래)
-      g.translate(ox + offsetXmm * mmToPt, oy + offsetYmm * mmToPt);
-      g.scale(scale, scale);
-      g.drawImage(image, 0, 0, null);
+              + (pageFormat.getImageableHeight() - dh) / 2
+              + offsetYmm * mmToPt;
+      g.drawImage(
+          image,
+          (int) Math.round(dx),
+          (int) Math.round(dy),
+          (int) Math.round(dw),
+          (int) Math.round(dh),
+          null);
       return Printable.PAGE_EXISTS;
     };
   }
