@@ -52,6 +52,13 @@ public class CardPrintAdapter {
   @Value("${card-print.scale:1.0}")
   private double printScale;
 
+  /** 인쇄 페이지 크기(mm) — 기본 CR-80(86×54). 드라이버가 가장자리 여백을 넣어 안 채워지면 살짝 키워(예: 88×56) 풀블리드처럼 맞춘다. */
+  @Value("${card-print.card-width-mm:86}")
+  private double cardWidthMm;
+
+  @Value("${card-print.card-height-mm:54}")
+  private double cardHeightMm;
+
   private CardProject cached;
 
   /** 디자인 템플릿(card_project) 로드 — 캐시. */
@@ -108,8 +115,8 @@ public class CardPrintAdapter {
 
   private PageFormat pageFormat(BufferedImage image) {
     double mmToPt = 72.0 / 25.4;
-    double cardW = 86 * mmToPt;
-    double cardH = 54 * mmToPt;
+    double cardW = cardWidthMm * mmToPt;
+    double cardH = cardHeightMm * mmToPt;
     boolean portrait = image.getHeight() > image.getWidth();
     double pw = portrait ? cardH : cardW;
     double ph = portrait ? cardW : cardH;
