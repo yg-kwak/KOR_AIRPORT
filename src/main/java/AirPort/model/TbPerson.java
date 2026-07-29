@@ -6,8 +6,8 @@ import lombok.Data;
 /**
  * 인원 (tb_person) — 출입 대상자. tb_login_user(로그인 계정)와 다른 개체.
  *
- * <p>성명·생년월일·연락처는 ARIA 암호화 대상(부분검색·정렬 불가). 삭제는 del_yn='Y' 소프트 삭제. 정규인원등록 화면은 person_type='PT01'
- * 만 다룬다. (docs/database.md)
+ * <p>성명·생년월일·연락처는 ARIA 암호화 대상(부분검색·정렬 불가). 삭제는 del_yn='Y' 소프트 삭제. 정규인원등록 화면은 person_type='PT01' 만
+ * 다룬다. (docs/database.md)
  */
 @Data
 public class TbPerson {

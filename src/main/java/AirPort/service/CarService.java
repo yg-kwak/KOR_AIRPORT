@@ -35,7 +35,8 @@ public class CarService {
   public PageResult<TbCar> list(CarSearchParam param, TbLoginUser actor, Integer menuId) {
     long total = carMapper.selectCount(param);
     List<TbCar> rows = carMapper.selectList(param);
-    auditService.log(actor, AuditService.READ, menuId, "차량 목록 조회 (" + searchSummary(param, total) + ")");
+    auditService.log(
+        actor, AuditService.READ, menuId, "차량 목록 조회 (" + searchSummary(param, total) + ")");
     return new PageResult<>(rows, total, param.getPage(), param.getSize());
   }
 

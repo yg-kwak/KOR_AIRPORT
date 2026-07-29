@@ -6,8 +6,8 @@ import lombok.Data;
 /**
  * 임시인원(방문) 등록 요청 — 그룹정보 + 인솔자 + 방문객 + 차량 + 출입그룹.
  *
- * <p>방문객은 tb_person(person_type=visit_type), 차량은 tb_car 로 저장되고 저장 시 BiostarX 로 동기화된다(사용자권한·카드는
- * 정규와 동일 테이블 재사용). (docs/integration.md)
+ * <p>방문객은 tb_person(person_type=visit_type), 차량은 tb_car 로 저장되고 저장 시 BiostarX 로 동기화된다(사용자권한·카드는 정규와
+ * 동일 테이블 재사용). (docs/integration.md)
  */
 @Data
 public class VisitForm {

@@ -26,9 +26,9 @@ import org.springframework.stereotype.Service;
 /**
  * 카드 프린트 오케스트레이션 — 인원/카드/얼굴로 카드 이미지를 렌더하고 미리보기·인쇄한다. (docs/backend.md)
  *
- * <p>얼굴(tb_person_photo)과 카드가 모두 있는 인원만 출력 가능. 템플릿의 {@code {컬럼}} 바인딩에 인원 데이터를 매핑한다:
- * {이름}=성명, {회사명}=기관명, {구역}=권한 최상위 구역번호, {발급번호}="발급번호 : "+카드명칭, {발급일}=오늘.
- * 외부 프린터 접근은 {@link CardPrintAdapter} 로만.
+ * <p>얼굴(tb_person_photo)과 카드가 모두 있는 인원만 출력 가능. 템플릿의 {@code {컬럼}} 바인딩에 인원 데이터를 매핑한다: {이름}=성명,
+ * {회사명}=기관명, {구역}=권한 최상위 구역번호, {발급번호}="발급번호 : "+카드명칭, {발급일}=오늘. 외부 프린터 접근은 {@link CardPrintAdapter}
+ * 로만.
  */
 @Service
 public class CardPrintService {
@@ -80,7 +80,8 @@ public class CardPrintService {
   public void print(String personId, int cardId, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
     prepare(personId, cardId); // 대상 유효성(얼굴·카드) 재검증
-    auditService.log(actor, AuditService.CREATE, menuId, "카드 프린트 출력: " + personId + " / 카드 " + cardId);
+    auditService.log(
+        actor, AuditService.CREATE, menuId, "카드 프린트 출력: " + personId + " / 카드 " + cardId);
   }
 
   /** 일괄 출력 사전 점검 — 출력하지 않고 대상 명단 + 문제(2장이상/카드없음/얼굴없음) 분류만 반환. */

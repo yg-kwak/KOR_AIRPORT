@@ -12,8 +12,8 @@ import AirPort.mapper.TbSystemMapper;
 import AirPort.model.CardForm;
 import AirPort.model.CardSearchParam;
 import AirPort.model.TbCard;
-import AirPort.model.TbLoginUser;
 import AirPort.model.TbCommon;
+import AirPort.model.TbLoginUser;
 import AirPort.model.TbSystem;
 import AirPort.security.ARIAUtil;
 import java.util.ArrayList;
@@ -27,9 +27,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 /**
  * 카드(tb_card) — 카드등록관리(/card/card) 마스터 CRUD + 정규인원등록 카드정보 탭. (docs/backend.md)
  *
- * <p>두 화면의 공통 규칙: 카드는 <b>실물</b>이라 BiostarX 등록이 선행돼야 하고(POST /api/cards, 이미 있는 번호는 재사용),
- * 인원에서 빼는 것은 삭제가 아니라 <b>회수</b>(person_id=NULL)다. 인원 화면은 카드 추가 시점에 BiostarX 등록만 하고
- * tb_card 저장·사용자 부여(cards[])는 인원 저장 시 한 번에 처리한다.
+ * <p>두 화면의 공통 규칙: 카드는 <b>실물</b>이라 BiostarX 등록이 선행돼야 하고(POST /api/cards, 이미 있는 번호는 재사용), 인원에서 빼는 것은
+ * 삭제가 아니라 <b>회수</b>(person_id=NULL)다. 인원 화면은 카드 추가 시점에 BiostarX 등록만 하고 tb_card 저장·사용자 부여(cards[])는
+ * 인원 저장 시 한 번에 처리한다.
  */
 @Service
 public class CardService {
@@ -80,13 +80,18 @@ public class CardService {
     boolean block = cs != null && "Y".equals(cs.getCodeTag());
     AirPort.adapter.BiostarResult res =
         block
-            ? biostarCardAdapter.blacklistCard(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), biostarCardId)
-            : biostarCardAdapter.removeBlacklist(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), biostarCardId);
+            ? biostarCardAdapter.blacklistCard(
+                cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), biostarCardId)
+            : biostarCardAdapter.removeBlacklist(
+                cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), biostarCardId);
     if (!res.success()) {
       String act = block ? "차단" : "차단 해제";
       log.warn("카드 블랙리스트 동기화 실패(cardId={}, {}): {}", biostarCardId, act, res.message());
       auditService.logAlways(
-          null, AuditService.UPDATE, null, "BiostarX 카드 " + act + " 실패(cardId=" + biostarCardId + "): " + res.message());
+          null,
+          AuditService.UPDATE,
+          null,
+          "BiostarX 카드 " + act + " 실패(cardId=" + biostarCardId + "): " + res.message());
       throw new BusinessException(
           ErrorCode.INVALID_INPUT,
           "BiostarX 카드 " + act + " 실패로 저장이 취소되었습니다. 사유: " + res.message() + " — 다시 시도하세요.");
@@ -104,8 +109,8 @@ public class CardService {
   }
 
   /**
-   * 카드 등록 — <b>DB 저장 후 BiostarX 등록</b> 순서. 제약 위반은 BiostarX 호출 전에 걸리고, BiostarX 실패는 트랜잭션을 롤백해
-   * 고아 카드를 막는다(장비엔 남고 우리 DB엔 없는 상태 방지). 이미 등록된 카드번호는 중복으로 막는다.
+   * 카드 등록 — <b>DB 저장 후 BiostarX 등록</b> 순서. 제약 위반은 BiostarX 호출 전에 걸리고, BiostarX 실패는 트랜잭션을 롤백해 고아 카드를
+   * 막는다(장비엔 남고 우리 DB엔 없는 상태 방지). 이미 등록된 카드번호는 중복으로 막는다.
    */
   @Transactional
   public void createCard(TbCard row, TbLoginUser actor, Integer menuId) {
@@ -133,8 +138,8 @@ public class CardService {
    * 신규 실물 카드를 BiostarX 에 등록하고 {@code biostar_card_id} 를 채운다 — <b>활성 트랜잭션 안에서 tb_card insert 이후</b>
    * 호출해야 한다(호출 계약을 아래 가드로 강제한다).
    *
-   * <p>순서 보장이 핵심이다: DB 행이 이미 있으므로 BiostarX 등록이 실패하면 트랜잭션이 통째로 롤백돼 BiostarX·DB 어느 쪽에도 남지 않는다.
-   * 트랜잭션이 없으면 이 롤백 보장이 깨져 <b>장비엔 있고 DB엔 없는</b> 고아 카드가 생길 수 있어, 계약 위반은 즉시 예외로 막는다.
+   * <p>순서 보장이 핵심이다: DB 행이 이미 있으므로 BiostarX 등록이 실패하면 트랜잭션이 통째로 롤백돼 BiostarX·DB 어느 쪽에도 남지 않는다. 트랜잭션이
+   * 없으면 이 롤백 보장이 깨져 <b>장비엔 있고 DB엔 없는</b> 고아 카드가 생길 수 있어, 계약 위반은 즉시 예외로 막는다.
    */
   void registerBiostar(TbCard row, TbLoginUser actor, Integer menuId) {
     // ① 활성 트랜잭션 강제 — 스레드 바인딩 확인이라 self-invocation(같은 빈 호출)에도 정확하다
@@ -155,7 +160,8 @@ public class CardService {
     if (!issued.success()) {
       // 실패 원인을 운영 로그(관리자)와 응답 메시지(사용자) 양쪽에 남긴다 — 트랜잭션은 롤백된다
       log.warn("BiostarX 카드 등록 실패: cardNo={}, 원인={}", row.getBiostarCardValue(), issued.message());
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 카드 등록 실패: " + issued.message());
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT, "BiostarX 카드 등록 실패: " + issued.message());
     }
     cardMapper.updateBiostarCardId(row.getCardId(), issued.biostarCardId());
     auditService.log(actor, AuditService.CREATE, menuId, "BiostarX 카드 등록: " + issued.cardNo());
@@ -176,7 +182,8 @@ public class CardService {
     normalize(row);
     cardMapper.updateInfo(row);
     syncBlacklist(existing.getBiostarCardId(), row.getCardStatus()); // 상태 변경 → BiostarX 차단/해제
-    auditService.log(actor, AuditService.UPDATE, menuId, "카드 수정: " + existing.getBiostarCardValue());
+    auditService.log(
+        actor, AuditService.UPDATE, menuId, "카드 수정: " + existing.getBiostarCardValue());
   }
 
   /** 카드 삭제(소프트) — 인원에게 할당된 카드는 막는다(먼저 회수해야 한다). */
@@ -192,7 +199,8 @@ public class CardService {
       throw new BusinessException(ErrorCode.INVALID_INPUT, holder + " 발급된 카드입니다. 먼저 회수하세요.");
     }
     cardMapper.softDelete(cardId);
-    auditService.log(actor, AuditService.DELETE, menuId, "카드 삭제: " + existing.getBiostarCardValue());
+    auditService.log(
+        actor, AuditService.DELETE, menuId, "카드 삭제: " + existing.getBiostarCardValue());
   }
 
   /** 발급 대상 설명 — 인원/차량 어느 쪽에든 붙어 있으면 그 대상을, 미발급이면 null. */
@@ -282,8 +290,8 @@ public class CardService {
   /**
    * 인원의 카드를 화면 목록 그대로 반영한다 — 인원 저장(등록/수정) 트랜잭션 안에서 호출.
    *
-   * <p>기존 카드를 전부 <b>회수(미배정)</b>한 뒤 화면에 남아 있는 것만 다시 붙인다(새 카드=INSERT, 기존 카드=UPDATE).
-   * 목록에서 제외된 카드는 삭제되지 않고 {@code person_id=NULL, use_yn='Y', del_yn='N'} 로 남아 <b>다른 인원이 재사용</b>할 수 있다.
+   * <p>기존 카드를 전부 <b>회수(미배정)</b>한 뒤 화면에 남아 있는 것만 다시 붙인다(새 카드=INSERT, 기존 카드=UPDATE). 목록에서 제외된 카드는
+   * 삭제되지 않고 {@code person_id=NULL, use_yn='Y', del_yn='N'} 로 남아 <b>다른 인원이 재사용</b>할 수 있다.
    */
   public void saveCards(String personId, List<CardForm> cards) {
     cardMapper.releaseByPerson(personId);
@@ -340,7 +348,8 @@ public class CardService {
     if (cards != null) {
       cards.stream()
           .filter(c -> c.getBiostarCardId() != null && c.getBiostarCardValue() != null)
-          .forEach(c -> result.add(new BiostarUserCard(c.getBiostarCardId(), c.getBiostarCardValue())));
+          .forEach(
+              c -> result.add(new BiostarUserCard(c.getBiostarCardId(), c.getBiostarCardValue())));
     }
     return result;
   }

@@ -36,8 +36,8 @@ public class AuditService {
   }
 
   /**
-   * 실패 이력 기록 — 호출자 트랜잭션이 롤백돼도 이 기록은 남는다(REQUIRES_NEW). BiostarX 동기화 실패처럼 저장은 취소하되 시도
-   * 사실은 감사에 남겨야 할 때 쓴다.
+   * 실패 이력 기록 — 호출자 트랜잭션이 롤백돼도 이 기록은 남는다(REQUIRES_NEW). BiostarX 동기화 실패처럼 저장은 취소하되 시도 사실은 감사에 남겨야 할
+   * 때 쓴다.
    */
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void logAlways(TbLoginUser actor, String actionType, Integer menuId, String detail) {

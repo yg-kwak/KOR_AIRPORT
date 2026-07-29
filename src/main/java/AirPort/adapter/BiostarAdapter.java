@@ -49,8 +49,8 @@ public class BiostarAdapter {
   }
 
   /**
-   * BiostarX 출입그룹 목록 조회 — {@code POST /api/v2/access_groups/search}. 세션은 {@link BiostarSession} 이 관리(없으면
-   * 로그인, 만료면 재로그인). 응답 {@code AccessGroupCollection.rows[].{id,name}} 를 파싱한다.
+   * BiostarX 출입그룹 목록 조회 — {@code POST /api/v2/access_groups/search}. 세션은 {@link BiostarSession} 이
+   * 관리(없으면 로그인, 만료면 재로그인). 응답 {@code AccessGroupCollection.rows[].{id,name}} 를 파싱한다.
    */
   public BiostarGroups searchAccessGroups(String ip, String loginId, String password) {
     if (ip == null || ip.isBlank()) {
@@ -98,7 +98,11 @@ public class BiostarAdapter {
     try {
       HttpResponse<String> resp =
           session.post(
-              baseUrl(ip), loginId, password, "/api/v2/devices/search", "{\"feature_types\":[\"card\"]}");
+              baseUrl(ip),
+              loginId,
+              password,
+              "/api/v2/devices/search",
+              "{\"feature_types\":[\"card\"]}");
       if (resp.statusCode() != 200) {
         return BiostarDevices.fail("장치 조회 실패 (HTTP " + resp.statusCode() + ")");
       }
@@ -170,8 +174,8 @@ public class BiostarAdapter {
   }
 
   /**
-   * BiostarX 사용자 그룹 생성 — {@code POST /api/user_groups}(parent_id 아래 depth 2). 실패 시 BiostarX 메시지를 그대로
-   * 돌려준다(예: 이름 중복 code 65646). 생성된 id 를 응답에서 못 찾으면 검색으로 보완한다.
+   * BiostarX 사용자 그룹 생성 — {@code POST /api/user_groups}(parent_id 아래 depth 2). 실패 시 BiostarX 메시지를
+   * 그대로 돌려준다(예: 이름 중복 code 65646). 생성된 id 를 응답에서 못 찾으면 검색으로 보완한다.
    */
   public BiostarGroupResult createUserGroup(
       String ip, String loginId, String password, long parentGroupId, String name) {
@@ -184,11 +188,16 @@ public class BiostarAdapter {
               Map.of(
                   "UserGroup",
                   Map.of(
-                      "parent_id", Map.of("id", String.valueOf(parentGroupId)),
-                      "depth", 2,
-                      "inherited", true,
-                      "name", name,
-                      "text", name)));
+                      "parent_id",
+                      Map.of("id", String.valueOf(parentGroupId)),
+                      "depth",
+                      2,
+                      "inherited",
+                      true,
+                      "name",
+                      name,
+                      "text",
+                      name)));
       HttpResponse<String> resp =
           session.post(baseUrl(ip), loginId, password, "/api/user_groups", body);
       String err = responseError(objectMapper, resp);

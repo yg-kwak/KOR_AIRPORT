@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
 /**
  * 인원 증빙문서(회보근거·승인근거) 저장·조회. (docs/database.md tb_person_file)
  *
- * <p>업로드는 얼굴과 같은 방식으로 폼과 함께 BASE64 로 받는다(등록 시점에 인원이 아직 없어도 되고, 저장 트랜잭션이 한 번으로 끝난다).
- * 파일명은 표시·목록용으로 {@code tb_person.id_check_file/approve_file} 에 비정규화해 함께 둔다.
+ * <p>업로드는 얼굴과 같은 방식으로 폼과 함께 BASE64 로 받는다(등록 시점에 인원이 아직 없어도 되고, 저장 트랜잭션이 한 번으로 끝난다). 파일명은 표시·목록용으로
+ * {@code tb_person.id_check_file/approve_file} 에 비정규화해 함께 둔다.
  */
 @Service
 public class PersonFileService {
@@ -38,8 +38,16 @@ public class PersonFileService {
    * <p>규칙: 새 파일이 실려오면 교체, 파일명이 비어 있으면 삭제, 둘 다 아니면(기존 파일 유지) 손대지 않는다.
    */
   public void apply(PersonForm form) {
-    save(form.getPersonId(), TbPersonFile.TYPE_ID_CHECK, form.getIdCheckFile(), form.getIdCheckFileData());
-    save(form.getPersonId(), TbPersonFile.TYPE_APPROVE, form.getApproveFile(), form.getApproveFileData());
+    save(
+        form.getPersonId(),
+        TbPersonFile.TYPE_ID_CHECK,
+        form.getIdCheckFile(),
+        form.getIdCheckFileData());
+    save(
+        form.getPersonId(),
+        TbPersonFile.TYPE_APPROVE,
+        form.getApproveFile(),
+        form.getApproveFileData());
   }
 
   private void save(String personId, String fileType, String fileName, String base64) {

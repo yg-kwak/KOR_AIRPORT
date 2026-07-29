@@ -5,15 +5,15 @@ import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCarAcGroupMapper;
 import AirPort.mapper.TbCarMapper;
-import AirPort.mapper.TbCompanyMapper;
 import AirPort.mapper.TbCardMapper;
+import AirPort.mapper.TbCompanyMapper;
 import AirPort.mapper.TbPersonMapper;
 import AirPort.model.CarCardForm;
 import AirPort.model.CarForm;
 import AirPort.model.CompanySearchParam;
 import AirPort.model.TbCar;
-import AirPort.model.TbCompany;
 import AirPort.model.TbCard;
+import AirPort.model.TbCompany;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbPerson;
 import AirPort.security.ARIAUtil;
@@ -24,8 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 기관차량등록 (/company/companyCar) — 기관 소속 차량(tb_car)과 그 차량용 카드(tb_card) 발급. (docs/backend.md)
  *
- * <p>차량 카드는 <b>카드구분=차량 고정</b>·패스구분 미사용이며, <b>BiostarX 에 등록하지 않는다</b>(차량은 BiostarX 사용자/카드
- * 대상이 아님). tb_card 에만 저장한다. 회수는 삭제가 아니라 {@code car_id=NULL} 이다(다른 차량이 재사용).
+ * <p>차량 카드는 <b>카드구분=차량 고정</b>·패스구분 미사용이며, <b>BiostarX 에 등록하지 않는다</b>(차량은 BiostarX 사용자/카드 대상이 아님).
+ * tb_card 에만 저장한다. 회수는 삭제가 아니라 {@code car_id=NULL} 이다(다른 차량이 재사용).
  */
 @Service
 public class CompanyCarService {
@@ -219,7 +219,10 @@ public class CompanyCarService {
       cardMapper.insert(row);
     }
     auditService.log(
-        actor, AuditService.CREATE, menuId, "차량카드 발급: " + car.getCarNo() + " / " + form.getCardNo());
+        actor,
+        AuditService.CREATE,
+        menuId,
+        "차량카드 발급: " + car.getCarNo() + " / " + form.getCardNo());
   }
 
   /** 차량 카드 회수 — 삭제가 아니라 {@code car_id=NULL}(다른 차량이 재사용할 수 있다). */

@@ -6,8 +6,8 @@ import lombok.Data;
 /**
  * 정규인원 등록 요청 — 인원정보 + 출입권한(tb_ac_group 선택) + 얼굴(사진/템플릿).
  *
- * <p>얼굴 3종은 파일 업로드(upload_picture) 또는 장치 촬영(credentials/face) 응답에서 받아 그대로 되돌려받는다. BiostarX 사용자
- * 생성 시 credentials.visualFaces 로 전송한다. (docs/integration.md)
+ * <p>얼굴 3종은 파일 업로드(upload_picture) 또는 장치 촬영(credentials/face) 응답에서 받아 그대로 되돌려받는다. BiostarX 사용자 생성 시
+ * credentials.visualFaces 로 전송한다. (docs/integration.md)
  */
 @Data
 public class PersonForm {

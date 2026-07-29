@@ -6,8 +6,8 @@ import lombok.Data;
 /**
  * 차량 (tb_car). 삭제는 물리 DELETE 금지 — {@code del_yn='Y'} 소프트 삭제(이력 보존). docs/database.md
  *
- * <p>{@code car_type} 은 tb_common(cmm_id='CT').code_id. {@code car_manager_id} 는 tb_login_user.user_id(FK
- * 미강제, 화면은 추후 구현).
+ * <p>{@code car_type} 은 tb_common(cmm_id='CT').code_id. {@code car_manager_id} 는
+ * tb_login_user.user_id(FK 미강제, 화면은 추후 구현).
  */
 @Data
 public class TbCar {

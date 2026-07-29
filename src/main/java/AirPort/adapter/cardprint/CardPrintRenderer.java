@@ -20,8 +20,8 @@ import org.springframework.stereotype.Component;
 /**
  * card_project 한 면(Side)을 인쇄용 {@link BufferedImage} 로 렌더한다. (docs/integration.md)
  *
- * <p>배경 이미지의 원본 해상도를 캔버스로 삼고, 디자인 좌표(캔버스 폭 {@code canvasWidth} 기준)를 배경 해상도로
- * 스케일해 사진·텍스트를 얹는다. 텍스트의 {@code {컬럼}} 바인딩은 전달된 값으로 치환한다.
+ * <p>배경 이미지의 원본 해상도를 캔버스로 삼고, 디자인 좌표(캔버스 폭 {@code canvasWidth} 기준)를 배경 해상도로 스케일해 사진·텍스트를 얹는다. 텍스트의
+ * {@code {컬럼}} 바인딩은 전달된 값으로 치환한다.
  */
 @Component
 public class CardPrintRenderer {
@@ -35,8 +35,8 @@ public class CardPrintRenderer {
   private static final double CARD_WIDTH_MM = 54.0;
 
   /** 한 면 렌더 — photoOverride 가 있으면 템플릿 샘플 사진 대신 사용(실제 얼굴). */
-  public BufferedImage render(CardProject.Side side, Map<String, String> fields, String photoOverride,
-      double canvasWidth) {
+  public BufferedImage render(
+      CardProject.Side side, Map<String, String> fields, String photoOverride, double canvasWidth) {
     BufferedImage bg = decode(side.backgroundImageData);
     int w = bg != null ? bg.getWidth() : 638;
     int h = bg != null ? bg.getHeight() : 1012;
@@ -47,8 +47,10 @@ public class CardPrintRenderer {
     BufferedImage card = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
     Graphics2D g = card.createGraphics();
     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-    g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+    g.setRenderingHint(
+        RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+    g.setRenderingHint(
+        RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
 
     g.setColor(color(side.backgroundColor, Color.WHITE));
     g.fillRect(0, 0, w, h);
@@ -56,7 +58,8 @@ public class CardPrintRenderer {
       g.drawImage(bg, 0, 0, w, h, null);
     }
 
-    String photo = photoOverride != null && !photoOverride.isBlank() ? photoOverride : side.photoImageData;
+    String photo =
+        photoOverride != null && !photoOverride.isBlank() ? photoOverride : side.photoImageData;
     if (side.photoPosition != null && side.photoSize != null && photo != null && !photo.isBlank()) {
       drawPhoto(g, side, photo, scale);
     }
@@ -180,8 +183,8 @@ public class CardPrintRenderer {
     StringBuilder sb = new StringBuilder();
     java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\{([^}]+)\\}").matcher(text);
     while (m.find()) {
-      m.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(
-          fields.getOrDefault(m.group(1).trim(), "")));
+      m.appendReplacement(
+          sb, java.util.regex.Matcher.quoteReplacement(fields.getOrDefault(m.group(1).trim(), "")));
     }
     m.appendTail(sb);
     return sb.toString();

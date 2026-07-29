@@ -45,8 +45,8 @@ public class MenuService {
 
   /**
    * 요청 URI → menu_id. menu_url 이 <b>경로 경계</b>로 접두사인 것 중 가장 긴 것(예: {@code /system/common/list} →
-   * {@code /system/common}). 매칭 없으면 null. (짧은 menu_url 이 더 긴 다른 경로의 '문자열' 접두사여도 경계(/) 검사로 오매칭
-   * 방지: 예 {@code /system/system} vs {@code /system/systemX})
+   * {@code /system/common}). 매칭 없으면 null. (짧은 menu_url 이 더 긴 다른 경로의 '문자열' 접두사여도 경계(/) 검사로 오매칭 방지: 예
+   * {@code /system/system} vs {@code /system/systemX})
    */
   public Integer resolveMenuId(String uri) {
     Integer best = null;

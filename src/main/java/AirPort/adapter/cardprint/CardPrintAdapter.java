@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 /**
  * 카드 프린트 템플릿(card_project) 로더. (docs/integration.md, 외부연동 격리 §4)
  *
- * <p>실제 인쇄는 <b>클라이언트 브라우저</b>가 렌더 이미지를 {@code window.print()} 로 출력한다(프린터가 클라이언트 PC 에
- * USB/LAN 으로 연결). 여기서는 디자인 export 템플릿을 한 번 읽어 캐시만 한다.
+ * <p>실제 인쇄는 <b>클라이언트 브라우저</b>가 렌더 이미지를 {@code window.print()} 로 출력한다(프린터가 클라이언트 PC 에 USB/LAN 으로
+ * 연결). 여기서는 디자인 export 템플릿을 한 번 읽어 캐시만 한다.
  */
 @Component
 public class CardPrintAdapter {

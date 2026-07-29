@@ -43,11 +43,12 @@ public interface TbVisitMapper {
 
   /** 방문객의 마지막 배정 카드번호 스냅샷 기록(카드 회수·재사용 후에도 보존). */
   int updateVisitorLastCard(
-      @Param("visitNo") int visitNo, @Param("personId") String personId, @Param("cardId") int cardId);
+      @Param("visitNo") int visitNo,
+      @Param("personId") String personId,
+      @Param("cardId") int cardId);
 
   /** 방문객의 마지막 배정 카드번호 조회. */
-  String selectVisitorLastCard(
-      @Param("visitNo") int visitNo, @Param("personId") String personId);
+  String selectVisitorLastCard(@Param("visitNo") int visitNo, @Param("personId") String personId);
 
   // ── 방문 차량(car_id) ──
   List<Integer> selectCarIds(@Param("visitNo") int visitNo);

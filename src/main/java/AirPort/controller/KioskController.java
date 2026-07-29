@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 /**
  * 키오스크(무인증) 방문 신청 — 로그인 없이 방문객이 직접 인솔자·방문구역·방문객·차량을 입력해 신청한다. (docs/security.md)
  *
- * <p>경로 {@code /kiosk/**} 는 WebConfig 에서 인증·메뉴통제 제외. 신청은 임시(PT02)·신청(VS01) tb_visit 로 저장되어
- * 관리자 임시인원등록 목록에 뜨고, 관리자가 확인 후 카드를 부여한다(BiostarX 연동은 그때).
+ * <p>경로 {@code /kiosk/**} 는 WebConfig 에서 인증·메뉴통제 제외. 신청은 임시(PT02)·신청(VS01) tb_visit 로 저장되어 관리자
+ * 임시인원등록 목록에 뜨고, 관리자가 확인 후 카드를 부여한다(BiostarX 연동은 그때).
  */
 @Controller
 @RequestMapping("/kiosk/visit")

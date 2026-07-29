@@ -4,8 +4,8 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 /**
- * 방문/작업 그룹 (임시·장기 출입) — tb_visit. 정규(tb_company 기반)와 달리 BiostarX 기관 그룹을 만들지 않고
- * visit_type(PT)→PTD code_tag 부모 그룹 아래로 방문객을 편입한다. (docs/integration.md)
+ * 방문/작업 그룹 (임시·장기 출입) — tb_visit. 정규(tb_company 기반)와 달리 BiostarX 기관 그룹을 만들지 않고 visit_type(PT)→PTD
+ * code_tag 부모 그룹 아래로 방문객을 편입한다. (docs/integration.md)
  */
 @Data
 public class TbVisit {

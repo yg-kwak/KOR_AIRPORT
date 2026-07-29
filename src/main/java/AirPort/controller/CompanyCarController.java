@@ -95,7 +95,8 @@ public class CompanyCarController {
   /** 기관의 정규인원 (AJAX) — 차량관리자 선택 팝업 */
   @GetMapping("/managers")
   @ResponseBody
-  public ApiResponse<List<TbPerson>> managers(@RequestParam String companyCode, HttpSession session) {
+  public ApiResponse<List<TbPerson>> managers(
+      @RequestParam String companyCode, HttpSession session) {
     return ApiResponse.ok(companyCarService.managersOf(companyCode, actor(session), menuId()));
   }
 

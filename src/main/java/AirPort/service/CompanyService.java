@@ -11,8 +11,8 @@ import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbCompanyMapper;
 import AirPort.mapper.TbSystemMapper;
 import AirPort.model.CompanySearchParam;
-import AirPort.model.TbCommon;
 import AirPort.model.ExcelImportResult;
+import AirPort.model.TbCommon;
 import AirPort.model.TbCompany;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbSystem;
@@ -165,7 +165,8 @@ public class CompanyService {
     long total = companyMapper.selectCount(param);
     List<TbCompany> rows = companyMapper.selectList(param);
     rows.forEach(this::decryptCeo);
-    auditService.log(actor, AuditService.READ, menuId, "기관 목록 조회 (" + searchSummary(param, total) + ")");
+    auditService.log(
+        actor, AuditService.READ, menuId, "기관 목록 조회 (" + searchSummary(param, total) + ")");
     return new PageResult<>(rows, total, param.getPage(), param.getSize());
   }
 
@@ -214,11 +215,10 @@ public class CompanyService {
   /**
    * 엑셀 일괄 등록 — 행마다 {@link #create}를 호출한다(행 단위 독립 트랜잭션이라 한 행 실패가 나머지를 막지 않는다).
    *
-   * <p>기관코드·기관명은 필수. BiostarX 그룹은 각 행에서 create 규칙대로 생성된다(연동 실패해도 저장은 유지). 결과는 성공/실패
-   * 건수와 행별 사유로 돌려준다.
+   * <p>기관코드·기관명은 필수. BiostarX 그룹은 각 행에서 create 규칙대로 생성된다(연동 실패해도 저장은 유지). 결과는 성공/실패 건수와 행별 사유로
+   * 돌려준다.
    */
-  public ExcelImportResult importExcel(
-      java.io.InputStream in, TbLoginUser actor, Integer menuId) {
+  public ExcelImportResult importExcel(java.io.InputStream in, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
     ExcelImportResult result = new ExcelImportResult();
     List<String[]> rows;

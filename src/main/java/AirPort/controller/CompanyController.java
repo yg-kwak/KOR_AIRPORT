@@ -130,7 +130,8 @@ public class CompanyController {
       return ApiResponse.fail(
           AirPort.common.exception.ErrorCode.INVALID_INPUT.code(), "업로드할 파일을 선택하세요.");
     }
-    return ApiResponse.ok(companyService.importExcel(file.getInputStream(), actor(session), menuId()));
+    return ApiResponse.ok(
+        companyService.importExcel(file.getInputStream(), actor(session), menuId()));
   }
 
   /** 기관 선택 팝업용 조회 — 로그인 사용자 공용(특정 메뉴 권한 불요). 코드팝업과 동일한 선례. (AJAX) */

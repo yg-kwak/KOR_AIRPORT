@@ -107,8 +107,7 @@ class CardImportServiceTest {
     CardService cardService = mock(CardService.class);
     BusinessException ex =
         assertThrows(
-            BusinessException.class,
-            () -> service(cardService).importExcel(xlsx(), null, 801));
+            BusinessException.class, () -> service(cardService).importExcel(xlsx(), null, 801));
     assertTrue(ex.getMessage().contains("등록할 데이터가 없습니다"));
   }
 
@@ -118,8 +117,7 @@ class CardImportServiceTest {
     InputStream garbage = new ByteArrayInputStream("not an excel".getBytes());
     BusinessException ex =
         assertThrows(
-            BusinessException.class,
-            () -> service(cardService).importExcel(garbage, null, 801));
+            BusinessException.class, () -> service(cardService).importExcel(garbage, null, 801));
     assertTrue(ex.getMessage().contains("엑셀을 읽을 수 없습니다"));
   }
 

@@ -10,8 +10,7 @@ public interface TbPersonFileMapper {
   int upsert(TbPersonFile file);
 
   /** 다운로드용 단건 조회(파일 실체 포함). */
-  TbPersonFile selectOne(
-      @Param("personId") String personId, @Param("fileType") String fileType);
+  TbPersonFile selectOne(@Param("personId") String personId, @Param("fileType") String fileType);
 
   int delete(@Param("personId") String personId, @Param("fileType") String fileType);
 

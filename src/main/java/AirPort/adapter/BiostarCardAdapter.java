@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 /**
  * BiostarX 카드 연동 어댑터 — 카드 등록 및 장치 리더 읽기. (docs/integration.md)
  *
- * <p>카드 종류는 <b>CSN 고정</b>이다(우리 시스템의 카드구분 tb_common(CDT)은 업무 분류용이라 BiostarX 로 넘기지 않는다).
- * 사용자에게 카드를 붙이는 것은 사용자 payload 의 {@code cards[]} 담당 — {@link #appendCard} 참고.
+ * <p>카드 종류는 <b>CSN 고정</b>이다(우리 시스템의 카드구분 tb_common(CDT)은 업무 분류용이라 BiostarX 로 넘기지 않는다). 사용자에게 카드를
+ * 붙이는 것은 사용자 payload 의 {@code cards[]} 담당 — {@link #appendCard} 참고.
  */
 @Component
 public class BiostarCardAdapter {
@@ -73,7 +73,8 @@ public class BiostarCardAdapter {
 
   /**
    * 카드 차단(블랙리스트 등록) — {@code POST /api/cards/blacklist}, {@code
-   * {"Blacklist":{"card_id":{"id":"<biostarCardId>"}}}}. biostarCardId 는 카드 등록 응답의 id(tb_card.biostar_card_id).
+   * {"Blacklist":{"card_id":{"id":"<biostarCardId>"}}}}. biostarCardId 는 카드 등록 응답의
+   * id(tb_card.biostar_card_id).
    */
   public BiostarResult blacklistCard(
       String ip, String loginId, String password, String biostarCardId) {
@@ -111,7 +112,8 @@ public class BiostarCardAdapter {
     }
     try {
       HttpResponse<String> resp =
-          session.delete(baseUrl(ip), loginId, password, "/api/cards/blacklist?id=" + biostarCardId);
+          session.delete(
+              baseUrl(ip), loginId, password, "/api/cards/blacklist?id=" + biostarCardId);
       String err = BiostarAdapter.responseError(objectMapper, resp);
       return err == null ? BiostarResult.ok() : BiostarResult.fail(err);
     } catch (Exception e) {
