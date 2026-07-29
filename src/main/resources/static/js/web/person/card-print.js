@@ -4,15 +4,30 @@
   const BASE = '/person/person';
   const $ = (id) => document.getElementById(id);
   let ctx = { personId: null, cardId: null };
+  let lastImgs = []; // 현재 미리보기 이미지(앞/뒤) — 인쇄에 재사용
+
+  // 프린터가 클라이언트 PC 에 있으므로 브라우저 인쇄(@page margin:0 + object-fit:fill)로 여백 없이 출력한다.
+  function browserPrint(urls) {
+    const area = $('cardPrintArea');
+    if (!area || !urls || !urls.length) { toast.warning('출력할 카드가 없습니다.'); return; }
+    area.innerHTML = urls.map((u) =>
+      `<div class="print-card-page"><img class="print-card-img" src="${u}" alt="카드"/></div>`).join('');
+    const imgs = [...area.querySelectorAll('img')];
+    window.addEventListener('afterprint', () => { area.innerHTML = ''; }, { once: true });
+    Promise.all(imgs.map((im) => (im.complete ? Promise.resolve()
+      : new Promise((r) => { im.onload = r; im.onerror = r; })))).then(() => window.print());
+  }
 
   async function open(personId, cardId) {
     if (!personId || !cardId) { toast.warning('먼저 인원과 카드를 저장한 뒤 출력하세요.'); return; }
     ctx = { personId, cardId };
+    lastImgs = [];
     $('cpImages').innerHTML = '<div class="empty">미리보기 생성 중...</div>';
     $('cardPrintModal').classList.add('open');
     try {
       const imgs = await api.post(BASE + '/card/print/preview', ctx);
-      $('cpImages').innerHTML = (imgs || []).map((u, i) =>
+      lastImgs = imgs || [];
+      $('cpImages').innerHTML = lastImgs.map((u, i) =>
         `<figure class="cp-side"><img src="${u}" alt="카드"/><figcaption>${i === 0 ? '앞면' : '뒷면'}</figcaption></figure>`).join('');
     } catch (e) {
       close(); // 서버 검증 실패(얼굴/카드 없음 등) 토스트는 api 계층이 표시
@@ -20,7 +35,8 @@
   }
   function close() { $('cardPrintModal').classList.remove('open'); }
   async function doPrint() {
-    await api.post(BASE + '/card/print', ctx);
+    browserPrint(lastImgs); // 브라우저로 인쇄
+    try { await api.post(BASE + '/card/print', ctx); } catch (e) { /* 감사 로그 실패는 무시 */ }
     close();
   }
 
@@ -51,7 +67,10 @@
   function closeBulk() { $('bulkPrintModal').classList.remove('open'); }
   async function doBulkPrint() {
     closeBulk();
-    try { await api.post(BASE + '/card/print/bulk', bulkIds); } catch (e) { /* 서버 메시지 토스트는 api 계층 */ }
+    try {
+      const imgs = await api.post(BASE + '/card/print/bulk', bulkIds); // 대상 전원 앞/뒤 이미지 + 감사
+      browserPrint(imgs);
+    } catch (e) { /* 서버 메시지 토스트는 api 계층 */ }
   }
 
   document.addEventListener('DOMContentLoaded', () => {

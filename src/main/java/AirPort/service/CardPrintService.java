@@ -76,15 +76,10 @@ public class CardPrintService {
     return images;
   }
 
-  /** 인쇄 — 앞/뒤 카드를 프린터로 출력. */
+  /** 인쇄 확정(감사) — 실제 인쇄는 클라이언트 브라우저가 미리보기 이미지를 window.print() 로 출력한다(프린터가 클라이언트 PC). */
   public void print(String personId, int cardId, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
-    Ctx ctx = prepare(personId, cardId);
-    try {
-      adapter.print(renderSides(ctx));
-    } catch (Exception e) {
-      throw new BusinessException(ErrorCode.INTERNAL, "카드 인쇄 실패: " + e.getMessage());
-    }
+    prepare(personId, cardId); // 대상 유효성(얼굴·카드) 재검증
     auditService.log(actor, AuditService.CREATE, menuId, "카드 프린트 출력: " + personId + " / 카드 " + cardId);
   }
 
@@ -120,7 +115,7 @@ public class CardPrintService {
    *
    * <p>카드 2장 이상 보유자가 있으면 아무것도 출력하지 않고 해당 인원ID를 알려주며 반환한다.
    */
-  public void printBulk(List<String> personIds, TbLoginUser actor, Integer menuId) {
+  public List<String> printBulk(List<String> personIds, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
     if (personIds == null || personIds.isEmpty()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "선택된 인원이 없습니다.");
@@ -145,15 +140,16 @@ public class CardPrintService {
     reject(multi, "2장 이상의 카드를 보유한 사용자가 있습니다");
     reject(noCard, "카드가 없는 사용자가 있습니다");
     reject(noFace, "얼굴이 없는 사용자가 있습니다");
+    // 실제 인쇄는 클라이언트가 하므로 대상 전원의 앞/뒤 이미지를 순서대로 모아 반환한다
+    List<String> images = new ArrayList<>();
     for (Map.Entry<String, Integer> e : targets.entrySet()) {
       Ctx ctx = prepare(e.getKey(), e.getValue());
-      try {
-        adapter.print(renderSides(ctx));
-      } catch (Exception ex) {
-        throw new BusinessException(ErrorCode.INTERNAL, "카드 인쇄 실패(" + e.getKey() + "): " + ex.getMessage());
+      for (BufferedImage img : renderSides(ctx)) {
+        images.add(renderer.toDataUrl(img));
       }
     }
     auditService.log(actor, AuditService.CREATE, menuId, "카드 프린트 일괄 출력: " + targets.size() + "건");
+    return images;
   }
 
   private static void reject(List<String> ids, String reason) {

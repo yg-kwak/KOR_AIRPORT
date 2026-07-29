@@ -253,12 +253,12 @@ public class PersonController {
     return ApiResponse.ok(cardPrintService.checkBulk(personIds, actor(session), menuId()));
   }
 
-  /** 카드 일괄 출력 — 선택 인원(카드 1장·얼굴 보유자) 카드 출력 */
+  /** 카드 일괄 출력 — 대상 전량 검증 후 앞/뒤 이미지 리스트 반환(실제 인쇄는 클라이언트 브라우저). */
   @PostMapping("/card/print/bulk")
   @ResponseBody
-  public ApiResponse<Void> cardPrintBulk(@RequestBody List<String> personIds, HttpSession session) {
-    cardPrintService.printBulk(personIds, actor(session), menuId());
-    return ApiResponse.okMessage("카드를 출력했습니다. (" + personIds.size() + "건)");
+  public ApiResponse<List<String>> cardPrintBulk(
+      @RequestBody List<String> personIds, HttpSession session) {
+    return ApiResponse.ok(cardPrintService.printBulk(personIds, actor(session), menuId()));
   }
 
   /** 카드 프린트 요청 DTO. */

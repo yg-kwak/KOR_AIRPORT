@@ -507,3 +507,17 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .login-title { font-size: 20px; font-weight: 700; text-align: center; margin: 0 0 24px; }
 .login-form .form-group { margin-bottom: 16px; }
 .login-error { color: var(--color-error); font-size: 13px; margin: 0 0 12px; }
+
+/* 카드 브라우저 인쇄 — 프린터가 클라이언트 PC. @page margin:0 + object-fit:fill 로 카드에 여백 없이 꽉 차게(참조앱과 동일) */
+#cardPrintArea { display: none; }
+@media print {
+  html, body { margin: 0 !important; padding: 0 !important; background: none;
+    -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body > *:not(#cardPrintArea) { display: none !important; }
+  #cardPrintArea { display: block !important; }
+  #cardPrintArea .print-card-page { width: 100%; height: 100%; margin: 0; padding: 0;
+    page-break-after: always; page-break-inside: avoid; overflow: hidden; }
+  #cardPrintArea .print-card-img { display: block; width: 100%; height: 100%; object-fit: fill;
+    image-rendering: -webkit-optimize-contrast; }
+  @page { margin: 0; }
+}

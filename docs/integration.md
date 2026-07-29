@@ -84,16 +84,14 @@
 
 ## 카드 프린트 (adapter/cardprint)
 
-- 디자인 export(card_project) JSON을 템플릿으로 **앞/뒤 카드 이미지를 렌더**해 카드 프린터로 출력한다.
-- 계층: `CardPrintAdapter`(템플릿 로드·프린터 출력, 외부 경계) ← `CardPrintRenderer`(한 면 렌더) ← `CardPrintService`(인원·카드·얼굴 매핑, 미리보기/인쇄).
+- 디자인 export(card_project) JSON을 템플릿으로 **앞/뒤 카드 이미지를 서버에서 렌더(PNG)** 하고, **실제 인쇄는 클라이언트 브라우저**가 한다(카드 프린터가 관리자 PC 에 USB/LAN 연결). 서버 인쇄(Java `PrinterJob`)는 드라이버 여백을 못 없애고 래스터화 아티팩트(붉은 점)가 생겨, 참조 카드SW 와 동일하게 **브라우저 인쇄**로 전환했다.
+- 계층: `CardPrintAdapter`(템플릿 로드만) ← `CardPrintRenderer`(한 면 렌더+PNG data URL) ← `CardPrintService`(인원·카드·얼굴 매핑, 미리보기/일괄 이미지 반환+감사).
 - 좌표계가 둘: **위치**는 디자인 캔버스 px(폭 `card-print.canvas-width`, 기본 540 → 배경 해상도로 스케일), **폰트 크기는 pt**라 배경 실효 DPI(=배경폭 px / 54mm)로 pt→px 변환한다. 텍스트 y 는 **baseline** 기준. 템플릿 폰트(Arial 등)가 한글을 못 그리면 `Malgun Gothic` 폴백.
 - 텍스트 `{컬럼}` 바인딩 매핑: `{이름}`=성명, `{회사명}`=기관명, `{구역}`=권한의 최상위 구역번호(ar_code 숫자, 오름차순 연결 예 `12`), `{발급번호}`=`발급번호 : `+카드명칭, `{발급일}`=오늘. 텍스트는 y=상단 기준 상단정렬.
-- 인쇄 배치는 **전체 용지(카드)를 가로·세로 모두 꽉 채운다**(stretch-fill, 인쇄가능영역이 아니라 용지 전체 기준 → 오른쪽/아래 흰 여백 제거). 렌더 이미지는 `TYPE_INT_ARGB` 라 인쇄 전 **불투명 RGB 로 평탄화**한다(드라이버 알파 처리로 생기는 붉은 점 등 아티팩트 방지 — 미리보기는 무관). 보간은 BILINEAR.
-- 앞/뒤는 **한 잡의 두 페이지 + `Sides.DUPLEX`** 로 보내 한 장에 양면 인쇄한다(별도 잡이면 뒷면 누락).
+- **브라우저 인쇄 방식**: 프론트(`card-print.js`)가 미리보기 PNG 들을 body 직속 `#cardPrintArea` 에 `.print-card-page > .print-card-img` 로 넣고 `window.print()`. CSS `@media print { @page{margin:0} .print-card-img{width:100%;height:100%;object-fit:fill} body>*:not(#cardPrintArea){display:none} }` 로 **여백 없이 카드에 꽉 차게**, 이미지가 이미 PNG라 붉은 점 없음. 앞/뒤는 `page-break-after:always` 로 2페이지(프린터 드라이버가 양면 처리). 풀블리드는 **드라이버의 over-the-edge 설정**으로 맞춘다.
+- 엔드포인트: `POST /person/person/card/print/preview`(단건 이미지), `/card/print`(단건 감사만), `/card/print/bulk/check`(대상 검증), `/card/print/bulk`(대상 전원 이미지 반환+감사). 인쇄 자체는 서버가 하지 않는다.
 - **얼굴(tb_person_photo)·카드가 모두 등록된 인원만** 출력(서버 검증 + 화면 게이트).
-- 설정: `card-print.project-file`(템플릿 경로, `card-templates/`는 대용량이라 저장소 제외), `card-print.printer-name`(부분일치, 비우면 기본 프린터 — 실제값은 application-local).
-- **인쇄 위치 보정**: 프린터 원점 오차로 카드 전체가 쏠릴 때 `card-print.offset-x-mm`·`card-print.offset-y-mm`(기본 0)로 미세조정. 양수=오른쪽/아래, 음수=왼쪽/위. 인쇄 시 페이지 중앙 배치 좌표에 mm→pt 변환해 더한다(재빌드 없이 프린터별 조정 가능).
-- **인쇄 배율/페이지 보정**: `card-print.scale`(기본 1.0)로 확대(>1=경계 넘겨 풀블리드, 가장자리 잘림). 오른쪽/아래가 계속 남는 건 **드라이버가 카드보다 작은 인쇄영역(여백)** 으로 찍기 때문이며, 근본 해결은 프린터 드라이버의 **가장자리까지 인쇄(over-the-edge/풀블리드)** 설정(템플릿 SW가 쓰는 모드)이다. 코드 쪽 대응으로 `card-print.card-width-mm`·`card-height-mm`(기본 86×54)를 살짝 키워(예: 88×56) 드라이버 여백을 상쇄할 수 있다.
+- 설정: `card-print.project-file`(템플릿 경로, `card-templates/`는 대용량이라 저장소 제외), `card-print.canvas-width`(요소 좌표계 기준폭). 프린터명·오프셋·배율 등 서버 인쇄 설정은 브라우저 인쇄 전환으로 제거됨.
 - 화면: 정규인원 수정 모달 카드정보 탭 관리 열의 **출력** 버튼 → 미리보기(앞/뒤) 후 인쇄. (`/person/person/card/print/preview`, `/card/print`)
 - **일괄 출력**: 목록에서 인원 선택 → **카드 출력**(선택 삭제 왼쪽). 전량 검증(카드 1장·얼굴 보유) 후 각자 출력. 카드 2장 이상 보유자가 있으면 인원ID를 알리고 아무것도 출력하지 않는다. (`/card/print/bulk`)
 
