@@ -124,7 +124,12 @@ public class PersonService {
     TbPerson row = toRow(form);
     row.setPersonType(PERSON_TYPE_REGULAR);
     row.setUseYn(form.getUseYn());
-    personMapper.insert(row);
+    try {
+      personMapper.insert(row);
+    } catch (org.springframework.dao.DataIntegrityViolationException e) {
+      // 동시 등록 레이스(중복검사 통과 후 PK 충돌) — 친화적 메시지로 변환
+      throw new BusinessException(ErrorCode.DUPLICATE, "이미 존재하는 인원ID 입니다. 다른 ID 로 다시 시도하세요.");
+    }
     if (form.getFaceImage() != null && !form.getFaceImage().isBlank()) {
       photoMapper.upsert(form.getPersonId(), form.getFaceImage());
     }
@@ -194,45 +199,37 @@ public class PersonService {
   /**
    * 정규인원 삭제 — 우리 DB 는 소프트 삭제(del_yn='Y'), BiostarX 사용자도 삭제한다.
    *
-   * @return BiostarX 연동 경고(성공이면 null)
+   * @return 항상 null(성공). BiostarX 삭제 실패면 예외로 롤백된다(장비에 유령 사용자 방지).
    */
   @Transactional
   public String delete(String personId, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireDelete(actor, menuId);
-    return deleteOne(personId, actor, menuId);
+    deleteOne(personId, actor, menuId);
+    return null;
   }
 
-  /**
-   * 선택 인원 일괄 삭제 — 건별로 소프트 삭제 + BiostarX 사용자 삭제.
-   *
-   * @return 실패한 건들의 경고(모두 성공이면 null)
-   */
+  /** 선택 인원 일괄 삭제 — 한 건이라도 BiostarX 삭제 실패면 전체 롤백(실패 인원ID 안내 후 재시도 유도). */
   @Transactional
   public String deleteMany(List<String> personIds, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireDelete(actor, menuId);
     if (personIds == null || personIds.isEmpty()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "삭제할 인원을 선택하세요.");
     }
-    List<String> warns = new java.util.ArrayList<>();
     for (String personId : personIds) {
-      String warn = deleteOne(personId, actor, menuId);
-      if (warn != null) {
-        warns.add(personId + "(" + warn + ")");
-      }
+      deleteOne(personId, actor, menuId);
     }
-    return warns.isEmpty() ? null : String.join(", ", warns);
+    return null;
   }
 
-  private String deleteOne(String personId, TbLoginUser actor, Integer menuId) {
+  /** 1명 삭제 — BiostarX 사용자 삭제가 성공해야 DB 소프트삭제를 커밋한다(실패=예외 → 롤백 + 실패 감사). */
+  private void deleteOne(String personId, TbLoginUser actor, Integer menuId) {
     TbPerson existing = personMapper.selectById(personId);
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
-    personMapper.softDelete(personId);
-    auditService.log(actor, AuditService.DELETE, menuId, "정규인원 삭제: " + personId);
     TbSystem cfg = systemMapper.selectOne();
     if (cfg == null) {
-      return "BiostarX 설정이 없습니다.";
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 설정이 없습니다. 설정관리에서 먼저 등록하세요.");
     }
     BiostarResult res =
         biostarUserAdapter.deleteUser(
@@ -241,7 +238,15 @@ public class PersonService {
             pw(cfg),
             personId,
             companyGroupId(existing.getCompanyCode()));
-    return res.success() ? null : res.message();
+    if (!res.success()) {
+      auditService.logAlways(
+          actor, AuditService.DELETE, menuId, "정규인원 삭제 실패(" + personId + "): " + res.message());
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT,
+          "BiostarX 사용자 삭제 실패로 삭제가 취소되었습니다(" + personId + "). 사유: " + res.message() + " — 다시 시도하세요.");
+    }
+    personMapper.softDelete(personId);
+    auditService.log(actor, AuditService.DELETE, menuId, "정규인원 삭제: " + personId);
   }
 
   /** 등록/수정 요청(폼) → BiostarX 전송 값. */

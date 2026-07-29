@@ -25,27 +25,17 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 임시인원(방문) 등록 — 그룹(tb_visit) + 인솔자/방문객/차량/출입그룹. (docs/backend.md)
- *
- * <p>방문객은 tb_person(person_type=visit_type)로, 차량은 tb_car 로 저장한다. 출입그룹·카드는 정규와 같은 테이블을 재사용한다.
- * BiostarX 방문객 동기화(PT→PTD code_tag 부모 그룹 편입)는 {@link VisitBiostarService} 가 담당한다(어댑터 경계).
- */
+/* 임시인원(방문) 등록 — 그룹(tb_visit) + 인솔자/방문객/차량/출입그룹. (docs/backend.md)
+   방문객은 tb_person(person_type=visit_type), 차량은 tb_car. 출입그룹·카드는 정규와 같은 테이블 재사용.
+   BiostarX 방문객 동기화(PT→PTD code_tag 부모 그룹 편입)는 VisitBiostarService 담당(어댑터 경계). */
 @Service
 public class VisitService {
 
-  /** 방문 기본 상태 — tb_common(VS) 신청. */
+  // 방문 상태(tb_common VS) — 신청 / 신청취소(삭제 가능) / 입실중(전원 카드 시 자동 승격) / 퇴실완료(되돌림 없음)
   static final String DEFAULT_STATUS = "VS01";
-
-  /** 신청 취소 — 삭제 가능 상태(VS). */
   private static final String STATUS_CANCELLED = "VS02";
-
-  /** 입실 중 — 방문객 전원 카드 발급 시 자동 승격(VS). */
   private static final String STATUS_ENTERED = "VS03";
-
-  /** 퇴실 완료 — 자동 승격에서 제외(되돌리지 않음). */
   private static final String STATUS_LEFT = "VS04";
-
   /** 임시인원등록 방문유형 — 임시 고정(tb_common PT02). */
   static final String VISIT_TYPE = "PT02";
 
@@ -80,10 +70,7 @@ public class VisitService {
     this.auditService = auditService;
   }
 
-  /**
-   * 사용자출입그룹 트리 — 방문유형 구역범위(tb_common PT.code_remark)가 'Y'가 아니면 최상위 그룹만 노출한다. 임시(PT02)는
-   * 최상위만(code_remark='N'). tb_ac_group 조회는 정규와 동일 트리를 재사용한다.
-   */
+  /** 사용자출입그룹 트리 — 구역범위(PT.code_remark)가 'Y' 아니면 최상위만 노출(임시=최상위만). 정규와 동일 트리 재사용. */
   public List<TbAcGroup> acGroupTree(String visitType, TbLoginUser actor, Integer menuId) {
     return pruneAreaScope(acGroupService.tree(actor, menuId), visitType);
   }
@@ -102,9 +89,7 @@ public class VisitService {
     TbCommon pt = commonMapper.selectOne("PT", visitType);
     boolean detail = pt != null && "Y".equals(pt.getCodeRemark());
     if (!detail) {
-      for (TbAcGroup root : tree) {
-        root.getChildren().clear(); // 최상위만 — 하위 세부트리 숨김
-      }
+      tree.forEach(root -> root.getChildren().clear()); // 최상위만 — 하위 세부트리 숨김
     }
     return tree;
   }
@@ -124,16 +109,11 @@ public class VisitService {
     return searchManagersPublic(keyword);
   }
 
-  /**
-   * 인솔자 후보 — 무인증(키오스크)용. 개인정보 노출 최소화: <b>빈 검색어는 결과 없음</b>, 인원ID는 부분일치, 성명은 <b>완전일치</b>만 노출(성명
-   * 부분검색으로 직원 명단을 훑는 것을 막는다). 최대 50건.
-   */
+  /** 인솔자 후보(무인증 키오스크 겸용) — 빈 검색어=결과 없음, ID 부분일치·성명 완전일치만(명단 훑기 방지), 최대 50건. */
   public List<TbPerson> searchManagersPublic(String keyword) {
     String kw = keyword == null ? "" : keyword.trim();
     List<TbPerson> rows = new ArrayList<>();
-    if (kw.isEmpty()) {
-      return rows;
-    }
+    if (kw.isEmpty()) return rows;
     for (TbPerson p : personMapper.selectRegular()) {
       p.setPersonName(decrypt(p.getPersonName()));
       boolean hit = p.getPersonId().contains(kw) || kw.equals(p.getPersonName());
@@ -227,6 +207,15 @@ public class VisitService {
     if (STATUS_LEFT.equals(existing.getStatusCode())) { // 퇴실완료는 수정 불가
       throw new BusinessException(ErrorCode.INVALID_INPUT, "퇴실 완료된 방문은 수정할 수 없습니다.");
     }
+    // 입실중(VS03)엔 카드 '교환'만 허용 — 카드 회수(빈 카드)나 방문객 제외는 퇴실 처리로만 가능
+    if (STATUS_ENTERED.equals(existing.getStatusCode())) {
+      boolean noCard = form.getVisitors() == null
+          || form.getVisitors().stream().anyMatch(vf -> vf.getCardId() == null);
+      List<String> kept = form.getVisitors() == null ? List.of()
+          : form.getVisitors().stream().map(VisitorForm::getPersonId).filter(java.util.Objects::nonNull).toList();
+      check(noCard || !kept.containsAll(visitMapper.selectPersonIds(form.getVisitNo())),
+          "입실 중인 방문은 카드 교환만 가능합니다. 카드 회수·방문객 제외는 퇴실 처리로 해주세요.");
+    }
     TbVisit row = toRow(form);
     // 상태는 서버가 관리(사용자 변경 불가) — 기존 상태를 기준으로 전원 카드 발급 시 입실중 승격
     row.setStatusCode(effectiveStatus(existing.getStatusCode(), form));
@@ -247,9 +236,14 @@ public class VisitService {
     if (!DEFAULT_STATUS.equals(v.getStatusCode()) && !STATUS_CANCELLED.equals(v.getStatusCode())) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "신청·신청취소 상태의 방문만 삭제할 수 있습니다.");
     }
-    // BiostarX 방문객 사용자 삭제(부모 그룹에서 제거) — 실패해도 방문 삭제는 진행
+    // BiostarX 방문객 사용자 삭제가 성공해야 방문 삭제를 커밋(실패=롤백 — 장비 유령 사용자 방지)
     String warn =
         visitBiostar.deleteVisitors(v.getVisitType(), visitMapper.selectPersonIds(visitNo));
+    if (warn != null) {
+      auditService.logAlways(actor, AuditService.DELETE, menuId, "방문 삭제 실패(" + visitNo + "): " + warn);
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT, "BiostarX 사용자 삭제 실패로 방문 삭제가 취소되었습니다. 사유: " + warn + " — 다시 시도하세요.");
+    }
     clearRoster(visitNo); // 방문객/차량 정리(카드 회수 포함)
     visitMapper.deleteManagers(visitNo);
     visitMapper.deleteAcGroups(visitNo);
@@ -271,7 +265,14 @@ public class VisitService {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "입실 중인 방문만 퇴실할 수 있습니다.");
     }
     List<String> personIds = visitMapper.selectPersonIds(visitNo);
-    String warn = visitBiostar.disableVisitors(personIds); // 장비: 비활성 + 카드 제거
+    // 장비 비활성화(사용자 disable + 카드 제거)가 성공해야 퇴실 커밋 — 실패한 채 DB 만 회수하면
+    // 장비에서 계속 출입 가능 + 카드 재대여로 이중 사용이 되므로 롤백하고 재시도를 유도한다
+    String warn = visitBiostar.disableVisitors(personIds);
+    if (warn != null) {
+      auditService.logAlways(actor, AuditService.UPDATE, menuId, "방문 퇴실 실패(" + visitNo + "): " + warn);
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT, "BiostarX 비활성화 실패로 퇴실이 취소되었습니다. 사유: " + warn + " — 다시 시도하세요.");
+    }
     for (String pid : personIds) {
       cardMapper.releaseByPerson(pid); // 카드 재대여 가능하도록 DB 회수
     }
@@ -283,11 +284,7 @@ public class VisitService {
     return warn;
   }
 
-  /**
-   * 자식(인솔자·방문객·차량·출입그룹) 저장 — 전체 재구성. 수정이면 기존 방문객/차량을 먼저 정리(소프트삭제+카드회수).
-   *
-   * @return BiostarX 방문객 동기화 경고(성공/미대상이면 null)
-   */
+  /** 자식(인솔자·방문객·차량·출입그룹) 전체 재구성 저장. return=BiostarX 동기화 경고(성공/미대상 null). */
   private String saveChildren(int visitNo, VisitForm form) {
     // 인솔자
     visitMapper.deleteManagers(visitNo);
@@ -368,7 +365,12 @@ public class VisitService {
     p.setAccessStartDt(withSeconds(form.getWorkStartDt()));
     p.setAccessEndDt(withSeconds(form.getWorkEndDt()));
     if (isNew) {
-      personMapper.insert(p);
+      try {
+        personMapper.insert(p);
+      } catch (org.springframework.dao.DataIntegrityViolationException e) {
+        p.setPersonId(personMapper.selectNextVisitorId()); // 동시 채번(MAX+1) 충돌 — 1회 재채번 후 재시도
+        personMapper.insert(p);
+      }
     } else {
       personMapper.update(p);
     }
@@ -430,10 +432,7 @@ public class VisitService {
     check(hasVisitors && !notEmpty(form.getManagerIds()), "방문객이 있으면 인솔자를 지정해야 합니다.");
   }
 
-  /**
-   * 임시(PT02)끼리 인솔자 겹침 금지 — 진행중(신청·입실중)인 다른 임시 방문에 이미 인솔자면 차단한다. 임시↔장기·상주 및
-   * 장기끼리는 허용하므로 등록 대상이 임시일 때만 검사한다.
-   */
+  /** 임시(PT02)끼리 인솔자 겹침 금지 — 진행중 다른 임시 방문의 인솔자면 차단(임시↔장기·상주, 장기끼리는 허용). */
   void checkManagerOverlap(VisitForm form, Integer excludeVisitNo) {
     if (!VISIT_TYPE.equals(form.getVisitType()) || !notEmpty(form.getManagerIds())) {
       return;

@@ -281,7 +281,12 @@ public class CompanyService {
     if (existing != null) {
       companyMapper.reactivate(row); // 삭제된 코드 재등록 → 되살리기
     } else {
-      companyMapper.insert(row);
+      try {
+        companyMapper.insert(row);
+      } catch (org.springframework.dao.DataIntegrityViolationException e) {
+        // 동시 등록 레이스(자동 채번 겹침 등) — 친화적 메시지로 변환
+        throw new BusinessException(ErrorCode.DUPLICATE, "이미 존재하는 기관코드입니다. 다른 코드로 다시 시도하세요.");
+      }
     }
     auditService.log(actor, AuditService.CREATE, menuId, "기관 등록: " + row.getCompanyCode());
     return row.getBiostarGroupId() == null ? createBiostarGroup(row) : null;
@@ -305,7 +310,9 @@ public class CompanyService {
     companyMapper.update(row);
     auditService.log(actor, AuditService.UPDATE, menuId, "기관 수정: " + row.getCompanyCode());
     if (row.getBiostarGroupId() == null) {
-      return null; // 연동된 그룹 없음
+      // 그룹 미연동 안내 — 이 상태로는 소속 인원 등록이 차단되므로 조치 방법을 알려준다(자동 생성은 하지 않음, 정책 유지)
+      return "이 기관은 BiostarX 사용자그룹이 연결되어 있지 않아 소속 인원을 등록할 수 없습니다."
+          + " 수정 모달에서 BiostarX 그룹을 선택해 다시 저장하세요.";
     }
     return nameChanged ? renameBiostarGroup(row) : null;
   }

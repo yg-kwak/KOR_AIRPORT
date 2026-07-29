@@ -65,16 +65,16 @@ public class CardService {
   }
 
   /**
-   * 카드 상태(tb_common CS)에 따라 BiostarX 블랙리스트 동기화 — code_tag='Y'면 차단, 아니면 해제. 실패해도 저장은 유지하고
-   * 경고만 남긴다(외부 연동 실패가 업무를 막지 않음).
+   * 카드 상태(tb_common CS)에 따라 BiostarX 블랙리스트 동기화 — code_tag='Y'면 차단, 아니면 해제. <b>실패하면 예외로 저장을
+   * 롤백</b>한다(분실 카드가 장비에서 계속 유효한 상태 방지 — 장비-DB 정합성 최우선). 실패 사실은 롤백돼도 감사에 남긴다.
    */
   private void syncBlacklist(String biostarCardId, String cardStatus) {
     if (biostarCardId == null || biostarCardId.isBlank()) {
-      return;
+      return; // 장비 미등록 카드(차량 등) — 동기화 대상 아님
     }
     TbSystem cfg = systemMapper.selectOne();
     if (cfg == null) {
-      return;
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 설정이 없습니다. 설정관리에서 먼저 등록하세요.");
     }
     TbCommon cs = commonMapper.selectOne("CS", cardStatus);
     boolean block = cs != null && "Y".equals(cs.getCodeTag());
@@ -83,11 +83,13 @@ public class CardService {
             ? biostarCardAdapter.blacklistCard(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), biostarCardId)
             : biostarCardAdapter.removeBlacklist(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), biostarCardId);
     if (!res.success()) {
-      log.warn(
-          "카드 블랙리스트 동기화 실패(cardId={}, {}): {}",
-          biostarCardId,
-          block ? "차단" : "해제",
-          res.message());
+      String act = block ? "차단" : "차단 해제";
+      log.warn("카드 블랙리스트 동기화 실패(cardId={}, {}): {}", biostarCardId, act, res.message());
+      auditService.logAlways(
+          null, AuditService.UPDATE, null, "BiostarX 카드 " + act + " 실패(cardId=" + biostarCardId + "): " + res.message());
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT,
+          "BiostarX 카드 " + act + " 실패로 저장이 취소되었습니다. 사유: " + res.message() + " — 다시 시도하세요.");
     }
   }
 
@@ -114,7 +116,12 @@ public class CardService {
     }
     normalize(row);
     row.setBiostarCardId(null);
-    cardMapper.insert(row); // DB 먼저 — unique/CHECK 위반은 BiostarX 호출 전에 잡힌다
+    try {
+      cardMapper.insert(row); // DB 먼저 — unique/CHECK 위반은 BiostarX 호출 전에 잡힌다
+    } catch (org.springframework.dao.DataIntegrityViolationException e) {
+      // 동시 등록 레이스(중복검사 통과 후 유니크 충돌) — 친화적 메시지로 변환
+      throw new BusinessException(ErrorCode.DUPLICATE, "이미 등록된 카드번호입니다.");
+    }
     // 차량 카드(CDT02)는 BiostarX 에 등록하지 않는다 — 인원 카드만 장비에 올린다
     if (!CARD_TYPE_CAR.equals(row.getCardType())) {
       registerBiostar(row, actor, menuId); // BiostarX 나중 — 실패하면 위 insert 도 롤백

@@ -52,7 +52,7 @@
   - **사용자 생성**: `POST /api/users` — `user_group_id`=`tb_company.biostar_group_id`, `disabled`=`tb_common`(PS).code_tag, `user_title`=`tb_common`(UT).code_name, `access_groups`=선택한 `tb_ac_group.biostar_ac_id` 목록, `credentials.visualFaces`=얼굴 3종. 사진/얼굴은 `tb_person_photo` 에도 저장.
   - **실패 정책(등록·수정 공통)**: **BiostarX 동기화가 성공해야 저장**한다 — 실패(설정 없음 / 소속 기관에 `biostar_group_id` 없음 / 장비 오류)면 트랜잭션을 롤백하고 사유를 예외로 알린다(장비엔 없고 DB엔 있는 유령 인원 방지 — **장비-DB 정합성 최우선**). 소속 기관에 그룹이 없으면 BiostarX 호출 전에 막고 "기관을 먼저 동기화하라"고 안내한다. 공통 헬퍼 `PersonService.syncPersonToBiostar(form, before)` — 등록은 `before=empty`, 수정은 변경 전 스냅샷. 성공 시 `tb_person.biostar_user_id`=인원ID.
   - **수정**: `PUT /api/users/{인원ID}` — **변경된 항목만** 전송(델타). 있다가 없어진 값은 공란(문자열 `""`, 목록 `[]`), 얼굴 삭제는 `credentials.visualFaces=[]`. 변경이 없으면 호출하지 않는다.
-  - **삭제**: `DELETE /api/users?id={인원ID}&group_id={기관 그룹ID}`. 우리 DB 는 소프트 삭제(`del_yn='Y'`).
+  - **삭제**: `DELETE /api/users?id={인원ID}&group_id={기관 그룹ID}`. 우리 DB 는 소프트 삭제(`del_yn='Y'`). **삭제도 등록·수정과 동일하게 BiostarX 성공해야 커밋** — 실패면 롤백+사유 예외(장비 유령 사용자 방지), 실패 사실은 `AuditService.logAlways`(REQUIRES_NEW)로 롤백돼도 감사에 남긴다. 일괄삭제는 한 건 실패 시 전체 롤백.
   - **카드**(카드정보 탭): **카드 추가 확인 시 즉시** `POST /api/cards` 로 카드를 만들고(`CardCollection.rows[0]` 에 `card_type`={id:0,name:CSN,type:1,mode:C} + `card_id`/`display_card_id`=카드번호), 응답의 `id`→`tb_card.biostar_card_id`, `card_id`→`tb_card.biostar_card_value` 로 화면이 들고 있다가 **인원 저장 시** tb_card 저장 + 사용자 payload 의 `cards[]` 로 부여한다(`is_assigned=true`). 카드번호는 직접 입력하거나 `POST /api/devices/{dev_id}/scan_card`(본문 `{"noblockui":true}` → `Card.card_id`)로 장치에서 읽는다. 어댑터: `BiostarCardAdapter`.
     - **카드 종류는 CSN 고정** — 우리 `tb_common`(CDT) 카드종류는 업무 분류용이라 BiostarX 로 넘기지 않는다. 인원 화면이 발급하는 카드는 `CDT01`(인원) **서버 고정**(`CardService.CARD_TYPE_PERSON`), 패스구분(`tb_card.pass_type` → `tb_common` PT)은 화면에서 선택한다.
     - **주의(정책상 감수)**: 카드는 즉시 등록되므로 인원 저장을 취소하면 BiostarX 에만 남는다(우리 DB 미기록).
@@ -63,12 +63,14 @@
   - **등록**: 모달에서 기존 그룹을 고르면 그 ID 를 저장(생성 API 미호출). 비우면 `POST /api/user_groups`(parent_id=PTD01 code_tag, depth 2, name=기관명)로 생성 후 반환 ID 저장. 응답에 ID 가 없으면 검색으로 보완 조회.
   - **이름 수정**: 기관명이 바뀌면 `PUT /api/user_groups/{groupId}`(본문 id 는 해당 그룹 자기 id).
   - **선택 팝업**: `POST /api/v2/user_groups/search` 결과에서 `parent_id.id == PTD01 code_tag` 인 그룹만 노출.
-  - **실패 정책**: 연동 실패(예: 이름 중복 `code 65646` "User group name is duplicated.")여도 **기관 저장은 유지**하고 경고 메시지로 알린다. 어댑터: `BiostarAdapter.searchUserGroups/createUserGroup/updateUserGroupName`.
+  - **실패 정책**: 연동 실패(예: 이름 중복 `code 65646` "User group name is duplicated.")여도 **기관 저장은 유지**하고 경고 메시지로 알린다. 그룹 미연동(`biostar_group_id`=NULL) 상태로 **수정 저장하면 "그룹을 선택해 다시 저장하라"는 안내 경고**를 돌려준다(자동 생성은 하지 않음 — 인원 등록이 차단되는 막다른 길 안내). 어댑터: `BiostarAdapter.searchUserGroups/createUserGroup/updateUserGroupName`.
 - **사용자관리 장치ID**(`/system/loginUser`): 장치ID(`dev_id`) 선택 팝업 — `POST /api/v2/devices/search`(`feature_types=[card]`)로 장치(`DeviceCollection.rows[].{id,name}`) 조회 후 선택한 `id` 를 `tb_login_user.dev_id` 에 저장. 어댑터: `BiostarAdapter.searchDevices`. 클라이언트에서 장치ID/장치명으로 필터.
 - **출입권한관리 화면**(`/security/acGroup`): 최상위=tb_common(cmm_id='AR') 동기화(진입 시 insert/delete), 하위=`POST /api/v2/access_groups/search` 로 가져온 출입그룹(id/name)을 매핑 저장. 어댑터: `BiostarAdapter.searchAccessGroups`(로그인→세션→검색).
 - **방문(임시·장기) ↔ BiostarX**(`tb_visit`): 정규(`tb_company` 기반)와 달리 **기관 사용자그룹을 만들지 않는다**. 방문 인원(`tb_person`, `person_type`=임시/장기)의 `user_group_id` 는 `PT`→`PTD` 체인의 **임시/장기 부모 그룹(code_tag) 아래로 직접** 편입한다(중간 기관 그룹 없음). 방문 카드는 별도 테이블 없이 정규와 **동일한 `tb_card`**(`person_id`/`car_id`, `pass_type`=방문유형)로 발급하며, 인원 카드(CDT01)만 `POST /api/cards`, 차량 카드는 BiostarX 미등록(정규 규칙과 동일).
   - **공통구역 materialize(승인 시)**: `tb_visit_ac_group`(최상위 출입그룹)을 **하위 BiostarX 매핑그룹(`biostar_ac_id`)으로 확장**해 각 방문 인원의 `tb_person_ac_group` 에 기록 → `POST/PUT /api/users` 의 `access_groups` 로 정규와 동일하게 전송. 차량은 `tb_visit_car_ac_group`(CAR)을 각 차량 `tb_car_ac_group` 으로 복제(BiostarX 미전송). `work_start_dt/work_end_dt` 는 인원 `access_start_dt/access_end_dt` 로 전파.
   - **구역 선택 범위**: 방문유형(`tb_common` cmm_id='PT')의 **`code_remark='Y'` 면 하위 세부 트리까지 선택 가능**, 아니면 **최상위 그룹만**(선택 팝업이 `parent_ac_group_id IS NULL` 만 노출 + 저장 시 재검증). 예: 임시=최상위만, 장기·상주=세부까지.
+  - **퇴실·방문삭제 실패 정책**: 퇴실(사용자 disable+카드 제거)·방문삭제(사용자 삭제)는 **BiostarX 성공해야 커밋** — 실패면 롤백+사유 예외 후 재시도 유도(실패해도 DB만 회수하면 장비에서 계속 출입 + 카드 재대여로 **이중 사용**이 되기 때문). 실패는 `logAlways` 로 감사에 남는다. 방문 **저장**(syncVisitors)만 경고 유지(장비에 없으면 출입 불가라 안전한 방향 + 재저장 upsert 로 자가치유).
+  - **입실중(VS03) 카드 규칙**: 카드 **교환만 허용** — 카드 회수(빈 카드)나 방문객 제외는 수정으로 불가, 퇴실 처리로만 가능(카드 없는 입실중 상태 방지).
 - TODO: 사용자/카드/얼굴 등 나머지 도메인 모델 ↔ BiostarX 모델 매핑 표.
 - TODO: 실시간 이벤트 수신 방식(폴링 `events/search` vs 웹훅) 확정.
 
@@ -80,7 +82,7 @@
 
 - 카드 상태(tb_common CS)의 `code_tag`로 BiostarX 블랙리스트를 동기화한다. **`code_tag='Y'`면 차단, 아니면 해제.** (CS01 정상=N, CS02 분실·CS03 반납·CS04 정지·CS05 회수=Y)
 - 차단: `POST /api/cards/blacklist` `{"Blacklist":{"card_id":{"id":"<biostar_card_id>"}}}` / 해제: `DELETE /api/cards/blacklist?id=<biostar_card_id>`. (`BiostarCardAdapter.blacklistCard`/`removeBlacklist`)
-- 호출 시점: 카드 상태가 저장되는 곳 — 카드관리 수정(`CardService.updateCard`)과 인원 저장의 카드 반영(`saveCards`). 실패해도 저장은 유지하고 경고만 남긴다(best-effort). id 는 `tb_card.biostar_card_id`.
+- 호출 시점: 카드 상태가 저장되는 곳 — 카드관리 수정(`CardService.updateCard`)과 인원 저장의 카드 반영(`saveCards`). **실패하면 예외로 저장을 롤백**한다(분실 카드가 장비에서 계속 유효한 상태 방지). 실패 사실은 `logAlways` 로 롤백돼도 `tb_system_log` 에 남는다. id 는 `tb_card.biostar_card_id`(장비 미등록 카드는 동기화 생략).
 
 ## 카드 프린트 (adapter/cardprint)
 
