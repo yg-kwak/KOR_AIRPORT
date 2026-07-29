@@ -82,7 +82,9 @@
 
 - 카드 상태(tb_common CS)의 `code_tag`로 BiostarX 블랙리스트를 동기화한다. **`code_tag='Y'`면 차단, 아니면 해제.** (CS01 정상=N, CS02 분실·CS03 반납·CS04 정지·CS05 회수=Y)
 - 차단: `POST /api/cards/blacklist` `{"Blacklist":{"card_id":{"id":"<biostar_card_id>"}}}` / 해제: `DELETE /api/cards/blacklist?id=<biostar_card_id>`. (`BiostarCardAdapter.blacklistCard`/`removeBlacklist`)
-- 호출 시점: 카드 상태가 저장되는 곳 — 카드관리 수정(`CardService.updateCard`)과 인원 저장의 카드 반영(`saveCards`). **실패하면 예외로 저장을 롤백**한다(분실 카드가 장비에서 계속 유효한 상태 방지). 실패 사실은 `logAlways` 로 롤백돼도 `tb_system_log` 에 남는다. id 는 `tb_card.biostar_card_id`(장비 미등록 카드는 동기화 생략).
+- 호출 시점: 카드 상태가 저장되는 곳 — 카드관리 수정(`CardService.updateCard`)과 인원 저장의 카드 반영(`saveCards`). id 는 `tb_card.biostar_card_id`(장비 미등록 카드는 동기화 생략).
+- **차단 여부가 바뀔 때만 호출**한다(변경 전 상태와 비교. 신규 카드는 장비 기본이 비차단이라 '비차단'으로 간주). BiostarX 블랙리스트 API 는 **멱등하지 않아** 이미 해제된 카드를 다시 해제하면 `HTTP 500` 을 돌려주므로, 상태 변화가 없는 저장에서는 아예 호출하지 않는다.
+- **실패 정책은 비대칭**: **차단(block) 실패 = 예외로 저장 롤백**(분실 카드가 장비에서 계속 유효하면 보안 위험), **해제(unblock) 실패 = 경고만, 저장 유지**(실패해도 카드가 계속 차단될 뿐이라 보안 위험이 아니고, '이미 해제됨'이 오류로 오는 경우가 많다). 어느 쪽이든 실패는 `logAlways` 로 `tb_system_log` 에 남는다.
 
 ## 카드 프린트 (adapter/cardprint)
 

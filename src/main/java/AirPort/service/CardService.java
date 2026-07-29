@@ -64,37 +64,51 @@ public class CardService {
     this.auditService = auditService;
   }
 
+  /** 카드 상태(tb_common CS)의 code_tag='Y' 면 차단 대상. 코드가 없으면 비차단으로 본다. */
+  private boolean isBlocked(String cardStatus) {
+    TbCommon cs = commonMapper.selectOne("CS", cardStatus);
+    return cs != null && "Y".equals(cs.getCodeTag());
+  }
+
   /**
-   * 카드 상태(tb_common CS)에 따라 BiostarX 블랙리스트 동기화 — code_tag='Y'면 차단, 아니면 해제. <b>실패하면 예외로 저장을
-   * 롤백</b>한다(분실 카드가 장비에서 계속 유효한 상태 방지 — 장비-DB 정합성 최우선). 실패 사실은 롤백돼도 감사에 남긴다.
+   * BiostarX 블랙리스트 동기화 — <b>차단 여부가 실제로 바뀔 때만</b> 호출한다. BiostarX 는 멱등하지 않아 이미 해제된 카드를 다시 해제하면 HTTP
+   * 500 을 돌려주므로, 변화 없는 저장에서 불필요한 호출을 하지 않는다(신규 카드는 장비 기본이 비차단이라 prev=null 을 비차단으로 본다).
+   *
+   * <p>실패 정책은 비대칭이다: <b>차단 실패는 예외로 롤백</b>(분실 카드가 장비에서 계속 유효하면 보안 위험), <b>해제 실패는 경고만</b> (실패해도 카드가
+   * 계속 차단될 뿐이라 업무 불편이지 보안 위험이 아니고, '이미 해제됨'이 오류로 오는 경우가 많다). 실패는 어느 쪽이든 감사에 남긴다.
    */
-  private void syncBlacklist(String biostarCardId, String cardStatus) {
+  private void syncBlacklist(String biostarCardId, String prevStatus, String newStatus) {
     if (biostarCardId == null || biostarCardId.isBlank()) {
       return; // 장비 미등록 카드(차량 등) — 동기화 대상 아님
+    }
+    boolean block = isBlocked(newStatus);
+    if (block == (prevStatus != null && isBlocked(prevStatus))) {
+      return; // 차단 여부 변화 없음 — 장비 호출 불필요(중복 해제로 인한 500 방지)
     }
     TbSystem cfg = systemMapper.selectOne();
     if (cfg == null) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 설정이 없습니다. 설정관리에서 먼저 등록하세요.");
     }
-    TbCommon cs = commonMapper.selectOne("CS", cardStatus);
-    boolean block = cs != null && "Y".equals(cs.getCodeTag());
     AirPort.adapter.BiostarResult res =
         block
             ? biostarCardAdapter.blacklistCard(
                 cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), biostarCardId)
             : biostarCardAdapter.removeBlacklist(
                 cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), biostarCardId);
-    if (!res.success()) {
-      String act = block ? "차단" : "차단 해제";
-      log.warn("카드 블랙리스트 동기화 실패(cardId={}, {}): {}", biostarCardId, act, res.message());
-      auditService.logAlways(
-          null,
-          AuditService.UPDATE,
-          null,
-          "BiostarX 카드 " + act + " 실패(cardId=" + biostarCardId + "): " + res.message());
+    if (res.success()) {
+      return;
+    }
+    String act = block ? "차단" : "차단 해제";
+    log.warn("카드 블랙리스트 동기화 실패(cardId={}, {}): {}", biostarCardId, act, res.message());
+    auditService.logAlways(
+        null,
+        AuditService.UPDATE,
+        null,
+        "BiostarX 카드 " + act + " 실패(cardId=" + biostarCardId + "): " + res.message());
+    if (block) {
       throw new BusinessException(
           ErrorCode.INVALID_INPUT,
-          "BiostarX 카드 " + act + " 실패로 저장이 취소되었습니다. 사유: " + res.message() + " — 다시 시도하세요.");
+          "BiostarX 카드 차단 실패로 저장이 취소되었습니다. 사유: " + res.message() + " — 다시 시도하세요.");
     }
   }
 
@@ -181,7 +195,8 @@ public class CardService {
     validateCard(row);
     normalize(row);
     cardMapper.updateInfo(row);
-    syncBlacklist(existing.getBiostarCardId(), row.getCardStatus()); // 상태 변경 → BiostarX 차단/해제
+    // 차단 여부가 바뀐 경우에만 BiostarX 차단/해제
+    syncBlacklist(existing.getBiostarCardId(), existing.getCardStatus(), row.getCardStatus());
     auditService.log(
         actor, AuditService.UPDATE, menuId, "카드 수정: " + existing.getBiostarCardValue());
   }
@@ -320,6 +335,8 @@ public class CardService {
           row.setCardId(known.getCardId());
         }
       }
+      // 변경 전 상태(차단 여부 비교용) — 신규 카드는 null(장비 기본 비차단)
+      TbCard before = row.getCardId() == null ? null : cardMapper.selectById(row.getCardId());
       if (row.getCardId() == null) {
         cardMapper.insert(row);
         form.setCardId(row.getCardId());
@@ -327,7 +344,11 @@ public class CardService {
         cardMapper.update(row); // update 가 person_id 재배정 + del_yn='N' 복원
         form.setCardId(row.getCardId());
       }
-      syncBlacklist(row.getBiostarCardId(), row.getCardStatus()); // 상태에 따라 BiostarX 차단/해제
+      // 차단 여부가 바뀐 경우에만 BiostarX 차단/해제
+      syncBlacklist(
+          row.getBiostarCardId(),
+          before == null ? null : before.getCardStatus(),
+          row.getCardStatus());
     }
   }
 
