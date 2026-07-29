@@ -47,6 +47,10 @@ public class CardPrintAdapter {
   @Value("${card-print.offset-y-mm:0}")
   private double offsetYmm;
 
+  /** 인쇄 배율 — 1.0=카드에 맞춰 채움. 프린터 여백 등으로 작게 나오면 1보다 키워 꽉 차게(경계 넘치면 잘림). */
+  @Value("${card-print.scale:1.0}")
+  private double printScale;
+
   private CardProject cached;
 
   /** 디자인 템플릿(card_project) 로드 — 캐시. */
@@ -122,8 +126,9 @@ public class CardPrintAdapter {
           RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
       double scale =
           Math.min(
-              pageFormat.getImageableWidth() / image.getWidth(),
-              pageFormat.getImageableHeight() / image.getHeight());
+                  pageFormat.getImageableWidth() / image.getWidth(),
+                  pageFormat.getImageableHeight() / image.getHeight())
+              * printScale; // 1.0=카드에 맞춤, >1=꽉 차게 확대(중앙 기준)
       double ox =
           pageFormat.getImageableX()
               + (pageFormat.getImageableWidth() - image.getWidth() * scale) / 2;
