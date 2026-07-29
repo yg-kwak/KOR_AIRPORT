@@ -5,6 +5,7 @@
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
 - [x] 임시·장기 방문객 탭에 인원ID 표시 — 방문객이 BiostarX 사용자로 편입되면 부여되는 인원ID(=biostar_user_id)를 방문객 탭 성명 왼쪽에 읽기전용 컬럼으로 노출(신규는 '저장 후 부여'). 성명·생년월일·카드 폭을 줄여 공간 확보. detail 이 이미 personId 반환하므로 프론트만 변경(visitor.html/js 공유) — sjpark2, 2026-07-28
+- [x] 테스트용 대량 시드 스크립트 — sql/seed/99_test_seed.sql(기관·정규인원·방문객·차량·카드·방문 각 100건) + 99_test_seed_cleanup.sql. TST 접두/9xxx 번호로 식별해 삭제 쉽고, 인원ID·기관코드에 문자를 넣어 숫자형 채번·IS채번에 영향 없음. 성명·대표자는 ARIA 암호문 사전계산(결정적)해 삽입 — 화면 복호화·완전일치 검색 정상 동작 확인. BiostarX 미등록(DB 전용, 조회 테스트용). 개발DB 적용 후 목록·검색(성명/카드번호/차량번호/방문객명/인솔자명) 실측 검증 — sjpark2, 2026-07-30
 - [x] 얼굴 템플릿 매핑·정규화 수정 — upload_picture 응답의 image_template=bin_type 5 / image_template_2=9 인데 코드가 반대로 매핑해 인증 템플릿이 뒤바뀌어 등록되던 문제 교정. 응답 템플릿이 고정 버퍼라 뒤가 널(0x00)로 채워져 오는 것도 잘라 표준 base64(== 패딩)로 정규화(normalizeTemplate) — 실제 응답 데이터(552→544바이트)로 검증. JSON \/ 이스케이프는 파싱 단계에서 해제됨을 테스트로 확인. BiostarFaceTemplateTest 2건 추가(총 25 그린) — sjpark2, 2026-07-29
 - [x] 카드 블랙리스트 중복 해제 500 오류 수정 — 정상 카드를 저장할 때마다 removeBlacklist 를 호출해(상태 변화 무관) 이미 해제된 카드에 HTTP 500 → 직전 '실패=롤백' 정책과 겹쳐 저장이 계속 취소되던 회귀. (1) 차단 여부가 실제 바뀔 때만 호출(변경 전 상태 비교, 신규는 비차단 간주), (2) 실패 정책 비대칭화 — 차단 실패=롤백 유지, 해제 실패=경고만(보안 위험 아님·멱등성 문제). CardBlacklistSyncTest 3건 추가(총 23 그린) — sjpark2, 2026-07-29
 - [x] 서비스 분리 리팩터 + userExists 3상(리뷰 🔴/🟡 후속) — spotless↔500줄 제한 상충 해소: PersonBiostarService(인원 BiostarX 동기화 전담)·VisitRosterService(방문 로스터 저장 전담) 분리, 전체 spotlessApply 적용(드리프트 38파일 해소, spotlessCheck+code-lint+테스트 동시 그린). userExists 통신오류를 BiostarSessionException 으로 전파해 퇴실·삭제 strict 경로가 장비 전면 장애에서도 롤백 — sjpark2, 2026-07-29

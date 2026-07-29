@@ -389,5 +389,23 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 - **DDL: `sql/ddl/01_tables.sql`**, **seed: `sql/seed/02_seed.sql`**(공통코드 AT/LO, 메뉴, 관리자 계정 admin/admin123).
 - TODO: 스키마 형상관리 자동화(Flyway 등) 도입 여부.
 
+
+## 테스트용 대량 시드 (sql/seed/99_test_seed.sql)
+
+목록·검색·페이징·정렬 테스트용 더미 데이터. **BiostarX 에는 등록하지 않는다**(DB 전용이라 장비와 어긋난 상태 — 조회 테스트 목적).
+
+| 대상 | 건수 | 식별 규칙 |
+|------|------|-----------|
+| 기관 | 100 | `company_code='TSTC001'~'TSTC100'`, 기관명 `테스트기관###` |
+| 정규인원(PT01) | 100 | `person_id='TSTP001'~'TSTP100'` |
+| 방문객(PT02/03/04) | 100 | `person_id='TSTV001'~'TSTV100'` |
+| 차량 | 100 | `car_no='9001가0001'~`, 차량명 `테스트차량###` |
+| 카드 | 100 | `biostar_card_value='9000000001'~`(절반은 TSTP 에 발급, 일부 CS04 정지) |
+| 방문(tb_visit) | 100 | 업체명 `테스트방문업체###` + 방문객·인솔자 각 1명 |
+
+- **채번 영향 없음**: 인원ID·기관코드에 문자를 넣어 숫자형 `MAX+1` 채번(`selectNextPersonId`/`selectNextCompanyCode`)과 방문객 `IS######` 채번에 끼어들지 않는다.
+- **암호화 컬럼**: 성명·생년월일·연락처·대표자는 ARIA 암호문을 미리 계산해 넣는다(ARIA 는 결정적이라 사전 계산 가능). 평문을 넣으면 화면 복호화·완전일치 검색이 깨진다.
+- **삭제**: `sql/seed/99_test_seed_cleanup.sql` (TST 접두·9xxx 번호만 지운다).
+
 ## 관련 문서
 [backend.md](backend.md) · [architecture.md](architecture.md) · [security.md](security.md) · [integration.md](integration.md)
