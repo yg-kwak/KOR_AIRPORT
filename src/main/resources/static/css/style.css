@@ -314,6 +314,11 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .grid tbody tr.row-click { cursor: pointer; }
 .grid .empty { text-align: center; color: var(--neutral-700); padding: 24px; }
 
+/* 목록 스크롤 — 결과가 많아도 지정 행수(기본 8행)만 보이고 나머지는 스크롤로 찾는다.
+   행수는 style="--rows:N" 으로 조정. thead 는 sticky 로 고정해 스크롤 중에도 열 제목이 보인다. */
+.list-scroll { max-height: calc(var(--rows, 8) * 38px + 39px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.list-scroll thead th { position: sticky; top: 0; z-index: 1; }
+
 /* 페이징 */
 .paging { display: flex; gap: 4px; justify-content: center; margin-top: 16px; }
 .paging button { min-width: 32px; height: 32px; border: 1px solid var(--color-tertiary-active); background: var(--color-white); border-radius: var(--radius-sm); cursor: pointer; color: var(--color-black); }

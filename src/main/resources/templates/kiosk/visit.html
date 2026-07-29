@@ -55,7 +55,8 @@
                placeholder="인솔자(정규인원) ID 또는 성명 검색" autocomplete="off"/>
         <button type="button" class="btn" id="btnMgrSearch">검색</button>
       </div>
-      <div class="matrix-wrap" id="mgrResultWrap" style="display:none; margin-top:8px">
+      <!-- 검색 결과는 8행만 보이고 나머지는 스크롤로 찾는다(list-scroll) -->
+      <div class="matrix-wrap list-scroll" id="mgrResultWrap" style="display:none; margin-top:8px">
         <table class="grid">
           <thead><tr><th class="w-80"></th><th class="w-160">인원ID</th><th style="text-align:left">성명</th></tr></thead>
           <tbody id="mgrResult"></tbody>
