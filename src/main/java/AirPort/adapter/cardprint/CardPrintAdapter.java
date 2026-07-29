@@ -40,6 +40,13 @@ public class CardPrintAdapter {
   @Value("${card-print.printer-name:}")
   private String printerName;
 
+  /** 인쇄 위치 미세조정(mm) — 양수면 오른쪽/아래로 이동. 프린터 원점 오차 보정용(기본 0). */
+  @Value("${card-print.offset-x-mm:0}")
+  private double offsetXmm;
+
+  @Value("${card-print.offset-y-mm:0}")
+  private double offsetYmm;
+
   private CardProject cached;
 
   /** 디자인 템플릿(card_project) 로드 — 캐시. */
@@ -123,7 +130,8 @@ public class CardPrintAdapter {
       double oy =
           pageFormat.getImageableY()
               + (pageFormat.getImageableHeight() - image.getHeight() * scale) / 2;
-      g.translate(ox, oy);
+      double mmToPt = 72.0 / 25.4; // 오프셋(mm) → 페이지 point 로 보정(양수=오른쪽/아래)
+      g.translate(ox + offsetXmm * mmToPt, oy + offsetYmm * mmToPt);
       g.scale(scale, scale);
       g.drawImage(image, 0, 0, null);
       return Printable.PAGE_EXISTS;
