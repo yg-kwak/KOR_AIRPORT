@@ -1,6 +1,7 @@
 package AirPort.adapter.cardprint;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -75,6 +76,8 @@ public class CardPrintAdapter {
     if (svc == null) {
       throw new PrinterException("카드 프린터를 찾을 수 없습니다: " + printerName);
     }
+    // 알파(ARGB) 채널은 프린터 드라이버가 붉은 점 등 아티팩트를 낼 수 있어 불투명 RGB 로 평탄화한다(미리보기는 무관)
+    final List<BufferedImage> pages = sides.stream().map(CardPrintAdapter::toOpaque).toList();
     PrinterJob job = PrinterJob.getPrinterJob();
     job.setPrintService(svc);
     job.setJobName("CJAirPort Card");
@@ -82,17 +85,17 @@ public class CardPrintAdapter {
         new Pageable() {
           @Override
           public int getNumberOfPages() {
-            return sides.size();
+            return pages.size();
           }
 
           @Override
           public PageFormat getPageFormat(int i) {
-            return pageFormat(sides.get(i));
+            return pageFormat(pages.get(i));
           }
 
           @Override
           public Printable getPrintable(int i) {
-            return printable(sides.get(i));
+            return printable(pages.get(i));
           }
         });
     PrintRequestAttributeSet attrs = new HashPrintRequestAttributeSet();
@@ -123,20 +126,14 @@ public class CardPrintAdapter {
     return (graphics, pageFormat, pageIndex) -> {
       Graphics2D g = (Graphics2D) graphics;
       g.setRenderingHint(
-          RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+          RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
       double mmToPt = 72.0 / 25.4;
-      // 인쇄영역을 가로·세로 모두 꽉 채운다(비율 유지 아님) — 카드 규격 디자인이라 왜곡은 무시할 수준.
-      // printScale=1.0 이면 영역에 딱 채우고, >1 이면 경계를 넘겨 확대(가장자리 잘림=풀블리드). 오프셋으로 위치 보정.
-      double dw = pageFormat.getImageableWidth() * printScale;
-      double dh = pageFormat.getImageableHeight() * printScale;
-      double dx =
-          pageFormat.getImageableX()
-              + (pageFormat.getImageableWidth() - dw) / 2
-              + offsetXmm * mmToPt;
-      double dy =
-          pageFormat.getImageableY()
-              + (pageFormat.getImageableHeight() - dh) / 2
-              + offsetYmm * mmToPt;
+      // 전체 용지(카드)를 가로·세로 모두 꽉 채운다 — 인쇄가능영역이 아니라 용지 전체 기준이라 여백(오른쪽/아래) 흰줄을 없앤다.
+      // printScale=1.0 이면 딱 채우고, >1 이면 경계를 넘겨 확대(가장자리 잘림=풀블리드). 오프셋(mm)으로 위치 보정.
+      double dw = pageFormat.getWidth() * printScale;
+      double dh = pageFormat.getHeight() * printScale;
+      double dx = (pageFormat.getWidth() - dw) / 2 + offsetXmm * mmToPt;
+      double dy = (pageFormat.getHeight() - dh) / 2 + offsetYmm * mmToPt;
       g.drawImage(
           image,
           (int) Math.round(dx),
@@ -146,6 +143,18 @@ public class CardPrintAdapter {
           null);
       return Printable.PAGE_EXISTS;
     };
+  }
+
+  /** ARGB → 흰 배경 위 불투명 RGB. 프린터 드라이버의 알파 처리 아티팩트(붉은 점 등)를 없앤다. */
+  private static BufferedImage toOpaque(BufferedImage src) {
+    BufferedImage rgb =
+        new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_INT_RGB);
+    Graphics2D g = rgb.createGraphics();
+    g.setColor(Color.WHITE);
+    g.fillRect(0, 0, rgb.getWidth(), rgb.getHeight());
+    g.drawImage(src, 0, 0, null);
+    g.dispose();
+    return rgb;
   }
 
   private PrintService findPrinter() {
