@@ -26,8 +26,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /* 임시인원(방문) 등록 — 그룹(tb_visit) + 인솔자/방문객/차량/출입그룹. (docs/backend.md)
-   방문객은 tb_person(person_type=visit_type), 차량은 tb_car. 출입그룹·카드는 정규와 같은 테이블 재사용.
-   BiostarX 방문객 동기화(PT→PTD code_tag 부모 그룹 편입)는 VisitBiostarService 담당(어댑터 경계). */
+방문객은 tb_person(person_type=visit_type), 차량은 tb_car. 출입그룹·카드는 정규와 같은 테이블 재사용.
+BiostarX 방문객 동기화(PT→PTD code_tag 부모 그룹 편입)는 VisitBiostarService 담당(어댑터 경계). */
 @Service
 public class VisitService {
 
@@ -36,6 +36,7 @@ public class VisitService {
   private static final String STATUS_CANCELLED = "VS02";
   private static final String STATUS_ENTERED = "VS03";
   private static final String STATUS_LEFT = "VS04";
+
   /** 임시인원등록 방문유형 — 임시 고정(tb_common PT02). */
   static final String VISIT_TYPE = "PT02";
 
@@ -45,6 +46,7 @@ public class VisitService {
   private final TbCardMapper cardMapper;
   private final TbCommonMapper commonMapper;
   private final VisitBiostarService visitBiostar;
+  private final VisitRosterService roster;
   private final AcGroupService acGroupService;
   private final MenuAuthService menuAuthService;
   private final AuditService auditService;
@@ -56,6 +58,7 @@ public class VisitService {
       TbCardMapper cardMapper,
       TbCommonMapper commonMapper,
       VisitBiostarService visitBiostar,
+      VisitRosterService roster,
       AcGroupService acGroupService,
       MenuAuthService menuAuthService,
       AuditService auditService) {
@@ -65,6 +68,7 @@ public class VisitService {
     this.cardMapper = cardMapper;
     this.commonMapper = commonMapper;
     this.visitBiostar = visitBiostar;
+    this.roster = roster;
     this.acGroupService = acGroupService;
     this.menuAuthService = menuAuthService;
     this.auditService = auditService;
@@ -96,7 +100,8 @@ public class VisitService {
 
   public PageResult<TbVisit> list(VisitSearchParam param, TbLoginUser actor, Integer menuId) {
     // 방문객·인솔자 성명(ARIA 암호문)은 완전일치로만 검색 — keyword 를 암호화해 넘긴다
-    param.setKeywordEnc(param.getKeyword() == null ? null : encryptOrNull(param.getKeyword().trim()));
+    param.setKeywordEnc(
+        param.getKeyword() == null ? null : encryptOrNull(param.getKeyword().trim()));
     long total = visitMapper.selectCount(param);
     List<TbVisit> rows = visitMapper.selectList(param);
     auditService.log(actor, AuditService.READ, menuId, "방문 목록 조회 (결과 " + total + "건)");
@@ -187,7 +192,7 @@ public class VisitService {
     TbVisit row = toRow(form);
     row.setStatusCode(effectiveStatus(DEFAULT_STATUS, form)); // 상태는 서버가 관리(신청→전원카드 시 입실중)
     visitMapper.insert(row);
-    String warn = saveChildren(row.getVisitNo(), form);
+    String warn = roster.saveChildren(row.getVisitNo(), form);
     auditService.log(actor, AuditService.CREATE, menuId, "방문 등록: " + row.getVisitNo());
     return warn;
   }
@@ -209,18 +214,25 @@ public class VisitService {
     }
     // 입실중(VS03)엔 카드 '교환'만 허용 — 카드 회수(빈 카드)나 방문객 제외는 퇴실 처리로만 가능
     if (STATUS_ENTERED.equals(existing.getStatusCode())) {
-      boolean noCard = form.getVisitors() == null
-          || form.getVisitors().stream().anyMatch(vf -> vf.getCardId() == null);
-      List<String> kept = form.getVisitors() == null ? List.of()
-          : form.getVisitors().stream().map(VisitorForm::getPersonId).filter(java.util.Objects::nonNull).toList();
-      check(noCard || !kept.containsAll(visitMapper.selectPersonIds(form.getVisitNo())),
+      boolean noCard =
+          form.getVisitors() == null
+              || form.getVisitors().stream().anyMatch(vf -> vf.getCardId() == null);
+      List<String> kept =
+          form.getVisitors() == null
+              ? List.of()
+              : form.getVisitors().stream()
+                  .map(VisitorForm::getPersonId)
+                  .filter(java.util.Objects::nonNull)
+                  .toList();
+      check(
+          noCard || !kept.containsAll(visitMapper.selectPersonIds(form.getVisitNo())),
           "입실 중인 방문은 카드 교환만 가능합니다. 카드 회수·방문객 제외는 퇴실 처리로 해주세요.");
     }
     TbVisit row = toRow(form);
     // 상태는 서버가 관리(사용자 변경 불가) — 기존 상태를 기준으로 전원 카드 발급 시 입실중 승격
     row.setStatusCode(effectiveStatus(existing.getStatusCode(), form));
     visitMapper.update(row);
-    String warn = saveChildren(form.getVisitNo(), form);
+    String warn = roster.saveChildren(form.getVisitNo(), form);
     auditService.log(actor, AuditService.UPDATE, menuId, "방문 수정: " + form.getVisitNo());
     return warn;
   }
@@ -240,11 +252,13 @@ public class VisitService {
     String warn =
         visitBiostar.deleteVisitors(v.getVisitType(), visitMapper.selectPersonIds(visitNo));
     if (warn != null) {
-      auditService.logAlways(actor, AuditService.DELETE, menuId, "방문 삭제 실패(" + visitNo + "): " + warn);
+      auditService.logAlways(
+          actor, AuditService.DELETE, menuId, "방문 삭제 실패(" + visitNo + "): " + warn);
       throw new BusinessException(
-          ErrorCode.INVALID_INPUT, "BiostarX 사용자 삭제 실패로 방문 삭제가 취소되었습니다. 사유: " + warn + " — 다시 시도하세요.");
+          ErrorCode.INVALID_INPUT,
+          "BiostarX 사용자 삭제 실패로 방문 삭제가 취소되었습니다. 사유: " + warn + " — 다시 시도하세요.");
     }
-    clearRoster(visitNo); // 방문객/차량 정리(카드 회수 포함)
+    roster.clearRoster(visitNo); // 방문객/차량 정리(카드 회수 포함)
     visitMapper.deleteManagers(visitNo);
     visitMapper.deleteAcGroups(visitNo);
     visitMapper.deleteCarAcGroups(visitNo);
@@ -269,7 +283,8 @@ public class VisitService {
     // 장비에서 계속 출입 가능 + 카드 재대여로 이중 사용이 되므로 롤백하고 재시도를 유도한다
     String warn = visitBiostar.disableVisitors(personIds);
     if (warn != null) {
-      auditService.logAlways(actor, AuditService.UPDATE, menuId, "방문 퇴실 실패(" + visitNo + "): " + warn);
+      auditService.logAlways(
+          actor, AuditService.UPDATE, menuId, "방문 퇴실 실패(" + visitNo + "): " + warn);
       throw new BusinessException(
           ErrorCode.INVALID_INPUT, "BiostarX 비활성화 실패로 퇴실이 취소되었습니다. 사유: " + warn + " — 다시 시도하세요.");
     }
@@ -282,123 +297,6 @@ public class VisitService {
     visitMapper.updateStatus(visitNo, STATUS_LEFT); // VS04 퇴실 완료
     auditService.log(actor, AuditService.UPDATE, menuId, "방문 퇴실: " + visitNo);
     return warn;
-  }
-
-  /** 자식(인솔자·방문객·차량·출입그룹) 전체 재구성 저장. return=BiostarX 동기화 경고(성공/미대상 null). */
-  private String saveChildren(int visitNo, VisitForm form) {
-    // 인솔자
-    visitMapper.deleteManagers(visitNo);
-    if (notEmpty(form.getManagerIds())) {
-      visitMapper.insertManagers(visitNo, form.getManagerIds());
-    }
-    // 사용자출입그룹 / 차량출입그룹
-    visitMapper.deleteAcGroups(visitNo);
-    if (notEmpty(form.getAcGroupIds())) {
-      visitMapper.insertAcGroups(visitNo, form.getAcGroupIds());
-    }
-    visitMapper.deleteCarAcGroups(visitNo);
-    if (notEmpty(form.getCarAcCodes())) {
-      visitMapper.insertCarAcGroups(visitNo, form.getCarAcCodes());
-    }
-    // 방문객(tb_person) — 유지 인원은 갱신, 폼에서 빠진 인원만 카드 회수 후 소프트삭제
-    List<String> keptIds = new ArrayList<>();
-    if (form.getVisitors() != null) {
-      for (VisitorForm vf : form.getVisitors()) {
-        if (vf.getPersonId() != null && !vf.getPersonId().isBlank()) {
-          keptIds.add(vf.getPersonId());
-        }
-      }
-    }
-    for (String pid : visitMapper.selectPersonIds(visitNo)) {
-      if (!keptIds.contains(pid)) {
-        cardMapper.releaseByPerson(pid);
-        personMapper.softDelete(pid);
-      }
-    }
-    visitMapper.deletePersons(visitNo);
-    List<String> personIds = new ArrayList<>();
-    if (form.getVisitors() != null) {
-      for (VisitorForm vf : form.getVisitors()) {
-        String pid = upsertVisitor(vf, form);
-        visitMapper.insertPerson(visitNo, pid);
-        cardMapper.releaseByPerson(pid); // 이전 카드 해제 후 재배정
-        if (vf.getCardId() != null) {
-          cardMapper.assignPerson(vf.getCardId(), pid);
-          visitMapper.updateVisitorLastCard(visitNo, pid, vf.getCardId()); // 마지막 카드 스냅샷
-        }
-        personIds.add(pid);
-      }
-    }
-    // 방문 차량(tb_car) — 전체 재구성(기존 차량 카드 회수·소프트삭제 후 새로 발급)
-    for (Integer carId : visitMapper.selectCarIds(visitNo)) {
-      cardMapper.releaseByCar(carId);
-      carMapper.softDelete(carId);
-    }
-    visitMapper.deleteCars(visitNo);
-    if (form.getCars() != null) {
-      for (VisitCarForm cf : form.getCars()) {
-        if (cf.getCarNo() == null || cf.getCarNo().isBlank()) {
-          continue; // 차량은 선택 — 번호 없는 행은 저장하지 않는다
-        }
-        int carId = insertVisitCar(cf, form);
-        visitMapper.insertCar(visitNo, carId);
-        if (cf.getCardId() != null) {
-          cardMapper.assignCar(cf.getCardId(), carId);
-        }
-      }
-    }
-    // BiostarX 방문객 동기화(PT→PTD code_tag 부모 그룹 + 선택 출입그룹) — 실패해도 저장은 유지
-    return visitBiostar.syncVisitors(form.getVisitType(), personIds, form.getAcGroupIds());
-  }
-
-  /** 방문객 tb_person 저장 — personId 있으면 갱신(기존 인원 유지), 없으면 IS 채번 신규. */
-  String upsertVisitor(VisitorForm vf, VisitForm form) {
-    require(vf.getPersonName(), "방문객 성명");
-    boolean isNew = vf.getPersonId() == null || vf.getPersonId().isBlank();
-    TbPerson p = new TbPerson();
-    p.setPersonId(isNew ? personMapper.selectNextVisitorId() : vf.getPersonId());
-    p.setPersonName(ARIAUtil.ariaEncrypt(vf.getPersonName()));
-    p.setBirthDate(encryptOrNull(vf.getBirthDate()));
-    p.setAffiliation(vf.getAffiliation());
-    p.setPersonType(form.getVisitType());
-    p.setStatusCode("01");
-    p.setAccessStartDt(withSeconds(form.getWorkStartDt()));
-    p.setAccessEndDt(withSeconds(form.getWorkEndDt()));
-    if (isNew) {
-      try {
-        personMapper.insert(p);
-      } catch (org.springframework.dao.DataIntegrityViolationException e) {
-        p.setPersonId(personMapper.selectNextVisitorId()); // 동시 채번(MAX+1) 충돌 — 1회 재채번 후 재시도
-        personMapper.insert(p);
-      }
-    } else {
-      personMapper.update(p);
-    }
-    return p.getPersonId();
-  }
-
-  int insertVisitCar(VisitCarForm cf, VisitForm form) {
-    require(cf.getCarNo(), "차량번호");
-    TbCar c = new TbCar();
-    c.setCarNo(cf.getCarNo());
-    c.setCarName(cf.getCarName());
-    c.setCarType(cf.getCarType());
-    carMapper.insert(c);
-    return c.getCarId();
-  }
-
-  /** 방문의 방문객/차량을 정리 — 카드 회수 후 인원 소프트삭제·차량 소프트삭제. */
-  private void clearRoster(int visitNo) {
-    for (String pid : visitMapper.selectPersonIds(visitNo)) {
-      cardMapper.releaseByPerson(pid);
-      personMapper.softDelete(pid);
-    }
-    for (Integer carId : visitMapper.selectCarIds(visitNo)) {
-      cardMapper.releaseByCar(carId);
-      carMapper.softDelete(carId);
-    }
-    visitMapper.deletePersons(visitNo);
-    visitMapper.deleteCars(visitNo);
   }
 
   TbVisit toRow(VisitForm form) {
@@ -438,9 +336,7 @@ public class VisitService {
       return;
     }
     List<String> dup = visitMapper.selectActiveTempManagers(form.getManagerIds(), excludeVisitNo);
-    check(
-        notEmpty(dup),
-        "이미 진행 중인 임시 방문의 인솔자입니다(임시끼리 중복 불가): " + String.join(", ", dup));
+    check(notEmpty(dup), "이미 진행 중인 임시 방문의 인솔자입니다(임시끼리 중복 불가): " + String.join(", ", dup));
   }
 
   /** 방문 상태 — 방문객이 있고 전원 카드 발급이면 '입실 중'(VS03)으로 승격. 퇴실완료는 유지. base 는 서버가 정한다. */
@@ -451,7 +347,7 @@ public class VisitService {
     return (allCarded && !STATUS_LEFT.equals(base)) ? STATUS_ENTERED : base;
   }
 
-  private static void require(String v, String label) {
+  static void require(String v, String label) {
     check(v == null || v.isBlank(), label + "은(는) 필수입니다.");
   }
 
@@ -462,7 +358,7 @@ public class VisitService {
     }
   }
 
-  private static boolean notEmpty(List<?> l) {
+  static boolean notEmpty(List<?> l) {
     return l != null && !l.isEmpty();
   }
 
@@ -471,7 +367,7 @@ public class VisitService {
   }
 
   /** datetime-local("YYYY-MM-DDTHH:mm")에 초를 채운다 — datetime2 변환 오류 방지. */
-  private static String withSeconds(String v) {
+  static String withSeconds(String v) {
     if (v == null || v.isBlank()) {
       return null;
     }
@@ -479,7 +375,7 @@ public class VisitService {
     return t.length() == 16 ? t + ":00" : t;
   }
 
-  private static String encryptOrNull(String plain) {
+  static String encryptOrNull(String plain) {
     return (plain == null || plain.isBlank()) ? null : ARIAUtil.ariaEncrypt(plain);
   }
 

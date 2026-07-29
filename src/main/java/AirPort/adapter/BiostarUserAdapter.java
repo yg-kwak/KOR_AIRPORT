@@ -37,8 +37,7 @@ public class BiostarUserAdapter {
       return BiostarFace.fail("BiostarX IP가 설정되어 있지 않습니다. 설정관리에서 등록하세요.");
     }
     try {
-      String body =
-          objectMapper.writeValueAsString(Map.of("template_ex_picture", base64Image));
+      String body = objectMapper.writeValueAsString(Map.of("template_ex_picture", base64Image));
       HttpResponse<String> resp =
           session.put(baseUrl(ip), loginId, password, "/api/users/check/upload_picture", body);
       String err = BiostarAdapter.responseError(objectMapper, resp);
@@ -60,8 +59,8 @@ public class BiostarUserAdapter {
   }
 
   /**
-   * 장치에서 얼굴 촬영 — {@code GET /api/devices/{devId}/credentials/face}. 응답 {@code
-   * credentials.faces[0]} 의 정규화 이미지와 템플릿(credential_bin_type 9/5)을 뽑는다.
+   * 장치에서 얼굴 촬영 — {@code GET /api/devices/{devId}/credentials/face}. 응답 {@code credentials.faces[0]}
+   * 의 정규화 이미지와 템플릿(credential_bin_type 9/5)을 뽑는다.
    */
   public BiostarFace captureFace(String ip, String loginId, String password, String devId) {
     if (ip == null || ip.isBlank()) {
@@ -71,8 +70,7 @@ public class BiostarUserAdapter {
       return BiostarFace.fail("로그인 계정에 장치ID가 없습니다. 사용자관리에서 장치를 지정하세요.");
     }
     try {
-      String path =
-          "/api/devices/" + devId + "/credentials/face?pose_sensitivity=0&nonBlock=true";
+      String path = "/api/devices/" + devId + "/credentials/face?pose_sensitivity=0&nonBlock=true";
       HttpResponse<String> resp = session.get(baseUrl(ip), loginId, password, path);
       String err = BiostarAdapter.responseError(objectMapper, resp);
       if (err != null) {
@@ -109,8 +107,12 @@ public class BiostarUserAdapter {
   /**
    * BiostarX 사용자 존재 확인 — {@code GET /api/users/{userId}}. 호출이 성공하면 등록돼 있다는 뜻이다.
    *
-   * <p>확인 자체가 실패하면(없는 사용자·통신 오류) {@code false} 로 본다. 통신 오류라면 이어지는 생성 호출도 같은 이유로 실패해 경고가
-   * 남으므로, 데이터가 잘못될 여지는 없다.
+   * <p>확인 자체가 실패하면(없는 사용자·통신 오류) {@code false} 로 본다. 통신 오류라면 이어지는 생성 호출도 같은 이유로 실패해 경고가 남으므로, 데이터가
+   * 잘못될 여지는 없다.
+   */
+  /**
+   * 사용자 존재 확인 — 있으면 true, 없으면 false. <b>통신 오류는 '없음'과 구분해 예외로 전파</b>한다(장비 장애 시 skip 로직이 성공으로 오판해
+   * 퇴실/삭제가 조용히 커밋되는 것을 막는다 — 정합성 판단용 3상).
    */
   public boolean userExists(String ip, String loginId, String password, String userId) {
     if (ip == null || ip.isBlank() || userId == null || userId.isBlank()) {
@@ -122,9 +124,11 @@ public class BiostarUserAdapter {
               + java.net.URLEncoder.encode(userId, java.nio.charset.StandardCharsets.UTF_8);
       HttpResponse<String> resp = session.get(baseUrl(ip), loginId, password, path);
       return BiostarAdapter.responseError(objectMapper, resp) == null;
+    } catch (BiostarSessionException e) {
+      throw e; // 로그인/세션 오류 — 그대로 전파
     } catch (Exception e) {
       log.warn("BiostarX 사용자 확인 실패({}): {}", userId, e.toString());
-      return false;
+      throw new BiostarSessionException(friendlyError(e, "사용자 확인"));
     }
   }
 
@@ -147,8 +151,8 @@ public class BiostarUserAdapter {
   /**
    * BiostarX 사용자 수정 — {@code PUT /api/users/{userId}}. <b>변경된 항목만</b> 담아 보낸다.
    *
-   * <p>있다가 없어진 값은 공란으로 보낸다(문자열 "", 목록 []). 얼굴을 지운 경우 {@code
-   * credentials.visualFaces=[]}. 변경이 없으면 호출하지 않는다.
+   * <p>있다가 없어진 값은 공란으로 보낸다(문자열 "", 목록 []). 얼굴을 지운 경우 {@code credentials.visualFaces=[]}. 변경이 없으면
+   * 호출하지 않는다.
    */
   public BiostarResult updateUser(
       String ip,
@@ -207,7 +211,8 @@ public class BiostarUserAdapter {
   }
 
   /** 얼굴 변경분 — 새로 등록/교체면 새 값, 있다가 지웠으면 빈 목록, 그대로면 미포함. */
-  private void applyFaceDelta(ObjectNode user, BiostarUserRequest before, BiostarUserRequest after) {
+  private void applyFaceDelta(
+      ObjectNode user, BiostarUserRequest before, BiostarUserRequest after) {
     boolean had = notBlank(before.faceImage());
     boolean has = notBlank(after.faceImage());
     if (has && !java.util.Objects.equals(before.faceImage(), after.faceImage())) {

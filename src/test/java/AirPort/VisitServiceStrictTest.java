@@ -22,14 +22,15 @@ import AirPort.model.VisitorForm;
 import AirPort.service.AcGroupService;
 import AirPort.service.AuditService;
 import AirPort.service.MenuAuthService;
-import AirPort.service.VisitService;
 import AirPort.service.VisitBiostarService;
+import AirPort.service.VisitRosterService;
+import AirPort.service.VisitService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * 방문 엄격 정책 단위 테스트 — (1) 퇴실은 BiostarX 비활성화 성공해야 진행(실패=예외, 카드 회수 안 함), (2) 입실중(VS03)엔 카드
- * 교환만 허용(회수·방문객 제외 금지). DB/Spring 없이 mock.
+ * 방문 엄격 정책 단위 테스트 — (1) 퇴실은 BiostarX 비활성화 성공해야 진행(실패=예외, 카드 회수 안 함), (2) 입실중(VS03)엔 카드 교환만
+ * 허용(회수·방문객 제외 금지). DB/Spring 없이 mock.
  */
 class VisitServiceStrictTest {
 
@@ -39,14 +40,23 @@ class VisitServiceStrictTest {
   private final TbCardMapper cardMapper = mock(TbCardMapper.class);
   private final TbCommonMapper commonMapper = mock(TbCommonMapper.class);
   private final VisitBiostarService visitBiostar = mock(VisitBiostarService.class);
+  private final VisitRosterService roster = mock(VisitRosterService.class);
   private final AcGroupService acGroupService = mock(AcGroupService.class);
   private final MenuAuthService menuAuthService = mock(MenuAuthService.class);
   private final AuditService auditService = mock(AuditService.class);
 
   private VisitService service() {
     return new VisitService(
-        visitMapper, personMapper, carMapper, cardMapper, commonMapper,
-        visitBiostar, acGroupService, menuAuthService, auditService);
+        visitMapper,
+        personMapper,
+        carMapper,
+        cardMapper,
+        commonMapper,
+        visitBiostar,
+        roster,
+        acGroupService,
+        menuAuthService,
+        auditService);
   }
 
   private static TbVisit visit(String status) {

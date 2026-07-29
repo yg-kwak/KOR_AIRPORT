@@ -5,6 +5,7 @@
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
 - [x] 임시·장기 방문객 탭에 인원ID 표시 — 방문객이 BiostarX 사용자로 편입되면 부여되는 인원ID(=biostar_user_id)를 방문객 탭 성명 왼쪽에 읽기전용 컬럼으로 노출(신규는 '저장 후 부여'). 성명·생년월일·카드 폭을 줄여 공간 확보. detail 이 이미 personId 반환하므로 프론트만 변경(visitor.html/js 공유) — sjpark2, 2026-07-28
+- [x] 서비스 분리 리팩터 + userExists 3상(리뷰 🔴/🟡 후속) — spotless↔500줄 제한 상충 해소: PersonBiostarService(인원 BiostarX 동기화 전담)·VisitRosterService(방문 로스터 저장 전담) 분리, 전체 spotlessApply 적용(드리프트 38파일 해소, spotlessCheck+code-lint+테스트 동시 그린). userExists 통신오류를 BiostarSessionException 으로 전파해 퇴실·삭제 strict 경로가 장비 전면 장애에서도 롤백 — sjpark2, 2026-07-29
 - [x] BiostarX 정합성 강화(감사 후속) — (1) 퇴실·인원삭제·방문삭제도 등록처럼 실패=롤백+사유 예외(장비 유령/이중사용 방지), 실패는 AuditService.logAlways(REQUIRES_NEW)로 롤백돼도 tb_system_log 에 기록. (2) 카드 블랙리스트 동기화 실패=롤백+감사(분실카드 장비 유효 방지). (3) 기관 그룹 미연동 상태로 수정 저장 시 안내 경고(자동생성 안 함). (4) 채번 레이스: 방문객 IS채번은 1회 재채번-재시도, 인원/기관/카드번호 PK 충돌은 친화 메시지로 변환. (5) 입실중(VS03)은 카드 교환만 허용(회수·방문객 제외는 퇴실로만). VisitServiceStrictTest 2건 추가(총 20 그린) — sjpark2, 2026-07-29
 - [x] 카드 인쇄를 클라이언트 브라우저 인쇄로 전환 — 서버 Java(PrinterJob)로는 드라이버 여백(오른쪽/아래 흰줄)·래스터화 붉은점을 못 없앰. 참조 카드SW처럼 브라우저 window.print(@page margin:0 + object-fit:fill)로 전환(프린터가 클라이언트 PC). 서버는 앞/뒤 PNG 렌더+감사만, 일괄은 대상 전원 이미지 반환. CardPrintAdapter는 템플릿 로더로 축소, 서버 인쇄 설정(프린터명/오프셋/배율) 제거. #cardPrintArea + @media print CSS 추가 — sjpark2, 2026-07-29
 - [x] 카드 인쇄 아티팩트·여백 수정 — (1) 인쇄만 붉은 점/깨짐(미리보기 정상): 렌더 이미지 ARGB를 인쇄 전 불투명 RGB로 평탄화(드라이버 알파 아티팩트 제거)+보간 BILINEAR. (2) 오른쪽/아래 안 채워짐: 인쇄가능영역→전체 용지(getWidth/Height) 기준 stretch-fill로 변경 — sjpark2, 2026-07-29

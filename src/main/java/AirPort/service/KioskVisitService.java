@@ -18,14 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 키오스크(무인증) 방문 신청 오케스트레이션 — 로그인 없이 인솔자·방문구역·방문객·차량을 접수한다. (docs/security.md)
  *
- * <p>임시(PT02)·신청(VS01) tb_visit 로 저장되어 관리자 임시인원등록에 뜨고, 관리자가 확인 후 카드를 부여한다(BiostarX
- * 연동은 그때). 여기서는 카드·BiostarX 쓰기가 없다. 행 매핑/방문객·차량 생성은 {@link VisitService} 의 재사용
- * 헬퍼(package-private)를 그대로 쓴다.
+ * <p>임시(PT02)·신청(VS01) tb_visit 로 저장되어 관리자 임시인원등록에 뜨고, 관리자가 확인 후 카드를 부여한다(BiostarX 연동은 그때). 여기서는
+ * 카드·BiostarX 쓰기가 없다. 행 매핑/방문객·차량 생성은 {@link VisitService} 의 재사용 헬퍼(package-private)를 그대로 쓴다.
  */
 @Service
 public class KioskVisitService {
 
   private final VisitService visitService;
+  private final VisitRosterService roster;
   private final TbVisitMapper visitMapper;
   private final AcGroupService acGroupService;
   private final TbCommonMapper commonMapper;
@@ -33,11 +33,13 @@ public class KioskVisitService {
 
   public KioskVisitService(
       VisitService visitService,
+      VisitRosterService roster,
       TbVisitMapper visitMapper,
       AcGroupService acGroupService,
       TbCommonMapper commonMapper,
       AuditService auditService) {
     this.visitService = visitService;
+    this.roster = roster;
     this.visitMapper = visitMapper;
     this.acGroupService = acGroupService;
     this.commonMapper = commonMapper;
@@ -89,10 +91,10 @@ public class KioskVisitService {
       visitMapper.insertCarAcGroups(visitNo, form.getCarAcCodes());
     }
     for (VisitorForm vf : visitors) {
-      visitMapper.insertPerson(visitNo, visitService.upsertVisitor(vf, form));
+      visitMapper.insertPerson(visitNo, roster.upsertVisitor(vf, form));
     }
     for (VisitCarForm cf : cars) {
-      visitMapper.insertCar(visitNo, visitService.insertVisitCar(cf, form));
+      visitMapper.insertCar(visitNo, roster.insertVisitCar(cf, form));
     }
     auditService.log(null, AuditService.CREATE, null, "키오스크 방문 신청: " + visitNo);
     return visitNo;

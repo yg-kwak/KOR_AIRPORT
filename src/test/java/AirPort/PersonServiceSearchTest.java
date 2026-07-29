@@ -16,8 +16,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * 정규인원 검색의 성명 완전일치 배선 단위 테스트 — 암호화 컬럼(person_name)은 부분검색 불가라, 서비스가 keyword 를 trim 후 ARIA
- * 암호화해 {@code keywordEnc} 로 넘긴다(매퍼는 {@code = #{keywordEnc}} 로 비교). DB/Spring 없이 매퍼 mock 으로 확인.
+ * 정규인원 검색의 성명 완전일치 배선 단위 테스트 — 암호화 컬럼(person_name)은 부분검색 불가라, 서비스가 keyword 를 trim 후 ARIA 암호화해
+ * {@code keywordEnc} 로 넘긴다(매퍼는 {@code = #{keywordEnc}} 로 비교). DB/Spring 없이 매퍼 mock 으로 확인.
  */
 class PersonServiceSearchTest {
 
@@ -32,8 +32,7 @@ class PersonServiceSearchTest {
     when(personMapper.selectList(any())).thenReturn(List.of());
     AuditService audit = mock(AuditService.class);
     // list() 는 personMapper·auditService·ARIA(static) 만 사용 → 나머지 의존성은 null 로 충분
-    return new PersonService(
-        personMapper, null, null, null, null, null, null, null, null, null, audit, null);
+    return new PersonService(personMapper, null, null, null, null, null, audit, null);
   }
 
   @Test
@@ -42,8 +41,7 @@ class PersonServiceSearchTest {
     PersonSearchParam p = new PersonSearchParam();
     p.setKeyword("  홍길동  ");
     service(personMapper).list(p, null, 201);
-    assertEquals(
-        ARIAUtil.ariaEncrypt("홍길동"), p.getKeywordEnc(), "앞뒤 공백 제거 후 암호화(완전일치 매칭)");
+    assertEquals(ARIAUtil.ariaEncrypt("홍길동"), p.getKeywordEnc(), "앞뒤 공백 제거 후 암호화(완전일치 매칭)");
   }
 
   @Test

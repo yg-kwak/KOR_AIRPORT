@@ -2,8 +2,8 @@ package AirPort.service;
 
 import AirPort.adapter.BiostarResult;
 import AirPort.adapter.BiostarUserAdapter;
-import AirPort.adapter.BiostarUserRequest;
 import AirPort.adapter.BiostarUserCard;
+import AirPort.adapter.BiostarUserRequest;
 import AirPort.mapper.TbAcGroupMapper;
 import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbCommonMapper;
@@ -20,8 +20,8 @@ import org.springframework.stereotype.Service;
  * 방문객 ↔ BiostarX 동기화 — 저장 시 방문객(tb_person)을 <b>visit_type(PT)→PTD.code_tag 부모 그룹 아래</b>로 편입한다.
  * 정규(기관 그룹)와 달리 중간 기관 그룹을 만들지 않는다. (docs/integration.md)
  *
- * <p>연동 실패해도 방문 저장은 유지하고 경고만 돌려준다(정규 인원과 동일 정책). 출입그룹 access_groups 의 최상위→하위
- * materialize 는 승인 단계 과제로 남긴다(여기서는 부모 그룹 편입 + 작업기간 전파까지).
+ * <p>저장(syncVisitors)은 실패해도 방문을 유지하고 경고만 돌려준다(장비에 없으면 출입 불가라 안전한 방향 + 재저장 upsert 자가치유).
+ * 퇴실(disable)·삭제(delete)는 실패 시 호출자가 롤백한다(정합성 우선). 출입그룹 materialize 는 승인 단계 과제로 남긴다.
  */
 @Service
 public class VisitBiostarService {
@@ -113,24 +113,28 @@ public class VisitBiostarService {
               null,
               null,
               cards);
-      boolean exists = biostarUserAdapter.userExists(ip, id, pw, pid);
-      BiostarResult res =
-          exists
-              ? biostarUserAdapter.updateUser(ip, id, pw, empty(pid), req)
-              : biostarUserAdapter.createUser(ip, id, pw, req);
-      if (!res.success()) {
-        fails.add(pid + "(" + res.message() + ")");
-      } else {
-        personMapper.updateBiostarUserId(pid, pid);
+      try {
+        boolean exists = biostarUserAdapter.userExists(ip, id, pw, pid);
+        BiostarResult res =
+            exists
+                ? biostarUserAdapter.updateUser(ip, id, pw, empty(pid), req)
+                : biostarUserAdapter.createUser(ip, id, pw, req);
+        if (!res.success()) {
+          fails.add(pid + "(" + res.message() + ")");
+        } else {
+          personMapper.updateBiostarUserId(pid, pid);
+        }
+      } catch (AirPort.adapter.BiostarSessionException e) {
+        fails.add(pid + "(" + e.getMessage() + ")"); // 통신·세션 오류도 실패로 집계(성공 오판 방지)
       }
     }
     return fails.isEmpty() ? null : String.join(", ", fails);
   }
 
   /**
-   * 방문객 BiostarX 사용자 삭제(방문 삭제 시) — 부모 그룹에서 제거. 실패해도 방문 삭제는 진행되며 경고만 반환.
+   * 방문객 BiostarX 사용자 삭제(방문 삭제 시) — 부모 그룹에서 제거. 통신 오류도 실패로 집계한다.
    *
-   * @return 실패 방문객이 있으면 경고 문자열, 전부 성공/미대상이면 null
+   * @return 실패 방문객이 있으면 경고 문자열(호출자가 롤백), 전부 성공/미대상이면 null
    */
   public String deleteVisitors(String visitType, List<String> personIds) {
     if (personIds == null || personIds.isEmpty()) {
@@ -147,22 +151,26 @@ public class VisitBiostarService {
 
     List<String> fails = new java.util.ArrayList<>();
     for (String pid : personIds) {
-      if (!biostarUserAdapter.userExists(ip, id, pw, pid)) {
-        continue;
-      }
-      BiostarResult res = biostarUserAdapter.deleteUser(ip, id, pw, pid, parentGroupId);
-      if (!res.success()) {
-        fails.add(pid + "(" + res.message() + ")");
+      try {
+        if (!biostarUserAdapter.userExists(ip, id, pw, pid)) {
+          continue; // 장비에 없음(미동기) — 삭제 대상 아님
+        }
+        BiostarResult res = biostarUserAdapter.deleteUser(ip, id, pw, pid, parentGroupId);
+        if (!res.success()) {
+          fails.add(pid + "(" + res.message() + ")");
+        }
+      } catch (AirPort.adapter.BiostarSessionException e) {
+        fails.add(pid + "(" + e.getMessage() + ")"); // 통신·세션 오류 — '없음'으로 오판하지 않는다
       }
     }
     return fails.isEmpty() ? null : String.join(", ", fails);
   }
 
   /**
-   * 방문객 BiostarX 사용자 비활성화(퇴실) — {@code disabled=true} 로 바꾸고 부착 카드를 제거해 카드를 재대여 가능하게 한다.
-   * 사용자·출입그룹은 남겨 이력을 유지하되 출입은 막는다. 실패해도 퇴실은 진행되며 경고만 반환.
+   * 방문객 BiostarX 사용자 비활성화(퇴실) — {@code disabled=true} 로 바꾸고 부착 카드를 제거해 카드를 재대여 가능하게 한다. 사용자·출입그룹은
+   * 남겨 이력을 유지하되 출입은 막는다. 통신 오류도 실패로 집계한다.
    *
-   * @return 실패 방문객이 있으면 경고 문자열, 전부 성공/미대상이면 null
+   * @return 실패 방문객이 있으면 경고 문자열(호출자가 롤백), 전부 성공/미대상이면 null
    */
   public String disableVisitors(List<String> personIds) {
     if (personIds == null || personIds.isEmpty()) {
@@ -178,7 +186,12 @@ public class VisitBiostarService {
 
     List<String> fails = new java.util.ArrayList<>();
     for (String pid : personIds) {
-      if (!biostarUserAdapter.userExists(ip, id, pw, pid)) {
+      try {
+        if (!biostarUserAdapter.userExists(ip, id, pw, pid)) {
+          continue; // 장비에 없음(미동기) — 비활성화 대상 아님
+        }
+      } catch (AirPort.adapter.BiostarSessionException e) {
+        fails.add(pid + "(" + e.getMessage() + ")"); // 통신·세션 오류 — '없음'으로 오판하지 않는다
         continue;
       }
       // before 에 현재 카드를 담아야 after=[] 로 장비에서 카드가 제거된다(대여 가능화).
