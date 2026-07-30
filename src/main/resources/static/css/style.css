@@ -545,12 +545,25 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .modal-footer-left { margin-right: auto; } /* 삭제 등 파괴적 동작은 확인/저장과 떨어뜨린다 */
 .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--color-tertiary-active); flex: none; }
 
-/* 로그인 */
-.login-body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-.login-card { background: var(--color-white); border: 1px solid var(--color-tertiary-active); border-radius: var(--radius-lg); padding: 36px; width: 360px; box-shadow: 0 4px 20px var(--nt-shadow); }
-.login-title { font-size: 20px; font-weight: 700; text-align: center; margin: 0 0 24px; }
+/* 로그인 — 옅은 배경 위 흰 카드(키오스크 화면과 같은 톤). html 흰 배경 때문에 body 배경이 전파되지 않아
+   min-height 로 화면 전체를 덮는다. */
+.login-body { display: flex; align-items: center; justify-content: center; min-height: 100vh;
+  background: var(--color-tertiary-hover); padding: 24px; }
+.login-wrap { width: 380px; max-width: 100%; }
+
+/* 상단 브랜딩 — 로고 + 시스템명 + 영문 부제 */
+.login-brand { text-align: center; margin-bottom: 20px; }
+.login-logo { height: 38px; width: auto; display: block; margin: 0 auto 14px; }
+.login-title { font-size: 21px; font-weight: 700; margin: 0 0 6px; }
+.login-sub { font-size: 11px; letter-spacing: .08em; color: var(--neutral-500); margin: 0; }
+
+.login-card { background: var(--color-white); border: 1px solid var(--color-tertiary-active);
+  border-radius: var(--radius-lg); padding: 32px 28px; box-shadow: 0 4px 20px var(--nt-shadow); }
 .login-form .form-group { margin-bottom: 16px; }
+.login-form .input { height: 42px; } /* 로그인은 입력을 조금 크게 */
+.login-submit { height: 44px; font-size: 15px; margin-top: 4px; }
 .login-error { color: var(--color-error); font-size: 13px; margin: 0 0 12px; }
+.login-footer { text-align: center; font-size: 12px; color: var(--neutral-500); margin-top: 18px; }
 
 /* 카드 브라우저 인쇄 — 프린터가 클라이언트 PC. @page margin:0 + object-fit:fill 로 카드에 여백 없이 꽉 차게(참조앱과 동일) */
 #cardPrintArea { display: none; }
