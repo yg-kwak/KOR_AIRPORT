@@ -39,7 +39,7 @@
         return `<tr class="row-click" data-no="${r.visitNo}">
           <td>${r.visitNo}</td><td>${esc(r.visitTypeName)}</td><td>${esc(r.companyName)}</td>
           <td>${esc(period)}</td><td>${r.personCount || 0}</td><td>${r.carCount || 0}</td>
-          <td>${esc(r.statusName)}</td>
+          <td>${badge.visitStatus(r.statusCode, r.statusName)}</td>
           <td>${r.statusCode === 'VS03' && PERM.canCreate ? `<button class="btn btn-sm" data-act="checkout" data-id="${r.visitNo}">퇴실</button>` : '-'}</td>
         </tr>`;
       }).join('');
@@ -90,7 +90,7 @@
 
   // 카드 셀 — 선택된 카드번호 표시 + 선택 버튼(팝업). kind=vis|car
   function cardCell(obj, i, kind) {
-    const label = obj.cardId ? esc(obj.cardLabel || obj.cardId) : (obj.lastCardNo ? `<span class="form-hint">회수됨(${esc(obj.lastCardNo)})</span>` : '<span class="form-hint">카드 없음</span>');
+    const label = obj.cardId ? esc(obj.cardLabel || obj.cardId) : badge.none(obj.lastCardNo ? `회수됨(${obj.lastCardNo})` : '카드 없음');
     return `<div class="file-field-row">
       <span class="card-picked" data-i="${i}" style="min-width:90px">${label}</span>
       <button type="button" class="btn btn-sm" data-act="${kind}-card" data-idx="${i}">선택</button></div>`;
@@ -116,7 +116,7 @@
   function visRender() {
     $('visBody').innerHTML = visitors.length
       ? visitors.map((v, i) => `<tr>
-          <td>${v.personId ? esc(v.personId) : '<span class="form-hint">저장 후 부여</span>'}</td>
+          <td>${v.personId ? esc(v.personId) : badge.none('저장 후 부여')}</td>
           <td><input class="input" data-f="personName" data-i="${i}" value="${esc(v.personName)}"/></td>
           <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="1990-01-01" value="${esc(v.birthDate)}"/></td>
           <td><input class="input" data-f="affiliation" data-i="${i}" value="${esc(v.affiliation)}"/></td>

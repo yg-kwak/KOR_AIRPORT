@@ -9,6 +9,11 @@
   --nt-red: #ff4d4f;
   --nt-green: #52c41a;
   --nt-amber: #faad14;
+  /* 상태 배지용 옅은 서피스/보더 (Ant Design 계열) */
+  --nt-blue-bg: #e6f4ff;  --nt-blue-border: #91caff;
+  --nt-green-bg: #f6ffed; --nt-green-border: #b7eb8f;
+  --nt-amber-bg: #fffbe6; --nt-amber-border: #ffe58f;
+  --nt-red-bg: #fff2f0;   --nt-red-border: #ffccc7;
   --nt-text: #1f1f1f;        /* 본문 — 거의 검정(대비 최상) */
   --nt-text-2: #595959;      /* 보조 텍스트 */
   --nt-text-3: #8c8c8c;      /* 흐린 텍스트 */
@@ -45,6 +50,18 @@
   --color-error: var(--nt-red);
   --color-black: var(--nt-text);
   --color-white: #ffffff;
+  /* 상태 표시(배지) 역할 토큰 — 컴포넌트는 팔레트 대신 이것만 쓴다 */
+  --color-info: var(--nt-blue-active);
+  --color-info-bg: var(--nt-blue-bg);
+  --color-info-border: var(--nt-blue-border);
+  --color-success: #389e0d;
+  --color-success-bg: var(--nt-green-bg);
+  --color-success-border: var(--nt-green-border);
+  --color-warning: #ad6800;
+  --color-warning-bg: var(--nt-amber-bg);
+  --color-warning-border: var(--nt-amber-border);
+  --color-error-bg: var(--nt-red-bg);
+  --color-error-border: var(--nt-red-border);
 
   /* ===== 라운드 ===== */
   --radius-sm: 4px;
@@ -544,6 +561,21 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .modal-body { padding: 20px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
 .modal-footer-left { margin-right: auto; } /* 삭제 등 파괴적 동작은 확인/저장과 떨어뜨린다 */
 .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--color-tertiary-active); flex: none; }
+
+/* 상태 배지 — 목록의 상태·유무 구분. 색만으로 구분하지 않는다(점 모양·테두리도 함께 달라진다):
+   ● 채운 원=진행/유효, ■ 사각=완료, ○ 빈 원+점선 테두리=없음/미발급. */
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 0 9px 0 7px; height: 22px;
+  border: 1px solid var(--color-tertiary-active); border-radius: 11px; font-size: 12px; font-weight: 600;
+  white-space: nowrap; background: var(--color-tertiary-hover); color: var(--neutral-700); }
+.badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.badge-info { background: var(--color-info-bg); border-color: var(--color-info-border); color: var(--color-info); }
+.badge-success { background: var(--color-success-bg); border-color: var(--color-success-border); color: var(--color-success); }
+.badge-warning { background: var(--color-warning-bg); border-color: var(--color-warning-border); color: var(--color-warning); }
+.badge-error { background: var(--color-error-bg); border-color: var(--color-error-border); color: var(--color-error); }
+.badge-done::before { border-radius: 1px; } /* 완료 = 사각 점 */
+.badge-none { background: transparent; border-style: dashed; color: var(--neutral-500); font-weight: 500; }
+.badge-none::before { background: transparent; border: 1px solid currentColor; } /* 없음 = 빈 원 */
+.grid td .badge { vertical-align: middle; }
 
 /* 로그인 — 옅은 배경 위 흰 카드(키오스크 화면과 같은 톤). html 흰 배경 때문에 body 배경이 전파되지 않아
    min-height 로 화면 전체를 덮는다. */

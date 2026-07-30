@@ -32,6 +32,7 @@
 ```
 - 본문 텍스트: `--color-black`(거의 검정) / 보조: `--neutral-700~500` / 위험·실패: `--color-error`.
 - 상태색(토스트): success=녹, error=적, warning=황.
+- 상태 배지 토큰: `--color-info/-success/-warning` + 각 `-bg`/`-border`(옅은 배경·보더), `--color-error-bg/-border`. 컴포넌트는 팔레트(`--nt-*`) 대신 이 역할 토큰만 쓴다.
 
 ## 🎨 다른 테마로 교체하려면
 1. getdesign.md 등에서 팔레트를 골라 **`--nt-*` 원천값**을 교체(그리고 필요 시 역할 토큰 매핑 조정).
@@ -64,6 +65,7 @@
 - **토스트/모달/확인·입력 모달**: 공통 컴포넌트(`js/core/*`). 토스트는 다크 서피스(`--toast-*`).
 - **테이블**: 헤더 배경 `--color-tertiary-hover`, 행 구분선 `--color-tertiary-active`, hover 강조. 셀 정렬·폭은 `.w-*` 유틸.
 - **모달(modal)**: 오버레이 + `.modal-container`(small/기본), 헤더(title+닫기 아이콘)/바디/푸터 구조. 공통 조각으로 재사용(`frontend.md`).
+- **상태 배지(`.badge`)**: 목록의 상태·유무 표시. 톤=info(파랑, 수량·정보) / success(녹, 유효·사용) / warning(황, 처리 대기) / error(적, 오류) / done(회색 사각점, 완료) / none(회색 점선+빈 점, 없음·미발급). **색약 대비로 색 외에 점 모양·테두리도 함께 다르게** 한다. 방문상태 매핑은 `js/core/badge.js`.
 - **페이지 레이아웃**: 탭/iframe 없이 **독립 페이지**. 고정 헤더 + 좌측 사이드바 + 본문 영역을 공통 조각(head/main/sidebar)으로 조합.
 - **사이드바(LNB)**: 트리 메뉴, 권한(`tb_menu_auth_detail`)에 따라 노출. 현재 메뉴 활성 강조.
 

@@ -78,7 +78,7 @@
         <td>${esc(r.passTypeName)}</td>
         <td>${esc(r.cardName)}</td>
         <td>${esc(r.cardStatusName)}</td>
-        <td>${esc(holder) || '<span class="form-hint">미발급</span>'}</td>
+        <td>${esc(holder) || badge.none('미발급')}</td>
         <td>${esc(fmtDt(r.regDt))}</td>
         <td>${actions}</td>
       </tr>`;

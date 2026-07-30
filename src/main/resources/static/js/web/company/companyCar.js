@@ -58,8 +58,8 @@
         <td>${esc(r.companyCode)}</td>
         <td>${esc(r.companyName)}</td>
         <td>${esc(r.companyTypeName)}</td>
-        <td>${r.carCount > 0 ? esc(r.carCount) + '대' : '<span class="form-hint">없음</span>'}</td>
-        <td>${r.useYn === 'Y' ? '사용' : '미사용'}</td>
+        <td>${r.carCount > 0 ? badge.count(r.carCount, '대') : badge.none('없음')}</td>
+        <td>${r.useYn === 'Y' ? badge.of('사용', 'success') : badge.none('미사용')}</td>
         <td>${esc(fmtDt(r.regDt))}</td>
       </tr>`).join('');
   }
@@ -111,9 +111,9 @@
           <td>${esc(c.carNo)}</td>
           <td>${esc(c.carName)}</td>
           <td>${esc(c.carTypeName)}</td>
-          <td>${esc(c.carManagerName) || '<span class="form-hint">미지정</span>'}</td>
-          <td>${esc(c.acCodeNames) || '<span class="form-hint">없음</span>'}</td>
-          <td>${c.cardCount > 0 ? esc(c.cardCount) + '장' : '<span class="form-hint">없음</span>'}</td>
+          <td>${esc(c.carManagerName) || badge.none('미지정')}</td>
+          <td>${esc(c.acCodeNames) || badge.none('없음')}</td>
+          <td>${c.cardCount > 0 ? badge.count(c.cardCount, '장') : badge.none('미발급')}</td>
         </tr>`).join('')
       : '<tr><td colspan="6" class="empty">등록된 차량이 없습니다.</td></tr>';
     load(); // 기관 목록의 등록차량 수 갱신
