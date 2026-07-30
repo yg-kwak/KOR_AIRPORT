@@ -68,8 +68,17 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_y
   ('PS', N'인원상태', '03', N'퇴사', 'true',  'Y'),
   ('PS', N'인원상태', '04', N'회수', 'true',  'Y');
 
+/* 직위(UT) — code_name 이 BiostarX 사용자의 user_title 로 그대로 전달된다.
+   기본 5개만 넣고, 그 외 직위는 운영에서 공통코드관리로 추가한다 */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
+  ('UT', N'직위', 'UT01', N'사원', 'Y'),
+  ('UT', N'직위', 'UT02', N'대리', 'Y'),
+  ('UT', N'직위', 'UT03', N'과장', 'Y'),
+  ('UT', N'직위', 'UT04', N'차장', 'Y'),
+  ('UT', N'직위', 'UT05', N'부장', 'Y');
+
 /* 카드상태(CS) — 카드 상태의 진실의 원천(tb_card.card_status 단일 컬럼).
-   카드구분(CDT)·직위(UT)는 운영에서 직접 등록하므로 시드하지 않는다 (공통코드관리) */
+   카드구분(CDT)은 운영에서 직접 등록하므로 시드하지 않는다 (공통코드관리) */
 INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
   ('CS', N'카드상태', 'CS01', N'정상', 'Y'),
   ('CS', N'카드상태', 'CS02', N'분실', 'Y'),

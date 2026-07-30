@@ -387,6 +387,7 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 ## 마이그레이션
 - 스키마 원천: `D:\작업\2026\청주공항\설계\table.xlsx` (설계) → 본 문서 → 실행 스크립트 `sql/`.
 - **DDL: `sql/ddl/01_tables.sql`**, **seed: `sql/seed/02_seed.sql`**(공통코드 AT/LO, 메뉴, 관리자 계정 admin/admin123).
+- 공통코드 시드 범위: 상태·구분 계열(PS/CS/VS/IS/PT/PTD 등)과 **직위(UT: 사원·대리·과장·차장·부장)** 는 기본값을 넣는다. **카드구분(CDT)** 은 현장마다 달라 시드하지 않고 공통코드관리에서 등록한다. UT 의 `code_name` 은 BiostarX `user_title` 로 전달된다.
 - TODO: 스키마 형상관리 자동화(Flyway 등) 도입 여부.
 
 
