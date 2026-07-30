@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -97,5 +98,55 @@ class CardBlacklistSyncTest {
 
     assertDoesNotThrow(() -> service().updateCard(card("CS01"), null, 801));
     verify(auditService).logAlways(any(), any(), any(), any()); // 실패는 감사에 남긴다
+  }
+
+  @Test
+  void 장비_미등록_인원카드는_발급_시점에_등록한다() {
+    TbCard unregistered = card("CS01");
+    unregistered.setBiostarCardId(null); // 장비 미등록(테스트 시드 카드 등)
+    when(cardMapper.selectById(10)).thenReturn(unregistered);
+    when(adapter.createCard(anyString(), anyString(), any(), eq("11111111")))
+        .thenReturn(AirPort.adapter.BiostarCard.ok("99", "11111111"));
+
+    org.springframework.transaction.support.TransactionSynchronizationManager
+        .setActualTransactionActive(true);
+    try {
+      service().ensureBiostarCard(10, null, 801);
+    } finally {
+      org.springframework.transaction.support.TransactionSynchronizationManager
+          .setActualTransactionActive(false);
+    }
+    verify(cardMapper).updateBiostarCardId(10, "99"); // 등록 후 id 저장
+  }
+
+  @Test
+  void 장비_등록_실패면_예외로_발급이_취소된다() {
+    TbCard unregistered = card("CS01");
+    unregistered.setBiostarCardId(null);
+    when(cardMapper.selectById(10)).thenReturn(unregistered);
+    when(adapter.createCard(anyString(), anyString(), any(), eq("11111111")))
+        .thenReturn(AirPort.adapter.BiostarCard.fail("HTTP 500"));
+
+    org.springframework.transaction.support.TransactionSynchronizationManager
+        .setActualTransactionActive(true);
+    try {
+      BusinessException ex =
+          assertThrows(BusinessException.class, () -> service().ensureBiostarCard(10, null, 801));
+      assertTrue(ex.getMessage().contains("카드 등록 실패"));
+    } finally {
+      org.springframework.transaction.support.TransactionSynchronizationManager
+          .setActualTransactionActive(false);
+    }
+    verify(cardMapper, never()).updateBiostarCardId(anyInt(), anyString());
+  }
+
+  @Test
+  void 차량카드는_장비_등록_대상이_아니다() {
+    TbCard carCard = card("CS01");
+    carCard.setCardType("CDT02");
+    carCard.setBiostarCardId(null);
+    when(cardMapper.selectById(10)).thenReturn(carCard);
+    service().ensureBiostarCard(10, null, 801);
+    verify(adapter, never()).createCard(anyString(), anyString(), any(), anyString());
   }
 }

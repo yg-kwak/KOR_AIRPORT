@@ -113,7 +113,7 @@ public class PersonService {
     }
     saveAcGroups(form.getPersonId(), form.getAcGroupIds());
     personFileService.apply(form);
-    cardService.saveCards(form.getPersonId(), form.getCards());
+    cardService.saveCards(form.getPersonId(), form.getCards(), actor, menuId);
     // BiostarX 동기화 실패면 등록 취소(롤백) — 장비-DB 정합성이 최우선
     String fail =
         personBiostar.syncPersonToBiostar(form, PersonBiostarService.empty(form.getPersonId()));
@@ -164,7 +164,7 @@ public class PersonService {
     }
     saveAcGroups(form.getPersonId(), form.getAcGroupIds());
     personFileService.apply(form);
-    cardService.saveCards(form.getPersonId(), form.getCards());
+    cardService.saveCards(form.getPersonId(), form.getCards(), actor, menuId);
     // BiostarX 동기화 실패면 수정 취소(롤백) — before 대비 변경분 전송, 장비에 없으면 새로 등록
     String fail = personBiostar.syncPersonToBiostar(form, before);
     if (fail != null) {

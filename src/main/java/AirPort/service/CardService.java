@@ -178,7 +178,31 @@ public class CardService {
           ErrorCode.INVALID_INPUT, "BiostarX 카드 등록 실패: " + issued.message());
     }
     cardMapper.updateBiostarCardId(row.getCardId(), issued.biostarCardId());
+    row.setBiostarCardId(issued.biostarCardId()); // 호출자가 이어서 payload 를 만들 수 있게 반영
     auditService.log(actor, AuditService.CREATE, menuId, "BiostarX 카드 등록: " + issued.cardNo());
+  }
+
+  /**
+   * 인원에게 부여할 카드가 <b>BiostarX 에 미등록이면 지금 등록</b>해 {@code biostar_card_id} 를 채운다 — 실패하면 예외로 저장을 롤백하고
+   * 사유를 알린다(장비에 없는 카드를 부여해 실제로는 문이 열리지 않는 상태 방지).
+   *
+   * <p>차량 카드(CDT02)는 BiostarX 대상이 아니므로 건너뛴다. 활성 트랜잭션 안에서 호출해야 롤백이 보장된다.
+   */
+  public void ensureBiostarCard(Integer cardId, TbLoginUser actor, Integer menuId) {
+    if (cardId == null) {
+      return;
+    }
+    TbCard card = cardMapper.selectById(cardId);
+    if (card == null || "Y".equals(card.getDelYn())) {
+      throw new BusinessException(ErrorCode.NOT_FOUND, "발급할 카드를 찾을 수 없습니다.");
+    }
+    if (CARD_TYPE_CAR.equals(card.getCardType())) {
+      return; // 차량 카드는 장비 미등록이 정상
+    }
+    if (card.getBiostarCardId() != null && !card.getBiostarCardId().isBlank()) {
+      return; // 이미 장비에 등록된 카드
+    }
+    registerBiostar(card, actor, menuId); // 실패 시 BusinessException → 트랜잭션 롤백
   }
 
   /** 카드 수정 — 카드번호·BiostarX 식별자·할당 인원은 바꾸지 않는다(실물 카드). */
@@ -308,7 +332,7 @@ public class CardService {
    * <p>기존 카드를 전부 <b>회수(미배정)</b>한 뒤 화면에 남아 있는 것만 다시 붙인다(새 카드=INSERT, 기존 카드=UPDATE). 목록에서 제외된 카드는
    * 삭제되지 않고 {@code person_id=NULL, use_yn='Y', del_yn='N'} 로 남아 <b>다른 인원이 재사용</b>할 수 있다.
    */
-  public void saveCards(String personId, List<CardForm> cards) {
+  public void saveCards(String personId, List<CardForm> cards, TbLoginUser actor, Integer menuId) {
     cardMapper.releaseByPerson(personId);
     if (cards == null) {
       return;
@@ -343,6 +367,15 @@ public class CardService {
       } else {
         cardMapper.update(row); // update 가 person_id 재배정 + del_yn='N' 복원
         form.setCardId(row.getCardId());
+      }
+      // 장비 미등록 인원카드면 지금 등록해 사용자에게 부여 가능하게 한다(실패 시 예외 → 저장 취소)
+      ensureBiostarCard(row.getCardId(), actor, menuId);
+      if (row.getBiostarCardId() == null || row.getBiostarCardId().isBlank()) {
+        TbCard saved = cardMapper.selectById(row.getCardId()); // 방금 채워진 biostar_card_id 반영
+        if (saved != null) {
+          row.setBiostarCardId(saved.getBiostarCardId());
+          form.setBiostarCardId(saved.getBiostarCardId());
+        }
       }
       // 차단 여부가 바뀐 경우에만 BiostarX 차단/해제
       syncBlacklist(

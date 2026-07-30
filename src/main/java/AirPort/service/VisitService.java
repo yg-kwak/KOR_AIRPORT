@@ -192,7 +192,7 @@ public class VisitService {
     TbVisit row = toRow(form);
     row.setStatusCode(effectiveStatus(DEFAULT_STATUS, form)); // 상태는 서버가 관리(신청→전원카드 시 입실중)
     visitMapper.insert(row);
-    String warn = roster.saveChildren(row.getVisitNo(), form);
+    String warn = roster.saveChildren(row.getVisitNo(), form, actor, menuId);
     auditService.log(actor, AuditService.CREATE, menuId, "방문 등록: " + row.getVisitNo());
     return warn;
   }
@@ -232,7 +232,7 @@ public class VisitService {
     // 상태는 서버가 관리(사용자 변경 불가) — 기존 상태를 기준으로 전원 카드 발급 시 입실중 승격
     row.setStatusCode(effectiveStatus(existing.getStatusCode(), form));
     visitMapper.update(row);
-    String warn = roster.saveChildren(form.getVisitNo(), form);
+    String warn = roster.saveChildren(form.getVisitNo(), form, actor, menuId);
     auditService.log(actor, AuditService.UPDATE, menuId, "방문 수정: " + form.getVisitNo());
     return warn;
   }

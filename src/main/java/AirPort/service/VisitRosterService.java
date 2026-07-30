@@ -5,6 +5,7 @@ import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbPersonMapper;
 import AirPort.mapper.TbVisitMapper;
 import AirPort.model.TbCar;
+import AirPort.model.TbLoginUser;
 import AirPort.model.TbPerson;
 import AirPort.model.VisitCarForm;
 import AirPort.model.VisitForm;
@@ -27,6 +28,7 @@ public class VisitRosterService {
   private final TbPersonMapper personMapper;
   private final TbCarMapper carMapper;
   private final TbCardMapper cardMapper;
+  private final CardService cardService;
   private final VisitBiostarService visitBiostar;
 
   public VisitRosterService(
@@ -34,16 +36,22 @@ public class VisitRosterService {
       TbPersonMapper personMapper,
       TbCarMapper carMapper,
       TbCardMapper cardMapper,
+      CardService cardService,
       VisitBiostarService visitBiostar) {
     this.visitMapper = visitMapper;
     this.personMapper = personMapper;
     this.carMapper = carMapper;
     this.cardMapper = cardMapper;
+    this.cardService = cardService;
     this.visitBiostar = visitBiostar;
   }
 
-  /** 자식(인솔자·방문객·차량·출입그룹) 전체 재구성 저장. return=BiostarX 동기화 경고(성공/미대상 null). */
-  public String saveChildren(int visitNo, VisitForm form) {
+  /**
+   * 자식(인솔자·방문객·차량·출입그룹) 전체 재구성 저장. return=BiostarX 동기화 경고(성공/미대상 null).
+   *
+   * <p>카드를 부여할 때 장비 미등록 카드면 먼저 BiostarX 에 등록한다(실패 시 예외로 저장 취소).
+   */
+  public String saveChildren(int visitNo, VisitForm form, TbLoginUser actor, Integer menuId) {
     // 인솔자
     visitMapper.deleteManagers(visitNo);
     if (VisitService.notEmpty(form.getManagerIds())) {
@@ -81,6 +89,8 @@ public class VisitRosterService {
         visitMapper.insertPerson(visitNo, pid);
         cardMapper.releaseByPerson(pid); // 이전 카드 해제 후 재배정
         if (vf.getCardId() != null) {
+          // 장비 미등록 카드면 지금 등록 — 실패하면 예외로 저장이 취소된다(문 안 열리는 카드 방지)
+          cardService.ensureBiostarCard(vf.getCardId(), actor, menuId);
           cardMapper.assignPerson(vf.getCardId(), pid);
           visitMapper.updateVisitorLastCard(visitNo, pid, vf.getCardId()); // 마지막 카드 스냅샷
         }

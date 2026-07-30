@@ -405,6 +405,7 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 
 - **채번 영향 없음**: 인원ID·기관코드에 문자를 넣어 숫자형 `MAX+1` 채번(`selectNextPersonId`/`selectNextCompanyCode`)과 방문객 `IS######` 채번에 끼어들지 않는다.
 - **암호화 컬럼**: 성명·생년월일·연락처·대표자는 ARIA 암호문을 미리 계산해 넣는다(ARIA 는 결정적이라 사전 계산 가능). 평문을 넣으면 화면 복호화·완전일치 검색이 깨진다.
+- **시드 카드는 `biostar_card_id` 가 없다**(장비 미등록). 이 카드를 인원·방문객에게 발급하면 저장 시점에 자동으로 BiostarX 에 등록된다(`CardService.ensureBiostarCard` — 실패 시 저장 롤백). 장비 쓰기를 원치 않으면 발급하지 말고 조회 테스트에만 쓴다.
 - **삭제**: `sql/seed/99_test_seed_cleanup.sql` (TST 접두·9xxx 번호만 지운다).
 
 ## 관련 문서
