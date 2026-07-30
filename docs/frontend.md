@@ -68,6 +68,7 @@ src/main/resources/
 - **비밀번호 입력**: `type=password` 면 표시/숨김(눈) 토글 자동 부착(`core/password-toggle.js`). 별도 마크업 불필요.
 - **코드(tb_common) 참조 = 코드 팝업**: `<select>` 대신 공통 코드 팝업. 마크업=코드ID(`type=hidden`)+코드명(`.input.picker-field` readonly, `data-target="{hidden id}"`). 조각 `fragments/components/code-picker-modal` 포함 후 `const sel = await codePicker.open({cmmId, cmmName})`. 서버 조회 `GET /system/common/picker?cmmId=&keyword=`(로그인만 필요). `.picker-field` 는 우측 '삭제' 버튼이 자동 부착됨.
 - **공용 모달/팝업 컴포넌트**: 조각 `fragments/components/{이름}-modal.html`, 짝 스크립트 `static/js/core/components/{이름}-modal.js`. 예: `confirm-modal`·`prompt-modal`·`code-picker-modal`.
+- **확인 모달 키보드 처리**: `confirmModal.open()` 은 열릴 때 **확인 버튼에 포커스**를 주고, 열려 있는 동안 **Enter = 확인**으로 처리한다(`keydown` 을 **캡처 단계**에서 가로채 뒤쪽 화면의 Enter 핸들러(검색 등)가 함께 돌지 않게 한다). 취소는 닫기(×)·오버레이 클릭. 입력 모달(`promptModal`)은 입력칸에서 Enter 로 확인한다.
 - **기관(tb_company) 참조 = 기관 팝업**: 조각 `fragments/components/company-picker-modal` 포함 후 `const sel = await companyPicker.open()` → `{companyCode, companyName}`. 등록 폼과 검색조건 **양쪽 모두** 같은 팝업을 쓴다.
 - **목록 다중선택 = 선택 삭제**: 첫 컬럼에 체크박스(`th` 에 `#checkAll`, 행은 `.row-chk[data-id]`), 1건 이상 선택되면 그리드 툴바의 **등록 왼쪽**에 `#btnDeleteSel`(`선택 삭제 (N)`)가 나타난다. 서버는 `DELETE /{영역}/{stem}/bulk` + JSON 배열 본문(`api.del(url, ids)`)으로 받아 건별 처리하고 실패분만 경고로 모아 돌려준다. 행 클릭(수정) 과 충돌하지 않도록 체크박스 클릭은 선택 토글만 한다.
 - **모달 안 삭제 버튼**: 수정 모드에서만 노출하며 `modal-footer` **좌측**(`.modal-footer-left`)에 두어 취소/저장과 떨어뜨린다. 목록의 행별 삭제 버튼은 두지 않는다(선택 삭제 + 모달 삭제로 일원화).
