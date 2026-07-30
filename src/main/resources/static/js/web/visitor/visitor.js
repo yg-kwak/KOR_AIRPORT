@@ -287,7 +287,7 @@
           <td><input type="radio" name="vcp" value="${i}"/></td>
           <td>${esc(c.biostarCardValue)}</td>
           <td style="text-align:left">${esc(c.cardName)}</td>
-          <td>${esc(c.cardStatusName || '')}</td></tr>`).join('')
+          <td>${badge.cardStatus(c.cardStatus, c.cardStatusName)}</td></tr>`).join('')
       : '<tr><td colspan="4" class="empty">미할당 카드가 없습니다.</td></tr>';
     $('vcpBody').dataset.rows = JSON.stringify(rows);
   }

@@ -142,7 +142,7 @@
         <tr>
           <td>${esc(c.biostarCardValue)}</td>
           <td>${esc(c.cardName)}</td>
-          <td>${esc(c.cardStatusName)}</td>
+          <td>${badge.cardStatus(c.cardStatus, c.cardStatusName)}</td>
           <td><button type="button" class="btn btn-sm btn-danger" data-act="release"
                       data-id="${esc(c.cardId)}">회수</button></td>
         </tr>`).join('')

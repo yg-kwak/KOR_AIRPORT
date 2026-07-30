@@ -65,7 +65,7 @@
 - **토스트/모달/확인·입력 모달**: 공통 컴포넌트(`js/core/*`). 토스트는 다크 서피스(`--toast-*`).
 - **테이블**: 헤더 배경 `--color-tertiary-hover`, 행 구분선 `--color-tertiary-active`, hover 강조. 셀 정렬·폭은 `.w-*` 유틸.
 - **모달(modal)**: 오버레이 + `.modal-container`(small/기본), 헤더(title+닫기 아이콘)/바디/푸터 구조. 공통 조각으로 재사용(`frontend.md`).
-- **상태 배지(`.badge`)**: 목록의 상태·유무 표시. 톤=info(파랑, 수량·정보) / success(녹, 유효·사용) / warning(황, 처리 대기) / error(적, 오류) / done(회색 사각점, 완료) / none(회색 점선+빈 점, 없음·미발급). **색약 대비로 색 외에 점 모양·테두리도 함께 다르게** 한다. 방문상태 매핑은 `js/core/badge.js`.
+- **상태 배지(`.badge`)**: 목록의 상태·유무 표시. 톤=info(파랑, 수량·정보) / success(녹, 유효·사용) / warning(황, 처리 대기) / error(적, 오류) / done(회색 사각점, 완료) / none(회색 점선+빈 점, 없음·미발급). **색약 대비로 색 외에 점 모양·테두리도 함께 다르게** 한다. 코드→톤 매핑은 `js/core/badge.js` — 방문상태 VS01 신청=warning/VS02 취소=none/VS03 입실 중=success/VS04 퇴실 완료=done, 카드상태 CS01 정상=success/CS02 분실=error/CS03 반납=done/CS04 정지=warning/CS05 폐기=none.
 - **페이지 레이아웃**: 탭/iframe 없이 **독립 페이지**. 고정 헤더 + 좌측 사이드바 + 본문 영역을 공통 조각(head/main/sidebar)으로 조합.
 - **사이드바(LNB)**: 트리 메뉴, 권한(`tb_menu_auth_detail`)에 따라 노출. 현재 메뉴 활성 강조.
 

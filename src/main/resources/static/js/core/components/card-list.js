@@ -23,7 +23,7 @@ window.cardList = (function () {
         <td>${esc(c.cardNo)}</td>
         <td>${esc(c.passTypeName)}</td>
         <td>${esc(c.cardName)}</td>
-        <td>${esc(c.cardStatusName)}</td>
+        <td>${badge.cardStatus(c.cardStatus, c.cardStatusName)}</td>
         <td>${canPrint && c.cardId ? `<button type="button" class="btn btn-sm card-list-print" data-idx="${i}">출력</button> ` : ''}<button type="button" class="btn btn-sm btn-danger card-list-del" data-idx="${i}">제외</button></td>
       </tr>`).join('');
   }
@@ -100,7 +100,7 @@ window.cardList = (function () {
           <td>${esc(c.biostarCardValue)}</td>
           <td>${esc(c.passTypeName)}</td>
           <td style="text-align:left">${esc(c.cardName)}</td>
-          <td>${esc(c.cardStatusName)}</td>
+          <td>${badge.cardStatus(c.cardStatus, c.cardStatusName)}</td>
         </tr>`).join('')
       : `<tr><td colspan="5" class="empty">${keyword
         ? '검색 결과가 없습니다.'
