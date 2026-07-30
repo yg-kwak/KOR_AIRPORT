@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="_csrf" th:content="${_csrf != null} ? ${_csrf.token} : ''"/>
   <title>방문자 등록 · 청주공항</title>
+  <link rel="icon" href="/favicon.ico" sizes="any"/>
   <link rel="stylesheet" href="/css/style.css"/>
   <!-- 키오스크(무인증) 전용 최소 스크립트 — 사이드바/헤더 등 관리자 UI 제외 -->
   <script src="/js/core/toast.js" defer></script>
@@ -12,16 +13,26 @@
   <script src="/js/core/components/ac-group-tree.js" defer></script>
   <script src="/js/web/kiosk/visit.js" defer></script>
 </head>
-<body>
+<body class="kiosk-body">
 <div class="kiosk">
   <header class="kiosk-header">
+    <img src="/ic/kac_logo.png" alt="한국공항공사" class="kiosk-logo"/>
     <h1>청주공항 방문자 등록</h1>
+    <p class="kiosk-sub">CHEONGJU AIRPORT · VISITOR REGISTRATION</p>
   </header>
 
   <!-- 시작 화면 -->
   <section class="kiosk-landing" id="landing">
+    <img src="/ic/amblem_logo.png" alt="" class="kiosk-emblem"/>
     <p class="kiosk-lead">방문 신청을 시작하려면 아래 버튼을 눌러주세요.</p>
-    <button type="button" class="btn btn-primary kiosk-start" id="btnStart">방문자 등록</button>
+    <ol class="kiosk-steps">
+      <li><strong>방문 정보</strong><span>작업기간 · 업체명 · 작업목적</span></li>
+      <li><strong>인솔자 · 방문구역</strong><span>인솔자 검색, 출입구역 선택</span></li>
+      <li><strong>방문객 · 차량</strong><span>방문객 명단과 차량 입력</span></li>
+    </ol>
+    <button type="button" class="btn btn-primary kiosk-start" id="btnStart">방문자 등록 시작</button>
+    <p class="kiosk-note">신청 후 관리자 확인을 거쳐 출입카드가 발급됩니다.<br/>
+      입력한 정보는 공항 출입관리 목적으로만 이용됩니다.</p>
   </section>
 
   <!-- 등록 폼 -->
@@ -50,7 +61,8 @@
 
     <div class="kiosk-card">
       <h2>인솔자 <span class="req">*</span></h2>
-      <div class="file-field-row">
+      <p class="form-hint">공항 정규인원만 인솔자가 될 수 있습니다. 인원ID 또는 성명(전체)으로 검색하세요.</p>
+      <div class="file-field-row" style="margin-top:8px">
         <input type="text" id="mgrKeyword" class="input" style="flex:1"
                placeholder="인솔자(정규인원) ID 또는 성명 검색" autocomplete="off"/>
         <button type="button" class="btn" id="btnMgrSearch">검색</button>
@@ -70,7 +82,8 @@
 
     <div class="kiosk-card">
       <h2>방문구역 <span class="req">*</span></h2>
-      <div class="kiosk-area">
+      <p class="form-hint">출입이 필요한 구역만 선택하세요. 차량으로 출입하면 차량 구역도 함께 선택합니다.</p>
+      <div class="kiosk-area" style="margin-top:8px">
         <div>
           <div class="form-group-label">인원 출입구역</div>
           <div class="ac-select-tree" id="acTree"><div class="empty">불러오는 중...</div></div>
@@ -111,6 +124,8 @@
       <button type="button" class="btn btn-primary" id="btnSave">저장</button>
     </div>
   </section>
+
+  <footer class="kiosk-footer">문의는 공항 출입관리 담당자에게 해주세요.</footer>
 </div>
 </body>
 </html>

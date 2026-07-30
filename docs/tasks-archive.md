@@ -5,6 +5,7 @@
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
 - [x] 임시·장기 방문객 탭에 인원ID 표시 — 방문객이 BiostarX 사용자로 편입되면 부여되는 인원ID(=biostar_user_id)를 방문객 탭 성명 왼쪽에 읽기전용 컬럼으로 노출(신규는 '저장 후 부여'). 성명·생년월일·카드 폭을 줄여 공간 확보. detail 이 이미 personId 반환하므로 프론트만 변경(visitor.html/js 공유) — sjpark2, 2026-07-28
+- [x] 키오스크 방문신청 화면 정돈 — 시작 화면이 문구+버튼만이라 허전했던 것 개선: KAC 로고 헤더·앰블럼, 3단계 안내(방문정보→인솔자·구역→방문객·차량), 큰 시작 버튼, 개인정보 이용 안내, 푸터 추가. 폼 카드 제목에 단계 번호 배지(CSS 카운터), 인솔자·방문구역 카드에 안내 문구. 옅은 배경(kiosk-body)으로 흰 카드 대비 강화, 768px 이하 1컬럼. 색·라운드는 역할 토큰만 사용(design.md 준수, 기존 폴백 HEX 제거) — sjpark2, 2026-07-30
 - [x] 확인 모달 Enter 로 처리 — confirmModal 이 열릴 때 확인 버튼에 포커스를 주고, 열려 있는 동안 Enter=확인. keydown 을 캡처 단계에서 가로채(preventDefault+stopPropagation) 뒤쪽 화면의 Enter 핸들러(검색 등)와 충돌하지 않게 함. 확인 모달을 쓰는 11개 화면에 일괄 적용. docs/frontend.md 공통 동작 등록 — sjpark2, 2026-07-30
 - [x] 카드도 존재 확인 후 upsert(자가치유) — 관리자가 BiostarX 에서 카드를 지우면 DB 에 stale biostar_card_id 가 남아 재저장해도 복구되지 않던 문제. 실 장비로 엔드포인트 확인(단건 GET /api/cards/{id}·POST /api/v2/cards/search 는 code 103 미지원, GET /api/cards 목록만 가능) 후 BiostarCardAdapter.registeredCardIds 추가. ensureBiostarCard 가 장비 존재를 확인해 없으면 재등록(새 id 로 갱신), 조회 실패는 예외로 전파(있는 것처럼 진행 금지). 테스트 3건 추가(총 31 그린) — sjpark2, 2026-07-30
 - [x] 장비 미등록 카드 발급 시 자동 등록 — 방문객/인원에게 카드를 부여할 때 tb_card.biostar_card_id 가 비어 있으면 조용히 걸러져(toBiostarCardsOf filter) 장비에 카드가 붙지 않고도 '저장 성공'이 되던 문제. CardService.ensureBiostarCard 신설: 미등록 인원카드면 그 자리에서 POST /api/cards 등록 후 id 저장, 실패하면 사유와 함께 롤백(차량카드는 제외). 방문 저장(saveChildren)·정규인원 저장(saveCards)에 배선(actor/menuId 전달). CardBlacklistSyncTest 3건 추가(총 28 그린) — sjpark2, 2026-07-30
