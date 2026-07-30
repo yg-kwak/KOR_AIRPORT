@@ -6,6 +6,7 @@ import AirPort.mapper.TbSystemMapper;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbSystem;
 import AirPort.security.ARIAUtil;
+import java.util.Base64;
 import org.springframework.stereotype.Service;
 
 /**
@@ -29,11 +30,19 @@ public class PersonFaceService {
     this.menuAuthService = menuAuthService;
   }
 
+  /** 업로드 사진 최대 크기 — 요청 크기 제한(5MB, application.properties) 안쪽으로 잡는다. */
+  private static final int MAX_PHOTO_BYTES = 4 * 1024 * 1024;
+
   /** 사진 파일 업로드 → 정규화 얼굴. */
   public BiostarFace uploadPicture(String base64Image, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
     if (base64Image == null || base64Image.isBlank()) {
       return BiostarFace.fail("사진 데이터가 없습니다.");
+    }
+    // BiostarX 로 보내기 전에 걸러낼 수 있는 사유(형식·용량)는 여기서 구체적으로 알린다 — 장비까지 가면 HTTP 400 만 돌아온다
+    String reject = rejectReason(base64Image);
+    if (reject != null) {
+      return BiostarFace.fail(reject);
     }
     TbSystem cfg = systemMapper.selectOne();
     if (cfg == null) {
@@ -52,6 +61,39 @@ public class PersonFaceService {
     }
     String devId = actor == null ? null : actor.getDevId();
     return biostarUserAdapter.captureFace(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), devId);
+  }
+
+  /**
+   * 사진 사전 검증 — 통과하면 null, 아니면 사용자에게 보일 사유. base64 자체가 깨졌거나 JPG/PNG 가 아니거나 너무 큰 경우를 잡는다.
+   *
+   * <p>확장자·MIME 이 아니라 <b>선두 바이트</b>로 판정한다(이름만 .jpg 인 HEIC 등을 걸러야 한다).
+   */
+  private static String rejectReason(String base64Image) {
+    byte[] raw;
+    try {
+      raw = Base64.getDecoder().decode(base64Image.trim());
+    } catch (IllegalArgumentException e) {
+      return "사진 데이터가 올바르지 않습니다. 파일을 다시 선택하세요.";
+    }
+    if (raw.length > MAX_PHOTO_BYTES) {
+      return String.format(
+          "사진이 너무 큽니다(%.1fMB). %dMB 이하로 줄여서 다시 선택하세요.",
+          raw.length / 1024.0 / 1024.0, MAX_PHOTO_BYTES / 1024 / 1024);
+    }
+    if (!isJpeg(raw) && !isPng(raw)) {
+      return "JPG 또는 PNG 사진만 등록할 수 있습니다. (HEIC·BMP 등은 JPG 로 변환해 주세요)";
+    }
+    return null;
+  }
+
+  /** JPEG 선두 바이트 FF D8 FF. */
+  private static boolean isJpeg(byte[] b) {
+    return b.length > 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF;
+  }
+
+  /** PNG 선두 바이트 89 50 4E 47. */
+  private static boolean isPng(byte[] b) {
+    return b.length > 4 && (b[0] & 0xFF) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G';
   }
 
   private String pw(TbSystem cfg) {

@@ -264,13 +264,27 @@ public class BiostarAdapter {
         .orElse(null);
   }
 
-  /** BiostarX 표준 응답 판정 — {@code Response.code=="0"} 이면 성공(null 반환), 아니면 오류 메시지. 어댑터 공용. */
+  /**
+   * BiostarX 표준 응답 판정 — {@code Response.code=="0"} 이면 성공(null 반환), 아니면 오류 메시지. 어댑터 공용.
+   *
+   * <p><b>4xx/5xx 응답도 본문에 사유({@code Response.message}/{@code code})를 담아 보낸다.</b> 그래서 상태코드만 보고 "HTTP
+   * 400" 을 돌려주면 화면에는 원인이 전혀 남지 않는다 — 본문을 먼저 읽어 사유를 쓰고, 사유가 없을 때만 상태코드별 안내로 대체한다. 원문은 사후 확인을 위해 warn
+   * 으로 남긴다(사진 등 대용량 값이 섞일 수 있어 앞부분만).
+   */
   static String responseError(ObjectMapper mapper, HttpResponse<String> resp) {
-    if (resp.statusCode() != 200) {
-      return "HTTP " + resp.statusCode();
+    int status = resp.statusCode();
+    String detail = responseMessage(mapper, resp.body());
+    if (status == 200) {
+      return detail;
     }
+    log.warn("BiostarX 응답 HTTP {} — 본문: {}", status, abbreviate(resp.body()));
+    return detail == null ? httpHint(status) : detail + " (HTTP " + status + ")";
+  }
+
+  /** 본문의 {@code Response.message}/{@code code} → 오류 문구. 성공(code 0)·사유 없음이면 null. */
+  private static String responseMessage(ObjectMapper mapper, String body) {
     try {
-      JsonNode r = mapper.readTree(resp.body()).path("Response");
+      JsonNode r = mapper.readTree(body).path("Response");
       String code = r.path("code").asText("");
       if (code.isEmpty() || "0".equals(code)) {
         return null;
@@ -278,8 +292,27 @@ public class BiostarAdapter {
       String msg = r.path("message").asText("");
       return msg.isEmpty() ? ("code " + code) : (msg + " (code " + code + ")");
     } catch (Exception e) {
-      return null; // HTTP 200 인데 파싱 불가 — 성공으로 본다
+      return null; // 본문이 JSON 이 아니면 사유 없음으로 본다(200 이면 성공 취급)
     }
+  }
+
+  /** 사유가 없는 비정상 상태코드 → 조치를 알 수 있는 안내. */
+  private static String httpHint(int status) {
+    return switch (status) {
+      case 400 -> "BiostarX 가 요청을 거부했습니다 (HTTP 400) — 전송한 값이 BiostarX 요건에 맞지 않습니다.";
+      case 401, 403 -> "BiostarX 권한이 없습니다 (HTTP " + status + ") — 설정관리의 계정 권한을 확인하세요.";
+      case 404 -> "BiostarX 가 이 요청을 지원하지 않습니다 (HTTP 404).";
+      case 500, 502, 503 -> "BiostarX 서버 오류입니다 (HTTP " + status + ") — 잠시 후 다시 시도하세요.";
+      default -> "HTTP " + status;
+    };
+  }
+
+  /** 로그용 본문 절단 — 응답에 사진·템플릿 base64 가 섞일 수 있어 앞부분만 남긴다. */
+  private static String abbreviate(String body) {
+    if (body == null) {
+      return "(없음)";
+    }
+    return body.length() <= 300 ? body : body.substring(0, 300) + "...(" + body.length() + "자)";
   }
 
   /** 통신 예외 → 사용자 메시지. */

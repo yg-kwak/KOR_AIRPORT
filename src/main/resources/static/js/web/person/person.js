@@ -186,7 +186,7 @@
 
   async function onFaceFile(e) {
     const file = e.target.files && e.target.files[0];
-    if (file) await useFaceImage(await fileToBase64(file));
+    if (file) await useFaceImage(await fileToBase64(file)); // 형식·용량 검증은 서버(PersonFaceService)
   }
 
   async function onCapture() {

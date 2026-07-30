@@ -22,6 +22,10 @@ public class BiostarUserAdapter {
 
   private static final Logger log = LoggerFactory.getLogger(BiostarUserAdapter.class);
 
+  /** 얼굴 변환 실패 시 함께 안내하는 사진 요건 — 사유만으로는 무엇을 바꿔야 할지 알 수 없어 붙인다. */
+  private static final String PHOTO_HINT =
+      "정면을 바라본 한 사람만 있는 사진(모자·마스크·색안경 없이, 밝고 초점이 맞은 사진)으로 다시 시도하세요.";
+
   private final ObjectMapper objectMapper;
   private final BiostarSession session;
 
@@ -45,18 +49,22 @@ public class BiostarUserAdapter {
           session.put(baseUrl(ip), loginId, password, "/api/users/check/upload_picture", body);
       String err = BiostarAdapter.responseError(objectMapper, resp);
       if (err != null) {
-        return BiostarFace.fail(err);
+        // 이 API 의 실패는 대부분 사진 자체가 요건에 안 맞는 경우다 — 무엇을 바꿔야 하는지 함께 알린다
+        return BiostarFace.fail("사진을 얼굴 데이터로 변환하지 못했습니다: " + err + " " + PHOTO_HINT);
       }
       JsonNode root = objectMapper.readTree(resp.body());
       String image = root.path("image").asText(null);
       if (image == null || image.isBlank()) {
-        return BiostarFace.fail("응답에 사진(image)이 없습니다.");
+        return BiostarFace.fail("변환 응답에 사진이 없습니다. " + PHOTO_HINT);
       }
       // 응답 매핑: image_template = bin_type 5, image_template_2 = bin_type 9 (장치 촬영과 반대 순서)
-      return BiostarFace.ok(
-          image,
-          normalizeTemplate(root.path("image_template_2").asText(null)),
-          normalizeTemplate(root.path("image_template").asText(null)));
+      String t9 = normalizeTemplate(root.path("image_template_2").asText(null));
+      String t5 = normalizeTemplate(root.path("image_template").asText(null));
+      if (t9 == null && t5 == null) {
+        // 사진은 받아들였지만 얼굴 특징을 못 뽑은 경우 — 그냥 통과시키면 얼굴 없는 사용자로 저장된다
+        return BiostarFace.fail("사진에서 얼굴을 찾지 못해 인증 템플릿을 만들지 못했습니다. " + PHOTO_HINT);
+      }
+      return BiostarFace.ok(image, t9, t5);
     } catch (Exception e) {
       return BiostarFace.fail(friendlyError(e, "사진 업로드"));
     }
@@ -78,7 +86,7 @@ public class BiostarUserAdapter {
       HttpResponse<String> resp = session.get(baseUrl(ip), loginId, password, path);
       String err = BiostarAdapter.responseError(objectMapper, resp);
       if (err != null) {
-        return BiostarFace.fail(err);
+        return BiostarFace.fail("얼굴 촬영에 실패했습니다: " + err);
       }
       JsonNode faces = objectMapper.readTree(resp.body()).path("credentials").path("faces");
       if (!faces.isArray() || faces.isEmpty()) {
@@ -87,9 +95,15 @@ public class BiostarUserAdapter {
       JsonNode face = faces.get(0);
       String image = face.path("template_ex_normalized_image").asText(null);
       if (image == null || image.isBlank()) {
-        return BiostarFace.fail("촬영 응답에 얼굴 이미지가 없습니다.");
+        return BiostarFace.fail("촬영 응답에 얼굴 이미지가 없습니다. 장치에서 다시 촬영하세요.");
       }
-      return BiostarFace.ok(image, templateOf(face, "9"), templateOf(face, "5"));
+      String t9 = templateOf(face, "9");
+      String t5 = templateOf(face, "5");
+      if (t9 == null && t5 == null) {
+        // 촬영은 됐지만 인증 템플릿이 비었다 — 통과시키면 얼굴 없는 사용자로 저장된다
+        return BiostarFace.fail("촬영된 얼굴에서 인증 템플릿을 만들지 못했습니다. 장치 앞에서 정면을 보고 다시 촬영하세요.");
+      }
+      return BiostarFace.ok(image, t9, t5);
     } catch (Exception e) {
       return BiostarFace.fail(friendlyError(e, "얼굴 촬영"));
     }
