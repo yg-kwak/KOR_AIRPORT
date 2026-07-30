@@ -384,6 +384,12 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 - `tb_visit` 공통구역: `tb_visit_ac_group`(→ `tb_ac_group` 최상위) · `tb_visit_car_ac_group`(→ `tb_common` cmm_id='CAR')
 - 방문 카드는 별도 테이블 없이 `tb_card`(`person_id`/`car_id`, `pass_type`=방문유형) 재사용. 승인 시 공통구역을 인원별 `tb_person_ac_group`·차량별 `tb_car_ac_group` 으로 materialize
 
+## 대상 삭제 시 카드 처리 (정합성 규칙)
+
+- **인원 삭제(정규·방문)** = 보유 카드 **자동 회수**(`tb_card.person_id=NULL`, 행은 유지). 회수를 빠뜨리면 사라진 인원에 카드가 물린 채 목록에 계속 '발급중'으로 남아 다른 인원에게 발급할 수 없다. 출입권한(`tb_person_ac_group`)도 함께 정리한다.
+- **기관차량 삭제**는 반대로 **카드가 있으면 삭제를 거부**한다(먼저 회수). 차량 카드는 실물 회수 확인이 필요하다는 운영 판단.
+- 카드 행 자체는 어느 경우에도 지우지 않는다 — 실물 카드는 재사용 대상이다.
+
 ## 마이그레이션
 - 스키마 원천: `D:\작업\2026\청주공항\설계\table.xlsx` (설계) → 본 문서 → 실행 스크립트 `sql/`.
 - **DDL: `sql/ddl/01_tables.sql`**, **seed: `sql/seed/02_seed.sql`**(공통코드 AT/LO, 메뉴, 관리자 계정 admin/admin123).

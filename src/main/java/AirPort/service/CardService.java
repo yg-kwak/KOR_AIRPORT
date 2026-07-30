@@ -344,6 +344,18 @@ public class CardService {
   }
 
   /**
+   * 인원이 들고 있던 카드를 모두 회수(미배정)한다 — 인원 삭제 트랜잭션 안에서 호출.
+   *
+   * <p>회수하지 않으면 사라진 인원에 카드가 물린 채 남아 목록에 <b>계속 '발급중'</b> 으로 보이고 다른 인원에게 발급할 수 없다. 카드 행은 지우지 않고
+   * {@code person_id=NULL} 로만 만들어 재발급 대상이 되게 한다(실물 카드는 그대로 재사용).
+   *
+   * @return 회수한 카드 수(감사 문구용)
+   */
+  public int releasePersonCards(String personId) {
+    return cardMapper.releaseByPerson(personId);
+  }
+
+  /**
    * 인원의 카드를 화면 목록 그대로 반영한다 — 인원 저장(등록/수정) 트랜잭션 안에서 호출.
    *
    * <p>기존 카드를 전부 <b>회수(미배정)</b>한 뒤 화면에 남아 있는 것만 다시 붙인다(새 카드=INSERT, 기존 카드=UPDATE). 목록에서 제외된 카드는

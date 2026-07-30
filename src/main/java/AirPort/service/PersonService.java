@@ -214,8 +214,15 @@ public class PersonService {
           ErrorCode.INVALID_INPUT,
           "BiostarX 사용자 삭제 실패로 삭제가 취소되었습니다(" + personId + "). 사유: " + fail + " — 다시 시도하세요.");
     }
+    // 카드 회수가 빠지면 사라진 인원에 카드가 물린 채 '발급중'으로 남아 다른 인원에게 발급할 수 없다
+    int released = cardService.releasePersonCards(personId);
+    acGroupMapper.deleteByPerson(personId); // 출입권한도 함께 정리
     personMapper.softDelete(personId);
-    auditService.log(actor, AuditService.DELETE, menuId, "정규인원 삭제: " + personId);
+    auditService.log(
+        actor,
+        AuditService.DELETE,
+        menuId,
+        "정규인원 삭제: " + personId + (released > 0 ? " (카드 " + released + "장 회수)" : ""));
   }
 
   /** 폼 → 저장 행. 성명·생년월일·연락처는 ARIA 암호화, 출입기간은 초까지 채운다. (등록/수정 공통) */
