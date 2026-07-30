@@ -472,7 +472,9 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .modal-container.visit-modal { width: 980px; max-width: 96vw; }
 .modal-container.confirm { width: 400px; }
 /* 키오스크(무인증 방문 신청) — 관리자 헤더·사이드바 없는 독립 레이아웃(터치 화면) */
-.kiosk-body { background: var(--color-tertiary-hover); } /* 옅은 배경 — 흰 카드가 도드라지게 */
+/* 옅은 배경 — 흰 카드가 도드라지게. html 에 흰 배경이 이미 있어 body 배경이 페이지 전체로 전파되지 않으므로
+   min-height 로 body 가 화면 전체를 덮게 한다(콘텐츠가 짧을 때 아래쪽이 흰색으로 남는 것 방지). */
+.kiosk-body { background: var(--color-tertiary-hover); min-height: 100vh; }
 .kiosk { max-width: 960px; margin: 0 auto; padding: 28px 28px 40px; }
 
 /* 상단 브랜딩 */
