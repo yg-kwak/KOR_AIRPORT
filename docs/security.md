@@ -14,6 +14,8 @@
 - 로그인/정적/공개 경로를 제외한 요청은 `AuthInterceptor`(HandlerInterceptor)가 세션을 검증.
 - **키오스크(무인증 방문 신청)**: `/kiosk/**` 는 `WebConfig.EXCLUDES` 로 인증·메뉴통제 제외한 공개 경로. 방문객이 로그인 없이 인솔자·방문구역·방문객을 입력해 신청하면 임시(PT02)·신청(VS01) tb_visit 로 접수되고, 관리자가 임시인원등록에서 확인 후 카드를 발급한다(그때 BiostarX 연동). 공개 경로이므로 여기서는 카드·BiostarX 쓰기·개인정보 조회를 하지 않는다.
 - ⚠️ `WebConfig.addInterceptors()` 에 인터셉터가 **실제 등록**되어야 보안 경계가 성립한다. 등록 누락은 보안 회귀 — `/review` 시 최우선 확인 항목.
+- **세션 만료**: `server.servlet.session.timeout=1h`(유휴 1시간, 마지막 **서버 요청** 기준 — 마우스·타이핑만으로는 갱신되지 않는다). 만료 후 화면 요청은 `/login` 리다이렉트, AJAX 는 401 → `app.js` 가 로그인으로 이동. 세션은 **내장 메모리**라 앱 재기동 시 전원 로그아웃(Redis·JDBC 세션 미사용). 세션 쿠키는 max-age 없이 브라우저 종료 시 소멸.
+- 미구현(알려진 공백): 중복 로그인 차단, 만료 임박 경고·연장, 계정 정지·비밀번호 변경 시 기존 세션 강제 종료.
 - 계정 잠금: `tb_login_user.login_fail_cnt` 로 실패 횟수 관리. 비밀번호 변경주기: `password_change_dt`.
 
 ## 권한 (Authorization)
