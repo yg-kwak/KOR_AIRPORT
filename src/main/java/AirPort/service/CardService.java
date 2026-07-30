@@ -199,10 +199,27 @@ public class CardService {
     if (CARD_TYPE_CAR.equals(card.getCardType())) {
       return; // 차량 카드는 장비 미등록이 정상
     }
-    if (card.getBiostarCardId() != null && !card.getBiostarCardId().isBlank()) {
-      return; // 이미 장비에 등록된 카드
+    String id = card.getBiostarCardId();
+    if (id != null && !id.isBlank() && existsOnDevice(id)) {
+      return; // 장비에 실제로 있는 카드 — 그대로 사용
+    }
+    if (id != null && !id.isBlank()) {
+      // 장비에서 삭제된 카드(stale id) — 카드번호로 재등록해 새 id 로 맞춘다
+      log.warn("BiostarX 에 없는 카드 id({}) — 카드번호 {} 로 재등록합니다.", id, card.getBiostarCardValue());
+      card.setBiostarCardId(null);
     }
     registerBiostar(card, actor, menuId); // 실패 시 BusinessException → 트랜잭션 롤백
+  }
+
+  /** 장비에 해당 카드 id 가 실제로 있는지 — 조회 실패는 예외로 전파(있다고 단정하지 않는다). */
+  private boolean existsOnDevice(String biostarCardId) {
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 설정이 없습니다. 설정관리에서 먼저 등록하세요.");
+    }
+    return biostarCardAdapter
+        .registeredCardIds(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg))
+        .contains(biostarCardId);
   }
 
   /** 카드 수정 — 카드번호·BiostarX 식별자·할당 인원은 바꾸지 않는다(실물 카드). */

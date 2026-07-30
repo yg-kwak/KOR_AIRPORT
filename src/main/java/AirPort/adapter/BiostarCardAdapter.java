@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.net.http.HttpResponse;
+import java.util.HashSet;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -31,6 +33,43 @@ public class BiostarCardAdapter {
   public BiostarCardAdapter(ObjectMapper objectMapper, BiostarSession session) {
     this.objectMapper = objectMapper;
     this.session = session;
+  }
+
+  /**
+   * 장비에 등록된 카드 ID 집합 — {@code GET /api/cards}(전체 목록).
+   *
+   * <p>이 장비는 카드 <b>단건 조회·검색 API 를 지원하지 않는다</b>({@code GET /api/cards/{id}} 와 {@code POST
+   * /api/v2/cards/search} 모두 code 103 "Request is not supported"). 그래서 존재 확인은 전체 목록으로만 가능하다 — 카드 수가
+   * 많아지면 응답이 커지므로 호출 빈도를 최소화한다(발급 시점에만).
+   *
+   * @throws BiostarSessionException 조회 실패(통신·세션·권한) — '없음'과 구분해 호출자가 판단하게 한다
+   */
+  public Set<String> registeredCardIds(String ip, String loginId, String password) {
+    if (ip == null || ip.isBlank()) {
+      throw new BiostarSessionException("BiostarX IP가 설정되어 있지 않습니다. 설정관리에서 등록하세요.");
+    }
+    try {
+      HttpResponse<String> resp = session.get(baseUrl(ip), loginId, password, "/api/cards");
+      String err = BiostarAdapter.responseError(objectMapper, resp);
+      if (err != null) {
+        throw new BiostarSessionException("BiostarX 카드 목록 조회 실패: " + err);
+      }
+      Set<String> ids = new HashSet<>();
+      JsonNode rows = objectMapper.readTree(resp.body()).path("CardCollection").path("rows");
+      if (rows.isArray()) {
+        for (JsonNode row : rows) {
+          String id = row.path("id").asText(null);
+          if (id != null && !id.isBlank()) {
+            ids.add(id);
+          }
+        }
+      }
+      return ids;
+    } catch (BiostarSessionException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new BiostarSessionException(friendlyError(e, "카드 목록 조회"));
+    }
   }
 
   /**

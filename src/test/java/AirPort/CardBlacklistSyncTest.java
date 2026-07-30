@@ -149,4 +149,47 @@ class CardBlacklistSyncTest {
     service().ensureBiostarCard(10, null, 801);
     verify(adapter, never()).createCard(anyString(), anyString(), any(), anyString());
   }
+
+  @Test
+  void 장비에_이미_있는_카드는_다시_등록하지_않는다() {
+    TbCard registered = card("CS01"); // biostar_card_id = 77
+    when(cardMapper.selectById(10)).thenReturn(registered);
+    when(adapter.registeredCardIds(anyString(), anyString(), any()))
+        .thenReturn(java.util.Set.of("77", "88"));
+
+    service().ensureBiostarCard(10, null, 801);
+    verify(adapter, never()).createCard(anyString(), anyString(), any(), anyString());
+  }
+
+  @Test
+  void 장비에서_삭제된_카드는_재등록해_새_id로_맞춘다() {
+    TbCard stale = card("CS01"); // DB 에는 77 이지만 장비에는 없음
+    when(cardMapper.selectById(10)).thenReturn(stale);
+    when(adapter.registeredCardIds(anyString(), anyString(), any()))
+        .thenReturn(java.util.Set.of("88")); // 77 없음
+    when(adapter.createCard(anyString(), anyString(), any(), eq("11111111")))
+        .thenReturn(AirPort.adapter.BiostarCard.ok("99", "11111111"));
+
+    org.springframework.transaction.support.TransactionSynchronizationManager
+        .setActualTransactionActive(true);
+    try {
+      service().ensureBiostarCard(10, null, 801);
+    } finally {
+      org.springframework.transaction.support.TransactionSynchronizationManager
+          .setActualTransactionActive(false);
+    }
+    verify(cardMapper).updateBiostarCardId(10, "99"); // 새 id 로 갱신
+  }
+
+  @Test
+  void 카드목록_조회_실패면_있는것처럼_진행하지_않고_예외() {
+    when(cardMapper.selectById(10)).thenReturn(card("CS01"));
+    when(adapter.registeredCardIds(anyString(), anyString(), any()))
+        .thenThrow(new AirPort.adapter.BiostarSessionException("연결 실패"));
+
+    assertThrows(
+        AirPort.adapter.BiostarSessionException.class,
+        () -> service().ensureBiostarCard(10, null, 801));
+    verify(adapter, never()).createCard(anyString(), anyString(), any(), anyString());
+  }
 }
