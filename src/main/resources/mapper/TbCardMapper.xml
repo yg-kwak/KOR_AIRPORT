@@ -22,9 +22,16 @@
         <choose>
           <when test="searchType == 'cardNo'">AND c.biostar_card_value LIKE '%' + #{keyword} + '%'</when>
           <when test="searchType == 'cardName'">AND c.card_name LIKE '%' + #{keyword} + '%'</when>
+          <!-- 발급대상 = 목록의 그 컬럼(인원ID 또는 차량번호). 성명은 ARIA 암호문이라 부분검색 불가라 ID 로 찾는다 -->
+          <when test="searchType == 'holder'">
+            AND (c.person_id LIKE '%' + #{keyword} + '%'
+                 OR car.car_no LIKE '%' + #{keyword} + '%')
+          </when>
           <otherwise>
             AND (c.biostar_card_value LIKE '%' + #{keyword} + '%'
-                 OR c.card_name LIKE '%' + #{keyword} + '%')
+                 OR c.card_name LIKE '%' + #{keyword} + '%'
+                 OR c.person_id LIKE '%' + #{keyword} + '%'
+                 OR car.car_no LIKE '%' + #{keyword} + '%')
           </otherwise>
         </choose>
       </if>
@@ -68,7 +75,9 @@
   </select>
 
   <select id="selectCount" parameterType="AirPort.model.CardSearchParam" resultType="long">
+    <!-- searchWhere 가 발급대상(차량번호) 조건에서 car 별칭을 쓰므로 count 에서도 같은 조인이 필요하다 -->
     SELECT COUNT(*) FROM tb_card c
+    LEFT JOIN tb_car car ON car.car_id = c.car_id
     <include refid="searchWhere"/>
   </select>
 

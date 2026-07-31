@@ -384,6 +384,8 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 - `tb_visit` 공통구역: `tb_visit_ac_group`(→ `tb_ac_group` 최상위) · `tb_visit_car_ac_group`(→ `tb_common` cmm_id='CAR')
 - 방문 카드는 별도 테이블 없이 `tb_card`(`person_id`/`car_id`, `pass_type`=방문유형) 재사용. 승인 시 공통구역을 인원별 `tb_person_ac_group`·차량별 `tb_car_ac_group` 으로 materialize
 
+- 카드등록관리 검색어(`searchType`): `cardNo`(카드번호) · `cardName`(카드명칭) · **`holder`(발급대상 = 인원ID 또는 차량번호)** · `all`(넷 다). 발급대상은 성명이 아니라 **ID 로 찾는다** — `tb_person.person_name` 은 ARIA 암호문이라 부분검색이 불가능하다. `holder`/`all` 은 `tb_car` 조인을 쓰므로 **selectCount 에도 같은 조인**이 있어야 한다.
+
 ## 대상 삭제 시 카드 처리 (정합성 규칙)
 
 - **인원 삭제(정규·방문)** = 보유 카드 **자동 회수**(`tb_card.person_id=NULL`, 행은 유지). 회수를 빠뜨리면 사라진 인원에 카드가 물린 채 목록에 계속 '발급중'으로 남아 다른 인원에게 발급할 수 없다. 출입권한(`tb_person_ac_group`)도 함께 정리한다.
