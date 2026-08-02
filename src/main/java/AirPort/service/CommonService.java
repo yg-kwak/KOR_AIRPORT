@@ -120,10 +120,22 @@ public class CommonService {
         actor, AuditService.CREATE, menuId, "공통코드 등록: " + row.getCmmId() + "/" + row.getCodeId());
   }
 
-  /** 수정 — 시스템(N)·사용자(Y) 모두 이름·사용유무만 변경(코드ID/구분 불변, mapper 가 필드 제한). */
+  /**
+   * 수정 — 이름·사용유무만 변경(코드ID/구분 불변, mapper 가 필드 제한).
+   *
+   * <p><b>시스템 코드(user_input='N')의 사용유무는 항상 '사용'</b>으로 강제한다. 상태·구분 계열(방문상태 VS, 카드상태 CS 등)은 업무 로직과
+   * 화면이 그 코드가 있다고 전제하고 돌아가므로, 미사용으로 돌리면 목록·선택 팝업에서 사라져 기존 데이터의 코드명이 표시되지 않는다.
+   */
   @Transactional
   public void update(TbCommon row, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId); // 정책: 등록/수정은 create_auth 로 판정
+    TbCommon existing = commonMapper.selectOne(row.getCmmId(), row.getCodeId());
+    if (existing == null) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    if (!"Y".equals(existing.getUserInput())) {
+      row.setUseYn("Y"); // 화면에서도 막지만 서버가 최종 판단(클라이언트 값 불신)
+    }
     if (commonMapper.update(row) == 0) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }

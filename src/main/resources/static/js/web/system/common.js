@@ -166,7 +166,11 @@
     }
     $('codeId').value = row ? row.codeId : '';
     $('codeName').value = row ? row.codeName || '' : '';
-    $('useYn').value = row ? row.useYn || 'Y' : 'Y';
+    // 시스템 코드는 사용유무 고정('사용') — 미사용으로 돌리면 업무 화면에서 코드가 사라진다(서버도 강제)
+    const sysCode = mode === 'edit' && row && row.userInput !== 'Y';
+    $('useYn').value = sysCode ? 'Y' : (row ? row.useYn || 'Y' : 'Y');
+    $('useYn').disabled = sysCode;
+    $('useYnHint').style.display = sysCode ? '' : 'none';
     $('codeId').readOnly = mode === 'edit';
     $('editModal').classList.add('open');
   }
