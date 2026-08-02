@@ -32,7 +32,7 @@ class PersonServiceSearchTest {
     when(personMapper.selectList(any())).thenReturn(List.of());
     AuditService audit = mock(AuditService.class);
     // list() 는 personMapper·auditService·ARIA(static) 만 사용 → 나머지 의존성은 null 로 충분
-    return new PersonService(personMapper, null, null, null, null, null, audit, null);
+    return new PersonService(personMapper, null, null, null, null, null, audit, null, null);
   }
 
   @Test

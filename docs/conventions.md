@@ -113,6 +113,7 @@ DOMContentLoaded → bind()  → load()
 - **자가서비스(본인 계정) 엔드포인트**는 예외: `AccountController`(`/account/*`, 헤더 사용자 메뉴)처럼 **세션 사용자 자신**만 대상으로 하는 기능은 `tb_menu` 에 등록하지 않고 **메뉴 권한(menuId) 게이트 없이** 로그인만 요구한다(`AuthInterceptor` 가 인증 보장, menuId=null 이라 접속감사 미기록·수정은 서비스에서 `null` menuId 로 감사). 무권한 사용자가 남의 데이터를 건드릴 수 없으므로 안전. 남의 데이터를 다루면 이 예외를 쓰지 말고 표준 menu 게이트를 따른다.
 
 ## 5. Service — 명명 · 암복호화 · 감사 규칙
+- **공통코드 값 검증**: 코드 컬럼을 저장하는 서비스는 `CodeValidationService.validate(cmmId, codeId, 라벨)` 로 **존재·사용 여부**를 확인한 뒤 저장한다(없는 코드/사용중지 코드는 예외). 화면은 선택 팝업이라 안전하지만 **엑셀 일괄등록은 코드ID 를 직접 입력**하므로 서비스에서 막아야 두 경로가 같은 규칙을 따른다. 예: 카드(CDT/PT/CS) · 정규인원(UT/PS) · 기관(CO).
 - 클래스: `{도메인}Service`(@Service 구체 클래스, 인터페이스 없음). 생성자 주입.
 - 메소드(표준 세트): `list`(READ 감사 포함) / `listAllForExcel`(DOWNLOAD 감사+remark) / `get` / `create` / `update` / `delete`. 쓰기 3종은 `@Transactional`.
 - **쓰기 흐름(순서 고정)**: ① `menuAuthService.requireCreate|requireDelete(actor, menuId)` → ② 업무 검증(중복 등) → ③ mapper 호출 → ④ `auditService.log(actor, TYPE, menuId, detail[, remark])`.

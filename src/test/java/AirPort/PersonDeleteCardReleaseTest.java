@@ -47,7 +47,8 @@ class PersonDeleteCardReleaseTest {
         null,
         cardService,
         auditService,
-        menuAuthService);
+        menuAuthService,
+        null);
   }
 
   @Test

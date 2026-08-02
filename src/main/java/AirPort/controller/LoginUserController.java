@@ -69,6 +69,9 @@ public class LoginUserController {
     }
     model.addAttribute("menus", menuService.tree(actor(session)));
     model.addAttribute("perm", perm);
+    // 본인 계정은 삭제할 수 없다(서버도 막는다) — 목록에서 삭제 버튼을 감추기 위해 내려준다
+    TbLoginUser me = actor(session);
+    model.addAttribute("myUserId", me == null ? "" : me.getUserId());
     return "web/system/loginUser";
   }
 

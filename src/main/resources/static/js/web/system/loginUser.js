@@ -74,9 +74,11 @@
       return;
     }
     body.innerHTML = rows.map((r) => {
-      const actions = PERM.canDelete
-        ? `<button class="btn btn-sm btn-danger" data-act="del" data-id="${esc(r.userId)}">삭제</button>`
-        : '-';
+      // 로그인 중인 계정은 삭제 불가 — 버튼 대신 표시만(서버도 거부한다)
+      const isMe = r.userId === window.PAGE_MY_USER_ID;
+      const actions = !PERM.canDelete ? '-'
+        : isMe ? '<span class="form-hint">본인 계정</span>'
+          : `<button class="btn btn-sm btn-danger" data-act="del" data-id="${esc(r.userId)}">삭제</button>`;
       return `
       <tr${PERM.canCreate ? ' class="row-click" data-json=\'' + esc(JSON.stringify(r)) + '\'' : ''}>
         <td>${esc(r.userId)}</td>

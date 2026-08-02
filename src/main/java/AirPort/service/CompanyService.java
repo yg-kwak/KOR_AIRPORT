@@ -41,6 +41,7 @@ public class CompanyService {
   private final BiostarAdapter biostarAdapter;
   private final AuditService auditService;
   private final MenuAuthService menuAuthService;
+  private final CodeValidationService codeValidator;
 
   /** 자기 자신(프록시) — 엑셀 일괄등록에서 create 를 행마다 독립 트랜잭션으로 부르기 위해(자가호출은 @Transactional 무시됨). */
   private final CompanyService self;
@@ -52,6 +53,7 @@ public class CompanyService {
       BiostarAdapter biostarAdapter,
       AuditService auditService,
       MenuAuthService menuAuthService,
+      CodeValidationService codeValidator,
       @org.springframework.context.annotation.Lazy CompanyService self) {
     this.companyMapper = companyMapper;
     this.commonMapper = commonMapper;
@@ -59,6 +61,7 @@ public class CompanyService {
     this.biostarAdapter = biostarAdapter;
     this.auditService = auditService;
     this.menuAuthService = menuAuthService;
+    this.codeValidator = codeValidator;
     this.self = self;
   }
 
@@ -336,6 +339,8 @@ public class CompanyService {
     if (row.getCompanyName() == null || row.getCompanyName().isBlank()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "기관명은 필수입니다.");
     }
+    // 엑셀 일괄등록은 코드ID 를 직접 적으므로 없는 코드가 그대로 저장되지 않게 막는다
+    codeValidator.validate("CO", row.getCompanyType(), "기관구분");
   }
 
   /** 대표자(ceo_name) — 저장 직전 ARIA 암호화(빈 값은 null). */

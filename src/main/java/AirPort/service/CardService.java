@@ -48,6 +48,7 @@ public class CardService {
   private final BiostarCardAdapter biostarCardAdapter;
   private final MenuAuthService menuAuthService;
   private final AuditService auditService;
+  private final CodeValidationService codeValidator;
 
   public CardService(
       TbCardMapper cardMapper,
@@ -55,13 +56,15 @@ public class CardService {
       TbCommonMapper commonMapper,
       BiostarCardAdapter biostarCardAdapter,
       MenuAuthService menuAuthService,
-      AuditService auditService) {
+      AuditService auditService,
+      CodeValidationService codeValidator) {
     this.cardMapper = cardMapper;
     this.systemMapper = systemMapper;
     this.commonMapper = commonMapper;
     this.biostarCardAdapter = biostarCardAdapter;
     this.menuAuthService = menuAuthService;
     this.auditService = auditService;
+    this.codeValidator = codeValidator;
   }
 
   /** 카드 상태(tb_common CS)의 code_tag='Y' 면 차단 대상. 코드가 없으면 비차단으로 본다. */
@@ -271,7 +274,7 @@ public class CardService {
   }
 
   /** 카드 마스터 필수값 — 인원 화면(CardForm)과 같은 기준. 차량 카드는 패스구분을 받지 않는다. */
-  private static void validateCard(TbCard row) {
+  private void validateCard(TbCard row) {
     require(row.getBiostarCardValue(), "카드번호");
     require(row.getCardType(), "카드구분");
     if (!CARD_TYPE_CAR.equals(row.getCardType())) {
@@ -279,6 +282,10 @@ public class CardService {
     }
     require(row.getCardName(), "카드명칭");
     require(row.getCardStatus(), "카드상태");
+    // 엑셀 일괄등록은 코드ID 를 직접 적으므로 없는 코드가 그대로 저장되지 않게 막는다
+    codeValidator.validate("CDT", row.getCardType(), "카드구분");
+    codeValidator.validate("PT", row.getPassType(), "패스구분");
+    codeValidator.validate("CS", row.getCardStatus(), "카드상태");
   }
 
   /** 저장 전 보정 — 차량 카드의 패스구분은 화면에서 무엇이 오든 비운다(화면 값 불신). */

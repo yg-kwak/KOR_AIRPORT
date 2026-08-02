@@ -23,6 +23,7 @@ import AirPort.model.TbCommon;
 import AirPort.model.TbSystem;
 import AirPort.service.AuditService;
 import AirPort.service.CardService;
+import AirPort.service.CodeValidationService;
 import AirPort.service.MenuAuthService;
 import org.junit.jupiter.api.Test;
 
@@ -48,7 +49,13 @@ class CardBlacklistSyncTest {
     when(commonMapper.selectOne("CS", "CS01")).thenReturn(code("N"));
     when(commonMapper.selectOne("CS", "CS02")).thenReturn(code("Y"));
     return new CardService(
-        cardMapper, systemMapper, commonMapper, adapter, menuAuthService, auditService);
+        cardMapper,
+        systemMapper,
+        commonMapper,
+        adapter,
+        menuAuthService,
+        auditService,
+        mock(CodeValidationService.class)); // 코드 존재 검증은 CodeValidationServiceTest 담당
   }
 
   private static TbCommon code(String tag) {

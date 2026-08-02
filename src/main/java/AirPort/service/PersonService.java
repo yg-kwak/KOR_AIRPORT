@@ -41,6 +41,7 @@ public class PersonService {
   private final CardService cardService;
   private final AuditService auditService;
   private final MenuAuthService menuAuthService;
+  private final CodeValidationService codeValidator;
 
   public PersonService(
       TbPersonMapper personMapper,
@@ -50,7 +51,8 @@ public class PersonService {
       PersonFileService personFileService,
       CardService cardService,
       AuditService auditService,
-      MenuAuthService menuAuthService) {
+      MenuAuthService menuAuthService,
+      CodeValidationService codeValidator) {
     this.personMapper = personMapper;
     this.photoMapper = photoMapper;
     this.acGroupMapper = acGroupMapper;
@@ -59,6 +61,7 @@ public class PersonService {
     this.cardService = cardService;
     this.auditService = auditService;
     this.menuAuthService = menuAuthService;
+    this.codeValidator = codeValidator;
   }
 
   /** 목록 조회(정규 PT01 고정) — 성명 복호화(표시용) + 검색조건·건수 감사(READ). */
@@ -305,6 +308,9 @@ public class PersonService {
     if (form.getAccessStartDt().compareTo(form.getAccessEndDt()) > 0) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "출입시작일은 출입종료일보다 늦을 수 없습니다.");
     }
+    // 엑셀 일괄등록은 코드ID 를 직접 적으므로 없는 코드가 그대로 저장되지 않게 막는다
+    codeValidator.validate(UT, form.getTitleCode(), "직위");
+    codeValidator.validate("PS", form.getStatusCode(), "상태");
     String title = personBiostar.codeName(UT, form.getTitleCode());
     if (title != null && !title.isBlank() && !TITLE_ALLOWED.matcher(title).matches()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "직위에 특수문자를 사용할 수 없습니다: " + title);
