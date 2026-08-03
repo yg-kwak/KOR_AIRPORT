@@ -5,7 +5,7 @@
      kind: 'vis'|'car',      // 방문객=검색+스캔 / 차량=검색만
      listUrl, scanUrl,       // 미할당 카드 조회 / 카드 스캔 endpoint
      exclude: [cardId, ...], // 이미 다른 행이 고른 카드(중복 발급 방지)
-     onPick: (card|null) => {}  // 카드 없음(회수)은 null
+     onPick: (card) => {}    // 고른 카드(취소하면 호출되지 않는다)
    });  (docs/frontend.md) */
 window.visitCardPicker = (function () {
   const $ = (id) => document.getElementById(id);
@@ -68,7 +68,6 @@ window.visitCardPicker = (function () {
       chosen = JSON.parse($('vcpBody').dataset.rows)[Number(row.dataset.idx)];
     });
     $('vcpOk').addEventListener('click', () => (chosen ? apply(chosen) : toast.warning('카드를 선택하세요.')));
-    $('vcpClear').addEventListener('click', () => apply(null)); // '카드 없음' = 회수
     $('vcpCancel').addEventListener('click', close);
     $('vcpClose').addEventListener('click', close);
   });

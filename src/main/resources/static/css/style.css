@@ -567,6 +567,10 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .modal-footer-left { margin-right: auto; } /* 삭제 등 파괴적 동작은 확인/저장과 떨어뜨린다 */
 .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--color-tertiary-active); flex: none; }
 
+/* 퇴실 표시 셀 — 배지와 퇴실시각을 한 줄에(줄바꿈되면 시각이 잘려 보인다). 시각은 'MM-DD HH:mm' */
+.checkout-cell { display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+.checkout-cell > span { font-size: 12px; color: var(--neutral-700); }
+
 /* 처리 중 표시 — 저장·삭제처럼 서버 왕복이 있는 동안. 화면을 덮어 중복 클릭도 막는다(js/core/busy.js).
    짧은 요청에서는 뜨지 않는다(스크립트가 지연 후 표시). */
 .busy-overlay { display: none; position: fixed; inset: 0; z-index: 3000;

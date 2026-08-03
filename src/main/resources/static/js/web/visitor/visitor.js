@@ -124,7 +124,7 @@
 
   // 관리 버튼 — 퇴실했으면 표시만, 카드를 들고 있으면 제거 대신 퇴실, 그 외에는 제거
   function visActions(v, i) {
-    if (v.checkoutDt) return `${badge.of('퇴실', 'done')} <span class="form-hint">${esc(v.checkoutDt.slice(0, 16))}</span>`;
+    if (v.checkoutDt) return `<div class="checkout-cell">${badge.of('퇴실', 'done')}<span>${esc(v.checkoutDt.slice(5, 16))}</span></div>`;
     if (v.cardId) return `<button class="btn btn-sm" data-act="vis-out" data-idx="${i}">퇴실</button>`;
     return `<button class="btn btn-sm btn-danger" data-act="vis-del" data-idx="${i}">제거</button>`;
   }
