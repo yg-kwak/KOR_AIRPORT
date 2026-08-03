@@ -84,12 +84,13 @@
   }
   const carAcSelected = () => [...$('carAcBox').querySelectorAll('input:checked')].map((c) => c.value);
 
-  // 카드 셀 — 선택된 카드번호 표시 + 선택 버튼(팝업). kind=vis|car
+  // 카드 셀 — 선택된 카드번호 표시 + 선택 버튼(팝업). kind=vis|car. 퇴실한 방문객은 재발급 불가라 버튼을 뺀다
   function cardCell(obj, i, kind) {
     const label = obj.cardId ? esc(obj.cardLabel || obj.cardId) : badge.none(obj.lastCardNo ? `회수됨(${obj.lastCardNo})` : '카드 없음');
+    const btn = obj.checkoutDt ? ''
+      : `<button type="button" class="btn btn-sm" data-act="${kind}-card" data-idx="${i}">선택</button>`;
     return `<div class="file-field-row">
-      <span class="card-picked" data-i="${i}" style="min-width:90px">${label}</span>
-      <button type="button" class="btn btn-sm" data-act="${kind}-card" data-idx="${i}">선택</button></div>`;
+      <span class="card-picked" data-i="${i}" style="min-width:90px">${label}</span>${btn}</div>`;
   }
 
   // ---- 탭 ----
@@ -117,8 +118,15 @@
           <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="1990-01-01" value="${esc(v.birthDate)}"/></td>
           <td><input class="input" data-f="affiliation" data-i="${i}" value="${esc(v.affiliation)}"/></td>
           <td>${cardCell(v, i, 'vis')}</td>
-          <td><button class="btn btn-sm btn-danger" data-act="vis-del" data-idx="${i}">제거</button></td></tr>`).join('')
+          <td>${visActions(v, i)}</td></tr>`).join('')
       : '<tr><td colspan="6" class="empty">방문객이 없습니다.</td></tr>';
+  }
+
+  // 관리 버튼 — 퇴실했으면 표시만, 카드를 들고 있으면 제거 대신 퇴실, 그 외에는 제거
+  function visActions(v, i) {
+    if (v.checkoutDt) return `${badge.of('퇴실', 'done')} <span class="form-hint">${esc(v.checkoutDt.slice(0, 16))}</span>`;
+    if (v.cardId) return `<button class="btn btn-sm" data-act="vis-out" data-idx="${i}">퇴실</button>`;
+    return `<button class="btn btn-sm btn-danger" data-act="vis-del" data-idx="${i}">제거</button>`;
   }
 
   // ---- 차량 ----
@@ -264,50 +272,41 @@
     $('mgrPickBody').dataset.rows = JSON.stringify(rows);
   }
 
-  // ---- 카드 선택 팝업 (방문객=검색+스캔 / 차량=검색만) ----
-  let cardPick = { kind: null, index: -1, chosen: null };
+  // ---- 카드 선택 팝업 — 구현은 공용 컴포넌트(core/components/card-picker-visit) ----
   function openCardPicker(kind, index) {
     collectRows();
-    cardPick = { kind, index, chosen: null };
-    $('vcpTitle').textContent = kind === 'vis' ? '방문객 카드 선택' : '차량 카드 선택';
-    $('vcpScan').style.display = kind === 'vis' ? '' : 'none'; // 차량카드는 스캔 없음
-    $('vcpKeyword').value = '';
-    $('vcpModal').classList.add('open'); loadCardPick();
-  }
-  function closeCardPicker() { $('vcpModal').classList.remove('open'); }
-  async function loadCardPick() {
-    const base = cardPick.kind === 'car' ? BASE + '/cards/unassigned/car' : BASE + '/cards/unassigned';
-    const all = (await api.get(base + '?keyword=' + encodeURIComponent($('vcpKeyword').value.trim()))) || [];
-    // 이미 고른 카드는 뺀다(한 실물 카드는 한 사람에게만 — 서버도 거부). 편집 중인 행의 카드는 남긴다
-    const mine = ((cardPick.kind === 'car' ? cars : visitors)[cardPick.index] || {}).cardId;
-    const used = new Set([...visitors, ...cars].map((o) => o.cardId).filter((id) => id != null && id !== mine));
-    const rows = all.filter((c) => !used.has(c.cardId));
-    $('vcpBody').innerHTML = rows.length
-      ? rows.map((c, i) => `<tr class="row-click vcp-row" data-idx="${i}">
-          <td><input type="radio" name="vcp" value="${i}"/></td>
-          <td>${esc(c.biostarCardValue)}</td>
-          <td style="text-align:left">${esc(c.cardName)}</td>
-          <td>${badge.cardStatus(c.cardStatus, c.cardStatusName)}</td></tr>`).join('')
-      : '<tr><td colspan="4" class="empty">미할당 카드가 없습니다.</td></tr>';
-    $('vcpBody').dataset.rows = JSON.stringify(rows);
-  }
-  async function scanCardPick() {
-    const res = await api.post(BASE + '/card/scan', {});
-    if (!res || !res.success) { toast.warning((res && res.message) || '카드 스캔에 실패했습니다.'); return; }
-    $('vcpKeyword').value = res.cardNo || '';
-    await loadCardPick();
-    const rows = JSON.parse($('vcpBody').dataset.rows || '[]');
-    const idx = rows.findIndex((c) => String(c.biostarCardValue) === String(res.cardNo));
-    const tr = idx >= 0 && $('vcpBody').querySelector(`.vcp-row[data-idx="${idx}"]`);
-    if (tr) { tr.querySelector('input[type=radio]').checked = true; cardPick.chosen = rows[idx]; }
-    else toast.warning('스캔한 카드가 미할당 목록에 없습니다. (카드관리에서 등록·회수 여부 확인)');
-  }
-  function applyCardPick(card) {
-    const row = (cardPick.kind === 'car' ? cars : visitors)[cardPick.index];
+    const rows = kind === 'car' ? cars : visitors;
+    const row = rows[index];
     if (!row) return;
-    row.cardId = card ? Number(card.cardId) : null;
-    row.cardLabel = card ? card.biostarCardValue : '';
-    (cardPick.kind === 'car' ? carRender : visRender)(); closeCardPicker();
+    if (kind === 'vis' && row.checkoutDt) { toast.warning('퇴실한 방문객에게는 카드를 발급할 수 없습니다.'); return; }
+    visitCardPicker.open({
+      kind,
+      listUrl: BASE + (kind === 'car' ? '/cards/unassigned/car' : '/cards/unassigned'),
+      scanUrl: BASE + '/card/scan',
+      // 이 화면에서 다른 행이 이미 고른 카드는 뺀다(편집 중인 행의 카드는 남긴다)
+      exclude: [...visitors, ...cars].map((o) => o.cardId).filter((id) => id != null && id !== row.cardId),
+      onPick: (card) => {
+        row.cardId = card ? Number(card.cardId) : null;
+        row.cardLabel = card ? card.biostarCardValue : '';
+        (kind === 'car' ? carRender : visRender)();
+      },
+    });
+  }
+
+  /** 방문객 개별 퇴실 — 카드를 발급받은 방문객은 제거 대신 퇴실로 내보낸다(퇴실하면 재발급 불가). */
+  async function checkoutVisitor(index) {
+    collectRows();
+    const v = visitors[index];
+    if (!v || !v.personId) return;
+    const ok = await confirmModal.open({
+      title: '방문객 퇴실',
+      message: `${v.personName || v.personId} 님을 퇴실 처리합니다. 카드가 회수되고 다시 발급할 수 없습니다.`,
+      confirmText: '퇴실',
+    });
+    if (!ok) return;
+    await api.post(`${BASE}/visitor/checkout?visitNo=${$('visitNo').value}&personId=${encodeURIComponent(v.personId)}`);
+    await openModal('edit', Number($('visitNo').value)); // 최신 상태로 다시 불러온다
+    load();
   }
 
   function bind() {
@@ -343,7 +342,8 @@
     });
     $('btnAddVis').addEventListener('click', () => { collectRows(); visitors.push({ personName: '', birthDate: '', affiliation: '', cardId: null, cardLabel: '' }); visRender(); });
     $('visBody').addEventListener('click', (e) => {
-      const del = e.target.closest('button[data-act="vis-del"]'); if (del) { collectRows(); const v = visitors[del.dataset.idx]; if (v && v.cardId) { toast.warning('카드를 발급받은 방문객입니다. 카드 [선택] → [카드 없음] 으로 회수한 뒤 제거하세요.'); return; } visitors.splice(del.dataset.idx, 1); visRender(); return; }
+      const out = e.target.closest('button[data-act="vis-out"]'); if (out) { checkoutVisitor(Number(out.dataset.idx)); return; }
+      const del = e.target.closest('button[data-act="vis-del"]'); if (del) { collectRows(); visitors.splice(del.dataset.idx, 1); visRender(); return; }
       const card = e.target.closest('button[data-act="vis-card"]'); if (card) openCardPicker('vis', Number(card.dataset.idx));
     });
     $('btnAddCar').addEventListener('click', () => { collectRows(); cars.push({ carNo: '', carName: '', carType: '', cardId: null, cardLabel: '' }); carRender(); });
@@ -366,20 +366,6 @@
     });
     $('mgrCancel').addEventListener('click', closeMgr);
     $('mgrClose').addEventListener('click', closeMgr);
-
-    // 카드 선택 팝업
-    $('vcpSearch').addEventListener('click', loadCardPick);
-    $('vcpKeyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadCardPick(); });
-    $('vcpScan').addEventListener('click', scanCardPick);
-    $('vcpBody').addEventListener('click', (e) => {
-      const row = e.target.closest('.vcp-row'); if (!row) return;
-      row.querySelector('input[type=radio]').checked = true;
-      cardPick.chosen = JSON.parse($('vcpBody').dataset.rows)[Number(row.dataset.idx)];
-    });
-    $('vcpOk').addEventListener('click', () => cardPick.chosen ? applyCardPick(cardPick.chosen) : toast.warning('카드를 선택하세요.'));
-    $('vcpClear').addEventListener('click', () => applyCardPick(null));
-    $('vcpCancel').addEventListener('click', closeCardPicker);
-    $('vcpClose').addEventListener('click', closeCardPicker);
 
     if ($('btnSave')) $('btnSave').addEventListener('click', save);
     if ($('btnDelete')) $('btnDelete').addEventListener('click', () => remove($('visitNo').value));

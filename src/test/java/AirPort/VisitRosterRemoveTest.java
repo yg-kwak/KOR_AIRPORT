@@ -89,6 +89,31 @@ class VisitRosterRemoveTest {
   }
 
   @Test
+  void 퇴실한_방문객에게는_카드를_다시_발급하지_않는다() {
+    when(visitMapper.selectPersonIds(9110)).thenReturn(List.of("P1"));
+    when(visitBiostar.deleteVisitors(anyString(), any())).thenReturn(null);
+    when(visitMapper.selectVisitorCheckout(9110, "P1")).thenReturn("2026-07-30 14:00:00"); // 이미 퇴실
+
+    VisitForm form = formKeeping("P1");
+    form.getVisitors().get(0).setCardId(77);
+
+    BusinessException ex =
+        assertThrows(BusinessException.class, () -> service().saveChildren(9110, form, null, 101));
+    assertTrue(ex.getMessage().contains("퇴실한 방문객"), ex.getMessage());
+  }
+
+  @Test
+  void 퇴실_이력은_저장으로_재구성해도_남는다() {
+    when(visitMapper.selectPersonIds(9110)).thenReturn(List.of("P1"));
+    when(visitBiostar.deleteVisitors(anyString(), any())).thenReturn(null);
+    when(visitMapper.selectVisitorCheckout(9110, "P1")).thenReturn("2026-07-30 14:00:00");
+
+    service().saveChildren(9110, formKeeping("P1"), null, 101); // 카드 없이 저장
+
+    verify(visitMapper).insertPerson(9110, "P1", "2026-07-30 14:00:00"); // 퇴실일시 그대로 복원
+  }
+
+  @Test
   void 같은_카드를_두_명에게_발급하면_거부한다() {
     when(visitMapper.selectPersonIds(9110)).thenReturn(List.of());
     when(visitBiostar.deleteVisitors(anyString(), any())).thenReturn(null);

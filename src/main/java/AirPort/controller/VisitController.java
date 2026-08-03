@@ -165,6 +165,15 @@ public class VisitController {
         withWarning("퇴실 처리되었습니다.", visitService.checkout(visitNo, actor(session), menuId())));
   }
 
+  /** 방문객 개별 퇴실 (AJAX) — 카드 발급된 방문객은 제거 대신 이 방식으로 내보낸다. */
+  @PostMapping("/visitor/checkout")
+  @ResponseBody
+  public ApiResponse<Void> checkoutVisitor(
+      @RequestParam int visitNo, @RequestParam String personId, HttpSession session) {
+    visitService.checkoutVisitor(visitNo, personId, actor(session), menuId());
+    return ApiResponse.okMessage("퇴실 처리되었습니다.");
+  }
+
   private static String withWarning(String message, String warn) {
     return warn == null ? message : message + " (BiostarX 동기화 실패: " + warn + ")";
   }

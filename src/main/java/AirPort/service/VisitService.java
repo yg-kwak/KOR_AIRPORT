@@ -161,6 +161,7 @@ public class VisitService {
           f.setCardLabel(pc.get(0).getBiostarCardValue());
         }
         f.setLastCardNo(visitMapper.selectVisitorLastCard(visitNo, pid)); // 회수 후에도 보존된 마지막 카드
+        f.setCheckoutDt(visitMapper.selectVisitorCheckout(visitNo, pid)); // 값이 있으면 퇴실(카드 재발급 불가)
         d.visitors.add(f);
       }
     }
@@ -265,6 +266,43 @@ public class VisitService {
     visitMapper.softDelete(visitNo);
     auditService.log(actor, AuditService.DELETE, menuId, "방문 삭제: " + visitNo);
     return warn;
+  }
+
+  /**
+   * 방문객 개별 퇴실 — 카드를 발급받은 방문객은 행에서 뺄 수 없으므로 이 방식으로 내보낸다.
+   *
+   * <p>방문 전체 퇴실과 같은 순서다: <b>BiostarX 비활성화가 성공해야</b> DB 카드를 회수한다(실패한 채 회수하면 장비에서는 계속 열리는데 카드는 재대여돼
+   * 이중 사용이 된다). 퇴실 기록이 남으면 그 방문객에게는 다시 카드를 줄 수 없다.
+   *
+   * @return 항상 null(성공) — 실패는 예외
+   */
+  @Transactional
+  public String checkoutVisitor(int visitNo, String personId, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireCreate(actor, menuId);
+    TbVisit v = visitMapper.selectById(visitNo);
+    if (v == null || "Y".equals(v.getDelYn())) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    if (!visitMapper.selectPersonIds(visitNo).contains(personId)) {
+      throw new BusinessException(ErrorCode.NOT_FOUND, "이 방문의 방문객이 아닙니다.");
+    }
+    if (visitMapper.selectVisitorCheckout(visitNo, personId) != null) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "이미 퇴실한 방문객입니다.");
+    }
+    String warn = visitBiostar.disableVisitors(List.of(personId));
+    if (warn != null) {
+      auditService.logAlways(
+          actor,
+          AuditService.UPDATE,
+          menuId,
+          "방문객 퇴실 실패(" + visitNo + "/" + personId + "): " + warn);
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT, "BiostarX 비활성화 실패로 퇴실이 취소되었습니다. 사유: " + warn + " — 다시 시도하세요.");
+    }
+    cardMapper.releaseByPerson(personId); // 카드 회수(다른 사람이 재사용 가능)
+    visitMapper.updateVisitorCheckout(visitNo, personId);
+    auditService.log(actor, AuditService.UPDATE, menuId, "방문객 퇴실: " + visitNo + "/" + personId);
+    return null;
   }
 
   /** 퇴실(입실중→퇴실완료) — BiostarX 사용자 비활성화 + 카드 제거, DB 카드 회수(재대여 가능). */

@@ -162,9 +162,20 @@
     SELECT person_id FROM tb_visit_person WHERE visit_no = #{visitNo}
   </select>
   <delete id="deletePersons">DELETE FROM tb_visit_person WHERE visit_no = #{visitNo}</delete>
+  <!-- 저장은 방문객 목록을 통째로 재구성한다 — 퇴실일시(checkout_dt)는 이력이라 그대로 되돌려 넣는다 -->
   <insert id="insertPerson">
-    INSERT INTO tb_visit_person (visit_no, person_id) VALUES (#{visitNo}, #{personId})
+    INSERT INTO tb_visit_person (visit_no, person_id, checkout_dt)
+    VALUES (#{visitNo}, #{personId}, #{checkoutDt})
   </insert>
+  <select id="selectVisitorCheckout" resultType="string">
+    SELECT CONVERT(varchar(19), checkout_dt, 120) FROM tb_visit_person
+     WHERE visit_no = #{visitNo} AND person_id = #{personId}
+  </select>
+  <!-- 개별 퇴실 — 이미 퇴실한 방문객은 갱신하지 않는다(최초 퇴실 시각 보존) -->
+  <update id="updateVisitorCheckout">
+    UPDATE tb_visit_person SET checkout_dt = getdate(), mod_dt = getdate()
+     WHERE visit_no = #{visitNo} AND person_id = #{personId} AND checkout_dt IS NULL
+  </update>
   <!-- 마지막 배정 카드번호 스냅샷 — 카드 회수(person_id=NULL)·재사용 후에도 방문객이 어떤 카드를 썼는지 남긴다 -->
   <update id="updateVisitorLastCard">
     UPDATE tb_visit_person

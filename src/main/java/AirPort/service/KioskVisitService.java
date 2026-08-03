@@ -91,7 +91,7 @@ public class KioskVisitService {
       visitMapper.insertCarAcGroups(visitNo, form.getCarAcCodes());
     }
     for (VisitorForm vf : visitors) {
-      visitMapper.insertPerson(visitNo, roster.upsertVisitor(vf, form));
+      visitMapper.insertPerson(visitNo, roster.upsertVisitor(vf, form), null);
     }
     for (VisitCarForm cf : cars) {
       visitMapper.insertCar(visitNo, roster.insertVisitCar(cf, form));

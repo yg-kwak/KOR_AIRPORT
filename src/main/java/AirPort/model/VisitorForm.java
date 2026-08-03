@@ -13,4 +13,5 @@ public class VisitorForm {
   private Integer cardId; // 선택한 카드(tb_card.card_id), 없으면 null
   private String cardLabel; // 표시용 카드번호(응답 전용) — 저장 시 무시
   private String lastCardNo; // 마지막 배정 카드번호(응답 전용) — 회수 후에도 보존, 저장 시 무시
+  private String checkoutDt; // 개별 퇴실 일시(응답 전용) — 값이 있으면 재실이 아니라 카드 재발급 불가
 }

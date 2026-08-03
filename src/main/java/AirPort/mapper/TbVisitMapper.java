@@ -39,7 +39,16 @@ public interface TbVisitMapper {
 
   int deletePersons(@Param("visitNo") int visitNo);
 
-  int insertPerson(@Param("visitNo") int visitNo, @Param("personId") String personId);
+  int insertPerson(
+      @Param("visitNo") int visitNo,
+      @Param("personId") String personId,
+      @Param("checkoutDt") String checkoutDt);
+
+  /** 개별 퇴실 기록(최초 1회만 — 이미 퇴실이면 0행). */
+  int updateVisitorCheckout(@Param("visitNo") int visitNo, @Param("personId") String personId);
+
+  /** 방문객의 퇴실일시("yyyy-MM-dd HH:mm:ss"). 재실이면 null. */
+  String selectVisitorCheckout(@Param("visitNo") int visitNo, @Param("personId") String personId);
 
   /** 방문객의 마지막 배정 카드번호 스냅샷 기록(카드 회수·재사용 후에도 보존). */
   int updateVisitorLastCard(

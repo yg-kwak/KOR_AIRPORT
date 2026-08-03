@@ -100,14 +100,28 @@ public class VisitRosterService {
           ErrorCode.INVALID_INPUT,
           "BiostarX 사용자 삭제 실패로 저장이 취소되었습니다. 사유: " + delFail + " — 다시 시도하세요.");
     }
+    // 재구성 전에 퇴실 이력을 읽어 둔다(deletePersons 로 행이 지워지므로 그대로 되돌려 넣어야 한다)
+    java.util.Map<String, String> checkouts = new java.util.HashMap<>();
+    for (String pid : keptIds) {
+      String dt = visitMapper.selectVisitorCheckout(visitNo, pid);
+      if (dt != null) {
+        checkouts.put(pid, dt);
+      }
+    }
     visitMapper.deletePersons(visitNo);
     List<String> personIds = new ArrayList<>();
     java.util.Set<Integer> usedCards = new java.util.HashSet<>(); // 한 실물 카드는 한 사람에게만
     if (form.getVisitors() != null) {
       for (VisitorForm vf : form.getVisitors()) {
         String pid = upsertVisitor(vf, form);
-        visitMapper.insertPerson(visitNo, pid);
+        String checkoutDt = checkouts.get(pid);
+        visitMapper.insertPerson(visitNo, pid, checkoutDt);
         cardMapper.releaseByPerson(pid); // 이전 카드 해제 후 재배정
+        if (vf.getCardId() != null && checkoutDt != null) {
+          // 퇴실한 방문객에게는 다시 카드를 줄 수 없다(화면도 선택 버튼을 숨긴다)
+          throw new BusinessException(
+              ErrorCode.INVALID_INPUT, "퇴실한 방문객(" + pid + ")에게는 카드를 발급할 수 없습니다.");
+        }
         if (vf.getCardId() != null) {
           if (!usedCards.add(vf.getCardId())) {
             throw new BusinessException(
