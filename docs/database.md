@@ -411,13 +411,14 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 - 스키마 원천: `D:\작업\2026\청주공항\설계\table.xlsx` (설계) → 본 문서 → 실행 스크립트 `sql/`.
 - **DDL: `sql/ddl/01_tables.sql`**, **seed: `sql/seed/02_seed.sql`**(공통코드 AT/LO, 메뉴, 관리자 계정 admin/admin123).
 - 공통코드 시드 범위: 상태·구분 계열(PS/CS/VS/IS/PT/PTD 등)과 **직위(UT: 사원·대리·과장·차장·부장)** 는 기본값을 넣는다. **카드구분(CDT)** 은 현장마다 달라 시드하지 않고 공통코드관리에서 등록한다. UT 의 `code_name` 은 BiostarX `user_title` 로 전달된다.
-- **신규 설치**: `sql/install.sql` 한 번으로 DB 생성 → DDL → seed 까지 끝난다(저장소 루트에서 실행).
-  ```
-  sqlcmd -S <서버> -U sa -P "<비밀번호>" -C -I -f 65001 -i sql\install.sql
-  ```
-  `-I`(QUOTED_IDENTIFIER, 필터 인덱스에 필요) · `-f 65001`(UTF-8, 한글 코드명 깨짐 방지)은 **반드시** 준다.
-- **기존 DB 갱신**: `sql/migration/<날짜>_<주제>.sql`. 모든 문장이 멱등(`IF COL_LENGTH ... IS NULL`, `NOT EXISTS`)이라
-  여러 번 실행해도 안전하다. 컬럼 추가뿐 아니라 **데이터 정합성 복구**(시스템 코드 사용유무, 삭제 인원에 남은 카드 회수)도 함께 담는다.
+- **현장 설치·갱신은 `sql/deploy/CJAirPort_install.sql` 하나로 끝난다.** SSMS 에서 파일을 열고 F5 (sqlcmd 로도 실행 가능).
+  DB 생성 → 테이블/인덱스 → 기본 데이터 → 스키마·데이터 보정까지 한 파일에 들어 있고, **재실행해도 안전**하다.
+  - 이미 있는 테이블·인덱스는 만들지 않는다(`IF OBJECT_ID ... IS NULL`).
+  - 기본 데이터(공통코드·메뉴·권한·계정)는 **계정이 하나도 없을 때만** 통째로 넣는다 — 서로 참조하고
+    `SCOPE_IDENTITY()` 를 쓰므로 쪼개면 안 된다(한 배치에서 실행).
+  - 보정 절은 기본 데이터 **뒤**에 온다(먼저 돌면 seed 의 같은 코드와 PK 충돌).
+  - 이 파일은 `sql/ddl/01_tables.sql` + `sql/seed/02_seed.sql` 을 합쳐 만든 것이다.
+    **DDL/seed 를 고치면 이 파일도 다시 만들어야 한다**(둘이 어긋나면 현장과 개발이 달라진다).
 - TODO: 스키마 형상관리 자동화(Flyway 등) 도입 여부.
 
 

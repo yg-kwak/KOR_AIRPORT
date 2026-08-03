@@ -45,7 +45,7 @@ Gradle 빌드(`build.gradle`)가 **저장소 루트**에 있어, 루트를 열�
 - **로그**: 서비스로 돌리면 콘솔이 없어 로그가 사라지므로 **파일 로그가 기본 활성**이다(`logging.file.name`).
   기본 경로는 작업 디렉터리의 `logs/` — 서비스는 작업 디렉터리가 달라질 수 있어 **운영은 절대경로 권장**:
   `LOG_PATH=D:/cjairport/logs` (환경변수) 또는 외부 설정에 `logging.file.name`. 하루 단위 + 50MB 분할, 30일·총 1GB 보관.
-- **DB 준비**: 신규는 `sql/install.sql`, 기존 갱신은 `sql/migration/*.sql`. (`database.md`)
+- **DB 준비**: `sql/deploy/CJAirPort_install.sql` — SSMS 로 열고 F5. 신규 설치·기존 갱신 모두 이 파일 하나. (`database.md`)
 - TODO: 배포 대상(서비스 등록/데몬 — systemd 등), 기동 스크립트.
 - TODO: 무중단/롤백 전략.
 - TODO: DB DDL/마이그레이션 적용 순서. (`database.md`)
