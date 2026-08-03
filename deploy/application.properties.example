@@ -1,0 +1,101 @@
+# =============================================================================
+# CJAirPort 운영 설정 예시 — 현장에서 이 파일을 복사해 쓴다.
+#
+#   배치:  C:\project\CJ_AirPort\config\application.properties
+#          (jar 옆 config\ 에 두면 실행 인자 없이 자동으로 읽힌다)
+#   실행:  cd /d C:\project\CJ_AirPort && java -jar cjairport-0.0.1-SNAPSHOT.jar
+#
+#   여기 적은 값이 jar 내부 기본값을 덮어쓴다. 바꿀 항목만 남기고 나머지는 지워도 된다
+#   (지우면 아래 '기본값' 주석의 값이 적용된다).
+#
+#   ※ 경로는 슬래시(/) 로 쓴다. 역슬래시(\)는 이스케이프로 해석돼 오작동한다.
+#   ※ 이 파일에는 DB 비밀번호·암호화 키가 평문으로 들어간다.
+#      서비스 계정만 읽도록 권한을 제한한다(속성 → 보안). git 에 넣지 않는다.
+# =============================================================================
+
+# ===== 앱 =====
+# 로그·모니터링에 찍히는 이름. 바꿀 일 없음.
+spring.application.name=cjairport
+
+# ===== 서버 / 세션 =====
+# 접속 포트. 80·443 을 쓰려면 서비스 계정에 권한이 필요하고 IIS 등과 충돌하지 않아야 한다.
+server.port=8080
+# 유휴 세션 만료(마지막 서버 요청 기준). 30m, 2h 처럼 단위를 붙인다. 기본값 1h
+server.servlet.session.timeout=1h
+# 세션 쿠키를 스크립트에서 못 읽게 한다(XSS 방어). 기본값 true — 그대로 둔다.
+server.servlet.session.cookie.http-only=true
+# 다른 사이트에서 넘어온 요청에 쿠키를 보낼지. 기본값 lax — 그대로 둔다.
+server.servlet.session.cookie.same-site=lax
+# HTTPS 에서만 쿠키 전송. 아래 SSL 을 켰다면 true 로 둔다.
+server.servlet.session.cookie.secure=true
+
+# ===== HTTPS =====
+# 얼굴 촬영(웹캠)은 HTTPS 가 아니면 브라우저가 카메라를 차단한다 → 운영은 true.
+server.ssl.enabled=true
+server.ssl.key-store=C:/project/CJ_AirPort/certs/cjairport.p12
+server.ssl.key-store-type=PKCS12
+server.ssl.key-store-password=<키스토어 비밀번호>
+server.ssl.key-alias=cjairport
+
+# ===== DB (MSSQL) =====
+# 같은 PC 면 localhost, 별도 서버면 IP\인스턴스명 또는 IP,포트.
+# 사설 인증서를 쓰는 서버라 trustServerCertificate=true 를 유지한다.
+spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=CJ_AIRPORT;encrypt=true;trustServerCertificate=true
+spring.datasource.username=<DB 계정>
+spring.datasource.password=<DB 비밀번호>
+# JDBC 드라이버. 바꿀 일 없음.
+spring.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+# ===== MyBatis (바꿀 일 없음 — jar 안의 리소스를 가리킨다) =====
+mybatis.config-location=classpath:mybatis-config.xml
+mybatis.mapper-locations=classpath:mapper/**/*.xml
+
+# ===== 화면(Thymeleaf) =====
+# 운영은 캐시를 켠다(false 면 요청마다 템플릿을 다시 읽어 느리다).
+spring.thymeleaf.cache=true
+# 템플릿 위치. 바꿀 일 없음.
+spring.thymeleaf.prefix=classpath:/templates/
+spring.thymeleaf.suffix=.html
+
+# ===== 업로드 제한 =====
+# 얼굴 사진 업로드 한도와 직결된다(서버는 4MB 까지 사진을 받는다). 기본값 5MB
+spring.servlet.multipart.max-file-size=5MB
+spring.servlet.multipart.max-request-size=5MB
+
+# ===== 인코딩 (바꿀 일 없음) =====
+server.servlet.encoding.charset=UTF-8
+server.servlet.encoding.force=true
+
+# ===== 로그 =====
+# 서비스로 돌리면 콘솔이 없어 파일 로그가 유일한 기록이다.
+# 작업 디렉터리가 달라질 수 있으므로 절대경로로 지정한다. 이 한 줄이면 롤링 파일도 같은 폴더에 쌓인다.
+LOG_PATH=C:/project/CJ_AirPort/logs
+# 하루 단위 + 파일당 50MB 초과 시 분할, 30일·총 1GB 까지 보관(넘으면 오래된 것부터 삭제).
+logging.logback.rollingpolicy.max-file-size=50MB
+logging.logback.rollingpolicy.max-history=30
+logging.logback.rollingpolicy.total-size-cap=1GB
+logging.logback.rollingpolicy.clean-history-on-start=true
+# 로그 한 줄 형식 — [요청ID] [사용자ID] 가 들어간다(장애 추적용). 바꿀 일 없음.
+logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{requestId:-}] [%X{userId:-}] %logger{36} - %msg%n
+logging.pattern.file=${logging.pattern.console}
+# 평소는 주석 유지. BiostarX 연동 문제를 파고들 때만 잠깐 켠다(로그가 많이 쌓인다).
+#logging.level.AirPort.adapter=DEBUG
+#logging.level.AirPort.service=DEBUG
+
+# ===== 개인정보 암호화 키 (ARIA, 32자) =====
+# 🔴 DB 의 암호문(성명·비밀번호)을 만든 키와 반드시 같아야 한다.
+#    다르면 관리자 계정조차 로그인할 수 없고, 기존 인원 성명이 전부 깨져 보인다.
+#    설치 스크립트(sql/deploy)로 넣은 기본 데이터를 쓴다면 그 데이터를 만든 키를 그대로 쓴다.
+app.crypto.aria-key=<32자 키>
+
+# ===== 카드 출력 =====
+# 카드 디자인(export JSON) 경로. 파일이 없으면 카드 출력 메뉴만 동작하지 않는다.
+card-print.project-file=C:/project/CJ_AirPort/card-templates/card_project.json
+# 디자인 캔버스 가로 폭(요소 좌표 기준). 템플릿을 새로 뽑지 않는 한 바꾸지 않는다.
+card-print.canvas-width=540
+
+# =============================================================================
+# 여기에 없는 것 — BiostarX 접속정보(IP·계정·비밀번호)
+#   app.biostar.* 는 개발(local) 전용이라 운영에서는 읽지 않는다.
+#   앱을 띄운 뒤 [설정관리] 화면에서 입력하고 [연결 테스트] 로 확인한다(tb_system 에 암호화 저장).
+# =============================================================================

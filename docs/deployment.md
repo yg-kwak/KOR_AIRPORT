@@ -64,6 +64,10 @@ jar 내부 application.properties            (placeholder만)
 → 실행 인자 --spring.datasource.password=… (최우선)
 ```
 
+**설정 예시 파일**: `deploy/application.properties.example` — 모든 키에 설명이 붙어 있다. 복사해 값만 채운다.
+**BiostarX 접속정보는 이 파일에 넣지 않는다** — `app.biostar.*` 는 `local` 프로파일 전용 시더가 읽으므로 운영에서는 무시된다.
+앱을 띄운 뒤 [설정관리] 화면에서 입력한다(tb_system 에 암호화 저장).
+
 **권장 배치:**
 ```
 /opt/cjairport/
