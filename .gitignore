@@ -45,3 +45,6 @@ card-templates/
 
 # TLS 키스토어(자체서명 인증서) — 커밋 금지
 certs/
+
+# 앱 실행 로그(파일 로깅)
+logs/
