@@ -132,7 +132,7 @@ public class CardService {
   @Transactional
   public void createCard(TbCard row, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
-    validateCard(row);
+    validateCard(row, null);
     if (cardMapper.selectByCardNo(row.getBiostarCardValue()) != null) {
       throw new BusinessException(ErrorCode.DUPLICATE, "이미 등록된 카드번호입니다.");
     }
@@ -236,7 +236,7 @@ public class CardService {
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
-    validateCard(row);
+    validateCard(row, existing);
     normalize(row);
     cardMapper.updateInfo(row);
     // 차단 여부가 바뀐 경우에만 BiostarX 차단/해제
@@ -274,7 +274,7 @@ public class CardService {
   }
 
   /** 카드 마스터 필수값 — 인원 화면(CardForm)과 같은 기준. 차량 카드는 패스구분을 받지 않는다. */
-  private void validateCard(TbCard row) {
+  private void validateCard(TbCard row, TbCard prev) {
     require(row.getBiostarCardValue(), "카드번호");
     require(row.getCardType(), "카드구분");
     if (!CARD_TYPE_CAR.equals(row.getCardType())) {
@@ -283,9 +283,13 @@ public class CardService {
     require(row.getCardName(), "카드명칭");
     require(row.getCardStatus(), "카드상태");
     // 엑셀 일괄등록은 코드ID 를 직접 적으므로 없는 코드가 그대로 저장되지 않게 막는다
-    codeValidator.validate("CDT", row.getCardType(), "카드구분");
-    codeValidator.validate("PT", row.getPassType(), "패스구분");
-    codeValidator.validate("CS", row.getCardStatus(), "카드상태");
+    // (수정은 기존 값과 다를 때만 — 코드가 나중에 정리돼도 기존 행 수정이 막히지 않게)
+    codeValidator.validate(
+        "CDT", row.getCardType(), "카드구분", prev == null ? null : prev.getCardType());
+    codeValidator.validate(
+        "PT", row.getPassType(), "패스구분", prev == null ? null : prev.getPassType());
+    codeValidator.validate(
+        "CS", row.getCardStatus(), "카드상태", prev == null ? null : prev.getCardStatus());
   }
 
   /** 저장 전 보정 — 차량 카드의 패스구분은 화면에서 무엇이 오든 비운다(화면 값 불신). */
@@ -374,7 +378,8 @@ public class CardService {
       return;
     }
     for (CardForm form : cards) {
-      validate(form);
+      // 기존 카드면 저장된 값을 기준으로 검증한다(안 바꾼 코드 때문에 저장이 막히지 않게)
+      validate(form, form.getCardId() == null ? null : cardMapper.selectById(form.getCardId()));
       TbCard row = new TbCard();
       row.setCardId(form.getCardId());
       row.setPersonId(personId);
@@ -445,11 +450,16 @@ public class CardService {
   }
 
   /** 카드 필수값 — 화면(card-list.js)과 같은 기준. 카드구분은 서버가 고정하므로 검사 대상이 아니다. */
-  private static void validate(CardForm form) {
+  private void validate(CardForm form, TbCard prev) {
     require(form.getCardNo(), "카드번호");
     require(form.getPassType(), "패스구분");
     require(form.getCardName(), "카드명칭");
     require(form.getCardStatus(), "카드상태");
+    // 카드등록관리와 같은 규칙 — 화면 팝업 값이라도 서버가 최종 확인한다(클라이언트 값 불신)
+    codeValidator.validate(
+        "PT", form.getPassType(), "패스구분", prev == null ? null : prev.getPassType());
+    codeValidator.validate(
+        "CS", form.getCardStatus(), "카드상태", prev == null ? null : prev.getCardStatus());
   }
 
   private static void require(String value, String label) {

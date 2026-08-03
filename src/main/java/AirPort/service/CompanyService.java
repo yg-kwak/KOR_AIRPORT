@@ -303,11 +303,11 @@ public class CompanyService {
   @Transactional
   public String update(TbCompany row, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId); // 정책: 등록/수정은 create_auth 로 판정
-    validate(row);
     TbCompany existing = companyMapper.selectById(row.getCompanyCode());
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
+    validate(row, existing); // 코드 검증은 저장된 값 대비(안 바꾼 항목은 통과)
     boolean nameChanged = !row.getCompanyName().equals(existing.getCompanyName());
     encryptCeo(row);
     companyMapper.update(row);
@@ -333,6 +333,11 @@ public class CompanyService {
   }
 
   private void validate(TbCompany row) {
+    validate(row, null);
+  }
+
+  /** prev(저장된 기관)가 있으면 기관구분 검증은 값이 바뀐 경우만 — 코드가 정리돼도 기존 행 수정이 막히지 않게 한다. */
+  private void validate(TbCompany row, TbCompany prev) {
     if (row.getCompanyCode() == null || row.getCompanyCode().isBlank()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "기관코드는 필수입니다.");
     }
@@ -340,7 +345,8 @@ public class CompanyService {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "기관명은 필수입니다.");
     }
     // 엑셀 일괄등록은 코드ID 를 직접 적으므로 없는 코드가 그대로 저장되지 않게 막는다
-    codeValidator.validate("CO", row.getCompanyType(), "기관구분");
+    codeValidator.validate(
+        "CO", row.getCompanyType(), "기관구분", prev == null ? null : prev.getCompanyType());
   }
 
   /** 대표자(ceo_name) — 저장 직전 ARIA 암호화(빈 값은 null). */

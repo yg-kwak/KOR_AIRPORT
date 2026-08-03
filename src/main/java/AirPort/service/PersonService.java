@@ -144,11 +144,11 @@ public class PersonService {
   @Transactional
   public String update(PersonForm form, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId); // 정책: 등록/수정은 create_auth 로 판정
-    validate(form);
     TbPerson existing = personMapper.selectById(form.getPersonId());
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
+    validate(form, existing); // 코드 검증은 저장된 값 대비(안 바꾼 항목은 통과)
     // 변경 전 상태(BiostarX 비교용) — 복호화된 값·기존 얼굴·기존 출입그룹
     decrypt(existing);
     BiostarUserRequest before =
@@ -283,6 +283,11 @@ public class PersonService {
 
   /** 필수값·형식 검증 — 등록·수정 공통(인원 데이터의 최소 요건). */
   private void validate(PersonForm form) {
+    validate(form, null);
+  }
+
+  /** prev(저장된 인원)가 있으면 코드 검증은 값이 바뀐 항목만 — 코드가 정리돼도 기존 행 수정이 막히지 않게 한다. */
+  private void validate(PersonForm form, TbPerson prev) {
     require(form.getPersonId(), "인원ID");
     require(form.getPersonName(), "성명");
     require(form.getCompanyCode(), "기관");
@@ -309,8 +314,10 @@ public class PersonService {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "출입시작일은 출입종료일보다 늦을 수 없습니다.");
     }
     // 엑셀 일괄등록은 코드ID 를 직접 적으므로 없는 코드가 그대로 저장되지 않게 막는다
-    codeValidator.validate(UT, form.getTitleCode(), "직위");
-    codeValidator.validate("PS", form.getStatusCode(), "상태");
+    codeValidator.validate(
+        UT, form.getTitleCode(), "직위", prev == null ? null : prev.getTitleCode());
+    codeValidator.validate(
+        "PS", form.getStatusCode(), "상태", prev == null ? null : prev.getStatusCode());
     String title = personBiostar.codeName(UT, form.getTitleCode());
     if (title != null && !title.isBlank() && !TITLE_ALLOWED.matcher(title).matches()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "직위에 특수문자를 사용할 수 없습니다: " + title);

@@ -567,6 +567,14 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .modal-footer-left { margin-right: auto; } /* 삭제 등 파괴적 동작은 확인/저장과 떨어뜨린다 */
 .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--color-tertiary-active); flex: none; }
 
+/* 엑셀 업로드 결과 — 실패 행을 토스트로 흘리지 않고 모달에 남긴다(많으면 스크롤) */
+.import-result { margin-top: 14px; border: 1px solid var(--color-error-border); border-radius: var(--radius);
+  background: var(--color-error-bg); padding: 10px 12px; }
+.import-result-summary { font-size: 13px; font-weight: 600; color: var(--color-error); margin-bottom: 6px; }
+.import-result-errors { margin: 0; padding-left: 18px; max-height: 220px; overflow-y: auto;
+  font-size: 12px; color: var(--neutral-700); }
+.import-result-errors li { margin: 2px 0; word-break: break-all; }
+
 /* 상태 배지 — 목록의 상태·유무 구분. 색만으로 구분하지 않는다(점 모양·테두리도 함께 달라진다):
    ● 채운 원=진행/유효, ■ 사각=완료, ○ 빈 원+점선 테두리=없음/미발급. */
 .badge { display: inline-flex; align-items: center; gap: 5px; padding: 0 9px 0 7px; height: 22px;

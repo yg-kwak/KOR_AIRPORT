@@ -133,14 +133,24 @@ public class CommonService {
     if (existing == null) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
+    // 시스템 코드는 사용유무 고정 — 화면에서도 막지만 서버가 최종 판단(클라이언트 값 불신)
+    boolean forced = !"Y".equals(existing.getUserInput()) && !"Y".equals(row.getUseYn());
     if (!"Y".equals(existing.getUserInput())) {
-      row.setUseYn("Y"); // 화면에서도 막지만 서버가 최종 판단(클라이언트 값 불신)
+      row.setUseYn("Y");
     }
     if (commonMapper.update(row) == 0) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
+    // 화면을 우회해 '미사용'을 보낸 요청은 강제 사실을 남긴다(정상 사용에서는 발생하지 않는다)
     auditService.log(
-        actor, AuditService.UPDATE, menuId, "공통코드 수정: " + row.getCmmId() + "/" + row.getCodeId());
+        actor,
+        AuditService.UPDATE,
+        menuId,
+        "공통코드 수정: "
+            + row.getCmmId()
+            + "/"
+            + row.getCodeId()
+            + (forced ? " (시스템 코드 — 요청된 사용유무 'N' 을 '사용'으로 강제)" : ""));
   }
 
   /** 삭제 — 사용자 코드(user_input='Y')만. 시스템 코드(N)는 차단(다른 데이터 파급 방지). */

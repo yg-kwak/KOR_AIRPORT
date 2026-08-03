@@ -31,8 +31,23 @@ public class CodeValidationService {
    * @throws BusinessException 없는 코드이거나 사용중지된 코드일 때 — 무엇을 고쳐야 하는지 메시지에 담는다
    */
   public void validate(String cmmId, String codeId, String label) {
+    validate(cmmId, codeId, label, null);
+  }
+
+  /**
+   * 수정용 검증 — <b>값이 바뀐 경우에만</b> 확인한다. 저장된 값과 같으면 통과.
+   *
+   * <p>화면은 값을 안 건드려도 폼 전체를 되전송한다. 운영에서 코드를 삭제하거나 사용중지하면, 그 코드를 쓰던 기존 행은 코드와 무관한 항목(메모 등)만 고치려 해도
+   * 저장이 막힌다. 이미 저장돼 있던 값은 그대로 통과시켜 <b>기존 데이터가 인질이 되지 않게</b> 한다(새로 넣는 값만 막는다).
+   *
+   * @param prevCodeId 저장돼 있던 값 — 같으면 검증을 건너뛴다
+   */
+  public void validate(String cmmId, String codeId, String label, String prevCodeId) {
     if (codeId == null || codeId.isBlank()) {
       return;
+    }
+    if (prevCodeId != null && prevCodeId.equals(codeId)) {
+      return; // 바뀌지 않은 값 — 지금 유효하지 않더라도 기존 행 수정을 막지 않는다
     }
     TbCommon code = commonMapper.selectOne(cmmId, codeId.trim());
     if (code == null) {

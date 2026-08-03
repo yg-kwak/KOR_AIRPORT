@@ -66,12 +66,14 @@ public class PersonFaceService {
   /**
    * 사진 사전 검증 — 통과하면 null, 아니면 사용자에게 보일 사유. base64 자체가 깨졌거나 JPG/PNG 가 아니거나 너무 큰 경우를 잡는다.
    *
-   * <p>확장자·MIME 이 아니라 <b>선두 바이트</b>로 판정한다(이름만 .jpg 인 HEIC 등을 걸러야 한다).
+   * <p>확장자·MIME 이 아니라 <b>선두 바이트</b>로 판정한다(이름만 .jpg 인 HEIC 등을 걸러야 한다). 테스트가 직접 부를 수 있게 패키지 프라이빗으로
+   * 둔다.
    */
-  private static String rejectReason(String base64Image) {
+  static String rejectReason(String base64Image) {
     byte[] raw;
     try {
-      raw = Base64.getDecoder().decode(base64Image.trim());
+      // MIME 디코더 — 줄바꿈이 섞인 base64 도 받는다(strict 디코더는 '데이터가 올바르지 않습니다'로 잘못 안내)
+      raw = Base64.getMimeDecoder().decode(base64Image.trim());
     } catch (IllegalArgumentException e) {
       return "사진 데이터가 올바르지 않습니다. 파일을 다시 선택하세요.";
     }

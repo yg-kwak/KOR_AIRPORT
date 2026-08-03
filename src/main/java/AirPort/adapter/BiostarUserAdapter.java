@@ -360,7 +360,7 @@ public class BiostarUserAdapter {
       return null;
     }
     try {
-      byte[] raw = Base64.getDecoder().decode(base64.trim());
+      byte[] raw = Base64.getMimeDecoder().decode(base64.trim()); // 줄바꿈 섞인 응답도 허용
       int end = raw.length;
       while (end > 0 && raw[end - 1] == 0) {
         end--; // 뒤쪽 널 패딩 제거(앞쪽 헤더의 0x00 은 그대로 유지)

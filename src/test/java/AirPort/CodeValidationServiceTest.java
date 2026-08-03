@@ -58,6 +58,22 @@ class CodeValidationServiceTest {
   }
 
   @Test
+  void 바뀌지_않은_값은_지금_유효하지_않아도_통과한다() {
+    // 운영에서 코드를 삭제·중지해도, 그 코드를 쓰던 기존 행의 수정(메모만 고치는 등)이 막히면 안 된다
+    when(commonMapper.selectOne("UT", "UT09")).thenReturn(null); // 삭제된 코드
+    assertDoesNotThrow(() -> validator.validate("UT", "UT09", "직위", "UT09"));
+
+    when(commonMapper.selectOne("PS", "05")).thenReturn(code("보류", "N")); // 사용중지된 코드
+    assertDoesNotThrow(() -> validator.validate("PS", "05", "상태", "05"));
+  }
+
+  @Test
+  void 값이_바뀌면_새_값은_검증한다() {
+    when(commonMapper.selectOne("UT", "UT99")).thenReturn(null);
+    assertThrows(BusinessException.class, () -> validator.validate("UT", "UT99", "직위", "UT01"));
+  }
+
+  @Test
   void 앞뒤_공백은_다듬어_조회한다() {
     when(commonMapper.selectOne("CDT", "CDT01")).thenReturn(code("출입카드", "Y"));
     assertDoesNotThrow(() -> validator.validate("CDT", " CDT01 ", "카드구분"));

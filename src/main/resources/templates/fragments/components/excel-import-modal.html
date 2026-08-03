@@ -26,6 +26,11 @@
           <span class="file-field-name empty-text" id="excelFileName">선택된 파일 없음</span>
         </div>
       </div>
+      <!-- 업로드 결과 — 실패 행은 토스트로 흘려보내지 않고 여기에 전부 남긴다(어느 줄을 고칠지 확인해야 한다) -->
+      <div class="import-result" id="importResult" style="display:none">
+        <div class="import-result-summary" id="importResultSummary"></div>
+        <ul class="import-result-errors" id="importResultErrors"></ul>
+      </div>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn" id="importCancel">닫기</button>

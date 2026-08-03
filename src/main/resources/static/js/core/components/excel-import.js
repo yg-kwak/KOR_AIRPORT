@@ -3,6 +3,8 @@
    한 모달에서 처리한다. 파일은 선택 즉시 보내지 않고 [업로드] 를 눌러야 전송(오작동 방지). */
 window.excelImport = (function () {
   const $ = (id) => document.getElementById(id);
+  const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
   let cfg = null; // { baseUrl, hint, onDone }
   let picked = null;
 
@@ -21,6 +23,7 @@ window.excelImport = (function () {
     $('importHint').innerHTML = Array.isArray(cfg.hint)
       ? '<ul class="hint-list">' + cfg.hint.map((s) => `<li>${s}</li>`).join('') + '</ul>'
       : (cfg.hint || '');
+    clearResult();
     $('importModal').classList.add('open');
   }
   function close() { $('importModal').classList.remove('open'); }
@@ -40,14 +43,28 @@ window.excelImport = (function () {
     const r = json.data;
     if (r.fail === 0) {
       toast.success(`등록 ${r.success}건 완료`);
-    } else {
-      toast.warning(`등록 ${r.success}건 / 실패 ${r.fail}건 — ${r.errors.slice(0, 5).join(' · ')}` +
-        (r.errors.length > 5 ? ` 외 ${r.errors.length - 5}건` : ''));
-    }
-    if (r.success > 0) {
       close();
       if (cfg.onDone) cfg.onDone();
+      return;
     }
+    // 실패가 있으면 모달을 열어 둔 채 사유를 전부 보여준다 — 토스트로 흘리면 어느 행을 고칠지 알 수 없다
+    showResult(r);
+    toast.warning(`등록 ${r.success}건 / 실패 ${r.fail}건 — 아래 목록을 확인하세요.`);
+    if (r.success > 0 && cfg.onDone) cfg.onDone(); // 성공분은 즉시 목록에 반영
+  }
+
+  /** 업로드 결과(성공/실패 건수 + 실패 행 전체)를 모달 안에 남긴다. */
+  function showResult(r) {
+    $('importResultSummary').textContent =
+      `등록 ${r.success}건 / 실패 ${r.fail}건 — 아래 행을 고쳐 다시 업로드하세요.`;
+    $('importResultErrors').innerHTML = (r.errors || [])
+      .map((e) => `<li>${esc(e)}</li>`).join('');
+    $('importResult').style.display = '';
+  }
+
+  function clearResult() {
+    $('importResult').style.display = 'none';
+    $('importResultErrors').innerHTML = '';
   }
 
   function bind() {
@@ -57,6 +74,7 @@ window.excelImport = (function () {
     $('excelFile').addEventListener('change', (e) => {
       picked = e.target.files && e.target.files[0];
       setName(picked);
+      clearResult(); // 새 파일을 고르면 이전 결과는 지운다
     });
     $('btnDoImport').addEventListener('click', upload);
     $('importCancel').addEventListener('click', close);
