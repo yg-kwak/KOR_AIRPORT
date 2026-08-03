@@ -9,7 +9,13 @@ window.api = (function () {
       opts.headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(body);
     }
-    const res = await fetch(url, opts);
+    if (window.busy) window.busy.start(); // 처리 중 표시 + 중복 클릭 차단(짧은 요청은 표시 안 됨)
+    let res;
+    try {
+      res = await fetch(url, opts);
+    } finally {
+      if (window.busy) window.busy.end();
+    }
     if (res.status === 401) {
       location.href = '/login';
       throw new Error('unauthorized');

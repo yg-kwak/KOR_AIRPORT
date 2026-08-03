@@ -567,6 +567,19 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .modal-footer-left { margin-right: auto; } /* 삭제 등 파괴적 동작은 확인/저장과 떨어뜨린다 */
 .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--color-tertiary-active); flex: none; }
 
+/* 처리 중 표시 — 저장·삭제처럼 서버 왕복이 있는 동안. 화면을 덮어 중복 클릭도 막는다(js/core/busy.js).
+   짧은 요청에서는 뜨지 않는다(스크립트가 지연 후 표시). */
+.busy-overlay { display: none; position: fixed; inset: 0; z-index: 3000;
+  align-items: center; justify-content: center; background: var(--nt-scrim); cursor: progress; }
+.busy-overlay.open { display: flex; }
+.busy-box { display: flex; align-items: center; gap: 10px; padding: 16px 22px; font-size: 14px; font-weight: 600;
+  background: var(--color-white); border-radius: var(--radius-lg); box-shadow: 0 8px 28px var(--nt-shadow); }
+.busy-spinner { width: 18px; height: 18px; flex: none; border-radius: 50%;
+  border: 2px solid var(--color-tertiary-active); border-top-color: var(--color-primary-default);
+  animation: busy-spin .7s linear infinite; }
+@keyframes busy-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .busy-spinner { animation-duration: 2s; } }
+
 /* 엑셀 업로드 결과 — 실패 행을 토스트로 흘리지 않고 모달에 남긴다(많으면 스크롤) */
 .import-result { margin-top: 14px; border: 1px solid var(--color-error-border); border-radius: var(--radius);
   background: var(--color-error-bg); padding: 10px 12px; }

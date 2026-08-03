@@ -343,7 +343,7 @@
     });
     $('btnAddVis').addEventListener('click', () => { collectRows(); visitors.push({ personName: '', birthDate: '', affiliation: '', cardId: null, cardLabel: '' }); visRender(); });
     $('visBody').addEventListener('click', (e) => {
-      const del = e.target.closest('button[data-act="vis-del"]'); if (del) { collectRows(); visitors.splice(del.dataset.idx, 1); visRender(); return; }
+      const del = e.target.closest('button[data-act="vis-del"]'); if (del) { collectRows(); const v = visitors[del.dataset.idx]; if (v && v.cardId) { toast.warning('카드를 발급받은 방문객입니다. 카드 [선택] → [카드 없음] 으로 회수한 뒤 제거하세요.'); return; } visitors.splice(del.dataset.idx, 1); visRender(); return; }
       const card = e.target.closest('button[data-act="vis-card"]'); if (card) openCardPicker('vis', Number(card.dataset.idx));
     });
     $('btnAddCar').addEventListener('click', () => { collectRows(); cars.push({ carNo: '', carName: '', carType: '', cardId: null, cardLabel: '' }); carRender(); });

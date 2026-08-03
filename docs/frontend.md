@@ -60,6 +60,7 @@ src/main/resources/
 - 감사 대상 화면(조회/입력/수정/삭제)은 서버에서 이력을 남긴다. (`security.md`)
 
 ## 공통 UI 컴포넌트·동작 (전 화면 공통)
+- **처리 중 표시(`js/core/busy.js`)**: 저장·삭제 등 서버 왕복 동안 화면을 덮어 진행 중임을 알리고 중복 클릭을 막는다. `api` 래퍼가 자동으로 켜고 끄며(중첩 요청은 카운터), 0.25초 안에 끝나면 표시하지 않는다. 직접 `fetch` 하는 코드는 `busy.wrap(promise)`.
 > 아래는 `head` fragment 가 로드하는 core 컴포넌트로 **전 화면에 자동/공통** 적용된다. 화면마다 새로 만들지 않는다. (명명 규칙은 `conventions.md`)
 - **페이징**: 공통 `pager`(core/pager.js)만 사용 — `pager.render($('paging'), page, totalPages, (p)=>{ state.page=p; load(); })`. 처음«/이전‹/번호(최대5)/다음›/마지막» + 양끝 비활성·클릭 위임 내장. **페이지 번호를 직접 그리지 않는다**(code-lint 강제).
 - **기간(날짜 범위) 필터**: 공통 `period`(core/period.js) — 프리셋 select(`1m/3m/6m/1y/custom`) + 직접입력 시에만 date input 노출. `const ctl = period.attach(sel, rangeBox, startEl, endEl)` → `ctl.value()`(=`{start,end}`), `ctl.reset('1m')`. 기본 1개월. (마크업: `#periodType` + `#dateRange`(hidden) 안에 `#startDate`~`#endDate`)

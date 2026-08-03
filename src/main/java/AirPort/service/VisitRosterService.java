@@ -83,6 +83,8 @@ public class VisitRosterService {
     List<String> removed = new ArrayList<>();
     for (String pid : visitMapper.selectPersonIds(visitNo)) {
       if (!keptIds.contains(pid)) {
+        // 카드 보유자 제거는 화면에서 막는다(카드 [선택] → [카드 없음] 이 먼저). 여기서 서버가 또 막으면
+        // '해제 + 제거' 를 한 번에 저장하는 정상 흐름까지 거부되므로, 남아 있는 카드는 회수만 하고 진행한다.
         cardMapper.releaseByPerson(pid);
         personMapper.softDelete(pid);
         removed.add(pid);

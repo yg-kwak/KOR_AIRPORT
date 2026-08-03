@@ -32,9 +32,9 @@ window.excelImport = (function () {
     if (!picked) { toast.warning('업로드할 파일을 선택하세요.'); return; }
     const fd = new FormData();
     fd.append('file', picked);
-    const res = await fetch(cfg.baseUrl + '/excel/import', {
+    const res = await window.busy.wrap(fetch(cfg.baseUrl + '/excel/import', {
       method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd,
-    });
+    })); // 행 수가 많으면 오래 걸린다 — 진행 중임을 알린다
     const json = await res.json().catch(() => null);
     if (!res.ok || !json || json.success === false) {
       toast.error((json && json.message) || '엑셀 업로드에 실패했습니다.');
