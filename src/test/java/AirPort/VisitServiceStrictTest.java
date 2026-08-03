@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -101,5 +102,71 @@ class VisitServiceStrictTest {
         assertThrows(BusinessException.class, () -> service().update(form, null, 101));
     assertTrue(ex.getMessage().contains("카드 교환만"));
     verify(visitMapper, never()).update(any());
+  }
+
+  @Test
+  void 퇴실한_방문객이_섞여_있어도_카드_교체는_막지_않는다() {
+    // 회귀 방지: 퇴실자는 카드가 없는 게 정상인데 '카드 없는 사람 있음'으로 걸려 교체가 아예 막혔다
+    when(visitMapper.selectById(28)).thenReturn(visit("VS03"));
+    when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001", "IS000002"));
+    when(visitMapper.selectVisitorCheckout(28, "IS000002"))
+        .thenReturn("2026-07-30 14:00:00"); // 퇴실자
+    when(commonMapper.selectOne(any(), any())).thenReturn(null);
+
+    VisitForm form = new VisitForm();
+    form.setVisitNo(28);
+    form.setVisitType("PT02");
+    form.setCompanyName("한빛설비");
+    form.setWorkStartDt("2026-07-30T09:00");
+    form.setWorkEndDt("2026-07-30T18:00");
+    form.setWorkPurpose("정비");
+    form.setManagerIds(List.of("400001"));
+    VisitorForm keep = new VisitorForm();
+    keep.setPersonId("IS000001");
+    keep.setPersonName("재실자");
+    keep.setCardId(99); // 카드 교체
+    VisitorForm out = new VisitorForm();
+    out.setPersonId("IS000002");
+    out.setPersonName("퇴실자"); // 카드 없음(퇴실했으므로 정상)
+    form.setVisitors(List.of(keep, out));
+
+    service().update(form, null, 101); // 예외 없이 저장돼야 한다
+    verify(roster).saveChildren(eq(28), any(), any(), any());
+  }
+
+  @Test
+  void 신청_상태의_방문객은_개별_퇴실할_수_없다() {
+    when(visitMapper.selectById(28)).thenReturn(visit("VS01")); // 신청
+    when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001"));
+
+    BusinessException ex =
+        assertThrows(
+            BusinessException.class, () -> service().checkoutVisitor(28, "IS000001", null, 101));
+    assertTrue(ex.getMessage().contains("입실 중인 방문"), ex.getMessage());
+    verify(visitBiostar, never()).disableVisitors(any()); // 장비 호출 전에 막는다
+  }
+
+  @Test
+  void 방문_퇴실은_방문객마다_퇴실일시를_남긴다() {
+    when(visitMapper.selectById(28)).thenReturn(visit("VS03"));
+    when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001", "IS000002"));
+    when(visitBiostar.disableVisitors(any())).thenReturn(null);
+
+    service().checkout(28, null, 101);
+
+    verify(visitMapper).updateVisitorCheckout(28, "IS000001"); // 개별 퇴실과 같은 표시가 되도록
+    verify(visitMapper).updateVisitorCheckout(28, "IS000002");
+  }
+
+  @Test
+  void BiostarX_에_등록된_방문객이_있으면_방문을_삭제할_수_없다() {
+    when(visitMapper.selectById(28)).thenReturn(visit("VS01"));
+    when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001"));
+    when(visitBiostar.registeredVisitors(any())).thenReturn(List.of("IS000001"));
+
+    BusinessException ex =
+        assertThrows(BusinessException.class, () -> service().delete(28, null, 101));
+    assertTrue(ex.getMessage().contains("BiostarX 에 등록된 방문객"), ex.getMessage());
+    verify(visitMapper, never()).softDelete(anyInt());
   }
 }

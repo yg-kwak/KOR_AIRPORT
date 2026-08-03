@@ -136,6 +136,35 @@ public class VisitBiostarService {
    *
    * @return 실패 방문객이 있으면 경고 문자열(호출자가 롤백), 전부 성공/미대상이면 null
    */
+  /**
+   * 장비에 실제로 등록돼 있는 방문객만 골라낸다 — 방문 삭제 차단 판단용.
+   *
+   * <p>통신 오류는 '없음'으로 오판하면 안 되므로 <b>등록된 것으로 보고</b> 삭제를 막는다(안전한 방향).
+   */
+  public List<String> registeredVisitors(List<String> personIds) {
+    List<String> found = new java.util.ArrayList<>();
+    if (personIds == null || personIds.isEmpty()) {
+      return found;
+    }
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      return found; // 설정이 없으면 장비에 올라갔을 리 없다
+    }
+    String ip = cfg.getBiostarIp();
+    String id = cfg.getBiostarId();
+    String pw = cfg.getBiostarPw() == null ? "" : ARIAUtil.ariaDecrypt(cfg.getBiostarPw());
+    for (String pid : personIds) {
+      try {
+        if (biostarUserAdapter.userExists(ip, id, pw, pid)) {
+          found.add(pid);
+        }
+      } catch (AirPort.adapter.BiostarSessionException e) {
+        found.add(pid); // 확인 불가 — 있는 것으로 보고 삭제를 막는다
+      }
+    }
+    return found;
+  }
+
   public String deleteVisitors(String visitType, List<String> personIds) {
     if (personIds == null || personIds.isEmpty()) {
       return null;

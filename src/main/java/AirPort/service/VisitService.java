@@ -213,11 +213,18 @@ public class VisitService {
     if (STATUS_LEFT.equals(existing.getStatusCode())) { // 퇴실완료는 수정 불가
       throw new BusinessException(ErrorCode.INVALID_INPUT, "퇴실 완료된 방문은 수정할 수 없습니다.");
     }
-    // 입실중(VS03)엔 카드 '교환'만 허용 — 카드 회수(빈 카드)나 방문객 제외는 퇴실 처리로만 가능
+    // 입실중(VS03)엔 카드 '교환'만 허용 — 카드 회수(빈 카드)나 방문객 제외는 퇴실 처리로만 가능.
+    // 단, 이미 개별 퇴실한 방문객은 카드가 없는 게 정상이므로 이 검사에서 뺀다(빼지 않으면 카드 교체가 아예 막힌다).
     if (STATUS_ENTERED.equals(existing.getStatusCode())) {
       boolean noCard =
           form.getVisitors() == null
-              || form.getVisitors().stream().anyMatch(vf -> vf.getCardId() == null);
+              || form.getVisitors().stream()
+                  .anyMatch(
+                      vf ->
+                          vf.getCardId() == null
+                              && visitMapper.selectVisitorCheckout(
+                                      form.getVisitNo(), vf.getPersonId())
+                                  == null);
       List<String> kept =
           form.getVisitors() == null
               ? List.of()
@@ -249,7 +256,17 @@ public class VisitService {
     if (!DEFAULT_STATUS.equals(v.getStatusCode()) && !STATUS_CANCELLED.equals(v.getStatusCode())) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "신청·신청취소 상태의 방문만 삭제할 수 있습니다.");
     }
-    // BiostarX 방문객 사용자 삭제가 성공해야 방문 삭제를 커밋(실패=롤백 — 장비 유령 사용자 방지)
+    // BiostarX 에 이미 올라간 방문은 지우지 않는다 — 장비 이력이 남아야 하고, 실수로 지우면 되돌릴 수 없다.
+    // 내보내려면 퇴실 절차를 쓴다(개별 퇴실 또는 방문 퇴실).
+    List<String> registered = visitBiostar.registeredVisitors(visitMapper.selectPersonIds(visitNo));
+    if (!registered.isEmpty()) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT,
+          "BiostarX 에 등록된 방문객이 있어 삭제할 수 없습니다("
+              + String.join(", ", registered)
+              + "). 퇴실 처리로 진행하세요.");
+    }
+    // 남은 방문객(장비 미등록)만 정리 — 실패=롤백(장비 유령 사용자 방지)
     String warn =
         visitBiostar.deleteVisitors(v.getVisitType(), visitMapper.selectPersonIds(visitNo));
     if (warn != null) {
@@ -285,6 +302,10 @@ public class VisitService {
     }
     if (!visitMapper.selectPersonIds(visitNo).contains(personId)) {
       throw new BusinessException(ErrorCode.NOT_FOUND, "이 방문의 방문객이 아닙니다.");
+    }
+    if (!STATUS_ENTERED.equals(v.getStatusCode())) {
+      // 신청 상태에서는 방문객을 그냥 빼면 된다 — 퇴실은 입실(카드 발급·동기화 완료) 이후의 절차다
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "입실 중인 방문의 방문객만 퇴실할 수 있습니다.");
     }
     if (visitMapper.selectVisitorCheckout(visitNo, personId) != null) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "이미 퇴실한 방문객입니다.");
@@ -328,6 +349,7 @@ public class VisitService {
     }
     for (String pid : personIds) {
       cardMapper.releaseByPerson(pid); // 카드 재대여 가능하도록 DB 회수
+      visitMapper.updateVisitorCheckout(visitNo, pid); // 개별 퇴실과 같은 표시(이미 퇴실이면 시각 유지)
     }
     for (Integer carId : visitMapper.selectCarIds(visitNo)) {
       cardMapper.releaseByCar(carId);

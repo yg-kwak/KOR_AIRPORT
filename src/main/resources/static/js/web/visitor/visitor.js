@@ -122,10 +122,13 @@
       : '<tr><td colspan="6" class="empty">방문객이 없습니다.</td></tr>';
   }
 
-  // 관리 버튼 — 퇴실했으면 표시만, 카드를 들고 있으면 제거 대신 퇴실, 그 외에는 제거
+  /* 관리 버튼 — 퇴실했으면 표시만, [퇴실]은 '입실 중 + 저장된 카드 보유' 일 때만 나온다.
+     화면에서 방금 고른 카드(미저장)로는 바뀌지 않는다 — 저장돼 BiostarX 동기화까지 끝나야 퇴실 대상이다. */
   function visActions(v, i) {
     if (v.checkoutDt) return `<div class="checkout-cell">${badge.of('퇴실', 'done')}<span>${esc(v.checkoutDt.slice(5, 16))}</span></div>`;
-    if (v.cardId) return `<button class="btn btn-sm" data-act="vis-out" data-idx="${i}">퇴실</button>`;
+    if ($('statusCode').value === 'VS03' && v.issuedCardId) {
+      return `<button class="btn btn-sm" data-act="vis-out" data-idx="${i}">퇴실</button>`;
+    }
     return `<button class="btn btn-sm btn-danger" data-act="vis-del" data-idx="${i}">제거</button>`;
   }
 
@@ -185,7 +188,8 @@
     carAcRender(d.carAcCodes || []);
     managers = (d.managers || []).map((m) => ({ personId: m.personId, personName: m.personName || '' }));
     mgrRender();
-    visitors = (d.visitors || []).map((x) => ({ ...x }));
+    // issuedCardId = 저장된 카드(서버 응답 기준). 화면에서 방금 고른 카드와 구분해 퇴실 버튼 노출을 판단한다
+    visitors = (d.visitors || []).map((x) => ({ ...x, issuedCardId: x.cardId || null }));
     visRender();
     cars = (d.cars || []).map((x) => ({ ...x }));
     carRender();
