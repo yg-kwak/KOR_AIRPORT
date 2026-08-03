@@ -1,5 +1,7 @@
 package AirPort.service;
 
+import AirPort.common.exception.BusinessException;
+import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCarMapper;
 import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbPersonMapper;
@@ -30,6 +32,7 @@ public class VisitRosterService {
   private final TbCardMapper cardMapper;
   private final CardService cardService;
   private final VisitBiostarService visitBiostar;
+  private final AuditService auditService;
 
   public VisitRosterService(
       TbVisitMapper visitMapper,
@@ -37,13 +40,15 @@ public class VisitRosterService {
       TbCarMapper carMapper,
       TbCardMapper cardMapper,
       CardService cardService,
-      VisitBiostarService visitBiostar) {
+      VisitBiostarService visitBiostar,
+      AuditService auditService) {
     this.visitMapper = visitMapper;
     this.personMapper = personMapper;
     this.carMapper = carMapper;
     this.cardMapper = cardMapper;
     this.cardService = cardService;
     this.visitBiostar = visitBiostar;
+    this.auditService = auditService;
   }
 
   /**
@@ -75,20 +80,37 @@ public class VisitRosterService {
         }
       }
     }
+    List<String> removed = new ArrayList<>();
     for (String pid : visitMapper.selectPersonIds(visitNo)) {
       if (!keptIds.contains(pid)) {
         cardMapper.releaseByPerson(pid);
         personMapper.softDelete(pid);
+        removed.add(pid);
       }
+    }
+    // 빠진 방문객은 BiostarX 사용자도 지운다 — 하지 않으면 장비에만 남아 계속 출입이 가능하다.
+    // 방문 삭제(VisitService.delete)와 같은 정책: 실패하면 저장 전체를 롤백하고 사유를 알린다.
+    String delFail = visitBiostar.deleteVisitors(form.getVisitType(), removed);
+    if (delFail != null) {
+      auditService.logAlways(
+          actor, AuditService.DELETE, menuId, "방문객 제거 실패(방문 " + visitNo + "): " + delFail);
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT,
+          "BiostarX 사용자 삭제 실패로 저장이 취소되었습니다. 사유: " + delFail + " — 다시 시도하세요.");
     }
     visitMapper.deletePersons(visitNo);
     List<String> personIds = new ArrayList<>();
+    java.util.Set<Integer> usedCards = new java.util.HashSet<>(); // 한 실물 카드는 한 사람에게만
     if (form.getVisitors() != null) {
       for (VisitorForm vf : form.getVisitors()) {
         String pid = upsertVisitor(vf, form);
         visitMapper.insertPerson(visitNo, pid);
         cardMapper.releaseByPerson(pid); // 이전 카드 해제 후 재배정
         if (vf.getCardId() != null) {
+          if (!usedCards.add(vf.getCardId())) {
+            throw new BusinessException(
+                ErrorCode.INVALID_INPUT, "같은 카드를 두 명 이상에게 발급할 수 없습니다. 방문객별로 다른 카드를 선택하세요.");
+          }
           // 장비 미등록 카드면 지금 등록 — 실패하면 예외로 저장이 취소된다(문 안 열리는 카드 방지)
           cardService.ensureBiostarCard(vf.getCardId(), actor, menuId);
           cardMapper.assignPerson(vf.getCardId(), pid);

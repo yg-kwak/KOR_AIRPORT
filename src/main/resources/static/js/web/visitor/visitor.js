@@ -20,9 +20,7 @@
   };
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
-  let carCodes = []; // tb_common(CAR)
-  let carTypes = []; // tb_common(CT)
-  let editMode = 'create';
+  let carCodes = [], carTypes = [], editMode = 'create'; // 차량구역(CAR)·차종(CT) 공통코드 / 모달 모드
 
   // ---- 목록 ----
   async function load() {
@@ -74,10 +72,8 @@
 
   // ---- 참조 데이터 ----
   async function loadRefs() {
-    [carCodes, carTypes] = await Promise.all([
-      api.get('/system/common/picker?cmmId=CAR'),
-      api.get('/system/common/picker?cmmId=CT'),
-    ]).then((a) => a.map((x) => x || []));
+    const refs = await Promise.all(['CAR', 'CT'].map((c) => api.get('/system/common/picker?cmmId=' + c)));
+    [carCodes, carTypes] = refs.map((x) => x || []);
   }
 
   function carAcRender(checked) {
@@ -281,7 +277,11 @@
   function closeCardPicker() { $('vcpModal').classList.remove('open'); }
   async function loadCardPick() {
     const base = cardPick.kind === 'car' ? BASE + '/cards/unassigned/car' : BASE + '/cards/unassigned';
-    const rows = (await api.get(base + '?keyword=' + encodeURIComponent($('vcpKeyword').value.trim()))) || [];
+    const all = (await api.get(base + '?keyword=' + encodeURIComponent($('vcpKeyword').value.trim()))) || [];
+    // 이미 고른 카드는 뺀다(한 실물 카드는 한 사람에게만 — 서버도 거부). 편집 중인 행의 카드는 남긴다
+    const mine = ((cardPick.kind === 'car' ? cars : visitors)[cardPick.index] || {}).cardId;
+    const used = new Set([...visitors, ...cars].map((o) => o.cardId).filter((id) => id != null && id !== mine));
+    const rows = all.filter((c) => !used.has(c.cardId));
     $('vcpBody').innerHTML = rows.length
       ? rows.map((c, i) => `<tr class="row-click vcp-row" data-idx="${i}">
           <td><input type="radio" name="vcp" value="${i}"/></td>
