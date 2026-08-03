@@ -113,7 +113,7 @@
   function visRender() {
     $('visBody').innerHTML = visitors.length
       ? visitors.map((v, i) => `<tr>
-          <td>${v.personId ? esc(v.personId) : badge.none('저장 후 부여')}</td>
+          <td>${v.biostarUserId ? esc(v.biostarUserId) : badge.none('등록 전')}</td>
           <td><input class="input" data-f="personName" data-i="${i}" value="${esc(v.personName)}"/></td>
           <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="1990-01-01" value="${esc(v.birthDate)}"/></td>
           <td><input class="input" data-f="affiliation" data-i="${i}" value="${esc(v.affiliation)}"/></td>
