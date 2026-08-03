@@ -50,6 +50,7 @@
 | **class** | kebab-case. 스타일/반복 요소용 | `search-section` `grid-toolbar` `row-click` |
 | 레이아웃 class | `layout-*`, `lnb-*` | `layout-header` `layout-container` `layout-content` `lnb-sidebar` |
 | 검색영역 class | `search-*` | `search-section` `search-field` `search-keyword` |
+| 검색어 입력 | placeholder 는 `검색어를 입력하세요` 로 통일(무엇을 찾는지는 옆 select 로 표현). **`autocomplete="off"` 를 템플릿에 직접 명시**한다 — `no-autofill.js` 는 DOMContentLoaded 이후에 붙어 브라우저가 이전 검색어 목록을 이미 띄운 뒤일 수 있다 | `<input id="keyword" placeholder="검색어를 입력하세요" autocomplete="off"/>` |
 | 그리드 class | `grid`, `grid-*`, 상태는 단어 | `grid-toolbar` `grid-total` `grid-actions` `sortable` `sorted` `sort-ind` `empty` |
 | 버튼/입력 class | `btn` + 변형 `btn-*`, `input`, 폭 유틸 `w-*` | `btn-primary` `btn-sm` `btn-danger` `btn-block` `w-160` |
 | 모달 class | `modal-*` | `modal-overlay(.open)` `modal-container(.small/.wide/.confirm/.visit-modal/.company-car)` `modal-header/title/close/body/footer` |
