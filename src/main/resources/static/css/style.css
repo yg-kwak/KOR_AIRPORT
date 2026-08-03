@@ -487,6 +487,11 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .modal-container.wide { width: 640px; }
 /* 임시인원 등록 — 인솔자/방문객/차량 표를 넓게 보기 위해 폭 확대 */
 .modal-container.visit-modal { width: 980px; max-width: 96vw; }
+/* 기관 차량 — 표 컬럼이 6개라 wide(640px)로는 고정폭 합계에 밀려 차량명칭이 한 글자씩 접힌다 */
+.modal-container.company-car { width: 900px; max-width: 96vw; }
+/* 모달 안의 표 — 화면이 좁아 컨테이너가 줄어도 칸이 세로로 깨지지 않게 가로 스크롤로 넘긴다 */
+.modal-table-scroll { overflow-x: auto; }
+.modal-table-scroll > .grid { min-width: 760px; }
 .modal-container.confirm { width: 400px; }
 /* 키오스크(무인증 방문 신청) — 관리자 헤더·사이드바 없는 독립 레이아웃(터치 화면) */
 /* 옅은 배경 — 흰 카드가 도드라지게. html 에 흰 배경이 이미 있어 body 배경이 페이지 전체로 전파되지 않으므로

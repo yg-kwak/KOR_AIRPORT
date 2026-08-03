@@ -52,7 +52,8 @@
 | 검색영역 class | `search-*` | `search-section` `search-field` `search-keyword` |
 | 그리드 class | `grid`, `grid-*`, 상태는 단어 | `grid-toolbar` `grid-total` `grid-actions` `sortable` `sorted` `sort-ind` `empty` |
 | 버튼/입력 class | `btn` + 변형 `btn-*`, `input`, 폭 유틸 `w-*` | `btn-primary` `btn-sm` `btn-danger` `btn-block` `w-160` |
-| 모달 class | `modal-*` | `modal-overlay(.open)` `modal-container(.small/.confirm)` `modal-header/title/close/body/footer` |
+| 모달 class | `modal-*` | `modal-overlay(.open)` `modal-container(.small/.wide/.confirm/.visit-modal/.company-car)` `modal-header/title/close/body/footer` |
+| 모달 안 표 | 고정폭 컬럼 합계가 모달 폭에 근접하면 가변 컬럼이 한 글자씩 접힌다 — 폭 전용 클래스를 주고 `modal-table-scroll` 로 감싸 좁은 화면에서는 가로 스크롤 | 기관 차량 모달 `modal-container company-car` + `modal-table-scroll` |
 | 목록 스크롤 class | `list-scroll` — 결과가 많을 때 **지정 행수만 보이고 나머지는 스크롤**(thead sticky). 행수는 `style="--rows:N"`(기본 8) | 키오스크 인솔자 검색결과 `matrix-wrap list-scroll` |
 | 상태 배지 class | `badge` + 톤 `badge-info|success|warning|error|done|none`. **색만으로 구분하지 않는다**(톤별 점 모양·테두리도 다름: ●유효 / ■완료 / ○점선=없음). 마크업은 `js/core/badge.js`(`badge.of/none/count/visitStatus/cardStatus`) 로 만든다. 코드→톤 매핑(VS 방문상태·CS 카드상태)도 badge.js 가 원천 | 방문상태 `badge.visitStatus('VS03','입실 중')`, 미발급 `badge.none('미발급')` |
 | **data-\*** | 서버값/동작을 JS 로 전달 | `data-sort`(정렬키) `data-act`(동작) `data-json`(행 데이터) `data-page`, PK 는 `data-{필드}` |
