@@ -10,6 +10,24 @@
 
     <section class="search-section">
       <div class="search-field">
+        <label>출입시작 기간</label>
+        <div class="search-keyword">
+          <select id="periodType" class="input w-120">
+            <option value="all">전체</option>
+            <option value="1m">1개월</option>
+            <option value="3m">3개월</option>
+            <option value="6m">6개월</option>
+            <option value="1y">1년</option>
+            <option value="custom">직접입력</option>
+          </select>
+          <span id="dateRange" class="date-range" style="display:none">
+            <input type="date" id="startDate" class="input w-160"/>
+            <span class="date-sep">~</span>
+            <input type="date" id="endDate" class="input w-160"/>
+          </span>
+        </div>
+      </div>
+      <div class="search-field">
         <label>상태</label>
         <input type="hidden" id="statusFilter"/>
         <input type="text" id="statusFilterName" class="input w-160 picker-field" readonly

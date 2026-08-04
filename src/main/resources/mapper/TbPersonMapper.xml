@@ -59,7 +59,11 @@
     CONVERT(varchar(16), p.access_start_dt, 126) AS access_start_dt,
     CONVERT(varchar(16), p.access_end_dt, 126)   AS access_end_dt,
     p.use_yn, p.del_yn, p.reg_dt, p.mod_dt,
-    co.company_name AS company_name, ut.code_name AS title_name, ps.code_name AS status_name
+    co.company_name AS company_name, ut.code_name AS title_name, ps.code_name AS status_name,
+    <!-- 목록 표시용 요약 — 사진 본문(BASE64)은 읽지 않고 존재 여부만 본다(행 크기·생체정보 보호) -->
+    CASE WHEN EXISTS (SELECT 1 FROM tb_person_photo ph WHERE ph.person_id = p.person_id)
+         THEN 'Y' ELSE 'N' END AS face_yn,
+    (SELECT COUNT(*) FROM tb_card cd WHERE cd.person_id = p.person_id AND cd.del_yn = 'N') AS card_count
   </sql>
 
   <sql id="listJoins">

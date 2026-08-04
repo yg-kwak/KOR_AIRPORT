@@ -85,7 +85,7 @@
   function renderRows(rows) {
     const body = $('gridBody');
     if (!rows || rows.length === 0) {
-      body.innerHTML = '<tr><td colspan="8" class="empty">조회 결과가 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="11" class="empty">조회 결과가 없습니다.</td></tr>';
       syncSelection();
       return;
     }
@@ -94,13 +94,12 @@
       return `
       <tr${PERM.canCreate ? ' class="row-click" data-json=\'' + esc(JSON.stringify(r)) + '\'' : ''}>
         <td><input type="checkbox" class="row-chk" data-id="${esc(r.personId)}"/></td>
-        <td>${esc(r.personId)}</td>
-        <td>${esc(r.personName)}</td>
-        <td>${esc(r.companyCode)}</td>
-        <td>${esc(r.companyName)}</td>
-        <td>${esc(r.titleName)}</td>
-        <td>${esc(r.birthDate)}</td>
+        <td>${esc(r.personId)}</td><td>${esc(r.personName)}</td><td>${esc(r.companyCode)}</td>
+        <td>${esc(r.companyName)}</td><td>${esc(r.titleName)}</td><td>${esc(r.birthDate)}</td>
         <td>${esc(period)}</td>
+        <td>${badge.personStatus(r.statusCode, r.statusName)}</td>
+        <td>${r.faceYn === 'Y' ? badge.of('등록', 'success') : badge.none('미등록')}</td>
+        <td>${r.cardCount > 0 ? badge.count(r.cardCount, '장') : badge.none('없음')}</td>
       </tr>`;
     }).join('');
     syncSelection();

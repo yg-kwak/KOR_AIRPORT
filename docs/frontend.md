@@ -63,7 +63,8 @@ src/main/resources/
 - **처리 중 표시(`js/core/busy.js`)**: 저장·삭제 등 서버 왕복 동안 화면을 덮어 진행 중임을 알리고 중복 클릭을 막는다. `api` 래퍼가 자동으로 켜고 끄며(중첩 요청은 카운터), 0.25초 안에 끝나면 표시하지 않는다. 직접 `fetch` 하는 코드는 `busy.wrap(promise)`.
 > 아래는 `head` fragment 가 로드하는 core 컴포넌트로 **전 화면에 자동/공통** 적용된다. 화면마다 새로 만들지 않는다. (명명 규칙은 `conventions.md`)
 - **페이징**: 공통 `pager`(core/pager.js)만 사용 — `pager.render($('paging'), page, totalPages, (p)=>{ state.page=p; load(); })`. 처음«/이전‹/번호(최대5)/다음›/마지막» + 양끝 비활성·클릭 위임 내장. **페이지 번호를 직접 그리지 않는다**(code-lint 강제).
-- **기간(날짜 범위) 필터**: 공통 `period`(core/period.js) — 프리셋 select(`1m/3m/6m/1y/custom`) + 직접입력 시에만 date input 노출. `const ctl = period.attach(sel, rangeBox, startEl, endEl)` → `ctl.value()`(=`{start,end}`), `ctl.reset('1m')`. 기본 1개월. (마크업: `#periodType` + `#dateRange`(hidden) 안에 `#startDate`~`#endDate`)
+- **기간(날짜 범위) 필터**: 공통 `period`(core/period.js) — 프리셋 select(`all/1m/3m/6m/1y/custom`) + 직접입력 시에만 date input 노출. `const ctl = period.attach(sel, rangeBox, startEl, endEl)` → `ctl.value()`(=`{start,end}`), `ctl.reset('1m')`. (마크업: `#periodType` + `#dateRange`(hidden) 안에 `#startDate`~`#endDate`)
+  - `all` 은 **빈 문자열**을 돌려줘 서버가 기간 조건을 걸지 않는다. 이력 화면(감사추적)은 `1m` 기본으로 범위를 좁히고, **업무 목록(임시·장기 방문)은 `all` 기본**으로 두어 기간을 넣기 전까지 전건이 보이게 한다.
 - **입력 자동완성/입력이력 금지(전 페이지)**: `core/no-autofill.js` 가 모든 `input`/`textarea`(동적 추가분 포함)에 `autocomplete=off` 자동 적용. 예외로 자격증명은 템플릿에 `autocomplete` 명시(아이디 `off`, 비밀번호 `new-password`)하면 값 보존.
 - **필수 입력 표시**: 필수 항목 라벨 뒤 `<span class="req">*</span>`(붉은 별). **신규 화면 필수값에는 빠짐없이** 붙이고(미지정 시 AI 가 도메인·검증으로 판단), `*` 항목은 **클라+서버 양쪽 검증**과 일치.
 - **비밀번호 입력**: `type=password` 면 표시/숨김(눈) 토글 자동 부착(`core/password-toggle.js`). 별도 마크업 불필요.

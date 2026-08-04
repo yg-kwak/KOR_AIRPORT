@@ -9,6 +9,8 @@ window.badge = (function () {
   const VISIT_TONE = { VS01: 'warning', VS03: 'success', VS04: 'done' };
   // 카드상태(tb_common CS) → 톤. 정상=유효, 분실=차단(적), 정지=일시 차단(황), 반납=완료, 폐기=무효
   const CARD_TONE = { CS01: 'success', CS02: 'error', CS03: 'done', CS04: 'warning', CS05: 'none' };
+  // 인원상태(tb_common PS) → 톤. 신규=유효, 정지=일시 차단(황), 퇴사=완료, 회수=무효
+  const PERSON_TONE = { '01': 'success', '02': 'warning', '03': 'done', '04': 'none' };
 
   const of = (text, tone) => `<span class="badge badge-${tone || 'done'}">${esc(text)}</span>`;
 
@@ -18,5 +20,6 @@ window.badge = (function () {
     count: (n, unit) => of(String(n) + (unit || ''), 'info'),
     visitStatus: (code, name) => of(name || code, VISIT_TONE[code] || 'done'),
     cardStatus: (code, name) => of(name || code, CARD_TONE[code] || 'done'),
+    personStatus: (code, name) => of(name || code, PERSON_TONE[code] || 'done'),
   };
 })();

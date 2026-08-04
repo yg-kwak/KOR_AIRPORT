@@ -6,7 +6,7 @@
   const AC_TREE = 'acTree';
   // fixedType 있으면 방문유형 고정(임시=PT02), 없으면 화면 select 값 사용(장기=PTD03 선택)
   const VISIT_TYPE = CFG.fixedType ? { id: CFG.fixedType, name: CFG.fixedTypeName } : null;
-  const state = { page: 1, size: 30, keyword: '', searchType: 'all', statusCode: '', sort: 'visitNo', dir: 'desc' };
+  const state = { page: 1, size: 30, keyword: '', searchType: 'all', statusCode: '', startDate: '', endDate: '', sort: 'visitNo', dir: 'desc' };
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
@@ -21,12 +21,13 @@
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
   let carCodes = [], carTypes = [], editMode = 'create'; // 차량구역(CAR)·차종(CT) 공통코드 / 모달 모드
+  let periodCtl; // 출입시작 기간 프리셋(core/period.js) — 'all' 이면 빈값이라 서버가 기간을 안 건다
 
   // ---- 목록 ----
   async function load() {
     const q = `?page=${state.page}&size=${state.size}&keyword=${encodeURIComponent(state.keyword)}` +
       `&searchType=${state.searchType}&statusCode=${encodeURIComponent(state.statusCode)}` +
-      `&sort=${state.sort}&dir=${state.dir}`;
+      `&startDate=${state.startDate}&endDate=${state.endDate}&sort=${state.sort}&dir=${state.dir}`;
     const data = await api.get(BASE + '/list' + q);
     const body = $('gridBody');
     if (!data.content || !data.content.length) {
@@ -59,13 +60,15 @@
     state.keyword = $('keyword').value.trim();
     state.searchType = $('searchType').value;
     state.statusCode = $('statusFilter').value;
+    const r = periodCtl.value(); state.startDate = r.start; state.endDate = r.end;
     state.page = 1;
     load();
   }
   function reset() {
     ['keyword', 'statusFilter', 'statusFilterName'].forEach((id) => { $(id).value = ''; });
     $('searchType').value = 'all';
-    Object.assign(state, { page: 1, size: 30, keyword: '', searchType: 'all', statusCode: '', sort: 'visitNo', dir: 'desc' });
+    periodCtl.reset('all');
+    Object.assign(state, { page: 1, size: 30, keyword: '', searchType: 'all', statusCode: '', startDate: '', endDate: '', sort: 'visitNo', dir: 'desc' });
     $('pageSize').value = '30';
     load();
   }
@@ -314,6 +317,7 @@
   }
 
   function bind() {
+    periodCtl = period.attach($('periodType'), $('dateRange'), $('startDate'), $('endDate'));
     $('btnSearch').addEventListener('click', search);
     $('btnReset').addEventListener('click', reset);
     $('keyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });

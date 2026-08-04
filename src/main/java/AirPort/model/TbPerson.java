@@ -40,4 +40,6 @@ public class TbPerson {
   private String companyName;
   private String titleName;
   private String statusName;
+  private String faceYn; // 얼굴등록 여부 — tb_person_photo 행 존재 여부('Y'/'N')
+  private Integer cardCount; // 보유 카드 장수(회수·삭제 제외)
 }

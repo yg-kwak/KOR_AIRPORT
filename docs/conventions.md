@@ -58,7 +58,7 @@
 | 목록 스크롤 class | `list-scroll` — 결과가 많을 때 **지정 행수만 보이고 나머지는 스크롤**(thead sticky). 행수는 `style="--rows:N"`(기본 8) | 키오스크 인솔자 검색결과 `matrix-wrap list-scroll` |
 | 방문 카드 선택 팝업 | `core/components/card-picker-visit.js` — 화면 상태를 모르고 `{kind, listUrl, scanUrl, exclude, onPick}` 만 받는다. 중복 발급 방지용 `exclude` 는 호출 화면이 계산 | `visitCardPicker.open({...})` |
 | 처리 중 표시 | 서버 왕복이 있는 동작은 `js/core/busy.js` 가 자동 처리(api 래퍼가 호출). 직접 fetch 하는 곳은 `busy.wrap(promise)` 로 감싼다. 0.25초 미만 요청은 표시하지 않아 깜빡이지 않고, 표시 중에는 화면을 덮어 중복 클릭을 막는다 | 엑셀 업로드 `busy.wrap(fetch(...))` |
-| 상태 배지 class | `badge` + 톤 `badge-info|success|warning|error|done|none`. **색만으로 구분하지 않는다**(톤별 점 모양·테두리도 다름: ●유효 / ■완료 / ○점선=없음). 마크업은 `js/core/badge.js`(`badge.of/none/count/visitStatus/cardStatus`) 로 만든다. 코드→톤 매핑(VS 방문상태·CS 카드상태)도 badge.js 가 원천 | 방문상태 `badge.visitStatus('VS03','입실 중')`, 미발급 `badge.none('미발급')` |
+| 상태 배지 class | `badge` + 톤 `badge-info|success|warning|error|done|none`. **색만으로 구분하지 않는다**(톤별 점 모양·테두리도 다름: ●유효 / ■완료 / ○점선=없음). 마크업은 `js/core/badge.js`(`badge.of/none/count/visitStatus/cardStatus/personStatus`) 로 만든다. 코드→톤 매핑(VS 방문상태·CS 카드상태·PS 인원상태)도 badge.js 가 원천 | 방문상태 `badge.visitStatus('VS03','입실 중')`, 미발급 `badge.none('미발급')` |
 | **data-\*** | 서버값/동작을 JS 로 전달 | `data-sort`(정렬키) `data-act`(동작) `data-json`(행 데이터) `data-page`, PK 는 `data-{필드}` |
 - 서버 → JS 전역 전달은 `window.PAGE_*` (예: `PAGE_PERM`) 인라인 스크립트로.
 - **의존 선택 패턴**(선택값에 따라 다른 필드 자동): 부모는 `<select>`(서버가 허용 목록 제공), 자식은 `readonly` 입력 + `change` 시 자동 채움. 서버가 파생값을 재검증·재설정한다(클라이언트 값 불신). 예: 공통코드 등록의 코드구분ID→코드구분명.

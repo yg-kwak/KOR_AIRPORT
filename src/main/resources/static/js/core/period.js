@@ -3,14 +3,15 @@
      const ctl = period.attach(selectEl, dateRangeEl, startEl, endEl); // 직접입력 시에만 date input 노출
      const { start, end } = ctl.value();  // 현재 선택의 시작~종료(yyyy-MM-dd)
      ctl.reset('1m');                      // 기본(1개월)로 되돌리고 date input 숨김
-   select 의 value 는 1m|3m|6m|1y|custom 를 쓴다. */
+   select 의 value 는 all|1m|3m|6m|1y|custom 를 쓴다 ('all' = 기간 제한 없음, 빈 날짜 반환). */
 window.period = (function () {
   const p2 = (n) => String(n).padStart(2, '0');
   const ymd = (d) => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
   const today = () => ymd(new Date());
 
-  /** 프리셋 → {start,end}. custom 은 호출 측에서 date input 값을 쓴다. */
+  /** 프리셋 → {start,end}. 'all' 은 빈값(=서버가 기간 조건을 걸지 않음), custom 은 date input 값을 쓴다. */
   function range(type) {
+    if (type === 'all') return { start: '', end: '' };
     const end = new Date();
     const start = new Date();
     if (type === '1m') start.setMonth(start.getMonth() - 1);

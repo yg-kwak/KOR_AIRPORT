@@ -10,6 +10,13 @@
         AND v.visit_type IN (SELECT code_id FROM tb_common WHERE cmm_id = 'PT' AND code_tag = #{codeTag})
       </if>
       <if test="statusCode != null and statusCode != ''">AND v.status_code = #{statusCode}</if>
+      <!-- 출입시작(작업 시작일) 기간 — 감사추적과 같은 프리셋. 종료일은 그날 24시까지 포함한다 -->
+      <if test="startDate != null and startDate != ''">
+        AND v.work_start_dt &gt;= CAST(#{startDate} AS datetime2)
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND v.work_start_dt &lt; DATEADD(DAY, 1, CAST(#{endDate} AS datetime2))
+      </if>
       <!-- 검색어: searchType 로 대상 선택. 업체명·차량번호·카드번호는 부분(LIKE), 방문객·인솔자 성명은 ARIA 암호문이라 완전일치(=keywordEnc) -->
       <if test="keyword != null and keyword != ''">
         <choose>
