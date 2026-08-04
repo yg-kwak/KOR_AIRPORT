@@ -42,11 +42,12 @@ public class LoginController {
       @RequestParam String password,
       HttpServletRequest request,
       Model model) {
-    TbLoginUser user = loginService.authenticate(userId, password);
-    if (user == null) {
-      model.addAttribute("error", "아이디 또는 비밀번호가 올바르지 않습니다.");
+    AirPort.model.LoginResult result = loginService.authenticate(userId, password);
+    if (!result.isSuccess()) {
+      model.addAttribute("error", result.getMessage()); // 불일치/잠금 사유를 그대로 안내
       return "login";
     }
+    TbLoginUser user = result.getUser();
     HttpSession session = request.getSession(true);
     session.setAttribute(SessionKeys.LOGIN_USER, user);
     auditService.log(user, AuditService.LOGIN, null, "로그인");

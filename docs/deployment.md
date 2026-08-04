@@ -35,6 +35,19 @@ Gradle 빌드(`build.gradle`)가 **저장소 루트**에 있어, 루트를 열�
 - 포트/DB/세션/SSL/로그 경로 등은 `application.properties`(+프로파일별)에서 관리.
 - 비밀값은 코드/커밋에 두지 않고 운영 환경에서 주입(프로퍼티는 Jasypt 암호화). (`security.md`)
 
+### DB 커넥션 풀 (현장에서 반드시 확인)
+BiostarX 동기화는 **트랜잭션 안에서** 일어난다(실패 시 저장을 롤백하는 정합성 정책 — `integration.md`). 따라서 인원·방문 저장 1건이 외부 응답을 기다리는 동안 DB 커넥션을 계속 점유한다. HikariCP 기본값 `maximum-pool-size=10` 을 그대로 두면 **등록 작업 10건만으로 풀이 말라 조회를 포함한 전체가 멈춘다**.
+
+| 키 | 기본값(jar) | 의미 |
+|----|-------------|------|
+| `spring.datasource.hikari.maximum-pool-size` | `${DB_POOL_MAX:30}` | 동시 사용자(관리자 PC + 키오스크)보다 넉넉히 |
+| `spring.datasource.hikari.minimum-idle` | `${DB_POOL_MIN:5}` | 유휴 유지 |
+| `spring.datasource.hikari.connection-timeout` | `10000` | 풀이 마르면 무한 대기 대신 10초 후 실패(사유가 보이게) |
+| `spring.datasource.hikari.max-lifetime` | `1800000` | 커넥션 최대 수명 30분 |
+| `spring.datasource.hikari.leak-detection-threshold` | `60000` | 60초 미반납 시 경고 로그 — 외부 연동이 트랜잭션을 오래 잡는지 추적 |
+
+BiostarX 호출 타임아웃은 연결 5초 / 요청 7~10초(`BiostarSession`)다. 한 저장이 여러 번 왕복할 수 있으므로 풀 크기는 그 곱을 감안한다.
+
 ## 운영 환경(DMZ) 전제
 - **적용(운영) 환경은 DMZ — 외부 인터넷 불가.** 의존성/드라이버는 사내 저장소 또는 빌드 산출물에 포함해 반입한다.
 - BiostarX·MSSQL 등 내부망 연동만 가능. (개발 환경은 이 제약 없음)

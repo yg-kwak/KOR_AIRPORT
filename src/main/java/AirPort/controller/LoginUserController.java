@@ -142,6 +142,14 @@ public class LoginUserController {
     return ApiResponse.okMessage("수정되었습니다.");
   }
 
+  /** 계정 잠금 해제 (AJAX) — 연속 실패 횟수 초기화. */
+  @PostMapping("/unlock")
+  @ResponseBody
+  public ApiResponse<Void> unlock(@RequestParam String userId, HttpSession session) {
+    userService.unlock(userId, actor(session), menuId());
+    return ApiResponse.okMessage("잠금이 해제되었습니다.");
+  }
+
   /** 삭제 (AJAX) */
   @DeleteMapping
   @ResponseBody

@@ -19,6 +19,7 @@
 
   // 메뉴 권한(서버 렌더 시 주입). 버튼 숨김은 1차 방어 — 서버가 생성/수정/삭제를 재검증한다.
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
+  const MAX_FAIL = 5; // 연속 실패 허용 횟수 — 서버(LoginService.MAX_FAIL)와 같은 값
 
   // 참조 옵션(권한) — 등록/수정 모달 select 에 사용. (근무지역은 코드 팝업으로 조회)
   const refs = { auths: [] };
@@ -70,15 +71,18 @@
   function renderRows(rows) {
     const body = $('gridBody');
     if (!rows || rows.length === 0) {
-      body.innerHTML = '<tr><td colspan="7" class="empty">조회 결과가 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="8" class="empty">조회 결과가 없습니다.</td></tr>';
       return;
     }
     body.innerHTML = rows.map((r) => {
       // 로그인 중인 계정은 삭제 불가 — 버튼 대신 표시만(서버도 거부한다)
       const isMe = r.userId === window.PAGE_MY_USER_ID;
-      const actions = !PERM.canDelete ? '-'
-        : isMe ? '<span class="form-hint">본인 계정</span>'
-          : `<button class="btn btn-sm btn-danger" data-act="del" data-id="${esc(r.userId)}">삭제</button>`;
+      const locked = (r.loginFailCnt || 0) >= MAX_FAIL;
+      const btns = [];
+      // 잠금해제는 등록/수정과 같은 권한(create)으로 판정 — 서버도 같은 기준
+      if (locked && PERM.canCreate) btns.push(`<button class="btn btn-sm" data-act="unlock" data-id="${esc(r.userId)}">잠금해제</button>`);
+      if (PERM.canDelete && !isMe) btns.push(`<button class="btn btn-sm btn-danger" data-act="del" data-id="${esc(r.userId)}">삭제</button>`);
+      if (!btns.length) btns.push(isMe ? '<span class="form-hint">본인 계정</span>' : '-');
       return `
       <tr${PERM.canCreate ? ' class="row-click" data-json=\'' + esc(JSON.stringify(r)) + '\'' : ''}>
         <td>${esc(r.userId)}</td>
@@ -87,7 +91,8 @@
         <td>${esc(r.authName)}</td>
         <td>${r.useYn === 'Y' ? '사용' : '미사용'}</td>
         <td>${r.rootYn === 'Y' ? '관리자' : '일반'}</td>
-        <td>${actions}</td>
+        <td>${locked ? badge.of('잠김', 'error') : badge.of('정상', 'success')}</td>
+        <td>${btns.join(' ')}</td>
       </tr>`;
     }).join('');
   }
@@ -252,6 +257,19 @@
     load();
   }
 
+  // 계정 잠금 해제 — 연속 실패 횟수를 0 으로. 비밀번호는 그대로 두므로 사용자는 기존 비번으로 다시 로그인한다.
+  async function unlock(userId) {
+    if (!PERM.canCreate) return;
+    const ok = await confirmModal.open({
+      title: '잠금 해제',
+      message: `${userId} 계정의 잠금을 해제하시겠습니까? 비밀번호는 변경되지 않습니다.`,
+      confirmText: '해제',
+    });
+    if (!ok) return;
+    await api.post(`${BASE}/unlock?userId=${encodeURIComponent(userId)}`);
+    load();
+  }
+
   function bind() {
     $('btnSearch').addEventListener('click', search);
     $('btnReset').addEventListener('click', reset);
@@ -293,6 +311,7 @@
       const btn = e.target.closest('button');
       if (btn) {
         if (btn.dataset.act === 'del') remove(btn.dataset.id);
+        else if (btn.dataset.act === 'unlock') unlock(btn.dataset.id);
         return;
       }
       const tr = e.target.closest('tr[data-json]');

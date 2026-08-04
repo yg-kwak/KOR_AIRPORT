@@ -765,6 +765,68 @@ ELSE PRINT '  ! VS02 를 쓰는 방문이 있어 코드를 남겨 둠';
 GO
 
 /* ===========================================================================
+   [4-1] 검색·정렬 보조 인덱스 (없으면 생성)
+
+   PK(클러스터드)만으로는 아래 질의가 전부 전건 스캔이다. 데이터가 쌓이기 전에 만들어 둔다.
+   특히 tb_system_log 는 메뉴접속·조회·입력·수정·삭제를 모두 남겨 가장 빨리 커지는 테이블이다.
+   =========================================================================== */
+PRINT '[4-1] 검색·정렬 보조 인덱스';
+
+/* 감사추적: WHERE reg_dt BETWEEN ... ORDER BY reg_dt DESC, log_id DESC (+ 유형·메뉴·사용자 필터)
+   INCLUDE 로 목록 화면이 쓰는 컬럼을 덮어 키 조회(lookup)를 줄인다. */
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_tb_system_log_reg_dt' AND object_id = OBJECT_ID('dbo.tb_system_log'))
+BEGIN
+  CREATE INDEX IX_tb_system_log_reg_dt ON dbo.tb_system_log (reg_dt DESC, log_id DESC)
+    INCLUDE (user_id, user_name, action_type, menu_id);
+  PRINT '  + IX_tb_system_log_reg_dt';
+END
+GO
+
+/* 카드: 인원/차량별 보유 카드 조회 — 정규인원 목록의 카드 장수(행마다), 카드번호 EXISTS 검색,
+   회수(releaseByPerson/releaseByCar)가 전부 이 조건을 쓴다. 살아 있는 행만 색인(필터 인덱스). */
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_tb_card_person' AND object_id = OBJECT_ID('dbo.tb_card'))
+BEGIN
+  CREATE INDEX IX_tb_card_person ON dbo.tb_card (person_id) INCLUDE (biostar_card_value, card_status)
+    WHERE del_yn = 'N' AND person_id IS NOT NULL;
+  PRINT '  + IX_tb_card_person';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_tb_card_car' AND object_id = OBJECT_ID('dbo.tb_card'))
+BEGIN
+  CREATE INDEX IX_tb_card_car ON dbo.tb_card (car_id) INCLUDE (biostar_card_value, card_status)
+    WHERE del_yn = 'N' AND car_id IS NOT NULL;
+  PRINT '  + IX_tb_card_car';
+END
+GO
+
+/* 인원: 목록·인솔자 후보가 del_yn + person_type 으로 먼저 걸러진다(기관 필터는 그 다음). */
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_tb_person_type' AND object_id = OBJECT_ID('dbo.tb_person'))
+BEGIN
+  CREATE INDEX IX_tb_person_type ON dbo.tb_person (del_yn, person_type, company_code) INCLUDE (person_id);
+  PRINT '  + IX_tb_person_type';
+END
+GO
+
+/* 방문: 임시/장기 목록 — del_yn + visit_type 필터에 출입시작 기간(work_start_dt) 범위·정렬. */
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_tb_visit_search' AND object_id = OBJECT_ID('dbo.tb_visit'))
+BEGIN
+  CREATE INDEX IX_tb_visit_search ON dbo.tb_visit (del_yn, visit_type, work_start_dt)
+    INCLUDE (status_code, company_name);
+  PRINT '  + IX_tb_visit_search';
+END
+GO
+
+/* 방문객 명단: 인원ID 로 역방향 조회(방문객명 검색·퇴실 조회). PK 는 (visit_no, person_id) 라
+   person_id 단독 조건은 탐색이 안 된다. */
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_tb_visit_person_person' AND object_id = OBJECT_ID('dbo.tb_visit_person'))
+BEGIN
+  CREATE INDEX IX_tb_visit_person_person ON dbo.tb_visit_person (person_id) INCLUDE (visit_no);
+  PRINT '  + IX_tb_visit_person_person';
+END
+GO
+
+/* ===========================================================================
    [5] 결과 확인
    =========================================================================== */
 PRINT '';

@@ -334,3 +334,31 @@ CREATE TABLE dbo.tb_system_log (
   reg_dt        datetime2(0)  NOT NULL DEFAULT getdate(),
   CONSTRAINT PK_tb_system_log PRIMARY KEY (log_id)
 );
+
+/* ---------------------------------------------------------------------------
+   검색·정렬 보조 인덱스
+
+   PK(클러스터드)만으로는 목록 화면의 필터·정렬이 전부 전건 스캔이다.
+   특히 tb_system_log 는 메뉴접속·조회·입력·수정·삭제를 모두 남겨 가장 빨리 커진다.
+   필터 인덱스는 QUOTED_IDENTIFIER ON 필요(위에서 설정됨).
+   --------------------------------------------------------------------------- */
+
+/* 감사추적: reg_dt 범위 + 최신순 정렬 (+ 유형·메뉴·사용자 필터) */
+CREATE INDEX IX_tb_system_log_reg_dt ON dbo.tb_system_log (reg_dt DESC, log_id DESC)
+  INCLUDE (user_id, user_name, action_type, menu_id);
+
+/* 카드: 인원/차량별 보유 카드 — 정규인원 목록의 카드 장수(행마다), 카드번호 EXISTS 검색, 회수 */
+CREATE INDEX IX_tb_card_person ON dbo.tb_card (person_id) INCLUDE (biostar_card_value, card_status)
+  WHERE del_yn = 'N' AND person_id IS NOT NULL;
+CREATE INDEX IX_tb_card_car ON dbo.tb_card (car_id) INCLUDE (biostar_card_value, card_status)
+  WHERE del_yn = 'N' AND car_id IS NOT NULL;
+
+/* 인원: 목록·인솔자 후보가 del_yn + person_type 으로 먼저 걸러진다 */
+CREATE INDEX IX_tb_person_type ON dbo.tb_person (del_yn, person_type, company_code) INCLUDE (person_id);
+
+/* 방문: 임시/장기 목록 — del_yn + visit_type + 출입시작 기간(work_start_dt) */
+CREATE INDEX IX_tb_visit_search ON dbo.tb_visit (del_yn, visit_type, work_start_dt)
+  INCLUDE (status_code, company_name);
+
+/* 방문객 명단: person_id 단독 역방향 조회 (PK 는 (visit_no, person_id) 라 탐색 불가) */
+CREATE INDEX IX_tb_visit_person_person ON dbo.tb_visit_person (person_id) INCLUDE (visit_no);

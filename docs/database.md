@@ -425,6 +425,26 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 - **기관차량 삭제**는 반대로 **카드가 있으면 삭제를 거부**한다(먼저 회수). 차량 카드는 실물 회수 확인이 필요하다는 운영 판단.
 - 카드 행 자체는 어느 경우에도 지우지 않는다 — 실물 카드는 재사용 대상이다.
 
+## 인덱스 (검색·정렬)
+
+PK(클러스터드)만으로는 목록 화면의 필터·정렬이 전부 전건 스캔이다. 아래는 `sql/ddl/01_tables.sql` 과 설치 스크립트 `[4-1]` 절이 함께 만든다(재실행 안전).
+
+| 인덱스 | 대상 | 쓰이는 곳 |
+|--------|------|-----------|
+| `UX_tb_card_value` | tb_card (biostar_card_value) 필터 유니크 | 살아 있는 카드번호 중복 방지 |
+| `IX_tb_system_log_reg_dt` | tb_system_log (reg_dt DESC, log_id DESC) INCLUDE 4컬럼 | 감사추적 기간 필터 + 최신순 정렬 |
+| `IX_tb_card_person` | tb_card (person_id) 필터(`del_yn='N'`) | 정규인원 목록의 카드 장수(행마다), 카드번호 검색, 회수 |
+| `IX_tb_card_car` | tb_card (car_id) 필터(`del_yn='N'`) | 차량 카드 조회·회수 |
+| `IX_tb_person_type` | tb_person (del_yn, person_type, company_code) | 인원 목록·인솔자 후보 |
+| `IX_tb_visit_search` | tb_visit (del_yn, visit_type, work_start_dt) | 임시·장기 목록 + 출입시작 기간 필터 |
+| `IX_tb_visit_person_person` | tb_visit_person (person_id) | 인원ID 역방향 조회(PK 는 `(visit_no, person_id)` 라 단독 탐색 불가) |
+
+> **가장 중요한 것은 `tb_system_log`** — 메뉴접속·조회·입력·수정·삭제를 모두 남겨 가장 빨리 커진다(개발 환경 실측 하루 464건). 인덱스가 없으면 감사추적 화면이 데이터가 쌓일수록 느려진다.
+>
+> **필터 인덱스(`WHERE` 절 포함)는 `QUOTED_IDENTIFIER ON` 이어야 만들어진다** — sqlcmd 는 기본 OFF 이므로 `-I` 옵션 또는 스크립트 선두 `SET QUOTED_IDENTIFIER ON` 이 필요하다.
+>
+> 보존 정책: `tb_system_log` 는 아직 삭제·아카이브 절차가 없다(무한 증가). 보존기간 결정은 미해결 과제.
+
 ## 마이그레이션
 - 스키마 원천: `D:\작업\2026\청주공항\설계\table.xlsx` (설계) → 본 문서 → 실행 스크립트 `sql/`.
 - **DDL: `sql/ddl/01_tables.sql`**, **seed: `sql/seed/02_seed.sql`**(공통코드 AT/LO, 메뉴, 관리자 계정 admin/admin123).

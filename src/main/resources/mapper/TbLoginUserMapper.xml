@@ -67,7 +67,8 @@
   <sql id="listColumns">
     u.user_id, u.user_name, u.dept_name, u.use_yn, u.root_yn, u.auth_id,
     u.start_menu_id, u.work_location_code, u.work_type, u.desk_ip, u.dev_id,
-    u.reg_dt, u.mod_dt, a.auth_name AS auth_name, lo.code_name AS work_location_name
+    u.reg_dt, u.mod_dt, a.auth_name AS auth_name, lo.code_name AS work_location_name,
+    u.login_fail_cnt <!-- 목록의 잠금 표시·[잠금해제] 노출 판정에 쓴다 -->
   </sql>
 
   <!-- 표시용 조인(권한명·근무지역명). 검색/정렬은 u/a 별칭만 사용 -->
@@ -123,6 +124,7 @@
         <if test="password != null and password != ''">
           password = #{password},
           password_change_dt = getdate(),
+          login_fail_cnt = 0, <!-- 관리자가 비밀번호를 재설정하면 잠금도 함께 풀린다(따로 해제할 필요 없음) -->
         </if>
         mod_dt = getdate()
     WHERE user_id = #{userId}

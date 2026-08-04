@@ -148,6 +148,26 @@ public class LoginUserService {
     auditService.log(actor, AuditService.UPDATE, menuId, "사용자 수정: " + row.getUserId());
   }
 
+  /**
+   * 계정 잠금 해제 — 연속 실패 횟수를 0 으로 되돌린다. (docs/security.md)
+   *
+   * <p>등록/수정과 같은 권한(create)으로 판정한다. 비밀번호를 재설정해도 잠금은 풀리지만, 비밀번호를 그대로 두고 풀어주는 경우가 실무에서 더 잦아 별도 동작으로
+   * 둔다.
+   */
+  @Transactional
+  public void unlock(String userId, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireCreate(actor, menuId);
+    TbLoginUser row = userMapper.selectById(userId);
+    if (row == null) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    if (!LoginService.isLocked(row)) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "잠긴 계정이 아닙니다.");
+    }
+    userMapper.updateLoginFailCnt(userId, 0);
+    auditService.log(actor, AuditService.UPDATE, menuId, "계정 잠금 해제: " + userId);
+  }
+
   @Transactional
   public void delete(String userId, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireDelete(actor, menuId);
