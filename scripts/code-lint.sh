@@ -78,4 +78,16 @@ while IFS= read -r rt; do
 done < <(grep -rhoE 'resultType="[A-Za-z.]+"' src/main/resources/mapper | sed -E 's/.*resultType="([A-Za-z.]+)".*/\1/')
 [ "$MODEL_FAIL" -eq 0 ] && echo "  ✅ 레코드/DTO 구분 준수"
 
+echo "== [6] 정렬 헤더(data-sort) ↔ mapper orderBy 키 일치 =="
+# 화면의 data-sort 값이 mapper 의 <when test="sort == '...'"> 에 없으면 orderBy 의 otherwise 로 조용히
+# 떨어진다. otherwise 는 방향이 고정된 경우가 많아 "화살표는 바뀌는데 순서는 그대로"가 된다.
+SORT_FAIL=0
+while IFS= read -r key; do
+  if ! grep -rq "sort == '$key'" src/main/resources/mapper; then
+    echo "  ❌ data-sort=\"$key\" — mapper orderBy 에 해당 <when> 이 없어 정렬이 걸리지 않습니다. (conventions §7)"
+    FAIL=1; SORT_FAIL=1
+  fi
+done < <(grep -rhoE 'data-sort="[a-zA-Z]+"' src/main/resources/templates | sed -E 's/data-sort="([a-zA-Z]+)"/\1/' | sort -u)
+[ "$SORT_FAIL" -eq 0 ] && echo "  ✅ 정렬 헤더 전부 mapper 에 매핑됨"
+
 exit $FAIL

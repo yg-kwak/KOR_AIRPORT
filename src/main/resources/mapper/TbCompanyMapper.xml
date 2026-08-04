@@ -36,6 +36,7 @@
   <sql id="orderBy">
     ORDER BY
     <choose>
+      <when test="sort == 'companyCode'">c.company_code <if test="desc">DESC</if></when>
       <when test="sort == 'companyName'">c.company_name <if test="desc">DESC</if>, c.company_code</when>
       <when test="sort == 'companyType'">co.code_name <if test="desc">DESC</if>, c.company_code</when>
       <when test="sort == 'useYn'">c.use_yn <if test="desc">DESC</if>, c.company_code</when>

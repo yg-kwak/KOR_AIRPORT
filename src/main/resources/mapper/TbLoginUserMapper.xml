@@ -54,6 +54,7 @@
   <sql id="orderBy">
     ORDER BY
     <choose>
+      <when test="sort == 'userId'">u.user_id <if test="desc">DESC</if></when>
       <when test="sort == 'deptName'">u.dept_name <if test="desc">DESC</if>, u.user_id</when>
       <when test="sort == 'useYn'">u.use_yn <if test="desc">DESC</if>, u.user_id</when>
       <when test="sort == 'rootYn'">u.root_yn <if test="desc">DESC</if>, u.user_id</when>

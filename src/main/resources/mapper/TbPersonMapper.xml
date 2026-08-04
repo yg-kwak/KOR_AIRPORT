@@ -40,6 +40,7 @@
   <sql id="orderBy">
     ORDER BY
     <choose>
+      <when test="sort == 'personId'">p.person_id <if test="desc">DESC</if></when>
       <when test="sort == 'companyName'">co.company_name <if test="desc">DESC</if>, p.person_id</when>
       <when test="sort == 'statusCode'">ps.code_name <if test="desc">DESC</if>, p.person_id</when>
       <when test="sort == 'accessEndDt'">p.access_end_dt <if test="desc">DESC</if>, p.person_id</when>

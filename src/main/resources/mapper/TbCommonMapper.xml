@@ -31,6 +31,7 @@
   <sql id="orderBy">
     ORDER BY
     <choose>
+      <when test="sort == 'cmmId'">cmm_id <if test="desc">DESC</if>, code_id</when>
       <when test="sort == 'cmmName'">cmm_name <if test="desc">DESC</if>, cmm_id, code_id</when>
       <when test="sort == 'codeId'">code_id <if test="desc">DESC</if>, cmm_id</when>
       <when test="sort == 'codeName'">code_name <if test="desc">DESC</if>, cmm_id, code_id</when>

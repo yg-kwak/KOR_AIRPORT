@@ -67,6 +67,8 @@
   <sql id="orderBy">
     ORDER BY
     <choose>
+      <!-- 번호는 화면 헤더(data-sort="visitNo")가 쓰는 키 — 빠지면 otherwise 의 고정 DESC 로 떨어져 오름차순이 먹지 않는다 -->
+      <when test="sort == 'visitNo'">v.visit_no <if test="desc">DESC</if></when>
       <when test="sort == 'companyName'">v.company_name <if test="desc">DESC</if>, v.visit_no</when>
       <when test="sort == 'workStartDt'">v.work_start_dt <if test="desc">DESC</if>, v.visit_no</when>
       <when test="sort == 'regDt'">v.reg_dt <if test="desc">DESC</if>, v.visit_no</when>

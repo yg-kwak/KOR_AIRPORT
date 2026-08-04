@@ -149,6 +149,7 @@ DOMContentLoaded → bind()  → load()
 - 파라미터는 `#{}` 만(불변식). 컬럼 명시(`SELECT *` 금지). LIKE 는 `'%' + #{keyword} + '%'`.
 - **검색 조건**은 `<sql id="searchWhere">` 조각으로 분리 → 목록/카운트/전체가 `<include>` 공유. `searchType` 분기는 `<choose>`.
 - **정렬**은 `<sql id="orderBy">` + **화이트리스트 `<choose>`** 로만 컬럼 매핑(SQL 인젝션 방지). 각 분기에 tie-breaker(PK) 포함, `<otherwise>` 는 기본 정렬.
+  - **화면의 `data-sort` 값마다 `<when>` 을 반드시 둔다** (= code-lint [6] 강제). 빠지면 `<otherwise>` 로 조용히 떨어지는데, `<otherwise>` 는 방향이 고정된 경우가 많아 **화살표만 바뀌고 순서는 그대로**가 된다. PK 컬럼도 예외 없이 명시한다 — `<otherwise>` 와 우연히 같아서 동작하는 상태는 다음 수정에서 깨진다.
 - **페이징**은 MSSQL `OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY` (offset 계산은 `PageParam.getOffset()`).
 - null 기본값은 `ISNULL(#{x}, '기본')`. (jdbcTypeForNull=VARCHAR 설정 전제 — `mybatis-config`)
 - **암호화(ARIA) 컬럼 검색**: 성명 등 ARIA 컬럼은 결정적(ECB)이라 **부분(LIKE)·정렬 불가, 완전일치만** 가능. 서비스가 `keyword` 를 `ariaEncrypt` 해 `PageParam.keywordEnc` 로 넣고, mapper 는 `= #{keywordEnc}` 로 비교(`<if test="keywordEnc != null ...">` 가드). 카드번호·차량번호 등 평문은 LIKE.

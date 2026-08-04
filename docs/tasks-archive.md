@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 임시·장기 방문 목록 번호 정렬 수정 + 전 화면 정렬 점검 — TbVisitMapper orderBy 에 visitNo 분기가 없어 otherwise(고정 DESC)로 떨어져 오름차순이 먹지 않았다. 우연히 otherwise 와 일치해 동작하던 personId·cmmId·userId·companyCode 도 명시. 재발 방지로 code-lint [6](data-sort ↔ mapper sort 키 일치) 추가. 목록 9화면 정렬 헤더 37개 전수 확인 — sjpark2, 2026-08-04
 - [x] 정규인원 목록에 상태·얼굴등록·카드 컬럼 추가 — 출입기간 오른쪽에 배지로 표시. 얼굴등록은 tb_person_photo 존재 여부(사진 본문은 읽지 않음), 카드는 살아있는 tb_card 장수. badge.personStatus(PS 코드→톤) 신설 — sjpark2, 2026-08-04
 - [x] 임시·장기 방문 검색에 '출입시작 기간' 추가 — 감사추적과 같은 공통 period 컴포넌트(전체/1·3·6개월/1년/직접입력). 업무 목록이라 기본은 '전체'(period.range('all')=빈값 → 서버가 기간 조건 미적용), work_start_dt 기준 — sjpark2, 2026-08-04
 - [x] 방문상태 '신청 취소'(VS02) 제거 — 설정 경로가 없어 쓰이지 않던 상태값. 신청 단계는 취소 대신 삭제로 처리. 설치 스크립트 보정 절에 기존 DB 정리(참조 있으면 보존) 포함 — sjpark2, 2026-08-04
