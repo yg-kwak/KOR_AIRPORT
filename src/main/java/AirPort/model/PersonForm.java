@@ -43,6 +43,8 @@ public class PersonForm {
   private List<CardForm> cards;
 
   // ── 얼굴 ──
+  // 원본 사진(사용자 사진·카드 출력용). 인증용 얼굴(faceImage)과 다르다 — 원본을 인증용에 넣으면 템플릿과 짝이 안 맞는다
+  private String facePhoto;
   private String faceImage; // template_ex_normalized_image (BASE64) — 사진/얼굴로 사용
   private String faceTemplate9; // credential_bin_type "9"
   private String faceTemplate5; // credential_bin_type "5"

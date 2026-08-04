@@ -52,6 +52,7 @@ class CardBlacklistSyncTest {
         cardMapper,
         systemMapper,
         commonMapper,
+        mock(AirPort.mapper.TbLoginUserMapper.class), // 스캔 장치 조회 — 이 테스트 대상 아님
         adapter,
         menuAuthService,
         auditService,

@@ -2,6 +2,7 @@ package AirPort.service;
 
 import AirPort.adapter.BiostarFace;
 import AirPort.adapter.BiostarUserAdapter;
+import AirPort.mapper.TbLoginUserMapper;
 import AirPort.mapper.TbSystemMapper;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbSystem;
@@ -18,14 +19,17 @@ import org.springframework.stereotype.Service;
 public class PersonFaceService {
 
   private final TbSystemMapper systemMapper;
+  private final TbLoginUserMapper loginUserMapper;
   private final BiostarUserAdapter biostarUserAdapter;
   private final MenuAuthService menuAuthService;
 
   public PersonFaceService(
       TbSystemMapper systemMapper,
+      TbLoginUserMapper loginUserMapper,
       BiostarUserAdapter biostarUserAdapter,
       MenuAuthService menuAuthService) {
     this.systemMapper = systemMapper;
+    this.loginUserMapper = loginUserMapper;
     this.biostarUserAdapter = biostarUserAdapter;
     this.menuAuthService = menuAuthService;
   }
@@ -59,7 +63,8 @@ public class PersonFaceService {
     if (cfg == null) {
       return BiostarFace.fail("BiostarX 설정이 없습니다. 설정관리에서 등록하세요.");
     }
-    String devId = actor == null ? null : actor.getDevId();
+    // 장치는 DB 에서 다시 읽는다 — 세션 값은 로그인 시점 스냅샷이라 변경이 즉시 반영되지 않는다
+    String devId = CardService.currentDevId(loginUserMapper, actor);
     return biostarUserAdapter.captureFace(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), devId);
   }
 

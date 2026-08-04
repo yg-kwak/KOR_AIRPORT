@@ -138,11 +138,17 @@ public class PersonBiostarService {
 
   /** 등록/수정 요청(폼) → BiostarX 전송 값. */
   private BiostarUserRequest biostarRequest(PersonForm f, List<Integer> acIds) {
+    // 사용자 사진(photo)은 원본, 인증용 얼굴(visualFaces)은 장비가 돌려준 정규화 이미지를 쓴다.
+    // 원본이 없으면(장치 촬영) 정규화 이미지를 사진으로도 쓴다.
+    String photo =
+        (f.getFacePhoto() != null && !f.getFacePhoto().isBlank())
+            ? f.getFacePhoto()
+            : f.getFaceImage();
     return biostarRequest(
         f.getPersonId(),
         f.getPersonName(),
         f.getPersonPhone(),
-        f.getFaceImage(),
+        photo,
         f.getCompanyCode(),
         f.getStatusCode(),
         f.getAccessStartDt(),

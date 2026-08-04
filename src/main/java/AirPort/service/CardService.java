@@ -8,6 +8,7 @@ import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbCommonMapper;
+import AirPort.mapper.TbLoginUserMapper;
 import AirPort.mapper.TbSystemMapper;
 import AirPort.model.CardForm;
 import AirPort.model.CardSearchParam;
@@ -45,6 +46,7 @@ public class CardService {
   private final TbCardMapper cardMapper;
   private final TbSystemMapper systemMapper;
   private final TbCommonMapper commonMapper;
+  private final TbLoginUserMapper loginUserMapper;
   private final BiostarCardAdapter biostarCardAdapter;
   private final MenuAuthService menuAuthService;
   private final AuditService auditService;
@@ -54,6 +56,7 @@ public class CardService {
       TbCardMapper cardMapper,
       TbSystemMapper systemMapper,
       TbCommonMapper commonMapper,
+      TbLoginUserMapper loginUserMapper,
       BiostarCardAdapter biostarCardAdapter,
       MenuAuthService menuAuthService,
       AuditService auditService,
@@ -61,6 +64,7 @@ public class CardService {
     this.cardMapper = cardMapper;
     this.systemMapper = systemMapper;
     this.commonMapper = commonMapper;
+    this.loginUserMapper = loginUserMapper;
     this.biostarCardAdapter = biostarCardAdapter;
     this.menuAuthService = menuAuthService;
     this.auditService = auditService;
@@ -325,8 +329,8 @@ public class CardService {
     if (cfg == null) {
       return BiostarCard.fail("BiostarX 설정이 없습니다. 설정관리에서 등록하세요.");
     }
-    String devId = actor == null ? null : actor.getDevId();
-    return biostarCardAdapter.scanCard(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), devId);
+    return biostarCardAdapter.scanCard(
+        cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), currentDevId(loginUserMapper, actor));
   }
 
   /** 카드 등록(BiostarX) — 카드 추가 확인 시 즉시 호출된다. 성공하면 id/카드번호를 화면에 돌려준다. */
@@ -470,6 +474,19 @@ public class CardService {
 
   private static String blankToNull(String v) {
     return (v == null || v.isBlank()) ? null : v;
+  }
+
+  /**
+   * 지금 이 계정에 지정된 장치ID — <b>세션이 아니라 DB 에서 읽는다</b>.
+   *
+   * <p>세션의 로그인 사용자는 로그인 시점 스냅샷이라, 사용자관리에서 장치를 바꿔도 재로그인 전에는 옛 장치로 스캔·촬영이 나갔다.
+   */
+  static String currentDevId(TbLoginUserMapper mapper, TbLoginUser actor) {
+    if (actor == null || actor.getUserId() == null) {
+      return null;
+    }
+    TbLoginUser fresh = mapper.selectById(actor.getUserId());
+    return fresh != null ? fresh.getDevId() : actor.getDevId();
   }
 
   private String pw(TbSystem cfg) {

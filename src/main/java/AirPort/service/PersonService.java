@@ -111,9 +111,7 @@ public class PersonService {
       // 동시 등록 레이스(중복검사 통과 후 PK 충돌) — 친화적 메시지로 변환
       throw new BusinessException(ErrorCode.DUPLICATE, "이미 존재하는 인원ID 입니다. 다른 ID 로 다시 시도하세요.");
     }
-    if (form.getFaceImage() != null && !form.getFaceImage().isBlank()) {
-      photoMapper.upsert(form.getPersonId(), form.getFaceImage());
-    }
+    savePhoto(form); // 저장은 원본 사진(카드 출력에 쓴다)
     saveAcGroups(form.getPersonId(), form.getAcGroupIds());
     personFileService.apply(form);
     cardService.saveCards(form.getPersonId(), form.getCards(), actor, menuId);
@@ -160,8 +158,8 @@ public class PersonService {
     TbPerson row = toRow(form);
     personMapper.update(row);
 
-    if (form.getFaceImage() != null && !form.getFaceImage().isBlank()) {
-      photoMapper.upsert(form.getPersonId(), form.getFaceImage());
+    if (photoOf(form) != null) {
+      savePhoto(form);
     } else {
       photoMapper.deleteByPerson(form.getPersonId()); // 얼굴 삭제
     }
@@ -249,6 +247,24 @@ public class PersonService {
     row.setAccessEndDt(withSeconds(form.getAccessEndDt(), "23:59"));
     row.setRemark(form.getRemark());
     return row;
+  }
+
+  /** 화면이 보낸 사진 — 원본(facePhoto) 우선, 없으면 정규화 얼굴(장치 촬영은 원본이 없다). */
+  private static String photoOf(PersonForm form) {
+    String photo = form.getFacePhoto();
+    if (photo != null && !photo.isBlank()) {
+      return photo;
+    }
+    return (form.getFaceImage() != null && !form.getFaceImage().isBlank())
+        ? form.getFaceImage()
+        : null;
+  }
+
+  private void savePhoto(PersonForm form) {
+    String photo = photoOf(form);
+    if (photo != null) {
+      photoMapper.upsert(form.getPersonId(), photo);
+    }
   }
 
   private void saveAcGroups(String personId, List<Integer> acGroupIds) {

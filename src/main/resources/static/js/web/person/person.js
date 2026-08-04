@@ -27,7 +27,7 @@
     'idCheckDt', 'securityEduDt', 'securityEduScore', 'finalApproveDt'];
   const VIEW_FIELDS = ['companyName', 'titleName', 'statusName', 'regDt']; // 화면 표시 전용(미전송)
 
-  let face = { image: null, t9: null, t5: null }; // 얼굴(정규화 이미지 + 템플릿 2종)
+  let face = { photo: null, image: null, t9: null, t5: null }; // photo=원본 사진 / image=정규화 얼굴(인증용)
 
   // 생년월일 입력 보정 — 숫자만 남기고 YYYY-MM-DD 로 하이픈을 자동 삽입(붙여넣기 포함)
   function maskBirthDate(value) {
@@ -159,12 +159,12 @@
   }
 
   // ---- 얼굴(파일 업로드 / 장치 촬영) ----
-  function setFace(image, t9, t5) {
-    face = { image: image || null, t9: t9 || null, t5: t5 || null };
+  function setFace(photo, image, t9, t5) {
+    face = { photo: photo || null, image: image || null, t9: t9 || null, t5: t5 || null };
     const img = $('facePreview');
-    if (image) img.src = 'data:image/jpeg;base64,' + image;
+    if (photo) img.src = 'data:image/jpeg;base64,' + photo;
     else img.removeAttribute('src'); // src="" 는 페이지 URL 재요청 → 깨진 아이콘
-    $('facePreviewBox').classList.toggle('has-face', !!image);
+    $('facePreviewBox').classList.toggle('has-face', !!photo);
   }
 
   function fileToBase64(file) {
@@ -176,11 +176,11 @@
     });
   }
 
-  // 파일선택·웹캠 촬영 공용: 원본 이미지 보관(tb_person_photo·BiostarX 이미지), 인증 템플릿만 API 결과 사용
+  // 원본은 사진으로, 인증용 얼굴은 응답의 정규화 이미지로 — 원본을 인증용에 넣으면 템플릿과 짝이 안 맞아 인증이 실패한다
   async function useFaceImage(b64) {
     const res = await api.post(BASE + '/face/upload', { image: b64 }); // {success,message,image,template9/5}
     if (!res || !res.success) { toast.error((res && res.message) || '사진 등록에 실패했습니다.'); return; }
-    setFace(b64, res.template9, res.template5);
+    setFace(b64, res.image, res.template9, res.template5);
     toast.success('사진을 등록했습니다.');
   }
 
@@ -192,7 +192,7 @@
   async function onCapture() {
     const res = await api.get(BASE + '/face/capture');
     if (!res || !res.success) { toast.error((res && res.message) || '얼굴 촬영에 실패했습니다.'); return; }
-    setFace(res.image, res.template9, res.template5);
+    setFace(res.image, res.image, res.template9, res.template5); // 장치는 정규화 이미지만 준다
     toast.success('얼굴을 촬영했습니다.');
   }
 
@@ -232,7 +232,7 @@
       api.get(BASE + '/personAcGroups' + q),
       api.get(BASE + '/cards' + q),
     ]);
-    if (photo) setFace(photo, null, null);
+    if (photo) setFace(photo, null, null, null); // 저장된 사진만 복원(템플릿은 없음 — 재전송하지 않는다)
     acGroupTree.set(AC_TREE, acIds || []);
     cardList.set(CARD_LIST, cards || []);
   }
@@ -266,7 +266,7 @@
 
   async function save() {
     if (!PERM.canCreate) return;
-    const payload = { acGroupIds: acGroupTree.get(AC_TREE), cards: cardList.get(CARD_LIST), faceImage: face.image, faceTemplate9: face.t9, faceTemplate5: face.t5 };
+    const payload = { acGroupIds: acGroupTree.get(AC_TREE), cards: cardList.get(CARD_LIST), facePhoto: face.photo, faceImage: face.image, faceTemplate9: face.t9, faceTemplate5: face.t5 };
     FORM_FIELDS.forEach((id) => { payload[id] = $(id).value.trim() || null; });
     payload.securityEduScore = payload.securityEduScore ? Number(payload.securityEduScore) : null;
     const idCheck = fileField.get('idCheckFile');
@@ -377,7 +377,7 @@
     $('faceFile').addEventListener('change', onFaceFile);
     $('btnCapture').addEventListener('click', onCapture);
     if ($('btnFaceCam')) $('btnFaceCam').addEventListener('click', () => window.faceCam.open(useFaceImage));
-    $('btnFaceClear').addEventListener('click', () => { $('faceFile').value = ''; setFace(null); });
+    $('btnFaceClear').addEventListener('click', () => { $('faceFile').value = ''; setFace(null, null); });
 
     $('btnSave').addEventListener('click', save);
     $('btnCancel').addEventListener('click', closeModal);
@@ -392,7 +392,7 @@
     acGroupTree.init(AC_TREE, BASE + '/acGroups');
     cardList.init(CARD_LIST, { baseUrl: BASE, cardTypeName: '인원',
       print: (row) => { // 프린트: 얼굴+카드 등록 인원만
-        if (!face.image) { toast.warning('얼굴이 등록된 인원만 출력할 수 있습니다.'); return; }
+        if (!face.photo) { toast.warning('얼굴이 등록된 인원만 출력할 수 있습니다.'); return; }
         window.cardPrint.open($('personId').value, row.cardId);
       } });
     load();
