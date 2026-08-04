@@ -161,7 +161,7 @@
       $('workStartDt').value = todayAt(0, 0, true);
       $('workEndDt').value = todayAt(18, 0, false);
     }
-    if ($('btnDelete')) $('btnDelete').style.display = 'none'; // 삭제는 신청/신청취소일 때만(로드 후 노출)
+    if ($('btnDelete')) $('btnDelete').style.display = 'none'; // 삭제는 신청일 때만(로드 후 노출)
     if ($('btnSave')) $('btnSave').style.display = ''; // 퇴실완료면 로드 후 숨김(읽기전용)
     $('editModal').querySelector('.visit-modal').classList.remove('readonly'); // 읽기전용 해제(VS04면 로드 후 재설정)
     showTab('group');
@@ -180,8 +180,8 @@
       ['workStartDt', v.workStartDt], ['workEndDt', v.workEndDt], ['permitDt', v.permitDt],
       ['receiver', v.receiver], ['returner', v.returner], ['workPurpose', v.workPurpose], ['remark', v.remark]]
       .forEach(([id, val]) => { const el = $(id); if (el) el.value = val != null ? val : ''; });
-    // 삭제 버튼: 신청(VS01)·신청취소(VS02)만 노출 / 저장: 퇴실완료(VS04)면 숨김(수정 불가)
-    if ($('btnDelete')) $('btnDelete').style.display = (v.statusCode === 'VS01' || v.statusCode === 'VS02') ? '' : 'none';
+    // 삭제 버튼: 신청(VS01)만 노출 / 저장: 퇴실완료(VS04)면 숨김(수정 불가)
+    if ($('btnDelete')) $('btnDelete').style.display = v.statusCode === 'VS01' ? '' : 'none';
     if ($('btnSave')) $('btnSave').style.display = v.statusCode === 'VS04' ? 'none' : '';
     if (v.statusCode === 'VS04') { $('editModal').querySelector('.visit-modal').classList.add('readonly'); $('modalTitle').textContent = '방문 상세 (퇴실완료 — 수정 불가)'; } // 읽기전용
     acGroupTree.set(AC_TREE, d.acGroupIds || []);

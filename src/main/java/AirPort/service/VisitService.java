@@ -31,9 +31,8 @@ BiostarX 방문객 동기화(PT→PTD code_tag 부모 그룹 편입)는 VisitBio
 @Service
 public class VisitService {
 
-  // 방문 상태(tb_common VS) — 신청 / 신청취소(삭제 가능) / 입실중(전원 카드 시 자동 승격) / 퇴실완료(되돌림 없음)
+  // 방문 상태(tb_common VS) — 신청(삭제 가능) / 입실중(전원 카드 시 자동 승격) / 퇴실완료(되돌림 없음)
   static final String DEFAULT_STATUS = "VS01";
-  private static final String STATUS_CANCELLED = "VS02";
   private static final String STATUS_ENTERED = "VS03";
   private static final String STATUS_LEFT = "VS04";
 
@@ -253,9 +252,9 @@ public class VisitService {
     if (v == null || "Y".equals(v.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
-    // 신청(VS01)·신청취소(VS02) 상태만 삭제 가능 — 입실중/퇴실완료는 이력 보존
-    if (!DEFAULT_STATUS.equals(v.getStatusCode()) && !STATUS_CANCELLED.equals(v.getStatusCode())) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "신청·신청취소 상태의 방문만 삭제할 수 있습니다.");
+    // 신청(VS01) 상태만 삭제 가능 — 입실중/퇴실완료는 이력 보존
+    if (!DEFAULT_STATUS.equals(v.getStatusCode())) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "신청 상태의 방문만 삭제할 수 있습니다.");
     }
     // BiostarX 에 이미 올라간 방문은 지우지 않는다 — 장비 이력이 남아야 하고, 실수로 지우면 되돌릴 수 없다.
     // 내보내려면 퇴실 절차를 쓴다(개별 퇴실 또는 방문 퇴실).

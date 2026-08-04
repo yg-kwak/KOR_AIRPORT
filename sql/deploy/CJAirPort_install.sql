@@ -605,10 +605,9 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use
     ('IS', N'발급구분', 'IS02', N'재발급', 'Y'),
     ('IS', N'발급구분', 'IS03', N'분실재발급', 'Y');
 
-  /* 방문상태(VS) — tb_visit.status_code. 신청→입실 중→퇴실 완료 흐름, 신청 취소는 반려 */
+  /* 방문상태(VS) — tb_visit.status_code. 신청→입실 중→퇴실 완료 흐름 (취소 상태는 쓰지 않는다: 신청 단계면 삭제) */
   INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
     ('VS', N'방문상태', 'VS01', N'신청',     'Y'),
-    ('VS', N'방문상태', 'VS02', N'신청 취소', 'Y'),
     ('VS', N'방문상태', 'VS03', N'입실 중',   'Y'),
     ('VS', N'방문상태', 'VS04', N'퇴실 완료', 'Y');
 
@@ -753,6 +752,16 @@ UPDATE c
   JOIN dbo.tb_person p ON p.person_id = c.person_id
  WHERE c.del_yn = 'N' AND p.del_yn = 'Y';
 IF @@ROWCOUNT > 0 PRINT '  + 삭제 인원에 남아 있던 카드 회수';
+GO
+
+/* 방문상태 '신청 취소'(VS02) 제거 — 설정하는 경로가 없어 쓰이지 않는 상태다(신청 단계면 삭제).
+   혹시 참조하는 방문이 남아 있으면 지우지 않는다(코드 없는 상태값이 목록에 남는 것을 막는다) */
+IF NOT EXISTS (SELECT 1 FROM dbo.tb_visit WHERE status_code = 'VS02')
+BEGIN
+  DELETE FROM dbo.tb_common WHERE cmm_id = 'VS' AND code_id = 'VS02';
+  IF @@ROWCOUNT > 0 PRINT '  + 방문상태 VS02(신청 취소) 제거';
+END
+ELSE PRINT '  ! VS02 를 쓰는 방문이 있어 코드를 남겨 둠';
 GO
 
 /* ===========================================================================

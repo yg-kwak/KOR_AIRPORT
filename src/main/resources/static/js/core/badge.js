@@ -5,8 +5,8 @@ window.badge = (function () {
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
 
-  // 방문상태(tb_common VS) → 톤. 신청=처리 대기, 입실 중=유효, 퇴실 완료=완료, 신청 취소=무효
-  const VISIT_TONE = { VS01: 'warning', VS02: 'none', VS03: 'success', VS04: 'done' };
+  // 방문상태(tb_common VS) → 톤. 신청=처리 대기, 입실 중=유효, 퇴실 완료=완료
+  const VISIT_TONE = { VS01: 'warning', VS03: 'success', VS04: 'done' };
   // 카드상태(tb_common CS) → 톤. 정상=유효, 분실=차단(적), 정지=일시 차단(황), 반납=완료, 폐기=무효
   const CARD_TONE = { CS01: 'success', CS02: 'error', CS03: 'done', CS04: 'warning', CS05: 'none' };
 

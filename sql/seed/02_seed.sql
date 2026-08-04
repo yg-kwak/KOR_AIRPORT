@@ -101,10 +101,9 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
   ('IS', N'발급구분', 'IS02', N'재발급', 'Y'),
   ('IS', N'발급구분', 'IS03', N'분실재발급', 'Y');
 
-/* 방문상태(VS) — tb_visit.status_code. 신청→입실 중→퇴실 완료 흐름, 신청 취소는 반려 */
+/* 방문상태(VS) — tb_visit.status_code. 신청→입실 중→퇴실 완료 흐름 (취소 상태는 쓰지 않는다: 신청 단계면 삭제) */
 INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
   ('VS', N'방문상태', 'VS01', N'신청',     'Y'),
-  ('VS', N'방문상태', 'VS02', N'신청 취소', 'Y'),
   ('VS', N'방문상태', 'VS03', N'입실 중',   'Y'),
   ('VS', N'방문상태', 'VS04', N'퇴실 완료', 'Y');
 

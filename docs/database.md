@@ -286,7 +286,7 @@ PK: `visit_no` (IDENTITY). 임시·장기 출입자의 방문 1건. **정규(`tb
 |------|------|----|------|------|
 | visit_no | int | Y | 그룹번호 | IDENTITY(1,1) |
 | visit_type | nvarchar(50) | | 유형 | → `tb_common`(cmm_id='PT'). 소속 인원 `person_type`·카드 `pass_type` 결정 |
-| status_code | nvarchar(50) | | 방문상태 | → `tb_common`(cmm_id='VS'): 신청/신청취소/입실중/퇴실완료 |
+| status_code | nvarchar(50) | | 방문상태 | → `tb_common`(cmm_id='VS'): 신청/입실중/퇴실완료. **취소 상태는 두지 않는다** — 신청 단계면 방문 자체를 삭제한다 |
 | work_purpose | nvarchar(500) | | 작업목적 | |
 | permit_dt | datetime2(0) | | 작업 허가일자 | |
 | work_start_dt | datetime2(0) | | 작업기간 시작 | 승인 시 인원 `access_start_dt` 로 전파 |
