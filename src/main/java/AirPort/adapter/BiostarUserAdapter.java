@@ -22,6 +22,9 @@ public class BiostarUserAdapter {
 
   private static final Logger log = LoggerFactory.getLogger(BiostarUserAdapter.class);
 
+  /** 얼굴 템플릿 실제 길이 — 헤더 32바이트 + 데이터 512바이트. bin_type 5·9 모두 같다(장비 등록값으로 확인). */
+  private static final int TEMPLATE_BYTES = 544;
+
   /** 얼굴 변환 실패 시 함께 안내하는 사진 요건 — 사유만으로는 무엇을 바꿔야 할지 알 수 없어 붙인다. */
   private static final String PHOTO_HINT =
       "정면을 바라본 한 사람만 있는 사진(모자·마스크·색안경 없이, 밝고 초점이 맞은 사진)으로 다시 시도하세요.";
@@ -351,9 +354,12 @@ public class BiostarUserAdapter {
   }
 
   /**
-   * upload_picture 템플릿 정규화 — 응답 템플릿은 <b>고정 길이 버퍼</b>라 실제 데이터 뒤가 널(0x00)로 채워져 온다. 사용자 payload 의
-   * {@code template_ex} 는 그 널 꼬리를 뺀 값이어야 하므로 잘라내고 표준 base64 로 다시 만든다(패딩 {@code ==} 포함). JSON 의
-   * {@code \/} 이스케이프는 파싱 단계에서 이미 {@code /} 로 풀린다.
+   * upload_picture 템플릿 정규화 — 응답은 <b>고정 길이 버퍼</b>라 실제 템플릿(544바이트) 뒤에 잔여 데이터가 딸려 온다. 사용자 payload 의
+   * {@code template_ex} 는 <b>정확히 544바이트</b>여야 한다(BiostarX 화면으로 등록한 값과 같은 길이).
+   *
+   * <p>널 꼬리만 잘라내면 부족하다 — 버퍼 뒤쪽이 널이 아닌 잔여 바이트(예: {@code 08 4f 3f 5f f6 7f})로 끝나는 경우가 있어 그대로 붙어 나가고,
+   * 그러면 장치에서 얼굴 인증이 실패한다. 그래서 <b>길이로 자른다</b>. 544보다 짧게 오면(예상 밖 응답) 종전대로 널 꼬리만 제거한다. JSON 의 {@code
+   * \/} 이스케이프는 파싱 단계에서 이미 {@code /} 로 풀린다.
    */
   static String normalizeTemplate(String base64) {
     if (base64 == null || base64.isBlank()) {
@@ -362,8 +368,12 @@ public class BiostarUserAdapter {
     try {
       byte[] raw = Base64.getMimeDecoder().decode(base64.trim()); // 줄바꿈 섞인 응답도 허용
       int end = raw.length;
-      while (end > 0 && raw[end - 1] == 0) {
-        end--; // 뒤쪽 널 패딩 제거(앞쪽 헤더의 0x00 은 그대로 유지)
+      if (end > TEMPLATE_BYTES) {
+        end = TEMPLATE_BYTES;
+      } else {
+        while (end > 0 && raw[end - 1] == 0) {
+          end--; // 뒤쪽 널 패딩 제거(앞쪽 헤더의 0x00 은 그대로 유지)
+        }
       }
       return Base64.getEncoder().encodeToString(Arrays.copyOf(raw, end));
     } catch (IllegalArgumentException e) {

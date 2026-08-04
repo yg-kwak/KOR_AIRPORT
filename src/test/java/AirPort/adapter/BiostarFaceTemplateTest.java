@@ -1,10 +1,13 @@
 package AirPort.adapter;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Arrays;
+import java.util.Base64;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -35,5 +38,35 @@ class BiostarFaceTemplateTest {
     assertEquals("QUJD", BiostarUserAdapter.normalizeTemplate("QUJD")); // "ABC"
     assertNull(BiostarUserAdapter.normalizeTemplate(null));
     assertNull(BiostarUserAdapter.normalizeTemplate("  "));
+  }
+
+  /**
+   * 실제 사고 사례 — 응답 버퍼 뒤가 널이 아닌 잔여 바이트로 끝나면 널 꼬리 제거만으로는 안 잘려서, 장비 등록값(544B)보다 긴 템플릿이 전송됐다. 그 상태로 저장된
+   * 사용자는 장치 얼굴 인증이 실패한다.
+   */
+  @Test
+  void 잔여_바이트가_붙어_와도_템플릿은_544바이트로_잘린다() {
+    byte[] buf = new byte[550];
+    for (int i = 0; i < 544; i++) {
+      buf[i] = (byte) (i % 251);
+    }
+    // 544 뒤에 널이 아닌 잔여 데이터(실제 관측값: 08 4f 3f 5f f6 7f)
+    byte[] junk = {0x08, 0x4f, 0x3f, 0x5f, (byte) 0xf6, 0x7f};
+    System.arraycopy(junk, 0, buf, 544, junk.length);
+
+    String out = BiostarUserAdapter.normalizeTemplate(Base64.getEncoder().encodeToString(buf));
+    byte[] sent = Base64.getDecoder().decode(out);
+    assertEquals(544, sent.length, "장비가 저장하는 길이와 같아야 한다");
+    assertArrayEquals(Arrays.copyOf(buf, 544), sent);
+  }
+
+  @Test
+  void 널로_채워져_온_버퍼도_544바이트가_된다() {
+    byte[] buf = new byte[552]; // 널 꼬리 8바이트(이전에 확인된 형태)
+    for (int i = 0; i < 544; i++) {
+      buf[i] = (byte) ((i % 250) + 1); // 0 이 아닌 값으로 채워 꼬리와 구분
+    }
+    String out = BiostarUserAdapter.normalizeTemplate(Base64.getEncoder().encodeToString(buf));
+    assertEquals(544, Base64.getDecoder().decode(out).length);
   }
 }
