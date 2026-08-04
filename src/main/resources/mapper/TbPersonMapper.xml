@@ -109,11 +109,13 @@
   </select>
 
   <!-- 임시(방문)인원 ID — IS + 6자리(IS000001 부터). 소프트삭제분 포함해 재사용 방지 -->
+  <!-- 방문객 인원ID 채번 — 접두(IS/LT/RS)별 독립 시퀀스. 접두는 공통코드(PIP)에서 온다.
+       삭제된 행도 세어야 번호가 재사용되지 않는다(BiostarX 사용자ID 와 같은 키라 재사용은 위험). -->
   <select id="selectNextVisitorId" resultType="string">
-    SELECT 'IS' + RIGHT('000000' + CAST(
-             ISNULL(MAX(CAST(SUBSTRING(person_id, 3, 10) AS int)), 0) + 1 AS varchar(10)), 6)
+    SELECT #{prefix} + RIGHT('000000' + CAST(
+             ISNULL(MAX(CAST(SUBSTRING(person_id, LEN(#{prefix}) + 1, 10) AS int)), 0) + 1 AS varchar(10)), 6)
     FROM tb_person
-    WHERE person_id LIKE 'IS[0-9][0-9][0-9][0-9][0-9][0-9]'
+    WHERE person_id LIKE #{prefix} + '[0-9][0-9][0-9][0-9][0-9][0-9]'
   </select>
 
   <select id="selectById" resultType="TbPerson">

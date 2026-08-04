@@ -524,10 +524,24 @@ BEGIN
     ('VR', N'방문사유', 'WORK',    N'공사', 'Y', 'Y');
 
   /* 출입구역(AR) — 출입권한관리 트리의 최상위(tb_ac_group 동기화 기준). code_id → ar_code */
-  INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use_yn) VALUES
-    ('AR', N'출입구역', 'GATE', N'게이트구역', 'Y', 'Y'),
-    ('AR', N'출입구역', 'RAMP', N'램프구역',   'Y', 'Y');
 
+  /* 출입구역(AR) — 출입권한관리 트리의 최상위(tb_ac_group 동기화 기준). code_id → ar_code */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use_yn) VALUES
+     ('AR','출입구역','AR01','인원구역1','N','Y'),
+     ('AR','출입구역','AR02','인원구역2','N','Y'),
+     ('AR','출입구역','AR03','인원구역3','N','Y'),
+     ('AR','출입구역','AR04','인원구역4','N','Y'),
+     ('AR','출입구역','AR05','인원구역5','N','Y'),
+     ('AR','출입구역','AR06','인원구역6','N','Y'),
+     ('AR','출입구역','AR07','인원구역7','N','Y');
+
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use_yn) VALUES
+     ('CAR','차량출입구역','CAR01','차량구역1','N','Y'),
+     ('CAR','차량출입구역','CAR02','차량구역2','N','Y');
+
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use_yn) VALUES
+                                                                                         ('CDT','카드종류','CDT01','인원','N','Y'),
+                                                                                         ('CDT','카드종류','CDT02','차량','N','Y');
   /* 공통코드: 차종(CT) — 차량등록관리에서 사용. 시스템 코드(user_input=N 기본) */
   INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
     ('CT', N'차종', '01', N'승용차', 'Y'),
@@ -710,6 +724,18 @@ FROM (VALUES
 ) AS v(cmm_id, cmm_name, code_id, code_name)
 WHERE NOT EXISTS (SELECT 1 FROM dbo.tb_common c WHERE c.cmm_id = v.cmm_id AND c.code_id = v.code_id);
 IF @@ROWCOUNT > 0 PRINT '  + 직위(UT) 코드 추가';
+GO
+
+/* 방문객 인원ID 접두(PIP) — 없는 것만 넣는다(임시 IS / 장기 LT / 상주 RS) */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_remark, use_yn)
+SELECT v.cmm_id, v.cmm_name, v.code_id, v.code_name, v.code_remark, 'Y'
+FROM (VALUES
+  ('PIP', N'인원ID 접두', 'PT02', 'IS', N'임시'),
+  ('PIP', N'인원ID 접두', 'PT03', 'LT', N'장기'),
+  ('PIP', N'인원ID 접두', 'PT04', 'RS', N'상주')
+) AS v(cmm_id, cmm_name, code_id, code_name, code_remark)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.tb_common c WHERE c.cmm_id = v.cmm_id AND c.code_id = v.code_id);
+IF @@ROWCOUNT > 0 PRINT '  + 인원ID 접두(PIP) 추가';
 GO
 
 /* 시스템 공통코드는 '사용' 고정 — 미사용으로 바뀌어 있으면 되돌린다

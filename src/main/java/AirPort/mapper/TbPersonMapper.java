@@ -26,7 +26,7 @@ public interface TbPersonMapper {
   String selectNextPersonId();
 
   /** 임시(방문)인원 다음 ID — IS000001 부터 채번. */
-  String selectNextVisitorId();
+  String selectNextVisitorId(@Param("prefix") String prefix);
 
   int insert(TbPerson row);
 

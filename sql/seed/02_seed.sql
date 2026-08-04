@@ -68,6 +68,15 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_y
   ('PS', N'인원상태', '03', N'퇴사', 'true',  'Y'),
   ('PS', N'인원상태', '04', N'회수', 'true',  'Y');
 
+/* 방문객 인원ID 접두(PIP) — code_id = 발급구분(PT) 코드, code_name = 접두 문자.
+   유형별로 독립 시퀀스로 채번한다(IS000001 / LT000001 / RS000001).
+   인원ID 는 BiostarX 사용자ID 와 같은 키라 발급 후 바꾸지 않는다 — 접두는 '최초 등록 시 유형'을 뜻한다.
+   유형이 늘면 여기 한 줄만 추가하면 된다(코드 수정 불요). */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_remark, use_yn) VALUES
+  ('PIP', N'인원ID 접두', 'PT02', 'IS', N'임시', 'Y'),
+  ('PIP', N'인원ID 접두', 'PT03', 'LT', N'장기', 'Y'),
+  ('PIP', N'인원ID 접두', 'PT04', 'RS', N'상주', 'Y');
+
 /* 직위(UT) — code_name 이 BiostarX 사용자의 user_title 로 그대로 전달된다.
    기본 5개만 넣고, 그 외 직위는 운영에서 공통코드관리로 추가한다 */
 INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES

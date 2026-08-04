@@ -4,6 +4,7 @@ import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCarMapper;
 import AirPort.mapper.TbCardMapper;
+import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbPersonMapper;
 import AirPort.mapper.TbVisitMapper;
 import AirPort.model.TbCar;
@@ -26,10 +27,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class VisitRosterService {
 
+  /** 공통코드(PIP)에 접두가 없을 때 쓰는 값 — 기존 방문객 ID 체계와 같은 IS. */
+  private static final String DEFAULT_ID_PREFIX = "IS";
+
   private final TbVisitMapper visitMapper;
   private final TbPersonMapper personMapper;
   private final TbCarMapper carMapper;
   private final TbCardMapper cardMapper;
+  private final TbCommonMapper commonMapper;
   private final CardService cardService;
   private final VisitBiostarService visitBiostar;
   private final AuditService auditService;
@@ -39,6 +44,7 @@ public class VisitRosterService {
       TbPersonMapper personMapper,
       TbCarMapper carMapper,
       TbCardMapper cardMapper,
+      TbCommonMapper commonMapper,
       CardService cardService,
       VisitBiostarService visitBiostar,
       AuditService auditService) {
@@ -46,6 +52,7 @@ public class VisitRosterService {
     this.personMapper = personMapper;
     this.carMapper = carMapper;
     this.cardMapper = cardMapper;
+    this.commonMapper = commonMapper;
     this.cardService = cardService;
     this.visitBiostar = visitBiostar;
     this.auditService = auditService;
@@ -162,7 +169,8 @@ public class VisitRosterService {
     VisitService.require(vf.getPersonName(), "방문객 성명");
     boolean isNew = vf.getPersonId() == null || vf.getPersonId().isBlank();
     TbPerson p = new TbPerson();
-    p.setPersonId(isNew ? personMapper.selectNextVisitorId() : vf.getPersonId());
+    p.setPersonId(
+        isNew ? personMapper.selectNextVisitorId(idPrefix(form.getVisitType())) : vf.getPersonId());
     p.setPersonName(ARIAUtil.ariaEncrypt(vf.getPersonName()));
     p.setBirthDate(VisitService.encryptOrNull(vf.getBirthDate()));
     p.setAffiliation(vf.getAffiliation());
@@ -174,13 +182,30 @@ public class VisitRosterService {
       try {
         personMapper.insert(p);
       } catch (org.springframework.dao.DataIntegrityViolationException e) {
-        p.setPersonId(personMapper.selectNextVisitorId()); // 동시 채번(MAX+1) 충돌 — 1회 재채번 후 재시도
+        // 동시 채번(MAX+1) 충돌 — 1회 재채번 후 재시도
+        p.setPersonId(personMapper.selectNextVisitorId(idPrefix(form.getVisitType())));
         personMapper.insert(p);
       }
     } else {
       personMapper.update(p);
     }
     return p.getPersonId();
+  }
+
+  /**
+   * 방문유형별 인원ID 접두 — 공통코드 {@code PIP}(임시 IS / 장기 LT / 상주 RS)에서 읽는다.
+   *
+   * <p>유형이 늘어도 코드만 추가하면 되고, 코드가 없으면 임시(IS)로 떨어뜨려 채번이 멈추지 않게 한다. <b>ID 는 발급 후 바꾸지 않는다</b> — BiostarX
+   * 사용자ID 와 같은 키라서, 나중에 유형이 바뀌어도 접두는 최초 등록 유형을 뜻한다.
+   */
+  private String idPrefix(String visitType) {
+    if (visitType == null || visitType.isBlank()) {
+      return DEFAULT_ID_PREFIX;
+    }
+    AirPort.model.TbCommon code = commonMapper.selectOne("PIP", visitType);
+    return (code == null || code.getCodeName() == null || code.getCodeName().isBlank())
+        ? DEFAULT_ID_PREFIX
+        : code.getCodeName().trim();
   }
 
   /** 방문 차량 tb_car 신규 저장. (키오스크 재사용) */
