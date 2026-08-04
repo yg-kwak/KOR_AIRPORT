@@ -357,6 +357,7 @@
     });
 
     // 인솔자 팝업
+    $('mgrSearch').addEventListener('click', loadMgrPick);
     $('mgrKeyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadMgrPick(); });
     $('mgrPickBody').addEventListener('click', (e) => {
       const row = e.target.closest('.mgr-row'); if (!row) return;
