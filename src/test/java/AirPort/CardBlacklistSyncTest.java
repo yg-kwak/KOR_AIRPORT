@@ -56,7 +56,8 @@ class CardBlacklistSyncTest {
         adapter,
         menuAuthService,
         auditService,
-        mock(CodeValidationService.class)); // 코드 존재 검증은 CodeValidationServiceTest 담당
+        new AirPort.service.CardIssueService(
+            cardMapper, commonMapper, mock(CodeValidationService.class)));
   }
 
   private static TbCommon code(String tag) {

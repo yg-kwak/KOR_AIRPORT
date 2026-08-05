@@ -40,6 +40,7 @@ public class CompanyCarService {
   private final TbPersonMapper personMapper;
   private final MenuAuthService menuAuthService;
   private final AuditService auditService;
+  private final CardIssueService cardIssue;
 
   public CompanyCarService(
       TbCarMapper carMapper,
@@ -48,7 +49,8 @@ public class CompanyCarService {
       TbCarAcGroupMapper carAcGroupMapper,
       TbPersonMapper personMapper,
       MenuAuthService menuAuthService,
-      AuditService auditService) {
+      AuditService auditService,
+      CardIssueService cardIssue) {
     this.carMapper = carMapper;
     this.companyMapper = companyMapper;
     this.cardMapper = cardMapper;
@@ -56,6 +58,7 @@ public class CompanyCarService {
     this.personMapper = personMapper;
     this.menuAuthService = menuAuthService;
     this.auditService = auditService;
+    this.cardIssue = cardIssue;
   }
 
   /** 목록 조회 — <b>기관</b> 목록(삭제되지 않은 기관) + 등록차량 수. 차량 자체는 기관을 눌러 모달에서 다룬다. */
@@ -199,6 +202,9 @@ public class CompanyCarService {
     if (known != null && (known.getPersonId() != null || known.getCarId() != null)) {
       throw new BusinessException(ErrorCode.DUPLICATE, "이미 발급된 카드번호입니다. 먼저 회수하세요.");
     }
+    // 정상이 아닌 카드(분실·정지·반납·폐기)는 발급하지 않는다
+    cardIssue.requireIssuable(
+        known == null ? null : known.getCardId(), null, "차량 " + car.getCarNo());
 
     TbCard row = new TbCard();
     row.setCardId(known == null ? null : known.getCardId());

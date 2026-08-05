@@ -34,7 +34,7 @@ class LoginLockTest {
   /** ARIAUtil 은 프로퍼티 주입 기반이라 테스트에서 직접 키를 넣어 준다. */
   @BeforeAll
   static void initKey() {
-    new ARIAUtil().setKey("0123456789abcdef0123456789abcdef");
+    TestKeys.init();
   }
 
   private TbLoginUser user(String rawPassword, Integer failCnt) {

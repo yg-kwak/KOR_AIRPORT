@@ -124,6 +124,9 @@
     <include refid="listJoins"/>
     <where>
       c.del_yn = 'N' AND c.person_id IS NULL AND c.car_id IS NULL
+      <!-- 정상이 아닌 카드(분실·정지·반납·폐기 = CS.code_tag 'Y')는 발급 대상에서 뺀다.
+           고를 수 있게 두면 서버가 거부해 헛수고가 되고, 장비에서 차단돼 문도 열리지 않는다 -->
+      AND ISNULL(cs.code_tag, 'N') &lt;&gt; 'Y'
       <if test="cardType != null and cardType != ''">
         AND c.card_type = #{cardType}
       </if>

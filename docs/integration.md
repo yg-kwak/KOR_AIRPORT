@@ -90,6 +90,9 @@
 ## 카드 차단/해제 (블랙리스트)
 
 - 카드 상태(tb_common CS)의 `code_tag`로 BiostarX 블랙리스트를 동기화한다. **`code_tag='Y'`면 차단, 아니면 해제.** (CS01 정상=N, CS02 분실·CS03 반납·CS04 정지·CS05 회수=Y)
+- **차단 상태(= 정상 아님) 카드는 새로 발급할 수 없다** — `CardIssueService.requireIssuable`. 정규인원 카드탭·방문객·방문차량·기관차량 **모든 발급 경로**에 걸리고, 카드 선택 팝업(`selectUnassigned`)에서도 목록에서 빠진다. 판정은 블랙리스트와 **같은 `code_tag` 기준**이라 상태를 추가해도 코드만 맞추면 함께 적용된다.
+  - 이미 그 대상이 들고 있던 카드는 검사하지 않는다 — 분실 신고된 카드를 둔 채 다른 항목만 고치는 저장까지 막으면 정정이 불가능해진다.
+  - 회수(`person_id=NULL`)는 상태를 바꾸지 않으므로, **정상 카드의 회수→재사용은 종전대로** 된다. 반납·폐기로 표시한 카드는 카드등록관리에서 '정상'으로 되돌려야 다시 나간다.
 - 차단: `POST /api/cards/blacklist` `{"Blacklist":{"card_id":{"id":"<biostar_card_id>"}}}` / 해제: `DELETE /api/cards/blacklist?id=<biostar_card_id>`. (`BiostarCardAdapter.blacklistCard`/`removeBlacklist`)
 - 호출 시점: 카드 상태가 저장되는 곳 — 카드관리 수정(`CardService.updateCard`)과 인원 저장의 카드 반영(`saveCards`). id 는 `tb_card.biostar_card_id`(장비 미등록 카드는 동기화 생략).
 - **차단 여부가 바뀔 때만 호출**한다(변경 전 상태와 비교. 신규 카드는 장비 기본이 비차단이라 '비차단'으로 간주). BiostarX 블랙리스트 API 는 **멱등하지 않아** 이미 해제된 카드를 다시 해제하면 `HTTP 500` 을 돌려주므로, 상태 변화가 없는 저장에서는 아예 호출하지 않는다.

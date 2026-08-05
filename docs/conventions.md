@@ -118,6 +118,7 @@ DOMContentLoaded → bind()  → load()
 
 ## 5. Service — 명명 · 암복호화 · 감사 규칙
 - **공통코드 값 검증**: 코드 컬럼을 저장하는 서비스는 `CodeValidationService.validate(cmmId, codeId, 라벨)` 로 **존재·사용 여부**를 확인한 뒤 저장한다(없는 코드/사용중지 코드는 예외). 화면은 선택 팝업이라 안전하지만 **엑셀 일괄등록은 코드ID 를 직접 입력**하므로 서비스에서 막아야 두 경로가 같은 규칙을 따른다. 예: 카드(CDT/PT/CS) · 정규인원(UT/PS) · 기관(CO).
+- **카드 발급 규칙**: 카드 값 검증과 발급 가능 여부는 `CardIssueService` 한 곳에 모은다(`validateCard`/`validateForm`/`requireIssuable`). 발급 경로가 넷(정규인원 카드탭·방문객·방문차량·기관차량)이라 각자 검사하면 규칙이 갈린다. **화면 목록에서 거르는 것만으로는 부족하다** — 목록(`selectUnassigned`)과 서버 검사를 **둘 다** 둔다(클라이언트 값 불신).
 - 클래스: `{도메인}Service`(@Service 구체 클래스, 인터페이스 없음). 생성자 주입.
 - 메소드(표준 세트): `list`(READ 감사 포함) / `listAllForExcel`(DOWNLOAD 감사+remark) / `get` / `create` / `update` / `delete`. 쓰기 3종은 `@Transactional`.
 - **쓰기 흐름(순서 고정)**: ① `menuAuthService.requireCreate|requireDelete(actor, menuId)` → ② 업무 검증(중복 등) → ③ mapper 호출 → ④ `auditService.log(actor, TYPE, menuId, detail[, remark])`.

@@ -21,7 +21,9 @@
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
   let carCodes = [], carTypes = [], editMode = 'create'; // 차량구역(CAR)·차종(CT) 공통코드 / 모달 모드
-  let periodCtl; // 출입시작 기간 프리셋(core/period.js) — 'all' 이면 빈값이라 서버가 기간을 안 건다
+  let periodCtl; // 출입시작 기간 프리셋(core/period.js). 기본 1개월 — 'all' 이면 빈값이라 서버가 기간을 안 건다
+  const PERIOD_DEF = '1m';
+  const applyPeriod = () => { const r = periodCtl.value(); state.startDate = r.start; state.endDate = r.end; };
 
   // ---- 목록 ----
   async function load() {
@@ -60,15 +62,16 @@
     state.keyword = $('keyword').value.trim();
     state.searchType = $('searchType').value;
     state.statusCode = $('statusFilter').value;
-    const r = periodCtl.value(); state.startDate = r.start; state.endDate = r.end;
+    applyPeriod();
     state.page = 1;
     load();
   }
   function reset() {
     ['keyword', 'statusFilter', 'statusFilterName'].forEach((id) => { $(id).value = ''; });
     $('searchType').value = 'all';
-    periodCtl.reset('all');
-    Object.assign(state, { page: 1, size: 30, keyword: '', searchType: 'all', statusCode: '', startDate: '', endDate: '', sort: 'visitNo', dir: 'desc' });
+    periodCtl.reset(PERIOD_DEF);
+    Object.assign(state, { page: 1, size: 30, keyword: '', searchType: 'all', statusCode: '', sort: 'visitNo', dir: 'desc' });
+    applyPeriod();
     $('pageSize').value = '30';
     load();
   }
@@ -318,6 +321,7 @@
 
   function bind() {
     periodCtl = period.attach($('periodType'), $('dateRange'), $('startDate'), $('endDate'));
+    applyPeriod(); // 첫 조회부터 기본 기간(1개월)이 걸리도록
     $('btnSearch').addEventListener('click', search);
     $('btnReset').addEventListener('click', reset);
     $('keyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });

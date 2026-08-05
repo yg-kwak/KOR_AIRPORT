@@ -36,6 +36,7 @@ public class VisitRosterService {
   private final TbCardMapper cardMapper;
   private final TbCommonMapper commonMapper;
   private final CardService cardService;
+  private final CardIssueService cardIssue;
   private final VisitBiostarService visitBiostar;
   private final AuditService auditService;
 
@@ -46,6 +47,7 @@ public class VisitRosterService {
       TbCardMapper cardMapper,
       TbCommonMapper commonMapper,
       CardService cardService,
+      CardIssueService cardIssue,
       VisitBiostarService visitBiostar,
       AuditService auditService) {
     this.visitMapper = visitMapper;
@@ -54,6 +56,7 @@ public class VisitRosterService {
     this.cardMapper = cardMapper;
     this.commonMapper = commonMapper;
     this.cardService = cardService;
+    this.cardIssue = cardIssue;
     this.visitBiostar = visitBiostar;
     this.auditService = auditService;
   }
@@ -115,6 +118,11 @@ public class VisitRosterService {
         checkouts.put(pid, dt);
       }
     }
+    // 회수 전에 방문객별 보유 카드를 읽어 둔다 — 자기가 이미 들고 있던 카드는 발급 제한에서 뺀다
+    java.util.Map<String, java.util.Set<Integer>> heldByVisitor = new java.util.HashMap<>();
+    for (String pid : keptIds) {
+      heldByVisitor.put(pid, cardIssue.heldCardIds(pid));
+    }
     visitMapper.deletePersons(visitNo);
     List<String> personIds = new ArrayList<>();
     java.util.Set<Integer> usedCards = new java.util.HashSet<>(); // 한 실물 카드는 한 사람에게만
@@ -134,6 +142,8 @@ public class VisitRosterService {
             throw new BusinessException(
                 ErrorCode.INVALID_INPUT, "같은 카드를 두 명 이상에게 발급할 수 없습니다. 방문객별로 다른 카드를 선택하세요.");
           }
+          // 정상이 아닌 카드(분실·정지·반납·폐기)는 발급하지 않는다 — 장비에서 차단돼 문이 열리지 않는다
+          cardIssue.requireIssuable(vf.getCardId(), heldByVisitor.get(pid), "방문객 " + pid);
           // 장비 미등록 카드면 지금 등록 — 실패하면 예외로 저장이 취소된다(문 안 열리는 카드 방지)
           cardService.ensureBiostarCard(vf.getCardId(), actor, menuId);
           cardMapper.assignPerson(vf.getCardId(), pid);
@@ -148,14 +158,28 @@ public class VisitRosterService {
       carMapper.softDelete(carId);
     }
     visitMapper.deleteCars(visitNo);
+    java.util.Set<String> usedCarNos = new java.util.HashSet<>(); // 한 방문에 같은 차량은 한 번만
     if (form.getCars() != null) {
       for (VisitCarForm cf : form.getCars()) {
         if (cf.getCarNo() == null || cf.getCarNo().isBlank()) {
           continue; // 차량은 선택 — 번호 없는 행은 저장하지 않는다
         }
+        // 같은 차량을 두 줄로 넣으면 카드가 갈리고 출입 이력도 나뉜다. 공백·대소문자 차이는 같은 번호로 본다.
+        String key = cf.getCarNo().replaceAll("\\s+", "").toUpperCase();
+        if (!usedCarNos.add(key)) {
+          throw new BusinessException(
+              ErrorCode.INVALID_INPUT,
+              "같은 차량번호(" + cf.getCarNo().trim() + ")를 두 번 등록할 수 없습니다. 중복된 차량 행을 지우세요.");
+        }
         int carId = insertVisitCar(cf, form);
         visitMapper.insertCar(visitNo, carId);
         if (cf.getCardId() != null) {
+          // 차량 카드도 정상 상태만 발급한다(차량은 매번 새로 만들므로 보유 예외 없음)
+          cardIssue.requireIssuable(cf.getCardId(), null, "차량 " + cf.getCarNo().trim());
+          if (!usedCards.add(cf.getCardId())) {
+            throw new BusinessException(
+                ErrorCode.INVALID_INPUT, "같은 카드를 두 대상에게 발급할 수 없습니다. 대상별로 다른 카드를 선택하세요.");
+          }
           cardMapper.assignCar(cf.getCardId(), carId);
         }
       }

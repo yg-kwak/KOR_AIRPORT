@@ -13,12 +13,12 @@ import AirPort.mapper.TbSystemMapper;
 import AirPort.model.CardForm;
 import AirPort.model.CardSearchParam;
 import AirPort.model.TbCard;
-import AirPort.model.TbCommon;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbSystem;
 import AirPort.security.ARIAUtil;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -50,7 +50,7 @@ public class CardService {
   private final BiostarCardAdapter biostarCardAdapter;
   private final MenuAuthService menuAuthService;
   private final AuditService auditService;
-  private final CodeValidationService codeValidator;
+  private final CardIssueService cardIssue;
 
   public CardService(
       TbCardMapper cardMapper,
@@ -60,7 +60,7 @@ public class CardService {
       BiostarCardAdapter biostarCardAdapter,
       MenuAuthService menuAuthService,
       AuditService auditService,
-      CodeValidationService codeValidator) {
+      CardIssueService cardIssue) {
     this.cardMapper = cardMapper;
     this.systemMapper = systemMapper;
     this.commonMapper = commonMapper;
@@ -68,13 +68,7 @@ public class CardService {
     this.biostarCardAdapter = biostarCardAdapter;
     this.menuAuthService = menuAuthService;
     this.auditService = auditService;
-    this.codeValidator = codeValidator;
-  }
-
-  /** 카드 상태(tb_common CS)의 code_tag='Y' 면 차단 대상. 코드가 없으면 비차단으로 본다. */
-  private boolean isBlocked(String cardStatus) {
-    TbCommon cs = commonMapper.selectOne("CS", cardStatus);
-    return cs != null && "Y".equals(cs.getCodeTag());
+    this.cardIssue = cardIssue;
   }
 
   /**
@@ -88,8 +82,8 @@ public class CardService {
     if (biostarCardId == null || biostarCardId.isBlank()) {
       return; // 장비 미등록 카드(차량 등) — 동기화 대상 아님
     }
-    boolean block = isBlocked(newStatus);
-    if (block == (prevStatus != null && isBlocked(prevStatus))) {
+    boolean block = cardIssue.isBlocked(newStatus);
+    if (block == (prevStatus != null && cardIssue.isBlocked(prevStatus))) {
       return; // 차단 여부 변화 없음 — 장비 호출 불필요(중복 해제로 인한 500 방지)
     }
     TbSystem cfg = systemMapper.selectOne();
@@ -136,11 +130,11 @@ public class CardService {
   @Transactional
   public void createCard(TbCard row, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
-    validateCard(row, null);
+    cardIssue.validateCard(row, null);
     if (cardMapper.selectByCardNo(row.getBiostarCardValue()) != null) {
       throw new BusinessException(ErrorCode.DUPLICATE, "이미 등록된 카드번호입니다.");
     }
-    normalize(row);
+    CardIssueService.normalize(row);
     row.setBiostarCardId(null);
     try {
       cardMapper.insert(row); // DB 먼저 — unique/CHECK 위반은 BiostarX 호출 전에 잡힌다
@@ -240,8 +234,8 @@ public class CardService {
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
-    validateCard(row, existing);
-    normalize(row);
+    cardIssue.validateCard(row, existing);
+    CardIssueService.normalize(row);
     cardMapper.updateInfo(row);
     // 차단 여부가 바뀐 경우에만 BiostarX 차단/해제
     syncBlacklist(existing.getBiostarCardId(), existing.getCardStatus(), row.getCardStatus());
@@ -257,51 +251,13 @@ public class CardService {
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
-    String holder = issuedTo(existing);
+    String holder = CardIssueService.issuedTo(existing);
     if (holder != null) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, holder + " 발급된 카드입니다. 먼저 회수하세요.");
     }
     cardMapper.softDelete(cardId);
     auditService.log(
         actor, AuditService.DELETE, menuId, "카드 삭제: " + existing.getBiostarCardValue());
-  }
-
-  /** 발급 대상 설명 — 인원/차량 어느 쪽에든 붙어 있으면 그 대상을, 미발급이면 null. */
-  private static String issuedTo(TbCard card) {
-    if (card.getPersonId() != null) {
-      return "인원(" + card.getPersonId() + ")에게";
-    }
-    if (card.getCarId() != null) {
-      return "차량(" + (card.getCarNo() == null ? card.getCarId() : card.getCarNo()) + ")에";
-    }
-    return null;
-  }
-
-  /** 카드 마스터 필수값 — 인원 화면(CardForm)과 같은 기준. 차량 카드는 패스구분을 받지 않는다. */
-  private void validateCard(TbCard row, TbCard prev) {
-    require(row.getBiostarCardValue(), "카드번호");
-    require(row.getCardType(), "카드구분");
-    if (!CARD_TYPE_CAR.equals(row.getCardType())) {
-      require(row.getPassType(), "패스구분");
-    }
-    require(row.getCardName(), "카드명칭");
-    require(row.getCardStatus(), "카드상태");
-    // 엑셀 일괄등록은 코드ID 를 직접 적으므로 없는 코드가 그대로 저장되지 않게 막는다
-    // (수정은 기존 값과 다를 때만 — 코드가 나중에 정리돼도 기존 행 수정이 막히지 않게)
-    codeValidator.validate(
-        "CDT", row.getCardType(), "카드구분", prev == null ? null : prev.getCardType());
-    codeValidator.validate(
-        "PT", row.getPassType(), "패스구분", prev == null ? null : prev.getPassType());
-    codeValidator.validate(
-        "CS", row.getCardStatus(), "카드상태", prev == null ? null : prev.getCardStatus());
-  }
-
-  /** 저장 전 보정 — 차량 카드의 패스구분은 화면에서 무엇이 오든 비운다(화면 값 불신). */
-  private static void normalize(TbCard row) {
-    if (CARD_TYPE_CAR.equals(row.getCardType())) {
-      row.setPassType(null);
-    }
-    row.setFeePaidDt(blankToNull(row.getFeePaidDt()));
   }
 
   /** 인원의 카드 목록 — 수정 모달에서 기존 카드 표시용. */
@@ -344,7 +300,7 @@ public class CardService {
     // 인원·차량 어느 쪽에든 붙어 있으면 거부한다(한 카드는 둘 중 하나에만 귀속).
     TbCard known = cardNo == null ? null : cardMapper.selectByCardNo(cardNo);
     if (known != null) {
-      String holder = issuedTo(known);
+      String holder = CardIssueService.issuedTo(known);
       if (holder != null) {
         return BiostarCard.fail("이미 " + holder + " 발급된 카드입니다. 먼저 회수하세요.");
       }
@@ -377,13 +333,21 @@ public class CardService {
    * 삭제되지 않고 {@code person_id=NULL, use_yn='Y', del_yn='N'} 로 남아 <b>다른 인원이 재사용</b>할 수 있다.
    */
   public void saveCards(String personId, List<CardForm> cards, TbLoginUser actor, Integer menuId) {
+    Set<Integer> held = cardIssue.heldCardIds(personId); // 회수 전에 읽어야 자기 카드를 구분할 수 있다
     cardMapper.releaseByPerson(personId);
     if (cards == null) {
       return;
     }
     for (CardForm form : cards) {
       // 기존 카드면 저장된 값을 기준으로 검증한다(안 바꾼 코드 때문에 저장이 막히지 않게)
-      validate(form, form.getCardId() == null ? null : cardMapper.selectById(form.getCardId()));
+      cardIssue.validateForm(
+          form, form.getCardId() == null ? null : cardMapper.selectById(form.getCardId()));
+      // 정상이 아닌 카드는 새로 발급하지 않는다(카드번호만 온 경우도 행을 찾아 확인)
+      if (form.getCardId() != null) {
+        cardIssue.requireIssuable(form.getCardId(), held, "인원 " + personId);
+      } else {
+        cardIssue.requireIssuableByNo(form.getCardNo(), held, "인원 " + personId);
+      }
       TbCard row = new TbCard();
       row.setCardId(form.getCardId());
       row.setPersonId(personId);
@@ -391,7 +355,7 @@ public class CardService {
       row.setCardName(form.getCardName());
       row.setCardStatus(form.getCardStatus());
       row.setPassType(form.getPassType());
-      row.setFeePaidDt(blankToNull(form.getFeePaidDt()));
+      row.setFeePaidDt(CardIssueService.blankToNull(form.getFeePaidDt()));
       row.setIssueReason(form.getIssueReason());
       row.setRemark(form.getRemark());
       row.setBiostarCardId(form.getBiostarCardId());
@@ -451,29 +415,6 @@ public class CardService {
               c -> result.add(new BiostarUserCard(c.getBiostarCardId(), c.getBiostarCardValue())));
     }
     return result;
-  }
-
-  /** 카드 필수값 — 화면(card-list.js)과 같은 기준. 카드구분은 서버가 고정하므로 검사 대상이 아니다. */
-  private void validate(CardForm form, TbCard prev) {
-    require(form.getCardNo(), "카드번호");
-    require(form.getPassType(), "패스구분");
-    require(form.getCardName(), "카드명칭");
-    require(form.getCardStatus(), "카드상태");
-    // 카드등록관리와 같은 규칙 — 화면 팝업 값이라도 서버가 최종 확인한다(클라이언트 값 불신)
-    codeValidator.validate(
-        "PT", form.getPassType(), "패스구분", prev == null ? null : prev.getPassType());
-    codeValidator.validate(
-        "CS", form.getCardStatus(), "카드상태", prev == null ? null : prev.getCardStatus());
-  }
-
-  private static void require(String value, String label) {
-    if (value == null || value.isBlank()) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "카드 " + label + "은(는) 필수입니다.");
-    }
-  }
-
-  private static String blankToNull(String v) {
-    return (v == null || v.isBlank()) ? null : v;
   }
 
   /**

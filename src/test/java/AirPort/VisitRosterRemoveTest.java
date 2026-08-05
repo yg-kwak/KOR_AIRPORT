@@ -23,6 +23,7 @@ import AirPort.service.CardService;
 import AirPort.service.VisitBiostarService;
 import AirPort.service.VisitRosterService;
 import java.util.List;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -31,6 +32,12 @@ import org.junit.jupiter.api.Test;
  */
 class VisitRosterRemoveTest {
 
+  /** 성명 암호화에 ARIA 키가 필요하다 — 실행 순서에 기대지 않고 스스로 준비한다. */
+  @BeforeAll
+  static void initKey() {
+    TestKeys.init();
+  }
+
   private final TbVisitMapper visitMapper = mock(TbVisitMapper.class);
   private final TbPersonMapper personMapper = mock(TbPersonMapper.class);
   private final TbCarMapper carMapper = mock(TbCarMapper.class);
@@ -38,6 +45,8 @@ class VisitRosterRemoveTest {
   private final AirPort.mapper.TbCommonMapper commonMapper =
       mock(AirPort.mapper.TbCommonMapper.class);
   private final CardService cardService = mock(CardService.class);
+  private final AirPort.service.CardIssueService cardIssue =
+      mock(AirPort.service.CardIssueService.class);
   private final VisitBiostarService visitBiostar = mock(VisitBiostarService.class);
   private final AuditService auditService = mock(AuditService.class);
 
@@ -49,6 +58,7 @@ class VisitRosterRemoveTest {
         cardMapper,
         commonMapper,
         cardService,
+        cardIssue,
         visitBiostar,
         auditService);
   }
@@ -136,6 +146,55 @@ class VisitRosterRemoveTest {
     BusinessException ex =
         assertThrows(BusinessException.class, () -> service().saveChildren(9110, form, null, 101));
     assertTrue(ex.getMessage().contains("두 명 이상"), ex.getMessage());
+  }
+
+  /** 실제 mapper 는 insert 후 car_id 를 채워 준다(useGeneratedKeys). mock 도 같게 흉내낸다. */
+  private void carInsertAssignsId() {
+    final int[] seq = {500};
+    org.mockito.Mockito.doAnswer(
+            inv -> {
+              ((AirPort.model.TbCar) inv.getArgument(0)).setCarId(seq[0]++);
+              return 1;
+            })
+        .when(carMapper)
+        .insert(any());
+  }
+
+  @Test
+  void 한_방문에_같은_차량번호를_두_번_등록할_수_없다() {
+    // 같은 차량이 두 줄이면 카드가 갈리고 출입 이력도 나뉜다
+    when(visitMapper.selectPersonIds(9110)).thenReturn(List.of());
+    when(visitBiostar.deleteVisitors(anyString(), any())).thenReturn(null);
+    carInsertAssignsId();
+
+    VisitForm form = formKeeping();
+    AirPort.model.VisitCarForm c1 = new AirPort.model.VisitCarForm();
+    c1.setCarNo("12가3456");
+    AirPort.model.VisitCarForm c2 = new AirPort.model.VisitCarForm();
+    c2.setCarNo(" 12가 3456 "); // 공백만 다른 같은 번호
+    form.setCars(List.of(c1, c2));
+
+    BusinessException ex =
+        assertThrows(BusinessException.class, () -> service().saveChildren(9110, form, null, 101));
+    assertTrue(ex.getMessage().contains("같은 차량번호"), ex.getMessage());
+  }
+
+  @Test
+  void 서로_다른_차량은_함께_등록된다() {
+    when(visitMapper.selectPersonIds(9110)).thenReturn(List.of());
+    when(visitBiostar.deleteVisitors(anyString(), any())).thenReturn(null);
+    carInsertAssignsId();
+
+    VisitForm form = formKeeping();
+    AirPort.model.VisitCarForm c1 = new AirPort.model.VisitCarForm();
+    c1.setCarNo("12가3456");
+    AirPort.model.VisitCarForm c2 = new AirPort.model.VisitCarForm();
+    c2.setCarNo("34나7890");
+    form.setCars(List.of(c1, c2));
+
+    service().saveChildren(9110, form, null, 101);
+
+    verify(carMapper, org.mockito.Mockito.times(2)).insert(any());
   }
 
   @Test
