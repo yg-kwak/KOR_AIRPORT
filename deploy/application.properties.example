@@ -77,16 +77,16 @@ server.servlet.encoding.charset=UTF-8
 server.servlet.encoding.force=true
 
 # ===== 로그 =====
-# 이 한 줄이면 로그 파일이 모두 이 폴더에 쌓인다. 나머지 형식·보관 규칙은 jar 기본값을 쓴다.
-#   cjairport.log        기동·오류·경고 + 업무 이력(메뉴 접속·조회·등록·수정·삭제·로그인)
-#   access.{날짜}.log     요청 1건 = 1줄 (시각·IP·URL·상태·처리시간)
+# 이 한 줄이면 로그가 이 폴더의 cjairport.log 한 파일에 모두 쌓인다(형식·보관은 jar 기본값).
+#   기동·오류·경고 + 업무 이력(메뉴 접속·조회·등록·수정·삭제·로그인) + 요청 로그(URL·상태·처리시간)
+#   같은 요청은 [요청ID] 가 같아 한 줄기로 이어 볼 수 있다.
 # 서비스로 돌리면 작업 디렉터리가 달라질 수 있으므로 반드시 절대경로로 지정한다.
 LOG_PATH=C:/project/CJ_AirPort/logs
 
 # 보관 기간(일). 기본값 30 — 더 오래 남겨야 하면 늘린다.
 #LOG_KEEP_DAYS=60
-# 접근 로그가 필요 없으면 false.
-#ACCESS_LOG=false
+# 요청 로그(URL 한 줄)가 필요 없으면 OFF.
+#logging.level.REQUEST=OFF
 # BiostarX 연동 문제를 파고들 때만 잠깐 켠다(로그가 많이 쌓인다).
 #logging.level.AirPort.adapter=DEBUG
 
