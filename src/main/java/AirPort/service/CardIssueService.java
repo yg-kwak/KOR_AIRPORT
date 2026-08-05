@@ -106,6 +106,58 @@ public class CardIssueService {
             + ".");
   }
 
+  /**
+   * <b>인원에게 줄 수 있는 카드인가</b> — 차량 카드는 사람에게 발급하지 않는다.
+   *
+   * <p>목록에서 거르는 것만으로는 부족하다. 카드번호를 직접 입력하거나 SCAN 하면 목록을 거치지 않고 그 카드가 잡히는데, 인원 저장은 카드구분을 '인원'으로 덮어쓰므로
+   * <b>차량 카드가 조용히 인원 카드로 바뀌고</b>, 그 카드가 차량에 물려 있었다면 차량에서 카드를 빼앗는 셈이 된다.
+   *
+   * @param cardId 화면이 보낸 카드ID (없으면 cardNo 로 찾는다)
+   */
+  public void requireIssuableToPerson(Integer cardId, String cardNo, String who) {
+    TbCard card = null;
+    if (cardId != null) {
+      card = cardMapper.selectById(cardId);
+    } else if (cardNo != null && !cardNo.isBlank()) {
+      card = cardMapper.selectByCardNo(cardNo);
+    }
+    if (card == null) {
+      return; // 아직 행이 없는 새 카드번호 — 인원 카드로 새로 만들어진다
+    }
+    if (CardService.CARD_TYPE_CAR.equals(card.getCardType())) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT,
+          "카드 "
+              + card.getBiostarCardValue()
+              + " 은(는) 차량 카드라 사람에게 발급할 수 없습니다"
+              + (who == null || who.isBlank() ? "" : " (" + who + ")")
+              + ". 인원용 카드를 선택하세요.");
+    }
+    if (card.getCarId() != null) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT,
+          "카드 " + card.getBiostarCardValue() + " 은(는) 차량에 발급돼 있습니다. 먼저 회수한 뒤 사용하세요.");
+    }
+  }
+
+  /** 반대 방향 — 인원 카드를 차량에 발급하지 않는다(같은 이유로 카드구분이 덮어써진다). */
+  public void requireIssuableToCar(String cardNo, String who) {
+    if (cardNo == null || cardNo.isBlank()) {
+      return;
+    }
+    TbCard card = cardMapper.selectByCardNo(cardNo);
+    if (card == null || !CardService.CARD_TYPE_PERSON.equals(card.getCardType())) {
+      return;
+    }
+    throw new BusinessException(
+        ErrorCode.INVALID_INPUT,
+        "카드 "
+            + card.getBiostarCardValue()
+            + " 은(는) 인원 카드라 차량에 발급할 수 없습니다"
+            + (who == null || who.isBlank() ? "" : " (" + who + ")")
+            + ". 차량용 카드를 선택하세요.");
+  }
+
   /** 인원이 현재 들고 있는 카드ID — 재저장 시 자기 카드까지 막지 않도록 기준으로 쓴다. */
   public Set<Integer> heldCardIds(String personId) {
     Set<Integer> ids = new HashSet<>();

@@ -372,6 +372,8 @@ public class CardService {
       if (!held.contains(form.getCardId())) {
         cardIssue.requireIssuableStatus(form.getCardStatus(), form.getCardNo(), "인원 " + personId);
       }
+      // 차량 카드를 사람에게 주지 않는다 — 목록을 거치지 않는 직접입력·SCAN 도 여기서 걸린다
+      cardIssue.requireIssuableToPerson(form.getCardId(), form.getCardNo(), "인원 " + personId);
       TbCard row = new TbCard();
       row.setCardId(form.getCardId());
       row.setPersonId(personId);

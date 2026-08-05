@@ -122,6 +122,15 @@ public class CompanyCarController {
     return ApiResponse.ok(companyCarService.cards(carId, actor(session), menuId()));
   }
 
+  /** 미할당 차량 카드 목록 (AJAX) — 카드 발급 시 이미 등록된(회수된) 카드를 불러온다. */
+  @GetMapping("/cards/unassigned")
+  @ResponseBody
+  public ApiResponse<List<TbCard>> unassignedCards(
+      @RequestParam(required = false) String keyword, HttpSession session) {
+    return ApiResponse.ok(
+        cardService.listUnassigned(keyword, CardService.CARD_TYPE_CAR, actor(session), menuId()));
+  }
+
   /** 장치 리더로 카드번호 읽기 (AJAX) */
   @PostMapping("/card/scan")
   @ResponseBody

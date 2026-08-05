@@ -30,20 +30,14 @@
     renderSortIndicators();
   }
 
-  function renderTotal(total) {
-    $('totalInfo').textContent = `조회결과 ${total.toLocaleString()}`;
-  }
+  function renderTotal(total) { $('totalInfo').textContent = `조회결과 ${total.toLocaleString()}`; }
 
   function renderSortIndicators() {
     document.querySelectorAll('th.sortable').forEach((th) => {
       const ind = th.querySelector('.sort-ind');
-      if (th.dataset.sort === state.sort) {
-        ind.textContent = state.dir === 'asc' ? ' ▲' : ' ▼';
-        th.classList.add('sorted');
-      } else {
-        ind.textContent = '';
-        th.classList.remove('sorted');
-      }
+      const on = th.dataset.sort === state.sort;
+      ind.textContent = on ? (state.dir === 'asc' ? ' ▲' : ' ▼') : '';
+      th.classList.toggle('sorted', on);
     });
   }
 
@@ -64,9 +58,7 @@
       </tr>`).join('');
   }
 
-  function renderPaging(page, totalPages) {
-    pager.render($('paging'), page, totalPages, (p) => { state.page = p; load(); });
-  }
+  function renderPaging(p0, tp) { pager.render($('paging'), p0, tp, (p) => { state.page = p; load(); }); }
 
   function search() {
     state.keyword = $('keyword').value.trim();
@@ -243,8 +235,14 @@
   async function scan() {
     const res = await api.post(BASE + '/card/scan', {});
     if (!res || !res.success) { toast.error((res && res.message) || '카드를 읽지 못했습니다.'); return; }
-    $('cardNo').value = res.cardNo;
-    toast.success('카드번호를 읽었습니다.');
+    $('cardNo').value = res.cardNo; toast.success('카드번호를 읽었습니다.');
+  }
+  // 이미 등록된(회수돼 미할당인) 차량 카드를 골라 넣는다 — 카드번호를 외우지 않아도 되게
+  function pickCard() {
+    visitCardPicker.open({ kind: 'car', listUrl: BASE + '/cards/unassigned', onPick: (c) => {
+      $('cardNo').value = c.biostarCardValue || '';
+      if (!$('cardName').value.trim()) $('cardName').value = c.cardName || '';
+    } });
   }
 
   async function releaseCard(cardId) {
@@ -384,6 +382,7 @@
     $('cardNo').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, ''); });
     $('btnIssue').addEventListener('click', openIssue);
     $('btnCardScan').addEventListener('click', scan);
+    $('btnCardPick').addEventListener('click', pickCard);
     $('issueOk').addEventListener('click', issue);
     $('issueCancel').addEventListener('click', closeIssue);
     $('issueClose').addEventListener('click', closeIssue);

@@ -190,6 +190,7 @@
             <input type="text" id="cardNo" class="input w-160" maxlength="30" inputmode="numeric"
                    placeholder="카드번호" autocomplete="off"/>
             <button type="button" class="btn" id="btnCardScan">SCAN</button>
+            <button type="button" class="btn" id="btnCardPick">불러오기</button>
           </div>
         </div>
         <div class="form-group full">
@@ -290,6 +291,7 @@
     canDelete: [[${perm.canDelete}]]
   };
 </script>
+<div th:replace="~{fragments/components/card-picker-visit :: cardPickerVisit}"></div>
 <script src="/js/web/company/companyCar.js" defer></script>
 </body>
 </html>

@@ -210,7 +210,10 @@ public class PersonController {
   @ResponseBody
   public ApiResponse<List<TbCard>> cardUnassigned(
       @RequestParam(required = false) String keyword, HttpSession session) {
-    return ApiResponse.ok(cardService.listUnassigned(keyword, actor(session), menuId()));
+    // 인원 카드만 — 차량 카드는 사람에게 발급하지 않는다
+    return ApiResponse.ok(
+        cardService.listUnassigned(
+            keyword, CardService.CARD_TYPE_PERSON, actor(session), menuId()));
   }
 
   /** 장치 리더로 카드번호 읽기 (AJAX) — 로그인 계정의 장치(dev_id) */

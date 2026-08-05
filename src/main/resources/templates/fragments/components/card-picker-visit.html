@@ -1,0 +1,33 @@
+<!-- 카드 선택 팝업 (js/core/components/card-picker-visit.js 와 한 쌍).
+     화면 상태를 모르는 공용 컴포넌트라 방문(임시·장기)·기관차량이 함께 쓴다.
+     사용: <div th:replace="~{fragments/components/card-picker-visit :: cardPickerVisit}"></div> -->
+<div th:fragment="cardPickerVisit" class="modal-overlay code-picker-overlay" id="vcpModal">
+  <div class="modal-container wide">
+    <div class="modal-header">
+      <h2 class="modal-title" id="vcpTitle">카드 선택</h2>
+      <button type="button" class="modal-close" id="vcpClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="file-field-row" style="margin-bottom:10px">
+        <input type="text" id="vcpKeyword" class="input" style="flex:1"
+               placeholder="카드번호 또는 카드명칭으로 검색" autocomplete="off"/>
+        <button type="button" class="btn" id="vcpSearch">검색</button>
+        <button type="button" class="btn" id="vcpScan">SCAN</button>
+      </div>
+      <p class="form-hint">할당되지 않은(회수된) 카드만 보입니다.</p>
+      <div class="matrix-wrap">
+        <table class="grid">
+          <thead>
+          <tr><th class="w-40"></th><th class="w-160">카드번호</th>
+            <th style="text-align:left">카드명칭</th><th class="w-100">카드상태</th></tr>
+          </thead>
+          <tbody id="vcpBody"><tr><td colspan="4" class="empty">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="vcpCancel">취소</button>
+      <button type="button" class="btn btn-primary" id="vcpOk">선택</button>
+    </div>
+  </div>
+</div>

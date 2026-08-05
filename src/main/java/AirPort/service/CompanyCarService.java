@@ -206,6 +206,7 @@ public class CompanyCarService {
     cardIssue.requireIssuable(
         known == null ? null : known.getCardId(), null, "차량 " + car.getCarNo());
     cardIssue.requireIssuableStatus(form.getCardStatus(), form.getCardNo(), "차량 " + car.getCarNo());
+    cardIssue.requireIssuableToCar(form.getCardNo(), "차량 " + car.getCarNo());
 
     TbCard row = new TbCard();
     row.setCardId(known == null ? null : known.getCardId());
