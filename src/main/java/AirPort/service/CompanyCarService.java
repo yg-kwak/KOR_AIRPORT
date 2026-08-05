@@ -202,9 +202,10 @@ public class CompanyCarService {
     if (known != null && (known.getPersonId() != null || known.getCarId() != null)) {
       throw new BusinessException(ErrorCode.DUPLICATE, "이미 발급된 카드번호입니다. 먼저 회수하세요.");
     }
-    // 정상이 아닌 카드(분실·정지·반납·폐기)는 발급하지 않는다
+    // 정상이 아닌 카드(분실·정지·반납·폐기)는 발급하지 않는다 — 기존 카드도, 새로 고른 상태도
     cardIssue.requireIssuable(
         known == null ? null : known.getCardId(), null, "차량 " + car.getCarNo());
+    cardIssue.requireIssuableStatus(form.getCardStatus(), form.getCardNo(), "차량 " + car.getCarNo());
 
     TbCard row = new TbCard();
     row.setCardId(known == null ? null : known.getCardId());

@@ -88,12 +88,14 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
 
 /* 카드상태(CS) — 카드 상태의 진실의 원천(tb_card.card_status 단일 컬럼).
    카드구분(CDT)은 운영에서 직접 등록하므로 시드하지 않는다 (공통코드관리) */
-INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
-  ('CS', N'카드상태', 'CS01', N'정상', 'Y'),
-  ('CS', N'카드상태', 'CS02', N'분실', 'Y'),
-  ('CS', N'카드상태', 'CS03', N'반납', 'Y'),
-  ('CS', N'카드상태', 'CS04', N'정지', 'Y'),
-  ('CS', N'카드상태', 'CS05', N'폐기', 'Y');
+/* code_tag='Y' = 정상이 아닌 상태. 이 값이 BiostarX 블랙리스트 차단과 신규 발급 차단을
+   동시에 결정한다 — 비어 있으면 두 기능이 조용히 무력화되므로 반드시 채운다 */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_yn) VALUES
+  ('CS', N'카드상태', 'CS01', N'정상', 'N', 'Y'),
+  ('CS', N'카드상태', 'CS02', N'분실', 'Y', 'Y'),
+  ('CS', N'카드상태', 'CS03', N'반납', 'Y', 'Y'),
+  ('CS', N'카드상태', 'CS04', N'정지', 'Y', 'Y'),
+  ('CS', N'카드상태', 'CS05', N'폐기', 'Y', 'Y');
 
 /* 발급구분(IS) — 카드 발급 사유 */
 INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES

@@ -592,12 +592,13 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use
 
   /* 카드상태(CS) — 카드 상태의 진실의 원천(tb_card.card_status 단일 컬럼).
      카드구분(CDT)은 운영에서 직접 등록하므로 시드하지 않는다 (공통코드관리) */
-  INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
-    ('CS', N'카드상태', 'CS01', N'정상', 'Y'),
-    ('CS', N'카드상태', 'CS02', N'분실', 'Y'),
-    ('CS', N'카드상태', 'CS03', N'반납', 'Y'),
-    ('CS', N'카드상태', 'CS04', N'정지', 'Y'),
-    ('CS', N'카드상태', 'CS05', N'폐기', 'Y');
+  /* code_tag='Y' = 정상이 아닌 상태. BiostarX 블랙리스트 차단과 신규 발급 차단을 함께 결정한다 */
+  INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_yn) VALUES
+    ('CS', N'카드상태', 'CS01', N'정상', 'N', 'Y'),
+    ('CS', N'카드상태', 'CS02', N'분실', 'Y', 'Y'),
+    ('CS', N'카드상태', 'CS03', N'반납', 'Y', 'Y'),
+    ('CS', N'카드상태', 'CS04', N'정지', 'Y', 'Y'),
+    ('CS', N'카드상태', 'CS05', N'폐기', 'Y', 'Y');
 
   /* 발급구분(IS) — 카드 발급 사유 */
   INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
@@ -735,6 +736,16 @@ FROM (VALUES
 ) AS v(cmm_id, cmm_name, code_id, code_name, code_remark)
 WHERE NOT EXISTS (SELECT 1 FROM dbo.tb_common c WHERE c.cmm_id = v.cmm_id AND c.code_id = v.code_id);
 IF @@ROWCOUNT > 0 PRINT '  + 인원ID 접두(PIP) 추가';
+GO
+
+/* 카드상태(CS) code_tag 복구 — 이 값이 비어 있으면 분실·정지 카드를 BiostarX 에서 차단하지 못하고
+   비정상 카드의 신규 발급도 막지 못한다(둘 다 조용히 통과). 과거 시드는 이 컬럼을 채우지 않았다. */
+UPDATE dbo.tb_common SET code_tag = 'N'
+ WHERE cmm_id = 'CS' AND code_id = 'CS01' AND ISNULL(code_tag, '') <> 'N';
+IF @@ROWCOUNT > 0 PRINT '  + 카드상태 CS01 code_tag 복구';
+UPDATE dbo.tb_common SET code_tag = 'Y'
+ WHERE cmm_id = 'CS' AND code_id IN ('CS02', 'CS03', 'CS04', 'CS05') AND ISNULL(code_tag, '') <> 'Y';
+IF @@ROWCOUNT > 0 PRINT '  + 카드상태 차단코드 code_tag 복구';
 GO
 
 /* 시스템 공통코드는 '사용' 고정 — 미사용으로 바뀌어 있으면 되돌린다

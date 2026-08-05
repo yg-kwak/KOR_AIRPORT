@@ -81,6 +81,31 @@ public class CardIssueService {
     requireIssuable(known == null ? null : known.getCardId(), held, who);
   }
 
+  /**
+   * <b>지금 저장하려는 상태</b>가 정상인지 — 대상(인원·차량)에게 배정하는 저장에만 건다.
+   *
+   * <p>{@link #requireIssuable} 은 <b>이미 저장된</b> 카드의 상태를 보므로, 카드를 새로 만들면서 처음부터 '분실'로 고르면 검사할 대상이 없어
+   * 그대로 통과한다. 발급 화면이 카드상태를 직접 고를 수 있게 되어 있어 실제로 가능한 경로다.
+   *
+   * <p>카드등록관리(마스터)에는 걸지 않는다 — 거기서는 분실·폐기 카드를 <b>기록</b>해야 하기 때문이다.
+   */
+  public void requireIssuableStatus(String cardStatus, String cardNo, String who) {
+    if (!isBlocked(cardStatus)) {
+      return;
+    }
+    TbCommon cs = commonMapper.selectOne("CS", cardStatus);
+    String name = (cs == null || cs.getCodeName() == null) ? cardStatus : cs.getCodeName();
+    throw new BusinessException(
+        ErrorCode.INVALID_INPUT,
+        "카드상태가 '"
+            + name
+            + "' 인 카드는 발급할 수 없습니다"
+            + (who == null || who.isBlank() ? "" : " (" + who + ")")
+            + ". 발급은 '정상' 상태로만 가능합니다"
+            + (cardNo == null || cardNo.isBlank() ? "" : " — 카드번호 " + cardNo)
+            + ".");
+  }
+
   /** 인원이 현재 들고 있는 카드ID — 재저장 시 자기 카드까지 막지 않도록 기준으로 쓴다. */
   public Set<Integer> heldCardIds(String personId) {
     Set<Integer> ids = new HashSet<>();

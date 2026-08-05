@@ -85,6 +85,32 @@ class CardIssuableTest {
   }
 
   @Test
+  void 새_카드를_처음부터_분실로_발급할_수_없다() {
+    // requireIssuable 은 '저장된' 카드를 보므로, 새 카드번호를 분실 상태로 만들면 검사 대상이 없어 통과한다.
+    // 발급 화면이 카드상태를 직접 고를 수 있어 실제로 가능한 경로다.
+    TbCommon lost = new TbCommon();
+    lost.setCodeName("분실");
+    lost.setCodeTag("Y");
+    when(commonMapper.selectOne("CS", "CS02")).thenReturn(lost);
+
+    BusinessException ex =
+        assertThrows(
+            BusinessException.class,
+            () -> service().requireIssuableStatus("CS02", "7777", "인원 P1"));
+    assertTrue(ex.getMessage().contains("분실"), ex.getMessage());
+    assertTrue(ex.getMessage().contains("7777"), ex.getMessage());
+  }
+
+  @Test
+  void 정상_상태로는_발급된다() {
+    TbCommon ok = new TbCommon();
+    ok.setCodeName("정상");
+    ok.setCodeTag("N");
+    when(commonMapper.selectOne("CS", "CS01")).thenReturn(ok);
+    assertDoesNotThrow(() -> service().requireIssuableStatus("CS01", "7777", "인원 P1"));
+  }
+
+  @Test
   void 상태코드가_공통코드에_없으면_정상으로_본다() {
     TbCard c = new TbCard();
     c.setCardId(20);

@@ -77,12 +77,32 @@ public class CardService {
    *
    * <p>실패 정책은 비대칭이다: <b>차단 실패는 예외로 롤백</b>(분실 카드가 장비에서 계속 유효하면 보안 위험), <b>해제 실패는 경고만</b> (실패해도 카드가
    * 계속 차단될 뿐이라 업무 불편이지 보안 위험이 아니고, '이미 해제됨'이 오류로 오는 경우가 많다). 실패는 어느 쪽이든 감사에 남긴다.
+   *
+   * @param card 대상 카드(장비 등록 여부·종류 판단용)
    */
-  private void syncBlacklist(String biostarCardId, String prevStatus, String newStatus) {
-    if (biostarCardId == null || biostarCardId.isBlank()) {
-      return; // 장비 미등록 카드(차량 등) — 동기화 대상 아님
-    }
+  private void syncBlacklist(TbCard card, String prevStatus, String newStatus) {
     boolean block = cardIssue.isBlocked(newStatus);
+    String biostarCardId = card == null ? null : card.getBiostarCardId();
+    if (biostarCardId == null || biostarCardId.isBlank()) {
+      // 차량 카드는 애초에 BiostarX 대상이 아니다 — 조용히 넘어가는 것이 맞다.
+      // 그러나 인원 카드가 장비에 없는데 '차단'을 조용히 성공 처리하면, 사용자는 막았다고 믿지만
+      // 실제로는 아무 일도 일어나지 않는다. 그 카드가 나중에 장비에 등록되면 차단 없이 유효해진다.
+      if (block && card != null && !CARD_TYPE_CAR.equals(card.getCardType())) {
+        log.warn("장비 미등록 인원카드 차단 요청 — cardNo={}, 상태={}", card.getBiostarCardValue(), newStatus);
+        auditService.logAlways(
+            null,
+            AuditService.UPDATE,
+            null,
+            "카드 차단 대상이나 BiostarX 미등록: " + card.getBiostarCardValue() + " (상태 " + newStatus + ")");
+        throw new BusinessException(
+            ErrorCode.INVALID_INPUT,
+            "카드 "
+                + card.getBiostarCardValue()
+                + " 은(는) BiostarX 에 등록되어 있지 않아 차단할 수 없습니다."
+                + " 정규인원 화면에서 카드를 저장해 장비에 등록한 뒤 상태를 바꾸세요.");
+      }
+      return; // 차량 카드이거나, 차단이 아닌 변경(해제) — 동기화 대상 아님
+    }
     if (block == (prevStatus != null && cardIssue.isBlocked(prevStatus))) {
       return; // 차단 여부 변화 없음 — 장비 호출 불필요(중복 해제로 인한 500 방지)
     }
@@ -238,7 +258,7 @@ public class CardService {
     CardIssueService.normalize(row);
     cardMapper.updateInfo(row);
     // 차단 여부가 바뀐 경우에만 BiostarX 차단/해제
-    syncBlacklist(existing.getBiostarCardId(), existing.getCardStatus(), row.getCardStatus());
+    syncBlacklist(existing, existing.getCardStatus(), row.getCardStatus());
     auditService.log(
         actor, AuditService.UPDATE, menuId, "카드 수정: " + existing.getBiostarCardValue());
   }
@@ -348,6 +368,10 @@ public class CardService {
       } else {
         cardIssue.requireIssuableByNo(form.getCardNo(), held, "인원 " + personId);
       }
+      // 새 카드를 처음부터 분실·정지 등으로 고르는 경로도 막는다(발급은 정상 상태로만)
+      if (!held.contains(form.getCardId())) {
+        cardIssue.requireIssuableStatus(form.getCardStatus(), form.getCardNo(), "인원 " + personId);
+      }
       TbCard row = new TbCard();
       row.setCardId(form.getCardId());
       row.setPersonId(personId);
@@ -387,10 +411,7 @@ public class CardService {
         }
       }
       // 차단 여부가 바뀐 경우에만 BiostarX 차단/해제
-      syncBlacklist(
-          row.getBiostarCardId(),
-          before == null ? null : before.getCardStatus(),
-          row.getCardStatus());
+      syncBlacklist(row, before == null ? null : before.getCardStatus(), row.getCardStatus());
     }
   }
 
