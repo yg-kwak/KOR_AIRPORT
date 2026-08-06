@@ -33,19 +33,39 @@ public class BiostarAdapter {
     if (ip == null || ip.isBlank()) {
       return BiostarResult.fail("BiostarX IP가 비어 있습니다.");
     }
+    String base = baseUrl(ip);
     try {
-      session.login(baseUrl(ip), loginId, password);
+      session.login(base, loginId, password);
+      log.info("BiostarX 연결 테스트 성공 — {}", base);
       return BiostarResult.ok();
     } catch (BiostarSessionException e) {
-      return BiostarResult.fail(e.getMessage());
-    } catch (java.net.ConnectException e) {
-      return BiostarResult.fail("서버에 연결할 수 없습니다. IP/포트를 확인하세요.");
-    } catch (java.net.http.HttpConnectTimeoutException e) {
-      return BiostarResult.fail("연결 시간이 초과되었습니다.");
+      return BiostarResult.fail(e.getMessage()); // 이미 원인이 담긴 문구(로그는 BiostarSession 에서 남긴다)
     } catch (Exception e) {
-      log.warn("BiostarX 연결 테스트 오류: {}", e.toString());
-      return BiostarResult.fail(e.getClass().getSimpleName());
+      log.warn("BiostarX 연결 테스트 실패 — {} : {}", base, e.toString());
+      return BiostarResult.fail(connectFailMessage(e));
     }
+  }
+
+  /**
+   * 연결 단계 실패를 조치 가능한 문구로 바꾼다.
+   *
+   * <p>예외 클래스명(UnknownHostException 등)을 그대로 보여주면 현장에서 무엇을 고쳐야 할지 알 수 없다.
+   */
+  private static String connectFailMessage(Exception e) {
+    if (e instanceof java.net.UnknownHostException) {
+      return "주소를 찾을 수 없습니다. IP를 확인하세요.";
+    }
+    if (e instanceof java.net.ConnectException) {
+      return "연결이 거부되었습니다. 포트가 맞는지, BiostarX 가 실행 중인지 확인하세요.";
+    }
+    if (e instanceof java.net.http.HttpConnectTimeoutException
+        || e instanceof java.net.SocketTimeoutException) {
+      return "연결 시간이 초과되었습니다. 방화벽에서 해당 포트가 열려 있는지 확인하세요.";
+    }
+    if (e instanceof javax.net.ssl.SSLException) {
+      return "HTTPS 연결에 실패했습니다. 해당 포트가 HTTPS 인지 확인하세요.";
+    }
+    return "연결에 실패했습니다. (" + e.getClass().getSimpleName() + ")";
   }
 
   /**

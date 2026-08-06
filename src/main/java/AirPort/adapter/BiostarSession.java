@@ -97,6 +97,18 @@ public class BiostarSession {
     refresh(client(), base, loginId, password, sessionKey(base, loginId));
   }
 
+  /*
+   * BiostarX 인증서는 설치 시 만들어진 self-signed 라 SAN 에 실제 서버 IP 가 없다.
+   * 그러면 trust-all 을 써도 "No subject alternative names matching IP address ..." 로 핸드셰이크가 깨진다
+   * — 인증서 신뢰(TrustManager)와 호스트명 검증은 별개이고, HttpClient 는 후자를 항상 켠다.
+   * SSLParameters.setEndpointIdentificationAlgorithm(null) 은 HttpClient 가 다시 덮어써서 듣지 않는다.
+   * 이 속성이 유일하게 동작하며, HttpClient 가 처음 만들어지기 전에 정해져야 해서 클래스 로딩 시점에 건다.
+   * 앱에서 HttpClient 를 쓰는 곳은 BiostarX 연동뿐이다(내부망 전용).
+   */
+  static {
+    System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true");
+  }
+
   /** trust-all HttpClient(스레드-세이프, 재사용). */
   public HttpClient client() throws Exception {
     synchronized (lock) {
@@ -156,9 +168,38 @@ public class BiostarSession {
             HttpResponse.BodyHandlers.ofString());
     String sid = resp.headers().firstValue(SESSION_HEADER).orElse(null);
     if (resp.statusCode() != 200 || sid == null) {
-      throw new BiostarSessionException("BiostarX 인증 실패 (HTTP " + resp.statusCode() + ")");
+      // 무엇을 고쳐야 하는지 화면에서 바로 알 수 있어야 한다(현장 점검용). 본문은 원인 파악에만 쓰고 짧게 자른다.
+      log.warn(
+          "BiostarX 로그인 실패 — {} HTTP {} 세션헤더={} 응답={}",
+          base + "/api/login",
+          resp.statusCode(),
+          sid == null ? "없음" : "있음",
+          snippet(resp.body()));
+      throw new BiostarSessionException(loginFailMessage(resp.statusCode(), sid));
     }
     return sid;
+  }
+
+  /** 실패 원인을 사람이 읽고 바로 조치할 수 있는 문구로 바꾼다. */
+  private static String loginFailMessage(int status, String sid) {
+    return switch (status) {
+      case 200 -> "로그인은 되었으나 세션이 발급되지 않았습니다. BiostarX 의 API 사용 설정을 확인하세요.";
+      case 401, 403 -> "로그인 ID 또는 비밀번호가 맞지 않습니다. (HTTP " + status + ")";
+      case 404 -> "로그인 API(/api/login)를 찾을 수 없습니다. 포트가 BiostarX 웹 포트인지, API 사용이 켜져 있는지 확인하세요.";
+      default ->
+          status >= 500
+              ? "BiostarX 서버 내부 오류입니다. (HTTP " + status + ")"
+              : "BiostarX 인증 실패 (HTTP " + status + ")";
+    };
+  }
+
+  /** 응답 본문 앞부분만 — 로그가 길어지지 않게. */
+  private static String snippet(String body) {
+    if (body == null || body.isBlank()) {
+      return "(없음)";
+    }
+    String one = body.replaceAll("\\s+", " ").trim();
+    return one.length() <= 200 ? one : one.substring(0, 200) + "…";
   }
 
   private HttpResponse<String> send(

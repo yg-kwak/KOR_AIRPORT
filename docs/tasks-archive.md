@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] BiostarX 연결 테스트 SSL 오류·동일 서버 세션 충돌 해결 — (1) self-signed 인증서 SAN 에 서버 IP 가 없어 호스트명 검증에서 핸드셰이크가 깨졌다. trust-all 과 별개라 jdk.internal.httpclient.disableHostnameVerification 로 푼다. (2) 쿠키는 포트를 구분하지 않아 같은 서버의 BiostarX 가 JSESSIONID 를 덮어써 로그아웃됐다 — 쿠키 이름을 CJAIRPORT_SESSION 으로 분리. (3) 연결 테스트 실패 문구를 조치 가능한 한국어로 바꾸고 요청 URL·HTTP 상태를 로그에 남긴다 — sjpark2, 2026-08-06
 - [x] 로그를 하루 한 파일(cjairport.{날짜}.0.txt)로 — properties 만으로는 '지금 쓰는 파일'이 고정 이름이라 오늘 로그를 이름으로 찾을 수 없었다. logback-spring.xml 에서 <file> 없이(file-less) 날짜 파일에 바로 쓴다. 현장 설정은 LOG_PATH·LOG_KEEP_DAYS 둘뿐 — sjpark2, 2026-08-06
 - [x] 일반 로그와 접근 로그를 한 파일로 통합 — Tomcat 접근 로그(별도 파일·AccessLogConfig)를 걷어내고, 요청 로그를 MdcFilter 에서 남긴다(REQUEST 로거). 이미 요청 전체를 감싸는 필터라 처리시간도 여기서 재고, 같은 요청의 업무 이력·오류·HTTP 결과가 [요청ID] 로 묶여 한 파일에서 이어 보인다. 화면 리소스(css·js·ico)는 제외 — sjpark2, 2026-08-06
 - [x] 업무 이력을 파일 로그에도 기록 + 로그 설정 축소 — ①메뉴 접속·조회·등록·수정·삭제·로그인이 DB(tb_system_log)에만 남고 파일에는 없던 것을 AuditService 한 곳에서 'AUDIT' INFO 로거로 함께 기록(호출 지점이 이미 모여 있어 서비스 코드 무변경). ②접근 로그 세부(형식·접두·보관·버퍼)를 config/AccessLogConfig 로 옮겨 properties 에는 켜고 끄기 한 줄만 — 운영 설정 파일의 로그 항목 17줄 → LOG_PATH 1줄 — sjpark2, 2026-08-06

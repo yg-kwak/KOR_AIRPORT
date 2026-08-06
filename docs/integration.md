@@ -22,6 +22,39 @@
   - `BiostarAdapter` 는 `session.post(base, loginId, pw, path, body)` 로만 인증 호출한다(직접 로그인 금지).
 - 세션ID/비밀번호는 로그에 남기지 않는다. (`security.md`)
 
+## TLS — 인증서를 검증하지 않는다
+
+BiostarX 는 설치할 때 만들어진 self-signed 인증서를 쓴다. 내부망 전용이므로 신뢰를 완화한다(`BiostarSession`).
+
+풀어야 할 것이 **두 가지**다. 하나만 풀면 아래 오류로 막힌다.
+
+| 무엇 | 안 풀면 |
+|------|---------|
+| 인증서 신뢰 (`X509TrustManager`) | `PKIX path building failed` |
+| **호스트명 검증** | `No subject alternative names matching IP address ... found` |
+
+호스트명 검증은 TrustManager 와 **별개**이고, `HttpClient` 는 이것을 항상 켠다.
+`SSLParameters.setEndpointIdentificationAlgorithm(null)` 은 `HttpClient` 가 다시 덮어써서 듣지 않는다.
+유일하게 듣는 것은 시스템 속성이다.
+
+```java
+System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true");
+```
+
+`HttpClient` 가 처음 만들어지기 전에 정해져야 해서 `BiostarSession` 의 static 블록에서 건다.
+앱에서 `HttpClient` 를 쓰는 곳은 BiostarX 연동뿐이다.
+
+## 접속 주소 — `IP[:포트]`
+
+설정관리에 넣는 값은 호스트 또는 `호스트:포트`다. 스킴을 붙이지 않으면 `https://` 를 앞에 붙인다.
+
+```
+10.81.10.111:9443     ->  https://10.81.10.111:9443
+127.0.0.1:9443        ->  같은 서버에 함께 설치한 경우 권장(방화벽 무관)
+```
+
+연결 테스트가 실패하면 화면 문구가 무엇을 고쳐야 하는지 알려준다. 자세한 내용(요청 URL·HTTP 상태·응답 앞부분)은 로그에 남는다.
+
 ## 로컬 개발(dev) 접속정보 시드
 - BiostarX 연동정보는 **DB(`tb_system`)** 에서 읽는다 — properties 가 아니다. 그래서 dev 에서 tb_system 이 비면 연동 메뉴가 동작하지 않는다.
 - 해결: `application-local.properties`(git-ignore, 커밋 금지)에 `app.biostar.ip/id/pw` 를 두면 **`config.BiostarLocalSeeder`(@Profile("local"))** 가 로컬 부팅 시 tb_system 에 upsert(비밀번호는 ARIA 암호화). `ip` 가 비면 시드하지 않는다.

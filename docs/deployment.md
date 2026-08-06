@@ -81,6 +81,32 @@ INFO [888b3a7c] [admin] REQUEST - GET /person/person/list?page=1&size=5 200 159m
 - **적용(운영) 환경은 DMZ — 외부 인터넷 불가.** 의존성/드라이버는 사내 저장소 또는 빌드 산출물에 포함해 반입한다.
 - BiostarX·MSSQL 등 내부망 연동만 가능. (개발 환경은 이 제약 없음)
 
+## BiostarX 와 같은 서버에 두는 경우
+
+| | 포트 | |
+|---|---|---|
+| BiostarX | 9443 | HTTPS |
+| 출입관리시스템 | 8444 | HTTPS |
+
+포트는 겹치지 않는다. 앱이 여는 포트는 `server.port` 하나뿐이다(관리·shutdown 포트 없음).
+설정관리의 BiostarX 주소는 **`127.0.0.1:9443`** 을 권한다 — 방화벽·서버 IP 변경과 무관해진다.
+
+**세션 쿠키 이름을 반드시 다르게 둔다.** 쿠키는 포트를 구분하지 않는다.
+둘 다 `JSESSIONID` 를 쓰면 BiostarX 화면을 여는 순간 우리 세션이 덮어써져 **로그아웃된다**.
+
+```properties
+server.servlet.session.cookie.name=CJAIRPORT_SESSION
+```
+
+**인증서 SAN 에 서버 IP 를 넣는다.** 없으면 브라우저마다 경고가 뜬다.
+
+```
+keytool -genkeypair -alias cjairport -keyalg RSA -keysize 2048 -validity 3650 \
+  -storetype PKCS12 -keystore <경로>/cjairport.p12 \
+  -dname "CN=CJAirPort, OU=IT, O=KAC, L=Cheongju, C=KR" \
+  -ext "SAN=dns:localhost,ip:127.0.0.1,ip:<서버IP>"
+```
+
 ## 배포 절차
 - **산출물: 실행 가능 `jar`** (Spring Boot fat jar, `gradlew build` → `build/libs/*-SNAPSHOT.jar`, `*-plain.jar` 아님). `java -jar` 로 기동.
 - 배치: jar + 외부 설정 파일을 서버에 반입 → 아래 "설정·비밀값 주입" 대로 실행.
