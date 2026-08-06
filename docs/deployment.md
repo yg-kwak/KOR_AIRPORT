@@ -48,10 +48,15 @@ BiostarX 동기화는 **트랜잭션 안에서** 일어난다(실패 시 저장�
 
 BiostarX 호출 타임아웃은 연결 5초 / 요청 7~10초(`BiostarSession`)다. 한 저장이 여러 번 왕복할 수 있으므로 풀 크기는 그 곱을 감안한다.
 
-### 로그 — 한 파일에 모은다
+### 로그 — 하루에 파일 하나
 운영 설정 파일에는 **`LOG_PATH` 한 줄**이면 된다. 형식·분할·보관은 jar 기본값이다(보관기간만 `LOG_KEEP_DAYS`).
 
-`cjairport.log` 하나에 세 가지가 시간순으로 쌓인다.
+```
+logs/cjairport.2026-08-06.0.txt   ← 오늘. 지금 쌓이는 중
+logs/cjairport.2026-08-05.0.txt   ← 어제
+```
+
+오늘 파일에 세 가지가 시간순으로 쌓인다.
 
 | 남기는 곳 | 내용 | 예 |
 |-----------|------|-----|
@@ -68,6 +73,8 @@ INFO [888b3a7c] [admin] REQUEST - GET /person/person/list?page=1&size=5 200 159m
 
 - 화면 리소스(css·js·이미지·favicon)는 양만 많아 남기지 않는다.
 - 요청 로그만 끄려면 `logging.level.REQUEST=OFF`, 업무 이력만 끄려면 `logging.level.AUDIT=OFF`.
+- 하루치가 50MB 를 넘으면 같은 날짜로 `.1.txt`, `.2.txt` 가 이어 붙는다. `LOG_KEEP_DAYS` 일이 지난 날짜는 자동 삭제된다(총 1GB 상한).
+- 파일 이름·분할·보관 규칙은 `src/main/resources/logback-spring.xml` 에 있다. properties 설정만으로는 **오늘 날짜 파일에 바로 쓸 수 없어**(고정 이름 파일에 쓰다가 자정 이후 첫 로그 때 지난 날짜로 밀려 나온다) 이 파일을 둔다.
 - 업무 이력은 파일과 **DB(`tb_system_log`)에 함께** 남는다. 조회·검색은 감사추적 화면이 편하다.
 
 ## 운영 환경(DMZ) 전제
