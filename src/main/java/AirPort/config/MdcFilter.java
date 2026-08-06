@@ -29,15 +29,22 @@ public class MdcFilter extends OncePerRequestFilter {
   /** 요청 로그 전용 로거 — 끄려면 {@code logging.level.REQUEST=OFF}. */
   private static final Logger request = LoggerFactory.getLogger("REQUEST");
 
-  /** 화면 리소스는 업무 흐름과 무관하고 양만 많아 남기지 않는다. */
+  /**
+   * 화면 리소스는 업무 흐름과 무관하고 양만 많아 남기지 않는다.
+   *
+   * <p>static 하위 폴더와 이름을 맞춘다 — 폴더를 추가하면 여기에도 넣어야 한다.
+   */
+  private static final String[] STATIC_DIRS = {
+    "/css/", "/js/", "/images/", "/ic/", "/font/", "/webjars/"
+  };
+
   private static boolean skip(String uri) {
-    return uri.startsWith("/css/")
-        || uri.startsWith("/js/")
-        || uri.startsWith("/images/")
-        || uri.startsWith("/fonts/")
-        || uri.startsWith("/webjars/")
-        || uri.endsWith(".ico")
-        || uri.endsWith(".map");
+    for (String dir : STATIC_DIRS) {
+      if (uri.startsWith(dir)) {
+        return true;
+      }
+    }
+    return uri.endsWith(".ico") || uri.endsWith(".map");
   }
 
   @Override
