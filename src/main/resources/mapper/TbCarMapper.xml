@@ -100,9 +100,13 @@
            ct.code_name AS car_type_name, co.company_name AS company_name,
            p.person_name AS car_manager_name,
            (SELECT COUNT(*) FROM tb_card k WHERE k.car_id = c.car_id AND k.del_yn = 'N') AS card_count,
-           (SELECT STRING_AGG(cm.code_name, ', ') WITHIN GROUP (ORDER BY cm.code_id)
-              FROM tb_car_ac_group g JOIN tb_common cm ON cm.cmm_id = 'CAR' AND cm.code_id = g.code_id
-             WHERE g.car_id = c.car_id) AS ac_code_names
+           <!-- 출입구역명 잇기 — STRING_AGG 은 MSSQL 2017+ 전용이라 FOR XML PATH 를 쓴다(2008+) -->
+           STUFF((SELECT ', ' + cm.code_name
+                    FROM tb_car_ac_group g
+                    JOIN tb_common cm ON cm.cmm_id = 'CAR' AND cm.code_id = g.code_id
+                   WHERE g.car_id = c.car_id
+                   ORDER BY cm.code_id
+                     FOR XML PATH(''), TYPE).value('.', 'nvarchar(max)'), 1, 2, '') AS ac_code_names
     FROM tb_car c
     LEFT JOIN tb_common ct ON ct.cmm_id = 'CT' AND ct.code_id = c.car_type
     LEFT JOIN tb_company co ON co.company_code = c.company_code

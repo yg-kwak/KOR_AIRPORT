@@ -90,4 +90,31 @@ while IFS= read -r key; do
 done < <(grep -rhoE 'data-sort="[a-zA-Z]+"' src/main/resources/templates | sed -E 's/data-sort="([a-zA-Z]+)"/\1/' | sort -u)
 [ "$SORT_FAIL" -eq 0 ] && echo "  ✅ 정렬 헤더 전부 mapper 에 매핑됨"
 
+echo "== [7] MSSQL 2016 에 없는 함수 금지 (현장 서버 기준) =="
+# 개발 PC 는 최신 MSSQL 이라 통과하지만 현장(2016)에서 "인식할 수 없는 기본 제공 함수 이름"으로 깨진다.
+# 실제로 STRING_AGG 때문에 기관차량등록 화면이 열리지 않았다. (database.md — 최소 지원 버전)
+VER_FAIL=0
+# 주석은 검사하지 않는다 — "왜 못 쓰는지" 설명에 함수 이름이 나오는 게 정상이다.
+# XML 주석(<!-- -->)은 여러 줄에 걸치므로 상태를 이어가며 지우고, SQL 은 -- 뒤를 자른다.
+# 한 번의 awk 로 끝낸다(줄마다 grep 을 띄우면 수천 줄에서 몇 분씩 걸린다).
+while IFS=: read -r file line fn; do
+  echo "  ❌ $file:$line — $fn 은 MSSQL 2016 에 없습니다. FOR XML PATH 등으로 바꾸세요. (database.md)"
+  FAIL=1; VER_FAIL=1
+done < <(find src/main/resources/mapper sql -type f \( -name "*.xml" -o -name "*.sql" \) 2>/dev/null \
+  | xargs awk '
+      FNR == 1 { inc = 0 }
+      { line = $0; out = ""
+        while (length(line)) {
+          if (inc) { i = index(line, "-->"); if (i == 0) { line = ""; break }
+                     line = substr(line, i + 3); inc = 0 }
+          else { i = index(line, "<!--"); if (i == 0) { out = out line; line = "" }
+                 else { out = out substr(line, 1, i - 1); line = substr(line, i + 4); inc = 1 } }
+        }
+        sub(/--.*/, "", out)
+        low = tolower(out)
+        if (match(low, /string_agg|concat_ws|translate *\(|approx_count_distinct|greatest *\(|least *\(|generate_series *\(|date_bucket *\(/))
+          printf "%s:%d:%s\n", FILENAME, FNR, substr(out, RSTART, RLENGTH)
+      }')
+[ "$VER_FAIL" -eq 0 ] && echo "  ✅ 2016 미지원 함수 없음"
+
 exit $FAIL

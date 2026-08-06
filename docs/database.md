@@ -12,7 +12,25 @@
 - Mapper 인터페이스: `mapper` 패키지, 이름 `Tb{Table}Mapper`. mapper id 는 인터페이스 메서드명과 일치.
 
 ## MSSQL 규약
-- 페이징: `OFFSET ... ROWS FETCH NEXT ... ROWS ONLY`.
+
+> **최소 지원 버전: MSSQL 2016.** 현장 서버 기준이다. 개발 PC 는 더 최신이라 그냥 통과하므로
+> 2017 이후에 생긴 함수를 무심코 쓰면 **현장에서만** 깨진다.
+> 실제로 `STRING_AGG` 때문에 기관차량등록 화면이 열리지 않았다
+> (`STRING_AGG은(는) 인식할 수 없는 기본 제공 함수 이름입니다`).
+
+| 쓰지 말 것 | 도입 | 대신 |
+|-----------|------|------|
+| `STRING_AGG` | 2017 | `STUFF((SELECT ', ' + col ... FOR XML PATH(''), TYPE).value('.','nvarchar(max)'), 1, 2, '')` |
+| `CONCAT_WS`, `TRANSLATE` | 2017 | `CONCAT` / `REPLACE` 조합 |
+| `GREATEST`, `LEAST`, `GENERATE_SERIES`, `DATE_BUCKET` | 2022 | `CASE` · 숫자 테이블 · `DATEADD` |
+| `APPROX_COUNT_DISTINCT` | 2019 | `COUNT(DISTINCT ...)` |
+
+`FOR XML PATH` 는 `TYPE` + `.value(...)` 를 반드시 거친다. 없으면 `&`, `<`, `>` 가 `&amp;` 로 깨져 나온다.
+`STUFF(..., 1, 2, '')` 는 맨 앞에 붙은 구분자 `', '` 두 글자를 지운다.
+
+`scripts/code-lint.sh` [7] 이 mapper·sql 전체를 검사한다(주석은 제외).
+
+- 페이징: `OFFSET ... ROWS FETCH NEXT ... ROWS ONLY` (2012+).
 - 자동 증가 PK: `IDENTITY(1,1)`.
 - 날짜: `datetime2(0)`, 기본값 `getdate()`.
 - 불리언성 플래그: `nchar(1)` + `Y`/`N` CHECK 제약. (예: `use_yn`, `root_yn`)

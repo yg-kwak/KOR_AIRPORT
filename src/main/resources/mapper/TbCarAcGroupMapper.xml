@@ -18,12 +18,16 @@
     SELECT code_id FROM tb_car_ac_group WHERE car_id = #{carId} ORDER BY code_id
   </select>
 
-  <!-- 목록 표시용 — 구역명을 콤마로 이어 한 칸에 보여준다 -->
+  <!-- 목록 표시용 — 구역명을 콤마로 이어 한 칸에 보여준다.
+       STRING_AGG 은 MSSQL 2017+ 전용이라 현장(2016)에서 깨진다. FOR XML PATH 로 잇는다(2008+).
+       TYPE + .value 를 거쳐야 &, <, > 가 &amp; 로 깨지지 않는다. STUFF 는 맨 앞 ', ' 두 글자를 지운다. -->
   <select id="selectCodeNames" resultType="string">
-    SELECT STRING_AGG(c.code_name, ', ') WITHIN GROUP (ORDER BY c.code_id)
-    FROM tb_car_ac_group g
-    JOIN tb_common c ON c.cmm_id = 'CAR' AND c.code_id = g.code_id
-    WHERE g.car_id = #{carId}
+    SELECT STUFF((SELECT ', ' + c.code_name
+                    FROM tb_car_ac_group g
+                    JOIN tb_common c ON c.cmm_id = 'CAR' AND c.code_id = g.code_id
+                   WHERE g.car_id = #{carId}
+                   ORDER BY c.code_id
+                     FOR XML PATH(''), TYPE).value('.', 'nvarchar(max)'), 1, 2, '')
   </select>
 
 </mapper>
