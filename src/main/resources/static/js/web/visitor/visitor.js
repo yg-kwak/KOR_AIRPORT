@@ -187,9 +187,9 @@
       ['workStartDt', v.workStartDt], ['workEndDt', v.workEndDt], ['permitDt', v.permitDt],
       ['receiver', v.receiver], ['returner', v.returner], ['workPurpose', v.workPurpose], ['remark', v.remark]]
       .forEach(([id, val]) => { const el = $(id); if (el) el.value = val != null ? val : ''; });
-    const applied = v.statusCode === 'VS01'; // 신청: 삭제 가능·신청서는 아직(출입증번호 없음)
-    [['btnDelete', applied], ['btnPermit', !applied], ['btnSave', v.statusCode !== 'VS04']]
-      .forEach(([id, show]) => { const el = $(id); if (el) el.style.display = show ? '' : 'none'; });
+    // 신청(VS01)이면 삭제 가능·신청서는 아직(출입증번호 없음). 신청서는 '임시출입허가' 양식이라 임시 화면에서만.
+    const applied = v.statusCode === 'VS01';
+    for (const [id, show] of [['btnDelete', applied], ['btnPermit', !applied && !!VISIT_TYPE], ['btnSave', v.statusCode !== 'VS04']]) { const el = $(id); if (el) el.style.display = show ? '' : 'none'; }
     if (v.statusCode === 'VS04') { $('editModal').querySelector('.visit-modal').classList.add('readonly'); $('modalTitle').textContent = '방문 상세 (퇴실완료 — 수정 불가)'; } // 읽기전용
     acGroupTree.set(AC_TREE, d.acGroupIds || []);
     carAcRender(d.carAcCodes || []);

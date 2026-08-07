@@ -43,6 +43,28 @@ class BiostarPayloadLogTest {
   }
 
   @Test
+  void 중첩된_이름은_남긴다() {
+    // card_type.name 은 개인정보가 아니고 원인 파악에 쓰인다 — 사용자 본인 정보만 가린다
+    String body =
+        "{\"User\":{\"name\":\"박상준\",\"user_id\":\"IS000046\","
+            + "\"cards\":[{\"card_type\":{\"id\":\"0\",\"name\":\"CSN\"}}]}}";
+
+    String masked = BiostarSession.maskBody(body);
+
+    assertFalse(masked.contains("박상준"), masked);
+    assertTrue(masked.contains("\"name\":\"CSN\""), masked);
+  }
+
+  @Test
+  void 파싱이_안_되면_통째로_가린다() {
+    // 개인정보가 섞여 있을지 알 수 없다 — 절반만 가리는 것보다 안 남기는 편이 낫다
+    String masked = BiostarSession.maskBody("{깨진 JSON 박상준");
+
+    assertFalse(masked.contains("박상준"), masked);
+    assertTrue(masked.contains("파싱 실패"), masked);
+  }
+
+  @Test
   void 본문이_없으면_그렇게_적는다() {
     assertTrue(BiostarSession.maskBody(null).contains("본문 없음"));
     assertTrue(BiostarSession.maskBody("  ").contains("본문 없음"));
@@ -50,7 +72,7 @@ class BiostarPayloadLogTest {
 
   @Test
   void 너무_길면_잘라_로그를_지키지_않게_한다() {
-    String huge = "{\"a\":\"" + "x".repeat(5000) + "\"}";
+    String huge = "{\"note\":\"" + "x".repeat(5000) + "\"}";
 
     String masked = BiostarSession.maskBody(huge);
 

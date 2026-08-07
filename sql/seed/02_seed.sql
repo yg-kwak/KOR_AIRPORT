@@ -12,9 +12,12 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
   ('AT', N'감사유형', 'DELETE', N'삭제',     'Y'),
   ('AT', N'감사유형', 'DOWNLOAD', N'다운로드', 'Y'),
   ('AT', N'감사유형', 'LOGIN',  N'로그인',  'Y'),
-  ('AT', N'감사유형', 'LOGOUT', N'로그아웃', 'Y');
-/* 시스템 사건(STARTUP·SHUTDOWN·PURGE)은 여기 넣지 않는다 — 유형 검색 목록에 섞이면
-   메뉴 [시스템] 과 골라야 할 곳이 두 군데가 된다. 이름은 mapper 가 붙인다. */
+  ('AT', N'감사유형', 'LOGOUT', N'로그아웃', 'Y'),
+  /* 시스템 사건 — 감사추적에서는 메뉴 [시스템] 으로 고른다. 유형 드롭다운에서는
+     mapper 의 systemActions 조각이 걸러 낸다(이름의 원천은 여기 한 곳). */
+  ('AT', N'감사유형', 'STARTUP',  N'시스템 시작', 'Y'),
+  ('AT', N'감사유형', 'SHUTDOWN', N'시스템 종료', 'Y'),
+  ('AT', N'감사유형', 'PURGE',    N'자동 파기',  'Y');
 
 /* 공통코드: 근무지역(LO) 예시 — 시스템 코드(user_input=N, 기본값) */
 INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES

@@ -45,7 +45,8 @@ class VisitPurgeTest {
   }
 
   private VisitPurgeService service(boolean dryRun) {
-    return new VisitPurgeService(visitMapper, item(), auditService, 365, 200, dryRun);
+    return new VisitPurgeService(
+        visitMapper, item(), auditService, 365, 200, dryRun, "0 10 3 * * *");
   }
 
   private static TbVisit visit() {

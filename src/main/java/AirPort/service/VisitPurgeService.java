@@ -42,13 +42,22 @@ public class VisitPurgeService {
       AuditService auditService,
       @Value("${app.visit.purge.keep-days:365}") int keepDays,
       @Value("${app.visit.purge.limit:200}") int limit,
-      @Value("${app.visit.purge.dry-run:true}") boolean dryRun) {
+      @Value("${app.visit.purge.dry-run:true}") boolean dryRun,
+      @Value("${app.visit.purge.cron:0 10 3 * * *}") String cron) {
     this.visitMapper = visitMapper;
     this.item = item;
     this.auditService = auditService;
     this.keepDays = keepDays;
     this.limit = limit;
     this.dryRun = dryRun;
+    // 기본이 미리보기라 현장에서 켜는 것을 잊기 쉽다. 다음 실행까지 기다리지 않고
+    // 재시작 직후 바로 확인할 수 있게 기동 로그에 남긴다.
+    log.info(
+        "방문 정기 파기 — {} / 보존 {}일 / 주기 {} / 1회 최대 {}건",
+        dryRun ? "미리보기(실제로 지우지 않음)" : "실삭제",
+        keepDays,
+        cron,
+        limit);
   }
 
   /** 매일 새벽 3시 10분. 장비를 호출하므로 업무 시간을 피한다. 주기는 {@code app.visit.purge.cron}. */

@@ -3,7 +3,9 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="AirPort.mapper.TbSystemLogMapper">
 
-  <!-- 시스템 자신의 사건 — 사람이 일으키지 않는다. 목록의 [시스템] 표시와 검색이 같은 목록을 본다. -->
+  <!-- 시스템 자신의 사건 — 사람이 일으키지 않는다. 이 목록 하나가 세 가지를 함께 정한다:
+       메뉴 칸의 [시스템] 표시 · 메뉴 [시스템] 검색 · 유형 드롭다운에서 감추기.
+       이름은 tb_common(AT)에 있다 — SQL 에 적어 두면 이름이 두 곳으로 갈린다. -->
   <sql id="systemActions">('STARTUP', 'SHUTDOWN', 'PURGE')</sql>
 
   <insert id="insert" parameterType="TbSystemLog">
@@ -62,13 +64,7 @@
 
   <sql id="listColumns">
     l.log_id, l.user_id, l.user_name, l.action_type, l.menu_id, l.action_detail, l.remark, l.reg_dt,
-    <!-- 시스템 사건은 tb_common(AT)에 코드를 두지 않는다 — 유형 검색 목록에 섞이면
-         메뉴 [시스템] 과 골라야 할 곳이 두 군데가 된다. 이름만 여기서 붙인다. -->
-    CASE l.action_type
-         WHEN 'STARTUP'  THEN N'시스템 시작'
-         WHEN 'SHUTDOWN' THEN N'시스템 종료'
-         WHEN 'PURGE'    THEN N'자동 파기'
-         ELSE c.code_name END AS action_type_name,
+    c.code_name AS action_type_name,
     <!-- [시스템] = 시스템 자신의 사건만. 키오스크 신청·계정 잠금처럼 사람이 한 일은
          메뉴가 없어도 여기 넣지 않는다(그건 해당 업무의 기록이다). -->
     CASE WHEN l.action_type IN <include refid="systemActions"/> THEN N'[시스템]'
@@ -102,10 +98,12 @@
     <include refid="searchWhere"/>
   </select>
 
+  <!-- 유형 필터 옵션 — 시스템 사건은 뺀다. 메뉴 [시스템] 으로 고르므로 여기에도 두면 고를 곳이 두 군데가 된다. -->
   <select id="selectActionTypes" resultType="TbCommon">
     SELECT code_id, code_name
     FROM tb_common
     WHERE cmm_id = 'AT' AND use_yn = 'Y'
+      AND code_id NOT IN <include refid="systemActions"/>
     ORDER BY code_id
   </select>
 

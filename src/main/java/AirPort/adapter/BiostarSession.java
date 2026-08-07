@@ -37,6 +37,9 @@ public class BiostarSession {
   private static final String SESSION_HEADER = "bs-session-id";
   private static final String EXPIRED_CODE = "10"; // BiostarX "Login required."
 
+  /** 로그용 파싱 전용 — 인스턴스 objectMapper 와 별개로 static 문맥에서 쓴다. */
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+
   private final ObjectMapper objectMapper;
   private final Object lock = new Object();
 
@@ -211,17 +214,51 @@ public class BiostarSession {
    * <p>성명·사진·연락처는 개인정보라 가린다(security.md). 진단에 필요한 건 <b>구조</b>다 — user_group_id, access_groups,
    * cards, 유효기간. 로그인 본문은 이 경로를 타지 않아 비밀번호가 실릴 일이 없다.
    */
-  private static final java.util.regex.Pattern MASK =
-      java.util.regex.Pattern.compile(
-          "\"(password|name|photo|user_photo|phone|email|birthday)\"\s*:\s*\"[^\"]*\"",
-          java.util.regex.Pattern.CASE_INSENSITIVE);
+  /** 사용자 본인 정보만 가린다 — 중첩된 name(예: card_type.name)은 진단에 쓰이므로 남긴다. */
+  private static final java.util.List<String> USER_PII =
+      java.util.List.of("name", "photo", "phone", "email", "birthday", "password");
+
+  /** 어디에 있든 가리는 것 — 사진은 BASE64 라 로그를 뒤덮는다. */
+  private static final java.util.List<String> ALWAYS_MASKED =
+      java.util.List.of("photo", "password");
 
   static String maskBody(String json) { // 테스트에서 직접 확인한다
     if (json == null || json.isBlank()) {
       return "(본문 없음)";
     }
-    String masked = MASK.matcher(json).replaceAll("\"$1\":\"***\"");
-    return masked.length() <= 1500 ? masked : masked.substring(0, 1500) + "…";
+    String out;
+    try {
+      com.fasterxml.jackson.databind.JsonNode root = MAPPER.readTree(json);
+      maskUser(root.get("User"));
+      maskDeep(root);
+      out = root.toString();
+    } catch (Exception e) {
+      // 파싱이 안 되면 통째로 가린다 — 개인정보가 섞여 있을지 알 수 없다
+      out = "(본문 파싱 실패 — " + json.length() + "자)";
+    }
+    return out.length() <= 1500 ? out : out.substring(0, 1500) + "…";
+  }
+
+  private static void maskUser(com.fasterxml.jackson.databind.JsonNode user) {
+    if (user instanceof com.fasterxml.jackson.databind.node.ObjectNode o) {
+      for (String key : USER_PII) {
+        if (o.has(key)) {
+          o.put(key, "***");
+        }
+      }
+    }
+  }
+
+  /** photo/password 는 어느 깊이에 있든 가린다. */
+  private static void maskDeep(com.fasterxml.jackson.databind.JsonNode node) {
+    if (node instanceof com.fasterxml.jackson.databind.node.ObjectNode o) {
+      for (String key : ALWAYS_MASKED) {
+        if (o.has(key)) {
+          o.put(key, "***");
+        }
+      }
+    }
+    node.forEach(BiostarSession::maskDeep);
   }
 
   private HttpResponse<String> send(
