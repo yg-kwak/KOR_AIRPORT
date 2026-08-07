@@ -4,6 +4,7 @@
   const CFG = window.VISIT_CFG || {};
   const BASE = CFG.base || '/visitor/visitor'; // 임시=/visitor/visitor, 장기=/visitor/longterm
   const AC_TREE = 'acTree';
+  const HOLDING = ['VS03', 'VS05']; // 카드 보유 상태 — 퇴실로만 벗어난다(서버 규칙과 동일)
   // fixedType 있으면 방문유형 고정(임시=PT02), 없으면 화면 select 값 사용(장기=PTD03 선택)
   const VISIT_TYPE = CFG.fixedType ? { id: CFG.fixedType, name: CFG.fixedTypeName } : null;
   const state = { page: 1, size: 30, keyword: '', searchType: 'all', statusCode: '', startDate: '', endDate: '', sort: 'visitNo', dir: 'desc' };
@@ -41,7 +42,7 @@
           <td>${r.visitNo}</td><td>${esc(r.visitTypeName)}</td><td>${esc(r.companyName)}</td>
           <td>${esc(period)}</td><td>${r.personCount || 0}</td><td>${r.carCount || 0}</td>
           <td>${badge.visitStatus(r.statusCode, r.statusName)}</td>
-          <td>${r.statusCode === 'VS03' && PERM.canCreate ? `<button class="btn btn-sm" data-act="checkout" data-id="${r.visitNo}">퇴실</button>` : '-'}</td>
+          <td>${HOLDING.includes(r.statusCode) && PERM.canCreate ? `<button class="btn btn-sm" data-act="checkout" data-id="${r.visitNo}">퇴실</button>` : '-'}</td>
         </tr>`;
       }).join('');
     }
@@ -128,11 +129,11 @@
       : '<tr><td colspan="6" class="empty">방문객이 없습니다.</td></tr>';
   }
 
-  /* 관리 버튼 — 퇴실했으면 표시만, [퇴실]은 '입실 중 + 저장된 카드 보유' 일 때만 나온다.
+  /* 관리 버튼 — 퇴실했으면 표시만, [퇴실]은 '카드 보유 상태 + 저장된 카드' 일 때만 나온다.
      화면에서 방금 고른 카드(미저장)로는 바뀌지 않는다 — 저장돼 BiostarX 동기화까지 끝나야 퇴실 대상이다. */
   function visActions(v, i) {
     if (v.checkoutDt) return `<div class="checkout-cell">${badge.of('퇴실', 'done')}<span>${esc(v.checkoutDt.slice(5, 16))}</span></div>`;
-    if ($('statusCode').value === 'VS03' && v.issuedCardId) {
+    if (HOLDING.includes($('statusCode').value) && v.issuedCardId) {
       return `<button class="btn btn-sm" data-act="vis-out" data-idx="${i}">퇴실</button>`;
     }
     return `<button class="btn btn-sm btn-danger" data-act="vis-del" data-idx="${i}">제거</button>`;

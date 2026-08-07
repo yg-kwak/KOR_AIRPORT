@@ -36,6 +36,14 @@ public class VisitService {
   private static final String STATUS_ENTERED = "VS03";
   private static final String STATUS_LEFT = "VS04";
 
+  /** 작업기간이 끝났는데 카드를 반납하지 않은 상태 — 입실 중과 같이 다루되(카드 보유) 회수가 밀렸다는 표시. */
+  private static final String STATUS_UNRETURNED = "VS05";
+
+  /** 카드를 들고 있는 상태 — 퇴실로만 벗어난다. */
+  private static boolean holding(String status) {
+    return STATUS_ENTERED.equals(status) || STATUS_UNRETURNED.equals(status);
+  }
+
   /** 임시인원등록 방문유형 — 임시 고정(tb_common PT02). */
   static final String VISIT_TYPE = "PT02";
 
@@ -213,9 +221,9 @@ public class VisitService {
     if (STATUS_LEFT.equals(existing.getStatusCode())) { // 퇴실완료는 수정 불가
       throw new BusinessException(ErrorCode.INVALID_INPUT, "퇴실 완료된 방문은 수정할 수 없습니다.");
     }
-    // 입실중(VS03)엔 카드 '교환'만 허용 — 카드 회수(빈 카드)나 방문객 제외는 퇴실 처리로만 가능.
+    // 카드를 들고 있는 동안(입실 중·미반납)엔 카드 '교환'만 허용 — 카드 회수(빈 카드)나 방문객 제외는 퇴실 처리로만 가능.
     // 단, 이미 개별 퇴실한 방문객은 카드가 없는 게 정상이므로 이 검사에서 뺀다(빼지 않으면 카드 교체가 아예 막힌다).
-    if (STATUS_ENTERED.equals(existing.getStatusCode())) {
+    if (holding(existing.getStatusCode())) {
       boolean noCard =
           form.getVisitors() == null
               || form.getVisitors().stream()
@@ -297,9 +305,10 @@ public class VisitService {
     if (!visitMapper.selectPersonIds(visitNo).contains(personId)) {
       throw new BusinessException(ErrorCode.NOT_FOUND, "이 방문의 방문객이 아닙니다.");
     }
-    if (!STATUS_ENTERED.equals(v.getStatusCode())) {
-      // 신청 상태에서는 방문객을 그냥 빼면 된다 — 퇴실은 입실(카드 발급·동기화 완료) 이후의 절차다
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "입실 중인 방문의 방문객만 퇴실할 수 있습니다.");
+    if (!holding(v.getStatusCode())) {
+      // 신청 상태에서는 방문객을 그냥 빼면 된다 — 퇴실은 입실(카드 발급·동기화 완료) 이후의 절차다.
+      // 미반납은 카드를 아직 들고 있는 상태이므로 퇴실로 돌려받을 수 있어야 한다.
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "입실 중이거나 미반납인 방문의 방문객만 퇴실할 수 있습니다.");
     }
     if (visitMapper.selectVisitorCheckout(visitNo, personId) != null) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "이미 퇴실한 방문객입니다.");
@@ -328,8 +337,8 @@ public class VisitService {
     if (v == null || "Y".equals(v.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
-    if (!STATUS_ENTERED.equals(v.getStatusCode())) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "입실 중인 방문만 퇴실할 수 있습니다.");
+    if (!holding(v.getStatusCode())) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "입실 중이거나 미반납인 방문만 퇴실할 수 있습니다.");
     }
     List<String> personIds = visitMapper.selectPersonIds(visitNo);
     // 장비 비활성화(사용자 disable + 카드 제거)가 성공해야 퇴실 커밋 — 실패한 채 DB 만 회수하면
@@ -393,12 +402,37 @@ public class VisitService {
     check(notEmpty(dup), "이미 진행 중인 임시 방문의 인솔자입니다(임시끼리 중복 불가): " + String.join(", ", dup));
   }
 
-  /** 방문 상태 — 방문객이 있고 전원 카드 발급이면 '입실 중'(VS03)으로 승격. 퇴실완료는 유지. base 는 서버가 정한다. */
+  /**
+   * 방문 상태 — 서버가 정한다(사용자가 고를 수 없다).
+   *
+   * <p>전원 카드 발급 = 입실. 그때 작업기간이 이미 지났으면 곧바로 미반납이다. 반대로 기간을 연장해 저장하면 미반납이 다시 입실 중으로 돌아온다 — 판정 기준이
+   * 스케줄러(VisitOverdueService)와 같아야 화면과 배치가 어긋나지 않는다. 퇴실 완료는 무엇을 해도 유지.
+   */
   private static String effectiveStatus(String base, VisitForm form) {
+    if (STATUS_LEFT.equals(base)) {
+      return base;
+    }
     List<VisitorForm> vs = form.getVisitors();
     boolean allCarded =
         vs != null && !vs.isEmpty() && vs.stream().allMatch(v -> v.getCardId() != null);
-    return (allCarded && !STATUS_LEFT.equals(base)) ? STATUS_ENTERED : base;
+    if (!allCarded) {
+      return base;
+    }
+    return expired(form.getWorkEndDt()) ? STATUS_UNRETURNED : STATUS_ENTERED;
+  }
+
+  /** 작업기간 종료가 지났는가. 종료일이 없으면 판단하지 않는다(스케줄러도 같은 규칙). */
+  private static boolean expired(String workEndDt) {
+    String v = withSeconds(workEndDt);
+    if (v == null) {
+      return false;
+    }
+    try {
+      return java.time.LocalDateTime.parse(v.replace(' ', 'T'))
+          .isBefore(java.time.LocalDateTime.now());
+    } catch (java.time.format.DateTimeParseException e) {
+      return false; // 형식이 어긋나면 상태를 바꾸지 않는다(저장 검증이 따로 막는다)
+    }
   }
 
   static void require(String v, String label) {

@@ -112,7 +112,7 @@ System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true"
   - **공통구역 materialize(승인 시)**: `tb_visit_ac_group`(최상위 출입그룹)을 **하위 BiostarX 매핑그룹(`biostar_ac_id`)으로 확장**해 각 방문 인원의 `tb_person_ac_group` 에 기록 → `POST/PUT /api/users` 의 `access_groups` 로 정규와 동일하게 전송. 차량은 `tb_visit_car_ac_group`(CAR)을 각 차량 `tb_car_ac_group` 으로 복제(BiostarX 미전송). `work_start_dt/work_end_dt` 는 인원 `access_start_dt/access_end_dt` 로 전파.
   - **구역 선택 범위**: 방문유형(`tb_common` cmm_id='PT')의 **`code_remark='Y'` 면 하위 세부 트리까지 선택 가능**, 아니면 **최상위 그룹만**(선택 팝업이 `parent_ac_group_id IS NULL` 만 노출 + 저장 시 재검증). 예: 임시=최상위만, 장기·상주=세부까지.
   - **퇴실·방문삭제 실패 정책**: 퇴실(사용자 disable+카드 제거)·방문삭제(사용자 삭제)는 **BiostarX 성공해야 커밋** — 실패면 롤백+사유 예외 후 재시도 유도(실패해도 DB만 회수하면 장비에서 계속 출입 + 카드 재대여로 **이중 사용**이 되기 때문). 실패는 `logAlways` 로 감사에 남는다. 방문 **저장**(syncVisitors)만 경고 유지(장비에 없으면 출입 불가라 안전한 방향 + 재저장 upsert 로 자가치유).
-  - **입실중(VS03) 카드 규칙**: 카드 **교환만 허용** — 카드 회수(빈 카드)나 방문객 제외는 수정으로 불가, 퇴실 처리로만 가능(카드 없는 입실중 상태 방지).
+  - **카드 보유 상태(입실중 VS03·미반납 VS05) 카드 규칙**: 카드 **교환만 허용** — 카드 회수(빈 카드)나 방문객 제외는 수정으로 불가, 퇴실 처리로만 가능(카드 없는 입실중 상태 방지).
 - TODO: 사용자/카드/얼굴 등 나머지 도메인 모델 ↔ BiostarX 모델 매핑 표.
 - TODO: 실시간 이벤트 수신 방식(폴링 `events/search` vs 웹훅) 확정.
 

@@ -76,6 +76,11 @@ spring.servlet.multipart.max-request-size=5MB
 server.servlet.encoding.charset=UTF-8
 server.servlet.encoding.force=true
 
+# ===== 방문 상태 자동 전환 =====
+# 입실 중인데 작업기간이 끝난 방문을 '미반납'으로 바꾸는 주기(기본: 매시 5분).
+# 현장에서 바꿀 일은 거의 없다. 더 자주 보려면 10분마다: 0 */10 * * * *
+#app.visit.overdue-cron=0 5 * * * *
+
 # ===== 로그 =====
 # 이 한 줄이면 로그가 이 폴더에 하루 한 파일(cjairport.{날짜}.0.txt)로 쌓인다(형식·보관은 jar 기본값).
 #   기동·오류·경고 + 업무 이력(메뉴 접속·조회·등록·수정·삭제·로그인) + 요청 로그(URL·상태·처리시간)

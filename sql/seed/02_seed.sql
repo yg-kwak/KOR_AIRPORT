@@ -107,7 +107,8 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
 INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
   ('VS', N'방문상태', 'VS01', N'신청',     'Y'),
   ('VS', N'방문상태', 'VS03', N'입실 중',   'Y'),
-  ('VS', N'방문상태', 'VS04', N'퇴실 완료', 'Y');
+  ('VS', N'방문상태', 'VS04', N'퇴실 완료', 'Y'),
+  ('VS', N'방문상태', 'VS05', N'미반납',   'Y');   -- 작업기간이 끝났는데 카드를 반납하지 않은 상태(시스템이 자동 부여)
 
 /* 메뉴 (level 1 그룹은 menu_icon 지정 — 사이드바 아이콘) */
 INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn) VALUES

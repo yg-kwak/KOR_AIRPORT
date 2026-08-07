@@ -138,6 +138,22 @@
     UPDATE tb_visit SET status_code = #{statusCode}, mod_dt = getdate() WHERE visit_no = #{visitNo}
   </update>
 
+  <!-- 미반납 판정 대상 — 입실 중인데 작업기간이 끝난 방문. 종료일이 없으면 판단할 수 없으니 뺀다.
+       바꾸기 전에 번호를 읽어 감사 이력에 남긴다(어느 방문이 넘어갔는지 나중에 확인해야 한다). -->
+  <select id="selectOverdueEntered" resultType="int">
+    SELECT visit_no
+    FROM tb_visit
+    WHERE del_yn = 'N' AND status_code = 'VS03'
+      AND work_end_dt IS NOT NULL AND work_end_dt &lt; getdate()
+    ORDER BY visit_no
+  </select>
+
+  <update id="markUnreturned">
+    UPDATE tb_visit SET status_code = 'VS05', mod_dt = getdate()
+    WHERE del_yn = 'N' AND status_code = 'VS03'
+      AND work_end_dt IS NOT NULL AND work_end_dt &lt; getdate()
+  </update>
+
   <!-- ── 인솔자 ── -->
   <select id="selectManagerIds" resultType="string">
     SELECT person_id FROM tb_visit_manager WHERE visit_no = #{visitNo} ORDER BY seq

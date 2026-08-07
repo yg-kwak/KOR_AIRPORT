@@ -610,7 +610,8 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use
   INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
     ('VS', N'방문상태', 'VS01', N'신청',     'Y'),
     ('VS', N'방문상태', 'VS03', N'입실 중',   'Y'),
-    ('VS', N'방문상태', 'VS04', N'퇴실 완료', 'Y');
+    ('VS', N'방문상태', 'VS04', N'퇴실 완료', 'Y'),
+    ('VS', N'방문상태', 'VS05', N'미반납',   'Y');
 
   /* 메뉴 (level 1 그룹은 menu_icon 지정 — 사이드바 아이콘) */
   INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn) VALUES
@@ -770,6 +771,10 @@ GO
 IF NOT EXISTS (SELECT 1 FROM dbo.tb_visit WHERE status_code = 'VS02')
 BEGIN
   DELETE FROM dbo.tb_common WHERE cmm_id = 'VS' AND code_id = 'VS02';
+  -- 미반납(VS05) — 기존 설치본에도 보충한다(없으면 상태 표시가 코드값 그대로 나온다)
+  IF NOT EXISTS (SELECT 1 FROM dbo.tb_common WHERE cmm_id = 'VS' AND code_id = 'VS05')
+    INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn)
+    VALUES ('VS', N'방문상태', 'VS05', N'미반납', 'Y');
   IF @@ROWCOUNT > 0 PRINT '  + 방문상태 VS02(신청 취소) 제거';
 END
 ELSE PRINT '  ! VS02 를 쓰는 방문이 있어 코드를 남겨 둠';

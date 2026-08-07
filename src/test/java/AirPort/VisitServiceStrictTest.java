@@ -143,7 +143,7 @@ class VisitServiceStrictTest {
     BusinessException ex =
         assertThrows(
             BusinessException.class, () -> service().checkoutVisitor(28, "IS000001", null, 101));
-    assertTrue(ex.getMessage().contains("입실 중인 방문"), ex.getMessage());
+    assertTrue(ex.getMessage().contains("퇴실할 수 있습니다"), ex.getMessage());
     verify(visitBiostar, never()).disableVisitors(any()); // 장비 호출 전에 막는다
   }
 
