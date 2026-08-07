@@ -184,6 +184,33 @@ class VisitServiceStrictTest {
   }
 
   @Test
+  void 마지막_방문객이_퇴실하면_방문도_퇴실_완료가_된다() {
+    when(visitMapper.selectById(28)).thenReturn(visit("VS03"));
+    when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001"));
+    when(visitBiostar.disableVisitors(any())).thenReturn(null);
+    when(visitMapper.countStayingVisitors(28)).thenReturn(0); // 이 사람이 마지막
+    when(visitMapper.selectCarIds(28)).thenReturn(List.of(7));
+
+    service().checkoutVisitor(28, "IS000001", null, 101);
+
+    verify(visitMapper).updateStatus(28, "VS04");
+    verify(cardMapper).releaseByCar(7); // 사람이 다 나갔으면 차량 카드도 회수
+  }
+
+  @Test
+  void 남은_방문객이_있으면_방문_상태는_그대로_둔다() {
+    when(visitMapper.selectById(28)).thenReturn(visit("VS03"));
+    when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001", "IS000002"));
+    when(visitBiostar.disableVisitors(any())).thenReturn(null);
+    when(visitMapper.countStayingVisitors(28)).thenReturn(1); // 아직 한 명 남음
+
+    service().checkoutVisitor(28, "IS000001", null, 101);
+
+    verify(visitMapper, never()).updateStatus(anyInt(), anyString());
+    verify(cardMapper, never()).releaseByCar(anyInt());
+  }
+
+  @Test
   void 미반납_방문을_저장하면_상태를_입실중으로_되돌려_저장한다() {
     // 미반납은 저장하지 않는다(조회 때 계산) — 화면이 돌려준 계산값을 그대로 적으면 DB 가 틀린 값을 들고 있게 된다
     when(visitMapper.selectById(28)).thenReturn(visit("VS05"));

@@ -191,6 +191,11 @@
      WHERE visit_no = #{visitNo} AND person_id = #{personId}
   </select>
   <!-- 개별 퇴실 — 이미 퇴실한 방문객은 갱신하지 않는다(최초 퇴실 시각 보존) -->
+  <!-- 아직 퇴실하지 않은 방문객 수 — 0 이면 방문 자체가 끝난 것이다 -->
+  <select id="countStayingVisitors" resultType="int">
+    SELECT COUNT(*) FROM tb_visit_person
+     WHERE visit_no = #{visitNo} AND checkout_dt IS NULL
+  </select>
   <update id="updateVisitorCheckout">
     UPDATE tb_visit_person SET checkout_dt = getdate(), mod_dt = getdate()
      WHERE visit_no = #{visitNo} AND person_id = #{personId} AND checkout_dt IS NULL

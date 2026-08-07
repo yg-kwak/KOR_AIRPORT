@@ -326,7 +326,22 @@ public class VisitService {
     cardMapper.releaseByPerson(personId); // 카드 회수(다른 사람이 재사용 가능)
     visitMapper.updateVisitorCheckout(visitNo, personId);
     auditService.log(actor, AuditService.UPDATE, menuId, "방문객 퇴실: " + visitNo + "/" + personId);
+    // 마지막 한 명까지 나가면 방문도 끝난 것이다 — 한 명씩 내보낸 뒤 [퇴실]을 또 눌러야 끝나면
+    // 잊기 쉽고, 그동안 방문은 입실 중(기간이 지났으면 미반납)으로 남는다.
+    closeIfEmpty(visitNo, actor, menuId);
     return null;
+  }
+
+  /** 남은 방문객이 없으면 방문을 퇴실 완료로 마감한다 — 차량 카드 회수까지 방문 퇴실과 같게 처리한다. */
+  private void closeIfEmpty(int visitNo, TbLoginUser actor, Integer menuId) {
+    if (visitMapper.countStayingVisitors(visitNo) > 0) {
+      return;
+    }
+    for (Integer carId : visitMapper.selectCarIds(visitNo)) {
+      cardMapper.releaseByCar(carId); // 사람이 다 나갔으면 방문 차량 카드도 놔 준다
+    }
+    visitMapper.updateStatus(visitNo, STATUS_LEFT);
+    auditService.log(actor, AuditService.UPDATE, menuId, "방문 퇴실(마지막 방문객 퇴실로 자동): " + visitNo);
   }
 
   /** 퇴실(입실중→퇴실완료) — BiostarX 사용자 비활성화 + 카드 제거, DB 카드 회수(재대여 가능). */

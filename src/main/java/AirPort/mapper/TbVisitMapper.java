@@ -45,6 +45,9 @@ public interface TbVisitMapper {
       @Param("checkoutDt") String checkoutDt);
 
   /** 개별 퇴실 기록(최초 1회만 — 이미 퇴실이면 0행). */
+  /** 아직 퇴실하지 않은 방문객 수 — 0 이면 방문도 끝난 것으로 본다. */
+  int countStayingVisitors(@Param("visitNo") int visitNo);
+
   int updateVisitorCheckout(@Param("visitNo") int visitNo, @Param("personId") String personId);
 
   /** 방문객의 퇴실일시("yyyy-MM-dd HH:mm:ss"). 재실이면 null. */
