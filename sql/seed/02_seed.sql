@@ -13,7 +13,9 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
   ('AT', N'감사유형', 'DOWNLOAD', N'다운로드', 'Y'),
   ('AT', N'감사유형', 'LOGIN',  N'로그인',  'Y'),
   ('AT', N'감사유형', 'LOGOUT', N'로그아웃', 'Y'),
-  ('AT', N'감사유형', 'PURGE',  N'자동 파기', 'Y');   -- 보존기간 경과분을 배치가 지운 기록
+  ('AT', N'감사유형', 'PURGE',  N'자동 파기', 'Y'),   -- 보존기간 경과분을 배치가 지운 기록
+  ('AT', N'감사유형', 'STARTUP',  N'시스템 시작', 'Y'),
+  ('AT', N'감사유형', 'SHUTDOWN', N'시스템 종료', 'Y');
 
 /* 공통코드: 근무지역(LO) 예시 — 시스템 코드(user_input=N, 기본값) */
 INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES

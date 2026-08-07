@@ -3,6 +3,9 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="AirPort.mapper.TbSystemLogMapper">
 
+  <!-- 시스템 자신의 사건 — 사람이 일으키지 않는다. 목록의 [시스템] 표시와 검색이 같은 목록을 본다. -->
+  <sql id="systemActions">('STARTUP', 'SHUTDOWN', 'PURGE')</sql>
+
   <insert id="insert" parameterType="TbSystemLog">
     INSERT INTO tb_system_log
       (user_id, user_name, action_type, menu_id, action_detail, remark)
@@ -17,9 +20,9 @@
       <if test="actionType != null and actionType != ''">
         AND l.action_type = #{actionType}
       </if>
-      <!-- [시스템] — 메뉴가 없는 기록(배치·키오스크·계정잠금). 목록 표시와 같은 조건을 쓴다 -->
+      <!-- [시스템] — 목록 표시와 같은 조건 -->
       <if test="systemOnly">
-        AND l.menu_id IS NULL AND l.user_id = 'SYSTEM'
+        AND l.action_type IN <include refid="systemActions"/>
       </if>
       <if test="menuId != null">
         AND l.menu_id = #{menuId}
@@ -60,8 +63,9 @@
   <sql id="listColumns">
     l.log_id, l.user_id, l.user_name, l.action_type, l.menu_id, l.action_detail, l.remark, l.reg_dt,
     c.code_name AS action_type_name,
-    <!-- 화면을 거치지 않은 기록(배치·키오스크·계정잠금)은 메뉴가 없다 — [시스템]으로 보여준다 -->
-    CASE WHEN l.menu_id IS NULL AND l.user_id = 'SYSTEM' THEN N'[시스템]'
+    <!-- [시스템] = 시스템 자신의 사건(기동·종료·자동 파기)만. 키오스크 신청·계정 잠금처럼
+         사람이 한 일은 메뉴가 없어도 여기 넣지 않는다(그건 해당 업무의 기록이다). -->
+    CASE WHEN l.action_type IN <include refid="systemActions"/> THEN N'[시스템]'
          ELSE m.menu_name END AS menu_name
   </sql>
 

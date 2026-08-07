@@ -36,6 +36,12 @@ public class AuditService {
   /** 자동 파기 — 보존기간이 지난 데이터를 배치가 지운 기록. 사람이 지운 DELETE 와 섞이지 않게 따로 둔다. */
   public static final String PURGE = "PURGE";
 
+  /** 시스템 기동. */
+  public static final String STARTUP = "STARTUP";
+
+  /** 시스템 종료. */
+  public static final String SHUTDOWN = "SHUTDOWN";
+
   private final TbSystemLogMapper systemLogMapper;
 
   public AuditService(TbSystemLogMapper systemLogMapper) {
