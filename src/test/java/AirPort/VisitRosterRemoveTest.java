@@ -164,6 +164,23 @@ class VisitRosterRemoveTest {
   }
 
   @Test
+  void 동기화가_실패하면_상태를_신청으로_되돌린다() {
+    // 상태만 '입실 중'이 되면 카드가 문을 열지 못하는데도 처리가 끝난 것처럼 보인다
+    when(visitMapper.selectPersonIds(9110)).thenReturn(List.of());
+    when(visitBiostar.deleteVisitors(anyString(), any())).thenReturn(null);
+    when(visitBiostar.syncVisitors(anyString(), any(), any())).thenReturn("P1(not defined)");
+
+    VisitForm form = formKeeping("P1");
+    form.getVisitors().get(0).setCardId(77); // 전원 발급 → 원래라면 입실 중
+
+    String warn = service().saveChildren(9110, form, null, 101);
+
+    verify(visitMapper).updateStatus(9110, "VS01");
+    assertTrue(warn.contains("신청"), warn);
+    verify(auditService).logAlways(any(), any(), anyInt(), anyString()); // 실패는 감사에 남긴다
+  }
+
+  @Test
   void 전원_카드를_받으면_BiostarX_에_올린다() {
     when(visitMapper.selectPersonIds(9110)).thenReturn(List.of());
     when(visitBiostar.deleteVisitors(anyString(), any())).thenReturn(null);
@@ -175,6 +192,7 @@ class VisitRosterRemoveTest {
     service().saveChildren(9110, form, null, 101);
 
     verify(visitBiostar).syncVisitors("PT02", List.of("P1", "P2"), null);
+    verify(visitMapper, never()).updateStatus(anyInt(), anyString()); // 성공이면 상태를 건드리지 않는다
   }
 
   /** 실제 mapper 는 insert 후 car_id 를 채워 준다(useGeneratedKeys). mock 도 같게 흉내낸다. */

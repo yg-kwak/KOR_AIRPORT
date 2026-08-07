@@ -196,8 +196,20 @@ public class VisitRosterService {
               + (personIds.size() - carded)
               + "명 있어 신청 상태로 두었습니다. 전원 카드를 발급하면 입실 중으로 바뀌고 BiostarX 에 등록됩니다.";
     }
-    // BiostarX 방문객 동기화(PT→PTD code_tag 부모 그룹 + 선택 출입그룹) — 실패해도 저장은 유지
-    return visitBiostar.syncVisitors(form.getVisitType(), personIds, form.getAcGroupIds());
+    // BiostarX 방문객 동기화(PT→PTD code_tag 부모 그룹 + 선택 출입그룹)
+    String fail = visitBiostar.syncVisitors(form.getVisitType(), personIds, form.getAcGroupIds());
+    if (fail == null) {
+      return null;
+    }
+    // 장비에 못 올렸으면 입실로 볼 수 없다. 상태만 '입실 중'으로 바뀌면 카드가 문을 열지 못하는데도
+    // 처리가 끝난 것처럼 보인다 — 신청으로 되돌려 무엇이 남았는지 드러낸다.
+    visitMapper.updateStatus(visitNo, VisitService.DEFAULT_STATUS);
+    auditService.logAlways(
+        actor,
+        AuditService.UPDATE,
+        menuId,
+        "BiostarX 동기화 실패로 신청 상태 유지(방문 " + visitNo + "): " + fail);
+    return "BiostarX 동기화에 실패해 '신청' 상태로 두었습니다. 사유: " + fail + " — 원인을 해결한 뒤 다시 저장하세요.";
   }
 
   /** 방문객 tb_person 저장 — personId 있으면 갱신(기존 인원 유지), 없으면 IS 채번 신규. (키오스크 재사용) */
