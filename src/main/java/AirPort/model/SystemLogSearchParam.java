@@ -7,6 +7,8 @@ public class SystemLogSearchParam extends PageParam {
 
   private String actionType; // "" (전체) | tb_common AT code_id
   private Integer menuId; // null (전체) | tb_menu.menu_id
+  // 배치·키오스크처럼 화면을 거치지 않은 기록만. menuId 와 함께 오지 않는다(목록의 [시스템])
+  private boolean systemOnly;
   private String startDate; // yyyy-MM-dd
   private String endDate; // yyyy-MM-dd
 

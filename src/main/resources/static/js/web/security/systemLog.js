@@ -25,6 +25,9 @@
       (list || []).map((c) => `<option value="${esc(c.codeId)}">${esc(c.codeName)}</option>`).join(''));
   }
 
+  /* 메뉴 조건 — [시스템]은 menu_id 가 없는 기록이라 숫자 menuId 로 보낼 수 없다. 별도 플래그로 넘긴다. */
+  const menuParam = () => (state.menuId === 'SYSTEM' ? '&systemOnly=true' : `&menuId=${state.menuId}`);
+
   async function loadMenus() {
     const list = await api.get(BASE + '/menus'); // 본인 권한 메뉴만
     $('menuFilter').insertAdjacentHTML('beforeend',
@@ -35,7 +38,7 @@
     const q =
       `?page=${state.page}&size=${state.size}` +
       `&keyword=${encodeURIComponent(state.keyword)}&searchType=${state.searchType}` +
-      `&actionType=${encodeURIComponent(state.actionType)}&menuId=${state.menuId}` +
+      `&actionType=${encodeURIComponent(state.actionType)}${menuParam()}` +
       `&startDate=${state.startDate}&endDate=${state.endDate}` +
       `&sort=${state.sort}&dir=${state.dir}`;
     const data = await api.get(BASE + '/list' + q);
@@ -124,7 +127,7 @@
     if (!purpose) return;
     const q =
       `?keyword=${encodeURIComponent(state.keyword)}&searchType=${state.searchType}` +
-      `&actionType=${encodeURIComponent(state.actionType)}&menuId=${state.menuId}` +
+      `&actionType=${encodeURIComponent(state.actionType)}${menuParam()}` +
       `&startDate=${state.startDate}&endDate=${state.endDate}` +
       `&sort=${state.sort}&dir=${state.dir}&purpose=${encodeURIComponent(purpose)}`;
     location.href = BASE + '/excel' + q;

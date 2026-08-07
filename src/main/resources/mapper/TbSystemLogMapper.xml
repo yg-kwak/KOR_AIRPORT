@@ -17,6 +17,10 @@
       <if test="actionType != null and actionType != ''">
         AND l.action_type = #{actionType}
       </if>
+      <!-- [시스템] — 메뉴가 없는 기록(배치·키오스크·계정잠금). 목록 표시와 같은 조건을 쓴다 -->
+      <if test="systemOnly">
+        AND l.menu_id IS NULL AND l.user_id = 'SYSTEM'
+      </if>
       <if test="menuId != null">
         AND l.menu_id = #{menuId}
       </if>
