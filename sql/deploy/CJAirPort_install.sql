@@ -512,10 +512,7 @@ BEGIN
     ('AT', N'감사유형', 'DELETE', N'삭제',     'Y'),
     ('AT', N'감사유형', 'DOWNLOAD', N'다운로드', 'Y'),
     ('AT', N'감사유형', 'LOGIN',  N'로그인',  'Y'),
-    ('AT', N'감사유형', 'LOGOUT', N'로그아웃', 'Y'),
-    ('AT', N'감사유형', 'PURGE',  N'자동 파기', 'Y'),
-    ('AT', N'감사유형', 'STARTUP',  N'시스템 시작', 'Y'),
-    ('AT', N'감사유형', 'SHUTDOWN', N'시스템 종료', 'Y');
+    ('AT', N'감사유형', 'LOGOUT', N'로그아웃', 'Y');
 
   /* 공통코드: 근무지역(LO) 예시 — 시스템 코드(user_input=N, 기본값) */
   INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn) VALUES
@@ -801,16 +798,11 @@ BEGIN
     INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn)
     VALUES ('VS', N'방문상태', 'VS05', N'미반납', 'Y');
 
-  /* 감사유형(AT) 시스템 사건 — 기동·종료·자동 파기. 감사추적의 [시스템] 판정 기준이다 */
-  INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn)
-  SELECT v.cmm_id, v.cmm_name, v.code_id, v.code_name, 'Y'
-  FROM (VALUES
-    ('AT', N'감사유형', 'PURGE',    N'자동 파기'),
-    ('AT', N'감사유형', 'STARTUP',  N'시스템 시작'),
-    ('AT', N'감사유형', 'SHUTDOWN', N'시스템 종료')
-  ) AS v(cmm_id, cmm_name, code_id, code_name)
-  WHERE NOT EXISTS (SELECT 1 FROM dbo.tb_common c WHERE c.cmm_id = v.cmm_id AND c.code_id = v.code_id);
-  IF @@ROWCOUNT > 0 PRINT '  + 감사유형(AT) 시스템 사건 추가';
+  /* 감사유형(AT) 시스템 사건 정리 — 잠시 코드로 넣었다가 뺐다.
+     유형 검색 목록에 섞이면 메뉴 [시스템] 과 골라야 할 곳이 두 군데가 된다.
+     기록은 그대로 두고 코드만 지운다 — 이름은 mapper 가 붙인다. */
+  DELETE FROM dbo.tb_common WHERE cmm_id = 'AT' AND code_id IN ('PURGE', 'STARTUP', 'SHUTDOWN');
+  IF @@ROWCOUNT > 0 PRINT '  - 감사유형(AT) 시스템 사건 코드 제거(유형 목록에서 숨김)';
 
   /* 인원상태(PS) 재발급·분실 — code_tag 는 BiostarX 사용자의 disabled 값('false'=활성) */
   INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_yn)

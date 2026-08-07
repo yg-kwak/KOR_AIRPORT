@@ -62,9 +62,15 @@
 
   <sql id="listColumns">
     l.log_id, l.user_id, l.user_name, l.action_type, l.menu_id, l.action_detail, l.remark, l.reg_dt,
-    c.code_name AS action_type_name,
-    <!-- [시스템] = 시스템 자신의 사건(기동·종료·자동 파기)만. 키오스크 신청·계정 잠금처럼
-         사람이 한 일은 메뉴가 없어도 여기 넣지 않는다(그건 해당 업무의 기록이다). -->
+    <!-- 시스템 사건은 tb_common(AT)에 코드를 두지 않는다 — 유형 검색 목록에 섞이면
+         메뉴 [시스템] 과 골라야 할 곳이 두 군데가 된다. 이름만 여기서 붙인다. -->
+    CASE l.action_type
+         WHEN 'STARTUP'  THEN N'시스템 시작'
+         WHEN 'SHUTDOWN' THEN N'시스템 종료'
+         WHEN 'PURGE'    THEN N'자동 파기'
+         ELSE c.code_name END AS action_type_name,
+    <!-- [시스템] = 시스템 자신의 사건만. 키오스크 신청·계정 잠금처럼 사람이 한 일은
+         메뉴가 없어도 여기 넣지 않는다(그건 해당 업무의 기록이다). -->
     CASE WHEN l.action_type IN <include refid="systemActions"/> THEN N'[시스템]'
          ELSE m.menu_name END AS menu_name
   </sql>
