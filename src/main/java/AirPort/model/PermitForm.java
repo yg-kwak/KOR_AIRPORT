@@ -27,8 +27,8 @@ public class PermitForm {
   public static class Visitor {
     private String name;
     private String birthDate;
-    private String cardNo; // 출입증번호(회수됐으면 마지막 카드번호)
-    private String affiliation; // 출입자소속 및 주소 — 주소는 보관하지 않아 소속만
+    private String cardName; // 출입증번호 칸 — 카드명칭(회수됐어도 마지막 카드로 찾아 넣는다)
+    private String affiliation; // 출입자소속 — 주소는 입력란이 없어 소속만 적는다
 
     public String getName() {
       return name;
@@ -46,12 +46,12 @@ public class PermitForm {
       this.birthDate = birthDate;
     }
 
-    public String getCardNo() {
-      return cardNo;
+    public String getCardName() {
+      return cardName;
     }
 
-    public void setCardNo(String cardNo) {
-      this.cardNo = cardNo;
+    public void setCardName(String cardName) {
+      this.cardName = cardName;
     }
 
     public String getAffiliation() {
@@ -67,7 +67,7 @@ public class PermitForm {
   public static class Car {
     private String carNo;
     private String carTypeName; // 차종
-    private String cardNo; // 차량출입증번호
+    private String cardName; // 차량출입증번호 칸 — 카드명칭
 
     public String getCarNo() {
       return carNo;
@@ -85,12 +85,12 @@ public class PermitForm {
       this.carTypeName = carTypeName;
     }
 
-    public String getCardNo() {
-      return cardNo;
+    public String getCardName() {
+      return cardName;
     }
 
-    public void setCardNo(String cardNo) {
-      this.cardNo = cardNo;
+    public void setCardName(String cardName) {
+      this.cardName = cardName;
     }
   }
 
@@ -98,7 +98,7 @@ public class PermitForm {
   public static class Manager {
     private String company;
     private String name;
-    private String cardNo;
+    private String cardName;
     private String phone;
 
     public String getCompany() {
@@ -117,12 +117,12 @@ public class PermitForm {
       this.name = name;
     }
 
-    public String getCardNo() {
-      return cardNo;
+    public String getCardName() {
+      return cardName;
     }
 
-    public void setCardNo(String cardNo) {
-      this.cardNo = cardNo;
+    public void setCardName(String cardName) {
+      this.cardName = cardName;
     }
 
     public String getPhone() {

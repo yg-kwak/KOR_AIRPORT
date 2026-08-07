@@ -88,7 +88,7 @@ public class VisitPermitService {
       x.setName(decrypt(p.getPersonName()));
       x.setBirthDate(decrypt(p.getBirthDate()));
       x.setAffiliation(p.getAffiliation());
-      x.setCardNo(cardNoOfPerson(pid, visitNo));
+      x.setCardName(cardNameOfPerson(pid, visitNo));
       f.getVisitors().add(x);
     }
     for (Integer carId : visitMapper.selectCarIds(visitNo)) {
@@ -100,7 +100,7 @@ public class VisitPermitService {
       x.setCarNo(c.getCarNo());
       x.setCarTypeName(codeName("CT", c.getCarType()));
       List<TbCard> cards = cardMapper.selectByCar(carId);
-      x.setCardNo(cards.isEmpty() ? null : cards.get(0).getBiostarCardValue());
+      x.setCardName(cards.isEmpty() ? null : cards.get(0).getCardName());
       f.getCars().add(x);
     }
     for (String pid : visitMapper.selectManagerIds(visitNo)) {
@@ -113,7 +113,7 @@ public class VisitPermitService {
       x.setCompany(p.getCompanyName());
       x.setPhone(decrypt(p.getPersonPhone()));
       List<TbCard> cards = cardMapper.selectByPerson(pid);
-      x.setCardNo(cards.isEmpty() ? null : cards.get(0).getBiostarCardValue());
+      x.setCardName(cards.isEmpty() ? null : cards.get(0).getCardName());
       f.getManagers().add(x);
     }
     // 신청인은 첫 인솔자 — 양식 하단 "신청인 {소속} 성명 {성명} (인)"
@@ -125,13 +125,22 @@ public class VisitPermitService {
     return f;
   }
 
-  /** 지금 배정된 카드가 원칙, 회수됐으면 마지막 카드번호(퇴실한 방문도 다시 뽑을 수 있어야 한다). */
-  private String cardNoOfPerson(String personId, int visitNo) {
+  /**
+   * 출입증번호 칸에 넣을 카드명칭. 지금 배정된 카드가 원칙이고, 회수됐으면 마지막 카드번호로 되짚어 명칭을 찾는다 — 퇴실한 방문도 신청서를 다시 뽑을 수 있어야 한다.
+   *
+   * <p>그 카드가 사라졌으면 번호라도 남긴다(빈칸보다 낫다).
+   */
+  private String cardNameOfPerson(String personId, int visitNo) {
     List<TbCard> cards = cardMapper.selectByPerson(personId);
     if (!cards.isEmpty()) {
-      return cards.get(0).getBiostarCardValue();
+      return cards.get(0).getCardName();
     }
-    return visitMapper.selectVisitorLastCard(visitNo, personId);
+    String lastNo = visitMapper.selectVisitorLastCard(visitNo, personId);
+    if (lastNo == null || lastNo.isBlank()) {
+      return null;
+    }
+    TbCard last = cardMapper.selectByCardNo(lastNo);
+    return (last == null || last.getCardName() == null) ? lastNo : last.getCardName();
   }
 
   /** 차량 출입구역 코드(tb_common CAR) → 구역명. */

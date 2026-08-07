@@ -22,12 +22,13 @@ window.permitPrint = (function () {
 
   const cell = (v) => `<td>${esc(v) || '&nbsp;'}</td>`;
 
-  /* 출입자 — 한 행에 2명(성명/생년월일/출입증번호/소속및주소) */
+  /* 출입자 — 한 행에 2명(성명/생년월일/출입증번호=카드명칭/소속).
+     주소는 입력란이 없어 소속만 적는다 — 빈 주소 자리에 '/' 를 남기면 지저분하다. */
   function visitorRows(list) {
     return chunk(list, 2).map((pair) => {
       const cells = [0, 1].map((i) => {
         const p = pair[i];
-        return p ? cell(p.name) + cell(p.birthDate) + cell(p.cardNo) + cell((p.affiliation || '') + ' /')
+        return p ? cell(p.name) + cell(p.birthDate) + cell(p.cardName) + cell(p.affiliation)
           : '<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>';
       }).join('');
       return `<tr>${cells}</tr>`;
@@ -39,7 +40,7 @@ window.permitPrint = (function () {
     return chunk(list, 1).map((one) => {
       const c = one[0];
       return `<tr><td>&nbsp;</td>${c ? cell(c.carNo) + cell(c.carTypeName) : '<td>&nbsp;</td><td>&nbsp;</td>'}`
-        + `<td>&nbsp;</td><td>&nbsp;</td>${c ? cell(c.cardNo) : '<td>&nbsp;</td>'}<td>&nbsp;</td></tr>`;
+        + `<td>&nbsp;</td><td>&nbsp;</td>${c ? cell(c.cardName) : '<td>&nbsp;</td>'}<td>&nbsp;</td></tr>`;
     }).join('');
   }
 
@@ -48,7 +49,7 @@ window.permitPrint = (function () {
     return chunk(list, 2).map((pair) => {
       const cells = [0, 1].map((i) => {
         const m = pair[i];
-        return m ? cell(m.company) + cell(m.name) + cell(m.cardNo) + cell(m.phone)
+        return m ? cell(m.company) + cell(m.name) + cell(m.cardName) + cell(m.phone)
           : '<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>';
       }).join('');
       return `<tr>${cells}</tr>`;
