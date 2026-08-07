@@ -81,4 +81,12 @@
     DELETE FROM tb_ac_group WHERE ac_group_id IN (SELECT ac_group_id FROM sub)
   </delete>
 
+  <!-- 신청서 출력용 — 선택한 출입그룹 이름(구역 번호를 뽑기 위해). 화면 표시 순서와 같게 정렬 -->
+  <select id="selectNamesByIds" resultType="string">
+    SELECT ac_group_name FROM tb_ac_group
+    WHERE ac_group_id IN
+    <foreach collection="acGroupIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+    ORDER BY ac_group_id
+  </select>
+
 </mapper>

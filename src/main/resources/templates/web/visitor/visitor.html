@@ -209,6 +209,8 @@
     <div class="modal-footer">
       <button class="btn btn-danger modal-footer-left" id="btnDelete" th:if="${perm.canDelete}" style="display:none">삭제</button>
       <button class="btn" id="btnCancel">취소</button>
+      <!-- 신청 상태에는 아직 출입증번호가 없어 의미가 없다 — 그 뒤 상태에서만 노출 -->
+      <button class="btn" id="btnPermit" style="display:none">신청서 출력</button>
       <button class="btn btn-primary" id="btnSave" th:if="${perm.canCreate}">저장</button>
     </div>
   </div>
@@ -249,5 +251,8 @@
   window.VISIT_CFG = { base: [[${base}]], fixedType: [[${fixedVisitType}]], fixedTypeName: [[${fixedVisitTypeName}]] };
 </script>
 <script src="/js/web/visitor/visitor.js" defer></script>
+<!-- 출입허가 신청서 인쇄 영역(화면 숨김, @media print 에서만 노출) -->
+<div id="permitPrintArea" aria-hidden="true"></div>
+<script src="/js/web/visitor/permit-print.js" defer></script>
 </body>
 </html>

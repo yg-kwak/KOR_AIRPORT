@@ -633,7 +633,7 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
   /* html/body/영역에 height:100% 를 주어야 .print-card-page 가 딱 1페이지로 잡힘(없으면 카드마다 빈 페이지가 추가돼 4장) */
   html, body { width: 100%; height: 100%; margin: 0 !important; padding: 0 !important; background: none;
     -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body > *:not(#cardPrintArea) { display: none !important; }
+  body > *:not(#cardPrintArea):not(#permitPrintArea) { display: none !important; }
   #cardPrintArea { display: block !important; width: 100%; height: 100%; }
   #cardPrintArea .print-card-page { width: 100%; height: 100%; margin: 0; padding: 0;
     page-break-inside: avoid; overflow: hidden; }
@@ -642,4 +642,31 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
   #cardPrintArea .print-card-img { display: block; width: 100%; height: 100%; object-fit: fill;
     image-rendering: -webkit-optimize-contrast; }
   @page { margin: 0; }
+}
+
+
+/* 출입허가 신청서 인쇄 — A4 세로 1장. @page margin 은 카드 인쇄가 0 으로 쓰므로
+   여백은 영역 자체 padding 으로 준다(카드 출력에 영향 없음). */
+#permitPrintArea { display: none; }
+@media print {
+  #permitPrintArea { display: block !important; width: 100%; height: auto !important;
+    padding: 14mm 12mm; box-sizing: border-box; color: #000; background: #fff; }
+  /* 카드 인쇄용 height:100% 가 신청서에서는 한 장을 넘길 때 방해가 된다 */
+  html:has(#permitPrintArea:not(:empty)), body:has(#permitPrintArea:not(:empty)) { height: auto !important; }
+  .permit-sheet { font-family: Pretendard, sans-serif; font-size: 10pt; line-height: 1.5; }
+  .permit-title { font-size: 15pt; font-weight: 700; text-align: center; margin: 0 0 10mm; letter-spacing: -0.5px; }
+  .permit-table { width: 100%; border-collapse: collapse; margin-bottom: 3mm; table-layout: fixed; }
+  .permit-table th, .permit-table td { border: 1px solid #000; padding: 1.6mm 1mm; text-align: center;
+    vertical-align: middle; font-weight: 400; word-break: keep-all; overflow-wrap: break-word; }
+  /* 일시는 중간에서 끊기면 읽을 수 없다(14:1 / 1) — 한 줄로 두고 글자만 줄인다 */
+  .permit-table .permit-period { white-space: nowrap; font-size: 8.5pt; }
+  .permit-table th { font-weight: 500; }
+  .permit-table .permit-left { text-align: left; padding-left: 2mm; }
+  .permit-table .permit-tall td { height: 16mm; }
+  .permit-table .w-11 { width: 11%; } .permit-table .w-14 { width: 14%; }
+  .permit-table .w-16 { width: 16%; } .permit-table .w-18 { width: 18%; }
+  .permit-body { margin: 6mm 0 0; text-align: justify; }
+  .permit-center { text-align: center; margin: 4mm 0 0; }
+  .permit-right { text-align: right; margin: 3mm 0 0; letter-spacing: 1px; }
+  .permit-approve { font-size: 13pt; font-weight: 700; text-align: center; margin: 10mm 0 0; }
 }

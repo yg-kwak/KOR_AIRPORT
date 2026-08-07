@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class VisitController {
 
   private final VisitService visitService;
+  private final AirPort.service.VisitPermitService permitService;
   private final CardService cardService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
@@ -46,11 +47,13 @@ public class VisitController {
 
   public VisitController(
       VisitService visitService,
+      AirPort.service.VisitPermitService permitService,
       CardService cardService,
       MenuService menuService,
       MenuAuthService menuAuthService,
       CurrentMenu currentMenu) {
     this.visitService = visitService;
+    this.permitService = permitService;
     this.cardService = cardService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
@@ -85,6 +88,14 @@ public class VisitController {
     menuAuthService.requireRead(actor(session), menuId());
     param.setCodeTag("PTD02"); // 임시(PTD02) 계열만
     return ApiResponse.ok(visitService.list(param, actor(session), menuId()));
+  }
+
+  /** 출입허가 신청서 (AJAX) — 인쇄용 값. 출력은 화면이 한다. */
+  @GetMapping("/permit")
+  @ResponseBody
+  public ApiResponse<AirPort.model.PermitForm> permit(
+      @RequestParam int visitNo, HttpSession session) {
+    return ApiResponse.ok(permitService.permit(visitNo, actor(session), menuId()));
   }
 
   /** 상세 (AJAX) — 수정 모달용 그룹 + 인솔자/방문객/차량/출입그룹 */

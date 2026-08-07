@@ -96,3 +96,18 @@ src/main/resources/
 
 ## 관련 문서
 [design.md](design.md) · [backend.md](backend.md) · [conventions.md](conventions.md) · [security.md](security.md)
+
+## 출입허가 신청서 출력 (임시인원등록)
+
+수정 모달 하단 **[신청서 출력]** — `신청(VS01)` 이 아닐 때만 보인다. 신청 단계에는 카드가 없어 **출입증번호 칸이 비기 때문**이다.
+
+- 서버는 값만 준다: `GET /visitor/visitor/permit?visitNo=N` → `PermitForm` (`VisitPermitService`)
+- 그리기·인쇄는 화면: `js/web/visitor/permit-print.js` → `#permitPrintArea` 에 양식을 만들고 `window.print()`
+  (프린터가 클라이언트 PC 라 서버에서 PDF 를 만들지 않는다 — 카드 출력과 같은 방식)
+- 양식 CSS 는 `style.css` 의 `@media print` 블록. `@page` 여백은 카드 인쇄가 0 으로 쓰므로 **영역 padding 으로** 준다.
+
+**출입구역은 번호만** 적는다(`1,3,5`). 구역명(`인원구역3`)에서 숫자를 뽑는다 — 번호가 없는 이름은 그대로 남긴다(조용히 사라지면 어느 구역이 빠졌는지 알 수 없다).
+
+**출입자·인솔자는 한 행에 2명, 차량은 1대**씩 들어간다. 인원이 늘면 행이 늘어난다.
+
+**빈칸으로 두는 항목** — 확인자소속·성명, 출입자의 근무확인, 운전자성명·생년월일, 주소. 시스템이 보관하지 않는 값이라 인쇄 후 손으로 적는다.
