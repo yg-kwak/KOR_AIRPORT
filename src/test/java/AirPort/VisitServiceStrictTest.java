@@ -64,6 +64,7 @@ class VisitServiceStrictTest {
     TbVisit v = new TbVisit();
     v.setVisitNo(28);
     v.setStatusCode(status);
+    v.setVisitType("PT02"); // 임시 — BiostarX 부모 그룹 결정에 쓰인다
     v.setDelYn("N");
     return v;
   }
@@ -159,14 +160,38 @@ class VisitServiceStrictTest {
   }
 
   @Test
-  void BiostarX_에_등록된_방문객이_있으면_방문을_삭제할_수_없다() {
+  void 신청_방문은_장비에_남은_방문객까지_정리하고_삭제한다() {
+    // 전원 카드 발급 전에는 BiostarX 에 올리지 않지만, 예전 방식으로 올라간 방문객이 남아 있을 수 있다.
+    // 삭제를 막으면 퇴실('입실 중'만 가능)도 안 되어 방문이 갇힌다 — 함께 지운다.
     when(visitMapper.selectById(28)).thenReturn(visit("VS01"));
     when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001"));
-    when(visitBiostar.registeredVisitors(any())).thenReturn(List.of("IS000001"));
+    when(visitBiostar.deleteVisitors(any(), any())).thenReturn(null);
+
+    service().delete(28, null, 101);
+
+    verify(visitBiostar).deleteVisitors("PT02", List.of("IS000001"));
+    verify(visitMapper).softDelete(28);
+  }
+
+  @Test
+  void 장비_삭제가_실패하면_방문을_삭제하지_않는다() {
+    when(visitMapper.selectById(28)).thenReturn(visit("VS01"));
+    when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001"));
+    when(visitBiostar.deleteVisitors(any(), any())).thenReturn("IS000001(HTTP 500)");
 
     BusinessException ex =
         assertThrows(BusinessException.class, () -> service().delete(28, null, 101));
-    assertTrue(ex.getMessage().contains("BiostarX 에 등록된 방문객"), ex.getMessage());
+    assertTrue(ex.getMessage().contains("사용자 삭제 실패"), ex.getMessage());
+    verify(visitMapper, never()).softDelete(anyInt());
+  }
+
+  @Test
+  void 입실_중인_방문은_삭제할_수_없다() {
+    when(visitMapper.selectById(28)).thenReturn(visit("VS03"));
+
+    BusinessException ex =
+        assertThrows(BusinessException.class, () -> service().delete(28, null, 101));
+    assertTrue(ex.getMessage().contains("신청 상태의 방문만"), ex.getMessage());
     verify(visitMapper, never()).softDelete(anyInt());
   }
 }

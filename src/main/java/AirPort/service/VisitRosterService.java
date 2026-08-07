@@ -125,6 +125,7 @@ public class VisitRosterService {
     }
     visitMapper.deletePersons(visitNo);
     List<String> personIds = new ArrayList<>();
+    int carded = 0; // 카드를 받은 방문객 수 — 전원 발급이라야 BiostarX 에 올린다
     java.util.Set<Integer> usedCards = new java.util.HashSet<>(); // 한 실물 카드는 한 사람에게만
     if (form.getVisitors() != null) {
       for (VisitorForm vf : form.getVisitors()) {
@@ -148,6 +149,7 @@ public class VisitRosterService {
           cardService.ensureBiostarCard(vf.getCardId(), actor, menuId);
           cardMapper.assignPerson(vf.getCardId(), pid);
           visitMapper.updateVisitorLastCard(visitNo, pid, vf.getCardId()); // 마지막 카드 스냅샷
+          carded++;
         }
         personIds.add(pid);
       }
@@ -183,6 +185,16 @@ public class VisitRosterService {
           cardMapper.assignCar(cf.getCardId(), carId);
         }
       }
+    }
+    // 전원 카드를 받아야 BiostarX 에 올린다.
+    // 한 명이라도 카드가 없으면 '신청'으로 남는데, 그 상태에서 장비에 사용자가 올라가 있으면
+    // 삭제는 "BiostarX 에 등록된 방문객이 있다"고 막히고 퇴실은 '입실 중'이 아니라 못 해 방문이 갇힌다.
+    if (personIds.isEmpty() || carded < personIds.size()) {
+      return personIds.isEmpty()
+          ? null
+          : "카드를 받지 않은 방문객이 "
+              + (personIds.size() - carded)
+              + "명 있어 신청 상태로 두었습니다. 전원 카드를 발급하면 입실 중으로 바뀌고 BiostarX 에 등록됩니다.";
     }
     // BiostarX 방문객 동기화(PT→PTD code_tag 부모 그룹 + 선택 출입그룹) — 실패해도 저장은 유지
     return visitBiostar.syncVisitors(form.getVisitType(), personIds, form.getAcGroupIds());

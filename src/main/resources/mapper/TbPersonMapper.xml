@@ -171,6 +171,23 @@
     UPDATE tb_person SET del_yn = 'Y', mod_dt = getdate() WHERE person_id = #{personId}
   </update>
 
+  <!-- 삭제된 인원ID 로 다시 등록 — person_id 는 PK 라 INSERT 가 안 되므로 남아 있는 행을 되살린다.
+       삭제 때 BiostarX 사용자도 지웠으므로 biostar_user_id 는 비우고 새로 만들게 한다.
+       reg_dt 는 이번 등록 시점으로 다시 잡는다(이전 등록의 흔적을 남기지 않는다). -->
+  <update id="revive" parameterType="TbPerson">
+    UPDATE tb_person
+    SET person_name = #{personName}, birth_date = #{birthDate}, person_phone = #{personPhone},
+        company_code = #{companyCode}, title_code = #{titleCode}, person_type = #{personType},
+        status_code = #{statusCode}, main_task = #{mainTask}, affiliation = #{affiliation},
+        access_start_dt = #{accessStartDt}, access_end_dt = #{accessEndDt}, remark = #{remark},
+        id_check_dt = #{idCheckDt}, id_check_file = #{idCheckFile},
+        security_edu_dt = #{securityEduDt}, security_edu_score = #{securityEduScore},
+        final_approve_dt = #{finalApproveDt}, approve_file = #{approveFile},
+        use_yn = ISNULL(#{useYn}, 'Y'), del_yn = 'N', biostar_user_id = NULL,
+        reg_dt = getdate(), mod_dt = getdate()
+    WHERE person_id = #{personId} AND del_yn = 'Y'
+  </update>
+
   <update id="updateBiostarUserId">
     UPDATE tb_person
     SET biostar_user_id = #{biostarUserId}, mod_dt = getdate()

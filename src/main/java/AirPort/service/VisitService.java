@@ -256,17 +256,11 @@ public class VisitService {
     if (!DEFAULT_STATUS.equals(v.getStatusCode())) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "신청 상태의 방문만 삭제할 수 있습니다.");
     }
-    // BiostarX 에 이미 올라간 방문은 지우지 않는다 — 장비 이력이 남아야 하고, 실수로 지우면 되돌릴 수 없다.
-    // 내보내려면 퇴실 절차를 쓴다(개별 퇴실 또는 방문 퇴실).
-    List<String> registered = visitBiostar.registeredVisitors(visitMapper.selectPersonIds(visitNo));
-    if (!registered.isEmpty()) {
-      throw new BusinessException(
-          ErrorCode.INVALID_INPUT,
-          "BiostarX 에 등록된 방문객이 있어 삭제할 수 없습니다("
-              + String.join(", ", registered)
-              + "). 퇴실 처리로 진행하세요.");
-    }
-    // 남은 방문객(장비 미등록)만 정리 — 실패=롤백(장비 유령 사용자 방지)
+    // 여기까지 왔으면 '신청'이다 — 입실한 적이 없으니 지킬 장비 이력도 없다.
+    // 전원 카드 발급 전에는 BiostarX 에 올리지 않으므로(VisitRosterService) 보통 지울 사용자도 없다.
+    // 예전 방식으로 올라가 있던 방문객이 남아 있으면 여기서 함께 정리한다 — 그렇지 않으면
+    // 삭제도 퇴실('입실 중'만 가능)도 안 되어 방문이 갇힌다.
+    // 실패=롤백(장비 유령 사용자 방지)
     String warn =
         visitBiostar.deleteVisitors(v.getVisitType(), visitMapper.selectPersonIds(visitNo));
     if (warn != null) {

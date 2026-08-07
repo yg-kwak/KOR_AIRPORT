@@ -148,6 +148,35 @@ class VisitRosterRemoveTest {
     assertTrue(ex.getMessage().contains("두 명 이상"), ex.getMessage());
   }
 
+  @Test
+  void 카드를_받지_않은_방문객이_있으면_BiostarX_에_올리지_않는다() {
+    // 신청 상태로 남는데 장비에 사용자가 있으면 삭제도 퇴실도 안 되어 방문이 갇힌다
+    when(visitMapper.selectPersonIds(9110)).thenReturn(List.of());
+    when(visitBiostar.deleteVisitors(anyString(), any())).thenReturn(null);
+
+    VisitForm form = formKeeping("P1", "P2");
+    form.getVisitors().get(0).setCardId(77); // 1명만 발급
+
+    String warn = service().saveChildren(9110, form, null, 101);
+
+    verify(visitBiostar, never()).syncVisitors(anyString(), any(), any());
+    assertTrue(warn.contains("1명"), warn); // 몇 명이 남았는지 화면에 알린다
+  }
+
+  @Test
+  void 전원_카드를_받으면_BiostarX_에_올린다() {
+    when(visitMapper.selectPersonIds(9110)).thenReturn(List.of());
+    when(visitBiostar.deleteVisitors(anyString(), any())).thenReturn(null);
+
+    VisitForm form = formKeeping("P1", "P2");
+    form.getVisitors().get(0).setCardId(77);
+    form.getVisitors().get(1).setCardId(78);
+
+    service().saveChildren(9110, form, null, 101);
+
+    verify(visitBiostar).syncVisitors("PT02", List.of("P1", "P2"), null);
+  }
+
   /** 실제 mapper 는 insert 후 car_id 를 채워 준다(useGeneratedKeys). mock 도 같게 흉내낸다. */
   private void carInsertAssignsId() {
     final int[] seq = {500};

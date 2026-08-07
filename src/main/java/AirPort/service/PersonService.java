@@ -99,14 +99,21 @@ public class PersonService {
   public String create(PersonForm form, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
     validate(form);
-    if (personMapper.selectById(form.getPersonId()) != null) {
+    // 삭제된 인원ID 는 다시 쓸 수 있다. 소프트 삭제라 행이 남아 person_id(PK) 로 INSERT 가 안 되므로
+    // 남은 행을 되살린다. 삭제 때 BiostarX 사용자도 지웠으므로(deleteOne) 같은 ID 를 재사용해도 충돌하지 않는다.
+    TbPerson dead = personMapper.selectById(form.getPersonId());
+    if (dead != null && !"Y".equals(dead.getDelYn())) {
       throw new BusinessException(ErrorCode.DUPLICATE, "이미 존재하는 인원ID 입니다.");
     }
     TbPerson row = toRow(form);
     row.setPersonType(PERSON_TYPE_REGULAR);
     row.setUseYn(form.getUseYn());
     try {
-      personMapper.insert(row);
+      if (dead == null) {
+        personMapper.insert(row);
+      } else {
+        personMapper.revive(row);
+      }
     } catch (org.springframework.dao.DataIntegrityViolationException e) {
       // 동시 등록 레이스(중복검사 통과 후 PK 충돌) — 친화적 메시지로 변환
       throw new BusinessException(ErrorCode.DUPLICATE, "이미 존재하는 인원ID 입니다. 다른 ID 로 다시 시도하세요.");

@@ -4,6 +4,7 @@
 > (계획·논의는 대화/이슈/PR 로). 작업을 마치면 `/commit` 단계에서 아래에 한 줄 추가한다.
 > 형식: `- [x] 요약 — 담당, 완료일, 커밋`
 
+- [x] 삭제한 인원ID 재등록 · 카드 미발급 방문이 갇히던 문제 — (1) 정규인원은 소프트 삭제라 같은 번호로 다시 등록하면 "이미 존재하는 인원ID"로 막혔다. 남은 행을 되살리는 revive 를 추가한다. (2) 임시 방문객을 카드 없이도 BiostarX 에 올리고 있어, 신청 상태인데 삭제는 '등록된 방문객이 있다'고 막히고 퇴실은 '입실 중'이 아니라 못 해 방문이 갇혔다. 전원 카드 발급 시에만 BiostarX 에 올리고 입실 중으로 승격하며, 미발급 인원수를 저장 메시지로 알린다 — sjpark2, 2026-08-06
 - [x] 기관차량등록이 현장에서 안 열리던 문제 — STRING_AGG 은 MSSQL 2017+ 전용인데 현장 서버는 2016 이라 "인식할 수 없는 기본 제공 함수 이름" 오류가 났다. FOR XML PATH 로 바꾸고, 최소 지원 버전(2016)을 database.md 에 명시, code-lint [7] 로 2017+ 함수 사용을 막는다 — sjpark2, 2026-08-06
 - [x] BiostarX 연결 테스트 SSL 오류·동일 서버 세션 충돌 해결 — (1) self-signed 인증서 SAN 에 서버 IP 가 없어 호스트명 검증에서 핸드셰이크가 깨졌다. trust-all 과 별개라 jdk.internal.httpclient.disableHostnameVerification 로 푼다. (2) 쿠키는 포트를 구분하지 않아 같은 서버의 BiostarX 가 JSESSIONID 를 덮어써 로그아웃됐다 — 쿠키 이름을 CJAIRPORT_SESSION 으로 분리. (3) 연결 테스트 실패 문구를 조치 가능한 한국어로 바꾸고 요청 URL·HTTP 상태를 로그에 남긴다 — sjpark2, 2026-08-06
 - [x] 로그를 하루 한 파일(cjairport.{날짜}.0.txt)로 — properties 만으로는 '지금 쓰는 파일'이 고정 이름이라 오늘 로그를 이름으로 찾을 수 없었다. logback-spring.xml 에서 <file> 없이(file-less) 날짜 파일에 바로 쓴다. 현장 설정은 LOG_PATH·LOG_KEEP_DAYS 둘뿐 — sjpark2, 2026-08-06

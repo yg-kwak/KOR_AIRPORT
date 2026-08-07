@@ -35,6 +35,9 @@ public interface TbPersonMapper {
   /** 소프트 삭제 — del_yn='Y'. */
   int softDelete(@Param("personId") String personId);
 
+  /** 삭제된 인원ID 로 다시 등록 — 남아 있는 행을 되살린다(person_id 는 PK 라 INSERT 불가). */
+  int revive(TbPerson row);
+
   /** BiostarX 사용자 생성 성공 후 연동 ID 반영. */
   int updateBiostarUserId(
       @Param("personId") String personId, @Param("biostarUserId") String biostarUserId);
