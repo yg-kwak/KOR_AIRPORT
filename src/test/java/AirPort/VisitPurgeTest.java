@@ -110,7 +110,7 @@ class VisitPurgeTest {
 
     assertEquals(0, service(false).run());
 
-    verify(auditService).log(isNull(), eq(AuditService.DELETE), isNull(), contains("방문 0건 삭제"));
+    verify(auditService).log(isNull(), eq(AuditService.PURGE), isNull(), contains("방문 0건 삭제"));
   }
 
   @Test

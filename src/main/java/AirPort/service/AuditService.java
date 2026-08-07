@@ -33,6 +33,9 @@ public class AuditService {
   public static final String LOGIN = "LOGIN";
   public static final String LOGOUT = "LOGOUT";
 
+  /** 자동 파기 — 보존기간이 지난 데이터를 배치가 지운 기록. 사람이 지운 DELETE 와 섞이지 않게 따로 둔다. */
+  public static final String PURGE = "PURGE";
+
   private final TbSystemLogMapper systemLogMapper;
 
   public AuditService(TbSystemLogMapper systemLogMapper) {

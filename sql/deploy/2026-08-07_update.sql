@@ -20,6 +20,7 @@
      [3] 인원구분(PT) — 순찰 · 대여 추가
      [4] 인원ID 접두(PIP) — 순찰 PL · 대여 RT 추가
      [5] tb_visit.checkout_dt 컬럼 추가 + 기존 퇴실완료분 백필
+     [6] 감사유형(AT) — 자동 파기 추가
    ============================================================================ */
 SET NOCOUNT ON;
 PRINT '=== CJAirPort 2026-08-07 변경분 적용 시작 ===';
@@ -108,6 +109,20 @@ END
 GO
 
 /* ────────────────────────────────────────────────────────────────────────────
+   [6] 감사유형(AT) — 자동 파기
+   정기 파기 배치가 남기는 기록의 유형이다. 사람이 지운 '삭제'와 섞이지 않아
+   감사추적에서 유형을 '자동 파기'로 고르면 배치 이력만 볼 수 있다.
+   ──────────────────────────────────────────────────────────────────────────── */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, use_yn)
+SELECT v.cmm_id, v.cmm_name, v.code_id, v.code_name, 'Y'
+FROM (VALUES
+  ('AT', N'감사유형', 'PURGE', N'자동 파기')
+) AS v(cmm_id, cmm_name, code_id, code_name)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.tb_common c WHERE c.cmm_id = v.cmm_id AND c.code_id = v.code_id);
+IF @@ROWCOUNT > 0 PRINT '  + 감사유형(AT) 자동 파기 추가';
+GO
+
+/* ────────────────────────────────────────────────────────────────────────────
    확인 — 아래 결과가 기대와 같은지 본다
    ──────────────────────────────────────────────────────────────────────────── */
 PRINT '=== 적용 결과 ===';
@@ -128,6 +143,9 @@ SELECT N'[5] 퇴실완료 방문' AS 항목,
        COUNT(*) AS 전체,
        SUM(CASE WHEN checkout_dt IS NULL THEN 1 ELSE 0 END) AS 시각없음
 FROM dbo.tb_visit WHERE status_code = 'VS04';
+
+SELECT N'[6] 감사유형(AT)' AS 항목, code_id, code_name
+FROM dbo.tb_common WHERE cmm_id = 'AT' ORDER BY code_id;
 GO
 
 PRINT '=== 완료 ===';

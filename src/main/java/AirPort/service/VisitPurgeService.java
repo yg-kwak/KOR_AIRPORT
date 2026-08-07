@@ -131,7 +131,7 @@ public class VisitPurgeService {
       sb.append(" 실패 ").append(failed.size()).append("건(다음 회차 재시도)");
     }
     String detail = sb.toString();
-    auditService.log(null, AuditService.DELETE, null, detail);
+    auditService.log(null, AuditService.PURGE, null, detail);
     log.info(detail);
   }
 
