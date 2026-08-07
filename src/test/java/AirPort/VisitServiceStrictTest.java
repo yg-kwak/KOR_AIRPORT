@@ -1,5 +1,6 @@
 package AirPort;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -157,6 +158,57 @@ class VisitServiceStrictTest {
 
     verify(visitMapper).updateVisitorCheckout(28, "IS000001"); // 개별 퇴실과 같은 표시가 되도록
     verify(visitMapper).updateVisitorCheckout(28, "IS000002");
+  }
+
+  @Test
+  void 미반납_방문도_퇴실할_수_있다() {
+    // 카드를 아직 들고 있는 상태다 — 퇴실을 막으면 카드를 돌려받을 길이 없다
+    when(visitMapper.selectById(28)).thenReturn(visit("VS05"));
+    when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001"));
+    when(visitBiostar.disableVisitors(any())).thenReturn(null);
+
+    service().checkout(28, null, 101);
+
+    verify(visitMapper).updateStatus(28, "VS04");
+  }
+
+  @Test
+  void 미반납_방문의_방문객도_개별_퇴실할_수_있다() {
+    when(visitMapper.selectById(28)).thenReturn(visit("VS05"));
+    when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001"));
+    when(visitBiostar.disableVisitors(any())).thenReturn(null);
+
+    service().checkoutVisitor(28, "IS000001", null, 101);
+
+    verify(visitMapper).updateVisitorCheckout(28, "IS000001");
+  }
+
+  @Test
+  void 미반납_방문을_저장하면_상태를_입실중으로_되돌려_저장한다() {
+    // 미반납은 저장하지 않는다(조회 때 계산) — 화면이 돌려준 계산값을 그대로 적으면 DB 가 틀린 값을 들고 있게 된다
+    when(visitMapper.selectById(28)).thenReturn(visit("VS05"));
+    when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001"));
+    when(commonMapper.selectOne(any(), any())).thenReturn(null);
+
+    VisitForm form = new VisitForm();
+    form.setVisitNo(28);
+    form.setVisitType("PT02");
+    form.setCompanyName("한빛설비");
+    form.setWorkStartDt("2026-07-30T09:00");
+    form.setWorkEndDt("2026-07-30T18:00"); // 이미 지난 기간
+    form.setWorkPurpose("정비");
+    form.setManagerIds(List.of("400001"));
+    VisitorForm vf = new VisitorForm();
+    vf.setPersonId("IS000001");
+    vf.setPersonName("재실자");
+    vf.setCardId(99);
+    form.setVisitors(List.of(vf));
+
+    service().update(form, null, 101);
+
+    org.mockito.ArgumentCaptor<TbVisit> saved = org.mockito.ArgumentCaptor.forClass(TbVisit.class);
+    verify(visitMapper).update(saved.capture());
+    assertEquals("VS03", saved.getValue().getStatusCode());
   }
 
   @Test

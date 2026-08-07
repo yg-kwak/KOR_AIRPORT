@@ -3,13 +3,22 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="AirPort.mapper.TbVisitMapper">
 
+  <!-- 방문상태 — 미반납(VS05)은 저장하지 않고 조회할 때 계산한다.
+       "작업기간이 끝났는데 아직 입실 중" 은 시간이 지나면 저절로 참이 되는 사실이라,
+       저장해 두면 배치가 돌기 전까지 화면이 틀린 값을 보여준다. 기준 시각은 언제나 지금(getdate()).
+       저장되는 값은 VS01/VS03/VS04 뿐이고 VS05 는 여기서만 나온다 — 목록·상세·검색이 같은 식을 쓴다. -->
+  <sql id="statusExpr">
+    CASE WHEN v.status_code = 'VS03' AND v.work_end_dt IS NOT NULL AND v.work_end_dt &lt; getdate()
+         THEN 'VS05' ELSE v.status_code END
+  </sql>
+
   <sql id="searchWhere">
     <where>
       v.del_yn = 'N'
       <if test="codeTag != null and codeTag != ''">
         AND v.visit_type IN (SELECT code_id FROM tb_common WHERE cmm_id = 'PT' AND code_tag = #{codeTag})
       </if>
-      <if test="statusCode != null and statusCode != ''">AND v.status_code = #{statusCode}</if>
+      <if test="statusCode != null and statusCode != ''">AND <include refid="statusExpr"/> = #{statusCode}</if>
       <!-- 출입시작(작업 시작일) 기간 — 감사추적과 같은 프리셋. 종료일은 그날 24시까지 포함한다 -->
       <if test="startDate != null and startDate != ''">
         AND v.work_start_dt &gt;= CAST(#{startDate} AS datetime2)
@@ -77,7 +86,8 @@
   </sql>
 
   <sql id="cols">
-    v.visit_no, v.visit_type, v.status_code, v.work_purpose, v.company_type, v.company_name,
+    v.visit_no, v.visit_type, <include refid="statusExpr"/> AS status_code,
+    v.work_purpose, v.company_type, v.company_name,
     v.receiver, v.returner, v.evidence_file, v.remark, v.del_yn, v.reg_dt, v.mod_dt,
     CONVERT(varchar(10), v.permit_dt, 23)      AS permit_dt,
     CONVERT(varchar(16), v.work_start_dt, 126) AS work_start_dt,
@@ -90,7 +100,7 @@
   <sql id="joins">
     FROM tb_visit v
     LEFT JOIN tb_common pt ON pt.cmm_id = 'PT' AND pt.code_id = v.visit_type
-    LEFT JOIN tb_common vs ON vs.cmm_id = 'VS' AND vs.code_id = v.status_code
+    LEFT JOIN tb_common vs ON vs.cmm_id = 'VS' AND vs.code_id = <include refid="statusExpr"/>
   </sql>
 
   <select id="selectList" parameterType="AirPort.model.VisitSearchParam" resultType="TbVisit">
@@ -136,22 +146,6 @@
 
   <update id="updateStatus">
     UPDATE tb_visit SET status_code = #{statusCode}, mod_dt = getdate() WHERE visit_no = #{visitNo}
-  </update>
-
-  <!-- 미반납 판정 대상 — 입실 중인데 작업기간이 끝난 방문. 종료일이 없으면 판단할 수 없으니 뺀다.
-       바꾸기 전에 번호를 읽어 감사 이력에 남긴다(어느 방문이 넘어갔는지 나중에 확인해야 한다). -->
-  <select id="selectOverdueEntered" resultType="int">
-    SELECT visit_no
-    FROM tb_visit
-    WHERE del_yn = 'N' AND status_code = 'VS03'
-      AND work_end_dt IS NOT NULL AND work_end_dt &lt; getdate()
-    ORDER BY visit_no
-  </select>
-
-  <update id="markUnreturned">
-    UPDATE tb_visit SET status_code = 'VS05', mod_dt = getdate()
-    WHERE del_yn = 'N' AND status_code = 'VS03'
-      AND work_end_dt IS NOT NULL AND work_end_dt &lt; getdate()
   </update>
 
   <!-- ── 인솔자 ── -->

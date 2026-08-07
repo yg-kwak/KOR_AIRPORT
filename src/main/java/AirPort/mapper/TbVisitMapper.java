@@ -23,12 +23,6 @@ public interface TbVisitMapper {
   /** 상태만 변경 — 퇴실(VS04) 처리용. */
   int updateStatus(@Param("visitNo") int visitNo, @Param("statusCode") String statusCode);
 
-  /** 입실 중인데 작업기간이 끝난 방문번호 — 미반납 전환 대상. */
-  List<Integer> selectOverdueEntered();
-
-  /** 위 대상을 미반납(VS05)으로 일괄 변경. 바뀐 건수를 돌려준다. */
-  int markUnreturned();
-
   // ── 인솔자 ──
   List<String> selectManagerIds(@Param("visitNo") int visitNo);
 

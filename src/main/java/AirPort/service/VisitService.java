@@ -403,36 +403,22 @@ public class VisitService {
   }
 
   /**
-   * 방문 상태 — 서버가 정한다(사용자가 고를 수 없다).
+   * 저장할 방문 상태 — 서버가 정한다(사용자가 고를 수 없다).
    *
-   * <p>전원 카드 발급 = 입실. 그때 작업기간이 이미 지났으면 곧바로 미반납이다. 반대로 기간을 연장해 저장하면 미반납이 다시 입실 중으로 돌아온다 — 판정 기준이
-   * 스케줄러(VisitOverdueService)와 같아야 화면과 배치가 어긋나지 않는다. 퇴실 완료는 무엇을 해도 유지.
+   * <p>저장되는 값은 신청·입실 중·퇴실 완료 셋뿐이다. <b>미반납은 저장하지 않는다</b> — "작업기간이 끝났는데 아직 입실 중"은 시간이 지나면 저절로 참이 되는
+   * 사실이라, 적어 두면 그 순간부터 DB 가 틀린 값을 들고 있게 된다. 조회할 때 계산한다(TbVisitMapper.statusExpr).
+   *
+   * <p>그래서 넘어온 base 가 미반납이면(화면이 계산된 값을 되돌려준다) 입실 중으로 되돌려 저장한다.
    */
   private static String effectiveStatus(String base, VisitForm form) {
-    if (STATUS_LEFT.equals(base)) {
-      return base;
+    String stored = STATUS_UNRETURNED.equals(base) ? STATUS_ENTERED : base;
+    if (STATUS_LEFT.equals(stored)) {
+      return stored; // 퇴실 완료는 되돌리지 않는다
     }
     List<VisitorForm> vs = form.getVisitors();
     boolean allCarded =
         vs != null && !vs.isEmpty() && vs.stream().allMatch(v -> v.getCardId() != null);
-    if (!allCarded) {
-      return base;
-    }
-    return expired(form.getWorkEndDt()) ? STATUS_UNRETURNED : STATUS_ENTERED;
-  }
-
-  /** 작업기간 종료가 지났는가. 종료일이 없으면 판단하지 않는다(스케줄러도 같은 규칙). */
-  private static boolean expired(String workEndDt) {
-    String v = withSeconds(workEndDt);
-    if (v == null) {
-      return false;
-    }
-    try {
-      return java.time.LocalDateTime.parse(v.replace(' ', 'T'))
-          .isBefore(java.time.LocalDateTime.now());
-    } catch (java.time.format.DateTimeParseException e) {
-      return false; // 형식이 어긋나면 상태를 바꾸지 않는다(저장 검증이 따로 막는다)
-    }
+    return allCarded ? STATUS_ENTERED : stored;
   }
 
   static void require(String v, String label) {
