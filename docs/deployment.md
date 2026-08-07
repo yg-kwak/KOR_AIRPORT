@@ -107,6 +107,19 @@ keytool -genkeypair -alias cjairport -keyalg RSA -keysize 2048 -validity 3650 \
   -ext "SAN=dns:localhost,ip:127.0.0.1,ip:<서버IP>"
 ```
 
+## DB 변경분 적용
+
+신규 설치는 `sql/deploy/CJAirPort_install.sql` 하나면 된다. **이미 돌고 있는 DB** 는 날짜별 변경분 파일이 더 짧고 안전하다.
+
+| 파일 | 내용 |
+|------|------|
+| `sql/deploy/2026-08-07_update.sql` | 미반납(VS05) · 인원상태 재발급/분실 · 인원구분 순찰/대여 · 인원ID 접두 PL/RT · `tb_visit.checkout_dt` 추가+백필 |
+
+SSMS 로 대상 DB 를 선택하고 F5. **재실행해도 안전하다**(이미 있으면 건너뛴다). 마지막 결과 그리드에서
+`[5] 퇴실완료 방문` 의 **시각없음이 0** 인지 확인한다 — 이 값이 정기 파기의 기준이다.
+
+적용 뒤 새 jar 로 교체하고 서비스를 재시작한다.
+
 ## 배포 절차
 - **산출물: 실행 가능 `jar`** (Spring Boot fat jar, `gradlew build` → `build/libs/*-SNAPSHOT.jar`, `*-plain.jar` 아님). `java -jar` 로 기동.
 - 배치: jar + 외부 설정 파일을 서버에 반입 → 아래 "설정·비밀값 주입" 대로 실행.
