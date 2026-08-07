@@ -118,6 +118,8 @@ public class PersonService {
       if (dead == null) {
         personMapper.insert(row);
       } else {
+        // 이 정리가 들어가기 전에 삭제된 행에는 사진이 남아 있다 — 되살리기 전에 지운다
+        photoMapper.deleteByPerson(form.getPersonId());
         personMapper.revive(row);
       }
     } catch (org.springframework.dao.DataIntegrityViolationException e) {
@@ -236,6 +238,9 @@ public class PersonService {
     // 카드 회수가 빠지면 사라진 인원에 카드가 물린 채 '발급중'으로 남아 다른 인원에게 발급할 수 없다
     int released = cardService.releasePersonCards(personId);
     acGroupMapper.deleteByPerson(personId); // 출입권한도 함께 정리
+    // 얼굴은 생체정보다. 소프트 삭제로 남길 이유가 없고, 인원ID 를 재사용하면
+    // 다음 사람에게 그대로 붙는다(수정 모달·카드 출력에 다른 사람 얼굴이 나온다).
+    photoMapper.deleteByPerson(personId);
     personMapper.softDelete(personId);
     auditService.log(
         actor,

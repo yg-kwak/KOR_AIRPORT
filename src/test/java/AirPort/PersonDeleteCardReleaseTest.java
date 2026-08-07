@@ -27,6 +27,8 @@ import org.junit.jupiter.api.Test;
 class PersonDeleteCardReleaseTest {
 
   private final TbPersonMapper personMapper = mock(TbPersonMapper.class);
+  private final AirPort.mapper.TbPersonPhotoMapper photoMapper =
+      mock(AirPort.mapper.TbPersonPhotoMapper.class);
   private final TbPersonAcGroupMapper acGroupMapper = mock(TbPersonAcGroupMapper.class);
   private final PersonBiostarService personBiostar = mock(PersonBiostarService.class);
   private final CardService cardService = mock(CardService.class);
@@ -42,7 +44,7 @@ class PersonDeleteCardReleaseTest {
     return new PersonService(
         "2028-05-31T23:59",
         personMapper,
-        null,
+        photoMapper,
         acGroupMapper,
         personBiostar,
         null,
@@ -62,6 +64,16 @@ class PersonDeleteCardReleaseTest {
     verify(cardService).releasePersonCards("P001"); // person_id=NULL → 미발급 상태
     verify(acGroupMapper).deleteByPerson("P001");
     verify(personMapper).softDelete("P001");
+  }
+
+  @Test
+  void 인원을_삭제하면_얼굴_사진도_지운다() {
+    // 생체정보를 소프트 삭제로 남기지 않는다. 남기면 인원ID 재사용 시 다음 사람에게 그대로 붙는다
+    when(personBiostar.deleteUser(anyString(), anyString())).thenReturn(null);
+
+    service().delete("P001", null, 201);
+
+    verify(photoMapper).deleteByPerson("P001");
   }
 
   @Test

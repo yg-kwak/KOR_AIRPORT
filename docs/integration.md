@@ -49,7 +49,7 @@ System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true"
 설정관리에 넣는 값은 호스트 또는 `호스트:포트`다. 스킴을 붙이지 않으면 `https://` 를 앞에 붙인다.
 
 ```
-10.81.10.111:9443     ->  https://10.81.10.111:9443
+<서버IP>:9443          ->  https://<서버IP>:9443
 127.0.0.1:9443        ->  같은 서버에 함께 설치한 경우 권장(방화벽 무관)
 ```
 

@@ -36,6 +36,8 @@ class PersonReviveTest {
   }
 
   private final TbPersonMapper personMapper = mock(TbPersonMapper.class);
+  private final AirPort.mapper.TbPersonPhotoMapper photoMapper =
+      mock(AirPort.mapper.TbPersonPhotoMapper.class);
   private final TbPersonAcGroupMapper acGroupMapper = mock(TbPersonAcGroupMapper.class);
   private final PersonBiostarService personBiostar = mock(PersonBiostarService.class);
   private final PersonFileService personFileService = mock(PersonFileService.class);
@@ -48,7 +50,7 @@ class PersonReviveTest {
     return new PersonService(
         "2028-05-31T23:59",
         personMapper,
-        null,
+        photoMapper,
         acGroupMapper,
         personBiostar,
         personFileService,
@@ -85,6 +87,17 @@ class PersonReviveTest {
 
     verify(personMapper).revive(any()); // INSERT 대신 되살리기
     verify(personMapper, never()).insert(any());
+  }
+
+  @Test
+  void 되살릴_때_이전_인원의_사진을_지운다() {
+    // 이 정리가 없으면 재등록한 사람의 화면·카드에 앞사람 얼굴이 나온다
+    when(personMapper.selectById("30006")).thenReturn(row("Y"));
+    when(personBiostar.syncPersonToBiostar(any(), any())).thenReturn(null);
+
+    service().create(form(), null, 201);
+
+    verify(photoMapper).deleteByPerson("30006");
   }
 
   @Test
