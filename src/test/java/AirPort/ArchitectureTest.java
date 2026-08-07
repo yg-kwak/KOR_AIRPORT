@@ -94,4 +94,45 @@ class ArchitectureTest {
           .andShould()
           .beInterfaces()
           .because("mapper 패키지는 Tb*Mapper 인터페이스만 둔다 (SQL 은 XML 에)");
+
+  // ── 검색/폼 모델은 게터가 있어야 한다 ────────────────────────────────
+
+  /**
+   * 이 프로젝트는 Lombok 을 쓰지 않는다. 게터 없는 필드는 <b>조용히</b> 죽는다 — 요청 바인딩도, MyBatis 의 {@code <if test="...">}
+   * 평가도 리플렉션 게터로 하기 때문이다. 값이 늘 기본값이 되어 검색 조건이 통째로 무시된다(실제로 감사추적 [시스템] 필터가 이렇게 새어나갔다).
+   */
+  @ArchTest
+  static final ArchRule 검색_파라미터의_필드는_게터를_가진다 =
+      com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields()
+          .that()
+          .areDeclaredInClassesThat()
+          .haveSimpleNameEndingWith("SearchParam")
+          .and()
+          .areNotStatic()
+          .should(haveGetter())
+          .because("Lombok 이 없다 — 게터가 없으면 요청 바인딩·MyBatis 조건이 조용히 무시된다");
+
+  private static com.tngtech.archunit.lang.ArchCondition<com.tngtech.archunit.core.domain.JavaField>
+      haveGetter() {
+    return new com.tngtech.archunit.lang.ArchCondition<>("게터가 있다") {
+      @Override
+      public void check(
+          com.tngtech.archunit.core.domain.JavaField field,
+          com.tngtech.archunit.lang.ConditionEvents events) {
+        String cap =
+            Character.toUpperCase(field.getName().charAt(0)) + field.getName().substring(1);
+        boolean found =
+            field.getOwner().getAllMethods().stream()
+                .anyMatch(
+                    m ->
+                        m.getRawParameterTypes().isEmpty()
+                            && (m.getName().equals("get" + cap) || m.getName().equals("is" + cap)));
+        if (!found) {
+          events.add(
+              com.tngtech.archunit.lang.SimpleConditionEvent.violated(
+                  field, field.getFullName() + " 에 게터(get" + cap + "/is" + cap + ")가 없다"));
+        }
+      }
+    };
+  }
 }

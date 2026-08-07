@@ -12,6 +12,15 @@ public class SystemLogSearchParam extends PageParam {
   private String startDate; // yyyy-MM-dd
   private String endDate; // yyyy-MM-dd
 
+  /** 이 프로젝트는 Lombok 을 쓰지 않는다 — 게터가 없으면 요청 바인딩도 MyBatis 조건 평가도 되지 않는다. */
+  public boolean isSystemOnly() {
+    return systemOnly;
+  }
+
+  public void setSystemOnly(boolean systemOnly) {
+    this.systemOnly = systemOnly;
+  }
+
   public Integer getMenuId() {
     return menuId;
   }
