@@ -115,6 +115,19 @@ System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true"
   - **동기화 실패면 상태를 올리지 않는다**: 전원 카드를 발급해도 BiostarX 등록이 실패하면 `신청(VS01)` 으로 되돌린다.
     상태만 '입실 중'이 되면 **카드가 문을 열지 못하는데도 처리가 끝난 것처럼 보인다.** 저장 자체는 유지하고(장비에 부분 생성된
     사용자를 유령으로 남기지 않기 위해) 사유를 화면과 감사에 남긴다 — 원인을 고친 뒤 다시 저장하면 재시도된다.
+  - **실패한 요청은 본문이 함께 남는다**: 응답만으로는 무엇이 잘못됐는지 알 수 없어, HTTP 400 이상이면
+    보낸 본문을 로그에 적는다(`BiostarSession`). 성명·사진·연락처는 가리고 진단에 필요한 구조만 남긴다.
+    성공한 요청은 남기지 않는다(양이 많고 개인정보다). 401 도 제외 — 세션 만료는 재로그인 후 다시 보낸다.
+
+    ```
+    WARN BiostarSession - BiostarX 요청 실패 — POST /api/users 본문: {"User":{"name":"***",
+      "photo":"***","phone":"***","user_id":"IS000046","user_group_id":{"id":"1004"},
+      "access_groups":[{"id":1},{"id":3}],"cards":[{"card_id":"1111114"}]}}
+    WARN BiostarAdapter - BiostarX 응답 HTTP 400 — 본문: {"Response":{"code":"65717", ...
+    ```
+
+    위 예에서 범인은 `user_group_id: 1004` 다 — 그 그룹이 장비에 없다.
+
   - **자주 겪는 실패**: `code 65717 "not defined"` 는 payload 가 가리키는 대상이 장비에 없다는 뜻이다. 대부분
     **발급구분(PTD) `code_tag` 의 사용자그룹 ID** 가 그 BiostarX 에 없어서다(시드값 1003·1004·1005 는 예시다).
     설정관리 화면에서 실제 그룹 ID 로 바꾼다. 바로 앞줄의 `code 201 "User can not be found with id"` 는

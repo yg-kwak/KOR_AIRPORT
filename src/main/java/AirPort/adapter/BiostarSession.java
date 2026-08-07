@@ -202,7 +202,39 @@ public class BiostarSession {
     return one.length() <= 200 ? one : one.substring(0, 200) + "…";
   }
 
+  /**
+   * 실패한 요청의 본문을 남긴다 — 응답만 보면 "not defined" 처럼 <b>무엇이</b> 잘못됐는지 알 수 없다. 어느 그룹·출입그룹·카드를 보냈는지가 있어야 원인을
+   * 찾는다.
+   *
+   * <p>성공은 남기지 않는다(양이 많고 개인정보다). 401 도 제외한다 — 세션 만료는 곧바로 재로그인해 다시 보내므로 실패가 아니다.
+   *
+   * <p>성명·사진·연락처는 개인정보라 가린다(security.md). 진단에 필요한 건 <b>구조</b>다 — user_group_id, access_groups,
+   * cards, 유효기간. 로그인 본문은 이 경로를 타지 않아 비밀번호가 실릴 일이 없다.
+   */
+  private static final java.util.regex.Pattern MASK =
+      java.util.regex.Pattern.compile(
+          "\"(password|name|photo|user_photo|phone|email|birthday)\"\s*:\s*\"[^\"]*\"",
+          java.util.regex.Pattern.CASE_INSENSITIVE);
+
+  static String maskBody(String json) { // 테스트에서 직접 확인한다
+    if (json == null || json.isBlank()) {
+      return "(본문 없음)";
+    }
+    String masked = MASK.matcher(json).replaceAll("\"$1\":\"***\"");
+    return masked.length() <= 1500 ? masked : masked.substring(0, 1500) + "…";
+  }
+
   private HttpResponse<String> send(
+      HttpClient c, String method, String base, String path, String sid, String jsonBody)
+      throws Exception {
+    HttpResponse<String> resp = doSend(c, method, base, path, sid, jsonBody);
+    if (resp.statusCode() >= 400 && resp.statusCode() != 401) {
+      log.warn("BiostarX 요청 실패 — {} {} 본문: {}", method, path, maskBody(jsonBody));
+    }
+    return resp;
+  }
+
+  private HttpResponse<String> doSend(
       HttpClient c, String method, String base, String path, String sid, String jsonBody)
       throws Exception {
     return c.send(
