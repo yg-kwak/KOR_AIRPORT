@@ -101,6 +101,7 @@ public class PersonController {
     }
     model.addAttribute("menus", menuService.tree(actor(session)));
     model.addAttribute("perm", perm);
+    model.addAttribute("maxAccessEndDt", personService.maxAccessEndDt()); // 입력 max·기본값
     return "web/person/person";
   }
 

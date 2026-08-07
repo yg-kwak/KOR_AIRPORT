@@ -137,11 +137,11 @@
               <div class="form-grid">
                 <div class="form-group">
                   <label>출입시작일 <span class="req">*</span></label>
-                  <input type="datetime-local" id="accessStartDt" class="input" max="2037-12-31T23:59"/>
+                  <input type="datetime-local" id="accessStartDt" class="input" th:attr="max=${maxAccessEndDt}"/>
                 </div>
                 <div class="form-group">
                   <label>출입종료일 <span class="req">*</span></label>
-                  <input type="datetime-local" id="accessEndDt" class="input" max="2037-12-31T23:59"/>
+                  <input type="datetime-local" id="accessEndDt" class="input" th:attr="max=${maxAccessEndDt}"/>
                 </div>
               </div>
             </div>
@@ -291,6 +291,8 @@
     canCreate: [[${perm.canCreate}]],
     canDelete: [[${perm.canDelete}]]
   };
+  // 출입종료일 상한 — 서버(app.person.access-end-max)와 같은 값을 쓴다(두 곳에 적으면 어긋난다)
+  window.MAX_ACCESS_END_DT = [[${maxAccessEndDt}]];
 </script>
 <!-- 카드 브라우저 인쇄 영역(화면 숨김, @media print 에서만 노출) — 클라이언트 PC 프린터로 여백 없이 출력 -->
 <div id="cardPrintArea" aria-hidden="true"></div>

@@ -52,7 +52,9 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, code_
   ('PT', N'인원구분', 'PT01', N'정규', 'PTD01', 'N', 'Y'),
   ('PT', N'인원구분', 'PT02', N'임시', 'PTD02', 'N', 'Y'),
   ('PT', N'인원구분', 'PT03', N'장기', 'PTD03', 'Y', 'Y'),
-  ('PT', N'인원구분', 'PT04', N'상주', 'PTD03', 'Y', 'Y');
+  ('PT', N'인원구분', 'PT04', N'상주', 'PTD03', 'Y', 'Y'),
+  ('PT', N'인원구분', 'PT05', N'순찰', 'PTD03', 'Y', 'Y'),
+  ('PT', N'인원구분', 'PT06', N'대여', 'PTD03', 'Y', 'Y');
 
 /* 발급구분(PTD) — code_tag = BiostarX 부모 사용자그룹 ID.
    ⚠️ BiostarX 환경마다 다르므로 대상 서버의 실제 그룹 ID 로 교체할 것. (integration.md) */
@@ -66,7 +68,9 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_y
   ('PS', N'인원상태', '01', N'신규', 'false', 'Y'),
   ('PS', N'인원상태', '02', N'정지', 'true',  'Y'),
   ('PS', N'인원상태', '03', N'퇴사', 'true',  'Y'),
-  ('PS', N'인원상태', '04', N'회수', 'true',  'Y');
+  ('PS', N'인원상태', '04', N'회수', 'true',  'Y'),
+  ('PS', N'인원상태', '05', N'재발급', 'false', 'Y'),   -- 정상(출입 가능)
+  ('PS', N'인원상태', '06', N'분실', 'true',  'Y');
 
 /* 방문객 인원ID 접두(PIP) — code_id = 발급구분(PT) 코드, code_name = 접두 문자.
    유형별로 독립 시퀀스로 채번한다(IS000001 / LT000001 / RS000001).
@@ -75,7 +79,9 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, use_y
 INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_remark, use_yn) VALUES
   ('PIP', N'인원ID 접두', 'PT02', 'IS', N'임시', 'Y'),
   ('PIP', N'인원ID 접두', 'PT03', 'LT', N'장기', 'Y'),
-  ('PIP', N'인원ID 접두', 'PT04', 'RS', N'상주', 'Y');
+  ('PIP', N'인원ID 접두', 'PT04', 'RS', N'상주', 'Y'),
+  ('PIP', N'인원ID 접두', 'PT05', 'PL', N'순찰', 'Y'),
+  ('PIP', N'인원ID 접두', 'PT06', 'RT', N'대여', 'Y');
 
 /* 직위(UT) — code_name 이 BiostarX 사용자의 user_title 로 그대로 전달된다.
    기본 5개만 넣고, 그 외 직위는 운영에서 공통코드관리로 추가한다 */

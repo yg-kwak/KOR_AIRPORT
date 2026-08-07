@@ -16,7 +16,7 @@
 
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
-  const MAX_ACCESS_END_DT = '2037-12-31T23:59'; // BiostarX expiry 상한
+  const MAX_ACCESS_END_DT = window.MAX_ACCESS_END_DT || '2037-12-31T23:59'; // 서버 설정(app.person.access-end-max)
   const TITLE_ALLOWED = /^[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/; // 직위: 특수문자 금지
   const PERSON_ID_ALLOWED = /^[0-9A-Za-z]+$/; // 인원ID: 영문·숫자만(BiostarX 사용자ID 와 같은 키)
   const BIRTH_DATE_FORMAT = /^\d{4}-\d{2}-\d{2}$/; // 생년월일: placeholder 와 같은 YYYY-MM-DD

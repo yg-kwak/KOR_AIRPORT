@@ -40,6 +40,7 @@ class PersonDeleteCardReleaseTest {
     existing.setDelYn("N");
     when(personMapper.selectById("P001")).thenReturn(existing);
     return new PersonService(
+        "2028-05-31T23:59",
         personMapper,
         null,
         acGroupMapper,

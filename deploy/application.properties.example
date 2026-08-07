@@ -76,6 +76,10 @@ spring.servlet.multipart.max-request-size=5MB
 server.servlet.encoding.charset=UTF-8
 server.servlet.encoding.force=true
 
+# ===== 정규인원 =====
+# 출입종료일 상한 — 등록 모달의 기본값이자 저장할 때 막는 기준. 계약이 연장되면 이 날짜만 바꾼다.
+#app.person.access-end-max=2028-05-31T23:59
+
 # ===== 로그 =====
 # 이 한 줄이면 로그가 이 폴더에 하루 한 파일(cjairport.{날짜}.0.txt)로 쌓인다(형식·보관은 jar 기본값).
 #   기동·오류·경고 + 업무 이력(메뉴 접속·조회·등록·수정·삭제·로그인) + 요청 로그(URL·상태·처리시간)

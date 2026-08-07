@@ -9,8 +9,9 @@ window.badge = (function () {
   const VISIT_TONE = { VS01: 'warning', VS03: 'success', VS05: 'error', VS04: 'done' };
   // 카드상태(tb_common CS) → 톤. 정상=유효, 분실=차단(적), 정지=일시 차단(황), 반납=완료, 폐기=무효
   const CARD_TONE = { CS01: 'success', CS02: 'error', CS03: 'done', CS04: 'warning', CS05: 'none' };
-  // 인원상태(tb_common PS) → 톤. 신규=유효, 정지=일시 차단(황), 퇴사=완료, 회수=무효
-  const PERSON_TONE = { '01': 'success', '02': 'warning', '03': 'done', '04': 'none' };
+  // 인원상태(tb_common PS) → 톤. 신규·재발급=유효, 정지=일시 차단(황), 분실=차단(적), 퇴사=완료, 회수=무효
+  const PERSON_TONE = { '01': 'success', '02': 'warning', '03': 'done', '04': 'none',
+                        '05': 'success', '06': 'error' };
 
   const of = (text, tone) => `<span class="badge badge-${tone || 'done'}">${esc(text)}</span>`;
 
