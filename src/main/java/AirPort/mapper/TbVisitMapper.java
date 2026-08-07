@@ -23,6 +23,26 @@ public interface TbVisitMapper {
   /** 상태만 변경 — 퇴실(VS04) 처리용. */
   int updateStatus(@Param("visitNo") int visitNo, @Param("statusCode") String statusCode);
 
+  /** 퇴실 완료 시각 기록 — 정기 파기의 기준. 이미 있으면 덮지 않는다. */
+  int markCheckedOut(@Param("visitNo") int visitNo);
+
+  // ── 정기 파기 ──
+
+  /** 보존기간이 지난 퇴실 완료 방문번호 — 1회 실행 상한(limit)까지. */
+  List<Integer> selectPurgeTargets(@Param("keepDays") int keepDays, @Param("limit") int limit);
+
+  /** 이 방문에서만 등장하는 방문객(정규인원 제외) — 다른 방문에도 있으면 남긴다. */
+  List<String> selectPurgeVisitorIds(@Param("visitNo") int visitNo);
+
+  /** 방문 차량 ID — 기관차량은 포함되지 않는다. */
+  List<Integer> selectPurgeCarIds(@Param("visitNo") int visitNo);
+
+  /** 방문 본체와 매핑 행 삭제(자식 → 부모 순). 되돌릴 수 없다. */
+  int purgeVisitRows(@Param("visitNo") int visitNo);
+
+  /** 어느 방문에도 속하지 않은 채 남은 방문객(소프트 삭제분) — 개인정보만 남아 있다. */
+  List<String> selectOrphanVisitorIds(@Param("keepDays") int keepDays, @Param("limit") int limit);
+
   // ── 인솔자 ──
   List<String> selectManagerIds(@Param("visitNo") int visitNo);
 

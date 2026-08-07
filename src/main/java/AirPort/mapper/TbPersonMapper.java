@@ -38,6 +38,9 @@ public interface TbPersonMapper {
   /** 삭제된 인원ID 로 다시 등록 — 남아 있는 행을 되살린다(person_id 는 PK 라 INSERT 불가). */
   int revive(TbPerson row);
 
+  /** 정기 파기 — 사진·첨부·출입권한까지 물리 삭제. 되돌릴 수 없다. */
+  int purge(@Param("personId") String personId);
+
   /** BiostarX 사용자 생성 성공 후 연동 ID 반영. */
   int updateBiostarUserId(
       @Param("personId") String personId, @Param("biostarUserId") String biostarUserId);

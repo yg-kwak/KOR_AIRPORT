@@ -23,6 +23,7 @@ public class TbVisit {
   private String returner;
   private String evidenceFile;
   private String remark;
+  private String checkoutDt;
   private String delYn;
   private LocalDateTime regDt;
   private LocalDateTime modDt;

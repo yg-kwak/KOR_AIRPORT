@@ -341,6 +341,7 @@ public class VisitService {
       cardMapper.releaseByCar(carId); // 사람이 다 나갔으면 방문 차량 카드도 놔 준다
     }
     visitMapper.updateStatus(visitNo, STATUS_LEFT);
+    visitMapper.markCheckedOut(visitNo); // 정기 파기(1년)의 기준 시각
     auditService.log(actor, AuditService.UPDATE, menuId, "방문 퇴실(마지막 방문객 퇴실로 자동): " + visitNo);
   }
 
@@ -373,6 +374,7 @@ public class VisitService {
       cardMapper.releaseByCar(carId);
     }
     visitMapper.updateStatus(visitNo, STATUS_LEFT); // VS04 퇴실 완료
+    visitMapper.markCheckedOut(visitNo); // 정기 파기(1년)의 기준 시각
     auditService.log(actor, AuditService.UPDATE, menuId, "방문 퇴실: " + visitNo);
     return warn;
   }

@@ -37,5 +37,8 @@ public interface TbCarMapper {
   /** 기관차량등록 수정 — 소속 기관까지 함께 고친다(차량등록관리의 update 는 기관을 건드리지 않는다). */
   int updateWithCompany(TbCar car);
 
+  /** 정기 파기 — 방문 차량 물리 삭제(출입구역 매핑 포함). 되돌릴 수 없다. */
+  int purge(@Param("carId") int carId);
+
   int softDelete(@Param("carId") Integer carId);
 }

@@ -55,7 +55,10 @@
 
   <sql id="listColumns">
     l.log_id, l.user_id, l.user_name, l.action_type, l.menu_id, l.action_detail, l.remark, l.reg_dt,
-    c.code_name AS action_type_name, m.menu_name AS menu_name
+    c.code_name AS action_type_name,
+    <!-- 화면을 거치지 않은 기록(배치·키오스크·계정잠금)은 메뉴가 없다 — [시스템]으로 보여준다 -->
+    CASE WHEN l.menu_id IS NULL AND l.user_id = 'SYSTEM' THEN N'[시스템]'
+         ELSE m.menu_name END AS menu_name
   </sql>
 
   <sql id="listJoins">

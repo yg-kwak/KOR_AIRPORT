@@ -384,6 +384,7 @@ BEGIN
     receiver      nvarchar(100)  NULL,                  -- 수령자 (방문객, text)
     returner      nvarchar(100)  NULL,                  -- 반납자 (방문객, text)
     evidence_file nvarchar(260)  NULL,                  -- 근거문서 파일명 (text)
+    checkout_dt   datetime2(0)   NULL,                  -- 퇴실 완료 시각 (파기 기준)
     remark        nvarchar(1000) NULL,                  -- 메모
     del_yn        nchar(1)       NOT NULL DEFAULT 'N',  -- 삭제여부 (소프트 삭제)
     reg_dt        datetime2(0)   NOT NULL DEFAULT getdate(),
@@ -714,6 +715,21 @@ IF COL_LENGTH('dbo.tb_visit_person', 'checkout_dt') IS NULL
 BEGIN
   ALTER TABLE dbo.tb_visit_person ADD checkout_dt datetime2(0) NULL;
   PRINT '  + tb_visit_person.checkout_dt 추가';
+END
+GO
+
+IF COL_LENGTH('dbo.tb_visit', 'checkout_dt') IS NULL
+BEGIN
+  ALTER TABLE dbo.tb_visit ADD checkout_dt datetime2(0) NULL;
+  PRINT '  + tb_visit.checkout_dt 추가';
+END
+GO
+/* 이미 퇴실 완료된 방문에는 시각이 없다 — 파기 기준이 되어야 하므로 mod_dt 로 채운다.
+   근사치지만 유일한 단서이고, 1년 뒤 파기 대상 판정에는 충분하다. */
+IF EXISTS (SELECT 1 FROM dbo.tb_visit WHERE status_code = 'VS04' AND checkout_dt IS NULL)
+BEGIN
+  UPDATE dbo.tb_visit SET checkout_dt = mod_dt WHERE status_code = 'VS04' AND checkout_dt IS NULL;
+  PRINT '  + tb_visit.checkout_dt 백필(mod_dt 기준) ' + CAST(@@ROWCOUNT AS varchar(10)) + '건';
 END
 GO
 

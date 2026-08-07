@@ -92,6 +92,7 @@
     CONVERT(varchar(10), v.permit_dt, 23)      AS permit_dt,
     CONVERT(varchar(16), v.work_start_dt, 126) AS work_start_dt,
     CONVERT(varchar(16), v.work_end_dt, 126)   AS work_end_dt,
+    CONVERT(varchar(19), v.checkout_dt, 120)   AS checkout_dt,
     pt.code_name AS visit_type_name, vs.code_name AS status_name,
     (SELECT COUNT(*) FROM tb_visit_person vp WHERE vp.visit_no = v.visit_no) AS person_count,
     (SELECT COUNT(*) FROM tb_visit_car vc WHERE vc.visit_no = v.visit_no) AS car_count
@@ -147,6 +148,65 @@
   <update id="updateStatus">
     UPDATE tb_visit SET status_code = #{statusCode}, mod_dt = getdate() WHERE visit_no = #{visitNo}
   </update>
+
+  <!-- 퇴실 완료 시각 — 정기 파기(1년)의 기준. mod_dt 는 이후 수정에도 바뀌어 기준이 될 수 없다.
+       이미 값이 있으면 덮지 않는다(개별 퇴실로 마감된 뒤 다시 불려도 최초 시각을 지킨다). -->
+  <update id="markCheckedOut">
+    UPDATE tb_visit SET checkout_dt = getdate(), mod_dt = getdate()
+     WHERE visit_no = #{visitNo} AND checkout_dt IS NULL
+  </update>
+
+  <!-- ══ 정기 파기(개인정보 보존기간 경과) ══
+       퇴실 완료 후 보존기간이 지난 방문을 통째로 지운다. 되돌릴 수 없다.
+       FK 제약이 없으므로 삭제 순서를 여기서 명시적으로 지킨다(자식 → 부모).
+       인솔자는 정규인원(PT01)이라 매핑 행만 지우고 사람은 건드리지 않는다. -->
+
+  <select id="selectPurgeTargets" resultType="int">
+    SELECT TOP (#{limit}) visit_no
+    FROM tb_visit
+    WHERE status_code = 'VS04'
+      AND checkout_dt IS NOT NULL
+      AND checkout_dt &lt; DATEADD(DAY, -#{keepDays}, getdate())
+    ORDER BY visit_no
+  </select>
+
+  <!-- 이 방문에서만 등장하는 방문객 — 다른 방문에도 있으면 지우지 않는다(그쪽 이력이 깨진다).
+       정규인원(PT01)은 인솔자이므로 절대 대상이 아니다. -->
+  <select id="selectPurgeVisitorIds" resultType="string">
+    SELECT vp.person_id
+    FROM tb_visit_person vp
+    JOIN tb_person p ON p.person_id = vp.person_id AND p.person_type &lt;&gt; 'PT01'
+    WHERE vp.visit_no = #{visitNo}
+      AND NOT EXISTS (SELECT 1 FROM tb_visit_person o
+                       WHERE o.person_id = vp.person_id AND o.visit_no &lt;&gt; #{visitNo})
+  </select>
+
+  <!-- 방문 차량만 — tb_visit_car 로 연결된 것. 기관차량은 해당 없음 -->
+  <select id="selectPurgeCarIds" resultType="int">
+    SELECT car_id FROM tb_visit_car WHERE visit_no = #{visitNo}
+  </select>
+
+  <delete id="purgeVisitRows">
+    DELETE FROM tb_visit_ac_group     WHERE visit_no = #{visitNo};
+    DELETE FROM tb_visit_car_ac_group WHERE visit_no = #{visitNo};
+    DELETE FROM tb_visit_manager      WHERE visit_no = #{visitNo};
+    DELETE FROM tb_visit_person       WHERE visit_no = #{visitNo};
+    DELETE FROM tb_visit_car          WHERE visit_no = #{visitNo};
+    DELETE FROM tb_visit              WHERE visit_no = #{visitNo};
+  </delete>
+
+  <!-- 방문에서 빠져 어디에도 속하지 않은 방문객 — 소프트 삭제된 채 개인정보만 남아 있다.
+       퇴실 완료 방문과 같은 보존기간을 적용한다(기준은 삭제 시각 = mod_dt). -->
+  <select id="selectOrphanVisitorIds" resultType="string">
+    SELECT TOP (#{limit}) p.person_id
+    FROM tb_person p
+    WHERE p.person_type &lt;&gt; 'PT01'
+      AND p.del_yn = 'Y'
+      AND p.mod_dt &lt; DATEADD(DAY, -#{keepDays}, getdate())
+      AND NOT EXISTS (SELECT 1 FROM tb_visit_person vp WHERE vp.person_id = p.person_id)
+      AND NOT EXISTS (SELECT 1 FROM tb_visit_manager vm WHERE vm.person_id = p.person_id)
+    ORDER BY p.person_id
+  </select>
 
   <!-- ── 인솔자 ── -->
   <select id="selectManagerIds" resultType="string">

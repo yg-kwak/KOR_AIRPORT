@@ -262,6 +262,7 @@ CREATE TABLE dbo.tb_visit (
   receiver      nvarchar(100)  NULL,                  -- 수령자 (방문객, text)
   returner      nvarchar(100)  NULL,                  -- 반납자 (방문객, text)
   evidence_file nvarchar(260)  NULL,                  -- 근거문서 파일명 (text)
+  checkout_dt   datetime2(0)   NULL,                  -- 퇴실 완료 시각 (파기 기준. 상태가 VS04 로 바뀐 때)
   remark        nvarchar(1000) NULL,                  -- 메모
   del_yn        nchar(1)       NOT NULL DEFAULT 'N',  -- 삭제여부 (소프트 삭제)
   reg_dt        datetime2(0)   NOT NULL DEFAULT getdate(),

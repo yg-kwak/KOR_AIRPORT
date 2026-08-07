@@ -151,4 +151,10 @@
     UPDATE tb_car SET del_yn = 'Y', mod_dt = getdate() WHERE car_id = #{carId}
   </update>
 
+  <!-- 정기 파기 — 방문 차량 물리 삭제(출입구역 매핑 포함). 기관차량은 호출되지 않는다. -->
+  <delete id="purge">
+    DELETE FROM tb_car_ac_group WHERE car_id = #{carId};
+    DELETE FROM tb_car          WHERE car_id = #{carId};
+  </delete>
+
 </mapper>
