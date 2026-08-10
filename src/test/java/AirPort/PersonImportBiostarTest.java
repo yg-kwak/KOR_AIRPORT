@@ -22,6 +22,7 @@ import AirPort.mapper.TbPersonMapper;
 import AirPort.mapper.TbPersonPhotoMapper;
 import AirPort.mapper.TbSystemMapper;
 import AirPort.model.ImportResult;
+import AirPort.model.TbCommon;
 import AirPort.model.TbPerson;
 import AirPort.model.TbSystem;
 import AirPort.service.AuditService;
@@ -70,11 +71,22 @@ class PersonImportBiostarTest {
         auditService);
   }
 
+  /** 접속정보 + 가져오기 범위(정규등록 1003 아래 1009) 준비. */
   private void configured() {
     TbSystem cfg = new TbSystem();
     cfg.setBiostarIp("10.0.0.1");
     cfg.setBiostarId("admin");
     when(systemMapper.selectOne()).thenReturn(cfg);
+    TbCommon ptd = new TbCommon();
+    ptd.setCodeTag("1003");
+    when(commonMapper.selectOne("PTD", "PTD01")).thenReturn(ptd);
+    when(importAdapter.searchUserGroups(any(), any(), any()))
+        .thenReturn(
+            List.of(
+                new AirPort.adapter.BiostarUserGroup(1003L, "정규", 1L),
+                new AirPort.adapter.BiostarUserGroup(1009L, "슈프리마", 1003L),
+                new AirPort.adapter.BiostarUserGroup(1004L, "임시", 1L),
+                new AirPort.adapter.BiostarUserGroup(2001L, "임시하위", 1004L)));
   }
 
   private static BiostarUserDetail user(String id, Integer groupId) {
@@ -99,8 +111,8 @@ class PersonImportBiostarTest {
   @Test
   void 기관이_매핑되지_않은_인원은_가져오지_않는다() {
     configured();
-    when(importAdapter.searchUsers(any(), any(), any())).thenReturn(List.of(user("1", 1)));
-    when(companyMapper.selectCodeByBiostarGroupId(1)).thenReturn(null);
+    when(importAdapter.searchUsers(any(), any(), any())).thenReturn(List.of(user("1", 1009)));
+    when(companyMapper.selectCodeByBiostarGroupId(1009)).thenReturn(null);
 
     ImportResult r = service().importUsers(true, true, true, null, 101);
 
@@ -171,6 +183,34 @@ class PersonImportBiostarTest {
     assertEquals(1, r.getTarget());
     verify(personMapper, never()).insert(any());
     verify(importAdapter, never()).fetchUser(any(), any(), any(), any());
+  }
+
+  @Test
+  void 정규등록_그룹_밖의_사용자는_가져오지_않는다() {
+    // 장비에는 임시·장기 사용자도 같이 있다 — 전체를 끌어오면 정규가 아닌 사람이 섞인다
+    configured();
+    when(importAdapter.searchUsers(any(), any(), any()))
+        .thenReturn(List.of(user("IS000001", 2001), user("400001", 1009)));
+    when(companyMapper.selectCodeByBiostarGroupId(1009)).thenReturn("C004");
+
+    ImportResult r = service().preview(null, 101);
+
+    assertEquals(1, r.getTarget()); // 1009(정규 아래)만
+    assertTrue(
+        r.getSkippedReasons().stream().anyMatch(x -> x.contains("정규등록 그룹 밖")),
+        r.getSkippedReasons().toString());
+  }
+
+  @Test
+  void 정규등록_그룹이_지정되지_않으면_거부한다() {
+    TbSystem cfg = new TbSystem();
+    cfg.setBiostarIp("10.0.0.1");
+    when(systemMapper.selectOne()).thenReturn(cfg);
+    when(commonMapper.selectOne("PTD", "PTD01")).thenReturn(null);
+
+    BusinessException ex =
+        assertThrows(BusinessException.class, () -> service().preview(null, 101));
+    assertTrue(ex.getMessage().contains("PTD01"), ex.getMessage());
   }
 
   @Test

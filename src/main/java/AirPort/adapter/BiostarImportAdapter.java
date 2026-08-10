@@ -32,6 +32,41 @@ public class BiostarImportAdapter {
   }
 
   /**
+   * 사용자그룹 <b>전체</b> 목록 — {@code POST /api/v2/user_groups/search}.
+   *
+   * <p>{@link BiostarAdapter#searchUserGroups} 는 화면 트리용이라 펼쳐진 일부만 준다(총 10건). 가져오기는 부모-자식을 따라 하위 그룹을
+   * 모두 찾아야 하므로 평면 전체 목록이 필요하다.
+   */
+  public List<BiostarUserGroup> searchUserGroups(String ip, String loginId, String password) {
+    try {
+      HttpResponse<String> resp =
+          session.post(
+              baseUrl(ip),
+              loginId,
+              password,
+              "/api/v2/user_groups/search",
+              "{\"limit\":1000,\"offset\":0}");
+      if (BiostarAdapter.responseError(objectMapper, resp) != null) {
+        return List.of();
+      }
+      JsonNode rows = objectMapper.readTree(resp.body()).path("UserGroupCollection").path("rows");
+      List<BiostarUserGroup> out = new java.util.ArrayList<>();
+      for (JsonNode n : rows) {
+        JsonNode parent = n.path("parent_id").path("id");
+        out.add(
+            new BiostarUserGroup(
+                n.path("id").asLong(),
+                n.path("name").asText(null),
+                parent.isMissingNode() ? null : parent.asLong()));
+      }
+      return out;
+    } catch (Exception e) {
+      log.warn("BiostarX 사용자그룹 목록 조회 실패: {}", e.toString());
+      return List.of();
+    }
+  }
+
+  /**
    * 사용자 목록 — {@code POST /api/v2/users/search}. 목록 응답에는 사진·카드 상세가 없어 요약만 담는다.
    *
    * @return 사용자ID·성명·사용자그룹만 채운 목록(사진/카드/출입그룹은 {@link #fetchUser} 로)

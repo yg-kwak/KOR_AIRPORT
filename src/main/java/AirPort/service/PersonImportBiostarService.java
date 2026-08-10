@@ -34,6 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>가져오는 기준:
  *
  * <ul>
+ *   <li><b>범위</b> — 발급구분 정규등록(`tb_common` PTD/PTD01)의 `code_tag` 사용자그룹과 <b>그 아래 모든 하위 그룹</b>에 속한
+ *       인원만. 장비에는 임시·장기 사용자도 함께 있어 전체를 끌어오면 정규가 아닌 사람이 섞인다.
  *   <li><b>기관</b> — 장비 사용자그룹 ID 가 `tb_company.biostar_group_id` 에 있는 인원만. 없으면 건너뛰고 사유를 남긴다.
  *   <li><b>출입그룹</b> — 우리와 매핑된(`tb_ac_group.biostar_ac_id`) 것만 가져온다.
  *   <li><b>이미 있는 인원</b> — 건너뛴다. 덮어쓰면 우리 화면에서 채운 생년월일·신원조회 같은 값이 날아간다.
@@ -51,6 +53,9 @@ public class PersonImportBiostarService {
 
   /** 인원상태 기본값 — 신규. 장비에는 이 개념이 없다. */
   private static final String STATUS_NEW = "01";
+
+  /** 정규등록 발급구분 — 이 코드의 code_tag 가 가져오기 대상 사용자그룹의 뿌리다. */
+  private static final String ISSUE_TYPE_REGULAR = "PTD01";
 
   private final BiostarImportAdapter importAdapter;
   private final TbSystemMapper systemMapper;
@@ -130,12 +135,17 @@ public class PersonImportBiostarService {
     String id = cfg.getBiostarId();
     String pw = cfg.getBiostarPw() == null ? "" : ARIAUtil.ariaDecrypt(cfg.getBiostarPw());
 
+    java.util.Set<Long> scope = regularGroupScope(ip, id, pw);
     List<BiostarUserDetail> users = importAdapter.searchUsers(ip, id, pw);
     ImportResult r = new ImportResult();
     r.setTotal(users.size());
 
     for (BiostarUserDetail u : users) {
       if (u.userId() == null || u.userId().isBlank()) {
+        continue;
+      }
+      if (u.userGroupId() == null || !scope.contains(u.userGroupId().longValue())) {
+        skip(r, u, "정규등록 그룹 밖(사용자그룹 " + u.userGroupId() + ")");
         continue;
       }
       String company = companyOf(u.userGroupId());
@@ -232,6 +242,45 @@ public class PersonImportBiostarService {
       n++;
     }
     return n;
+  }
+
+  /**
+   * 가져오기 대상 사용자그룹 — 정규등록(PTD01) 그룹과 그 아래 전부.
+   *
+   * <p>장비에는 임시·장기 사용자도 같이 있다. 뿌리를 정해 두지 않으면 정규가 아닌 사람까지 정규인원으로 들어온다.
+   */
+  private java.util.Set<Long> regularGroupScope(String ip, String id, String pw) {
+    TbCommon ptd = commonMapper.selectOne("PTD", ISSUE_TYPE_REGULAR);
+    if (ptd == null || ptd.getCodeTag() == null || ptd.getCodeTag().isBlank()) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT, "발급구분(PTD01 정규등록)에 BiostarX 사용자그룹 ID가 없습니다. 공통코드관리에서 등록하세요.");
+    }
+    long root;
+    try {
+      root = Long.parseLong(ptd.getCodeTag().trim());
+    } catch (NumberFormatException e) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT, "발급구분(PTD01)의 사용자그룹 ID가 숫자가 아닙니다: " + ptd.getCodeTag());
+    }
+    // 부모→자식 한 단계씩 내려가며 넓힌다(깊이 제한 없음)
+    java.util.Map<Long, List<Long>> children = new java.util.HashMap<>();
+    for (AirPort.adapter.BiostarUserGroup g : importAdapter.searchUserGroups(ip, id, pw)) {
+      if (g.parentId() != null) {
+        children.computeIfAbsent(g.parentId(), k -> new java.util.ArrayList<>()).add(g.id());
+      }
+    }
+    java.util.Set<Long> scope = new java.util.LinkedHashSet<>();
+    java.util.Deque<Long> queue = new java.util.ArrayDeque<>();
+    queue.add(root);
+    while (!queue.isEmpty()) {
+      Long g = queue.poll();
+      if (!scope.add(g)) {
+        continue; // 순환 방어
+      }
+      queue.addAll(children.getOrDefault(g, List.of()));
+    }
+    log.info("BiostarX 가져오기 대상 그룹 — 정규등록 {} 아래 {}개", root, scope.size());
+    return scope;
   }
 
   private String companyOf(Integer biostarGroupId) {
