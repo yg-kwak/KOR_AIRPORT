@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 /** 설정관리(tb_system) — BiostarX 연동정보. 단일 행 폼 + 저장/연결테스트. */
@@ -26,16 +27,19 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class SystemController {
 
   private final SystemService systemService;
+  private final AirPort.service.PersonImportBiostarService importService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
   private final CurrentMenu currentMenu; // 요청 URL 로 해석된 menu_id (하드코딩 대체)
 
   public SystemController(
       SystemService systemService,
+      AirPort.service.PersonImportBiostarService importService,
       MenuService menuService,
       MenuAuthService menuAuthService,
       CurrentMenu currentMenu) {
     this.systemService = systemService;
+    this.importService = importService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
     this.currentMenu = currentMenu;
@@ -65,6 +69,25 @@ public class SystemController {
   public ApiResponse<Void> save(@RequestBody TbSystem input, HttpSession session) {
     systemService.save(input, actor(session), menuId());
     return ApiResponse.okMessage("저장되었습니다.");
+  }
+
+  /** BiostarX 가져오기 미리보기 (AJAX) — 무엇이 들어오고 무엇이 빠지는지만 센다. */
+  @GetMapping("/import/preview")
+  @ResponseBody
+  public ApiResponse<AirPort.model.ImportResult> importPreview(HttpSession session) {
+    return ApiResponse.ok(importService.preview(actor(session), menuId()));
+  }
+
+  /** BiostarX 가져오기 실행 (AJAX) — 카드·얼굴·출입권한은 선택. 장비에는 쓰지 않는다. */
+  @PostMapping("/import")
+  @ResponseBody
+  public ApiResponse<AirPort.model.ImportResult> importRun(
+      @RequestParam(defaultValue = "false") boolean cards,
+      @RequestParam(defaultValue = "false") boolean face,
+      @RequestParam(defaultValue = "false") boolean acGroups,
+      HttpSession session) {
+    return ApiResponse.ok(
+        importService.importUsers(cards, face, acGroups, actor(session), menuId()));
   }
 
   /** BiostarX 연결 테스트 (AJAX) — 성공/실패 메시지 반환(자동 토스트). */

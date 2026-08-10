@@ -670,3 +670,11 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
   .permit-right { text-align: right; margin: 3mm 0 0; letter-spacing: 1px; }
   .permit-approve { font-size: 13pt; font-weight: 700; text-align: center; margin: 10mm 0 0; }
 }
+
+/* BiostarX 가져오기(설정관리) — 체크 항목 줄과 결과 상자 */
+.check-row { display: flex; gap: 18px; align-items: center; padding-top: 6px; }
+.check-row label { display: inline-flex; gap: 6px; align-items: center; font-weight: 400; cursor: pointer; }
+.import-result { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border, #ddd);
+  border-radius: 6px; background: var(--bg-soft, #fafafa); font-size: 13px; line-height: 1.6;
+  white-space: pre-wrap; max-height: 320px; overflow-y: auto; }
+.card-title { margin: 0 0 6px; font-size: 15px; font-weight: 600; }

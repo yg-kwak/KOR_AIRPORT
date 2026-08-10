@@ -21,6 +21,9 @@ public interface TbAcGroupMapper {
   /** 주어진 ac_group_id 들의 biostar_ac_id 목록(방문객 BiostarX 출입그룹 전송용). */
   List<Integer> selectBiostarAcIdsByGroupIds(@Param("acGroupIds") List<Integer> acGroupIds);
 
+  /** BiostarX 가져오기 — 장비 출입그룹 ID 중 매핑된 우리 ac_group_id. */
+  List<Integer> selectIdsByBiostarAcIds(@Param("biostarAcIds") List<Integer> biostarAcIds);
+
   /** 신청서 출력용 — 선택한 출입그룹 이름(구역 번호 추출에 쓴다). */
   List<String> selectNamesByIds(@Param("acGroupIds") List<Integer> acGroupIds);
 

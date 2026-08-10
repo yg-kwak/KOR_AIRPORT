@@ -165,4 +165,11 @@
     UPDATE tb_company SET del_yn = 'Y', mod_dt = getdate() WHERE company_code = #{companyCode}
   </update>
 
+  <!-- BiostarX 가져오기 — 장비 사용자그룹 ID 로 우리 기관을 찾는다. 매핑이 없으면 그 인원은 건너뛴다. -->
+  <select id="selectCodeByBiostarGroupId" resultType="string">
+    SELECT TOP 1 company_code FROM tb_company
+    WHERE del_yn = 'N' AND biostar_group_id = #{biostarGroupId}
+    ORDER BY company_code
+  </select>
+
 </mapper>

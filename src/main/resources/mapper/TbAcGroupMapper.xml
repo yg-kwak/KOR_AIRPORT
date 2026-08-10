@@ -89,4 +89,12 @@
     ORDER BY ac_group_id
   </select>
 
+  <!-- BiostarX 가져오기 — 장비 출입그룹 ID 중 우리와 매핑된 것만 골라 온다(매핑 없는 것은 버린다). -->
+  <select id="selectIdsByBiostarAcIds" resultType="int">
+    SELECT ac_group_id FROM tb_ac_group
+    WHERE biostar_ac_id IN
+    <foreach collection="biostarAcIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+    ORDER BY ac_group_id
+  </select>
+
 </mapper>

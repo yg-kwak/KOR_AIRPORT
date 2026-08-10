@@ -31,6 +31,31 @@
         </div>
       </div>
     </section>
+
+    <!-- BiostarX 가져오기 — 장비에 이미 있는 정규 사용자를 우리 DB 로 옮긴다(단방향, 장비에 쓰지 않음) -->
+    <section class="content-card" th:if="${perm.canCreate}">
+      <h3 class="card-title">BiostarX 가져오기</h3>
+      <p class="form-hint">
+        장비에 등록된 <b>정규 사용자</b>를 우리 시스템으로 가져옵니다. 장비 데이터는 바뀌지 않습니다.<br/>
+        기관(사용자그룹)이 매핑된 인원만 대상입니다 — 기관등록관리에서 BiostarX 그룹을 먼저 연결하세요.
+        이미 등록된 인원은 건너뜁니다.
+      </p>
+      <div class="setting-form">
+        <div class="form-group wide">
+          <label>함께 가져올 항목</label>
+          <div class="check-row">
+            <label><input type="checkbox" id="impCards" checked/> 카드</label>
+            <label><input type="checkbox" id="impFace" checked/> 얼굴</label>
+            <label><input type="checkbox" id="impAcGroups" checked/> 출입권한</label>
+          </div>
+        </div>
+        <div class="setting-actions">
+          <button class="btn" id="btnImportPreview">미리보기</button>
+          <button class="btn btn-primary" id="btnImportRun">가져오기</button>
+        </div>
+      </div>
+      <pre id="importResult" class="import-result" style="display:none"></pre>
+    </section>
   </main>
 </div>
 

@@ -40,4 +40,7 @@ public interface TbCompanyMapper {
 
   /** 소프트 삭제 — del_yn='Y'. */
   int softDelete(@Param("companyCode") String companyCode);
+
+  /** BiostarX 사용자그룹 ID 에 매핑된 기관코드 — 없으면 null(가져오기 제외). */
+  String selectCodeByBiostarGroupId(@Param("biostarGroupId") Integer biostarGroupId);
 }
