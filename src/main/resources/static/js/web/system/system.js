@@ -44,7 +44,7 @@
     const box = $('importResult');
     const head = r.preview ? '[미리보기] 실제로 가져오지 않았습니다.' : '가져오기 완료';
     const lines = [head,
-      `장비 ${r.total}명 · 대상 ${r.target}명 · ${r.preview ? '가져올 수 있음' : '가져옴'} ${r.preview ? r.target - r.skipped : r.imported}명 · 건너뜀 ${r.skipped}명`];
+      `대상 ${r.total}명 · ${r.preview ? '가져올 수 있음 ' + r.target : '가져옴 ' + r.imported}명 · 건너뜀 ${r.skipped}명`];
     if (!r.preview) lines.push(`카드 ${r.cards} · 얼굴 ${r.faces} · 출입권한 ${r.acGroups}`);
     if (r.skippedReasons && r.skippedReasons.length) {
       lines.push('', '건너뛴 인원:');

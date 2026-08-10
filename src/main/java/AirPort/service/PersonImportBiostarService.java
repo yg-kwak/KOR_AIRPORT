@@ -138,27 +138,27 @@ public class PersonImportBiostarService {
     java.util.Set<Long> scope = regularGroupScope(ip, id, pw);
     List<BiostarUserDetail> users = importAdapter.searchUsers(ip, id, pw);
     ImportResult r = new ImportResult();
-    r.setTotal(users.size());
 
     for (BiostarUserDetail u : users) {
       if (u.userId() == null || u.userId().isBlank()) {
         continue;
       }
+      // 정규등록 그룹 밖은 애초에 우리 대상이 아니다 — 세지도, 사유를 남기지도 않는다
       if (u.userGroupId() == null || !scope.contains(u.userGroupId().longValue())) {
-        skip(r, u, "정규등록 그룹 밖(사용자그룹 " + u.userGroupId() + ")");
         continue;
       }
+      r.setTotal(r.getTotal() + 1); // 대상 그룹에 속한 인원
       String company = companyOf(u.userGroupId());
       if (company == null) {
         skip(r, u, "기관 매핑 없음(사용자그룹 " + u.userGroupId() + ")");
         continue;
       }
-      r.setTarget(r.getTarget() + 1);
       TbPerson existing = personMapper.selectById(u.userId());
       if (existing != null && !"Y".equals(existing.getDelYn())) {
         skip(r, u, "이미 등록된 인원");
         continue;
       }
+      r.setTarget(r.getTarget() + 1); // 선별을 통과 — 가져올 수 있는 인원
       if (dryRun) {
         continue;
       }
@@ -326,12 +326,10 @@ public class PersonImportBiostarService {
     String detail =
         "BiostarX 정규인원 가져오기"
             + (dryRun ? "(미리보기)" : "")
-            + " — 장비 "
+            + " — 대상 "
             + r.getTotal()
-            + "명, 대상 "
-            + r.getTarget()
-            + "명, 가져옴 "
-            + r.getImported()
+            + "명, "
+            + (dryRun ? "가져올 수 있음 " + r.getTarget() : "가져옴 " + r.getImported())
             + "명, 건너뜀 "
             + r.getSkipped()
             + "명"

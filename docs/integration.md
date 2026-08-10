@@ -60,6 +60,8 @@ System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true"
 - **범위**: 발급구분 정규등록(`tb_common` PTD/PTD01)의 `code_tag` 사용자그룹과 **그 아래 모든 하위 그룹**에
   속한 인원만. 장비에는 임시·장기 사용자도 함께 있어 전체를 끌어오면 정규가 아닌 사람이 섞인다.
   하위 그룹은 부모-자식을 따라 깊이 제한 없이 넓힌다.
+  **범위 밖은 집계에도 넣지 않는다** — 세거나 사유를 남기면 "35명 중 27명 건너뜀"처럼 보여
+  마치 문제가 있는 것처럼 읽힌다. 애초에 우리 대상이 아니다.
   ⚠️ 화면 트리용 `BiostarAdapter.searchUserGroups` 는 펼쳐진 일부만 주므로, 가져오기는 평면 전체 목록
   (`BiostarImportAdapter.searchUserGroups`)을 따로 읽는다.
 - **기관**: 장비 사용자그룹 ID 가 `tb_company.biostar_group_id` 에 있어야 한다. 없으면 건너뛴다

@@ -116,7 +116,8 @@ class PersonImportBiostarTest {
 
     ImportResult r = service().importUsers(true, true, true, null, 101);
 
-    assertEquals(0, r.getTarget());
+    assertEquals(1, r.getTotal()); // 대상 그룹에는 들어 있다
+    assertEquals(0, r.getTarget()); // 기관이 없어 가져오지는 못한다
     assertEquals(1, r.getSkipped());
     assertTrue(r.getSkippedReasons().get(0).contains("기관 매핑 없음"), r.getSkippedReasons().get(0));
     verify(personMapper, never()).insert(any());
@@ -135,7 +136,8 @@ class PersonImportBiostarTest {
 
     ImportResult r = service().importUsers(true, true, true, null, 101);
 
-    assertEquals(1, r.getTarget());
+    assertEquals(1, r.getTotal());
+    assertEquals(0, r.getTarget()); // 이미 있어 가져올 것이 없다
     assertEquals(0, r.getImported());
     assertTrue(r.getSkippedReasons().get(0).contains("이미 등록된"), r.getSkippedReasons().get(0));
   }
@@ -180,6 +182,7 @@ class PersonImportBiostarTest {
     ImportResult r = service().preview(null, 101);
 
     assertTrue(r.isPreview());
+    assertEquals(1, r.getTotal());
     assertEquals(1, r.getTarget());
     verify(personMapper, never()).insert(any());
     verify(importAdapter, never()).fetchUser(any(), any(), any(), any());
@@ -195,10 +198,11 @@ class PersonImportBiostarTest {
 
     ImportResult r = service().preview(null, 101);
 
-    assertEquals(1, r.getTarget()); // 1009(정규 아래)만
-    assertTrue(
-        r.getSkippedReasons().stream().anyMatch(x -> x.contains("정규등록 그룹 밖")),
-        r.getSkippedReasons().toString());
+    // 범위 밖은 세지도, 사유를 남기지도 않는다 — 애초에 우리 대상이 아니다
+    assertEquals(1, r.getTotal()); // 1009(정규 아래) 한 명만 대상
+    assertEquals(1, r.getTarget());
+    assertEquals(0, r.getSkipped());
+    assertTrue(r.getSkippedReasons().isEmpty(), r.getSkippedReasons().toString());
   }
 
   @Test

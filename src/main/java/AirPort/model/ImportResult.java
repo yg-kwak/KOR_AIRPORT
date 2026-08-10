@@ -7,8 +7,8 @@ import java.util.List;
 public class ImportResult {
 
   private boolean preview; // 미리보기면 DB 를 건드리지 않았다는 뜻
-  private int total; // 장비에서 읽은 사용자 수
-  private int target; // 가져올 대상(기관 매핑이 있는 인원)
+  private int total; // 대상 그룹(정규등록 아래)에 속한 인원 수 — 다른 그룹은 세지 않는다
+  private int target; // 그중 선별을 통과해 가져올 수 있는 인원
   private int imported; // 실제로 넣은 인원
   private int skipped; // 건너뛴 인원
   private int cards; // 배정한 카드 수
