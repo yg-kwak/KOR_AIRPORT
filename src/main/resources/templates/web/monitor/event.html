@@ -11,6 +11,11 @@
     <!-- 조회할 단말기 — 고르기 전에는 아무 것도 흐르지 않는다(장비 전체를 받아 거르지 않는다) -->
     <section class="content-card">
       <div class="setting-form">
+        <div class="form-group">
+          <label for="deviceSearch">단말기 검색</label>
+          <input type="text" id="deviceSearch" class="input" autocomplete="off"
+                 placeholder="이름 또는 번호 일부"/>
+        </div>
         <div class="form-group wide">
           <label for="deviceSelect">단말기 <span class="req">*</span></label>
           <select id="deviceSelect" class="input">
@@ -18,8 +23,8 @@
           </select>
         </div>
         <div class="setting-actions">
-          <span id="monitorState" class="monitor-state">대기</span>
           <button class="btn" id="btnStop" disabled>중지</button>
+          <span id="monitorState" class="monitor-state">대기</span>
         </div>
       </div>
     </section>
@@ -36,10 +41,11 @@
       </div>
       <div class="monitor-panel">
         <div class="monitor-panel-head">출입자 정보</div>
+        <!-- 세 줄이 남는 높이를 1/3씩 나눠 갖는다 — 멀리 있는 모니터에서 읽히도록 크게 -->
         <dl class="monitor-info">
-          <dt>이름</dt><dd id="mainName">-</dd>
-          <dt>소속</dt><dd id="mainCompany">-</dd>
-          <dt>허가 구역</dt><dd id="mainAreas">-</dd>
+          <div class="monitor-info-row"><dt>이름</dt><dd id="mainName">-</dd></div>
+          <div class="monitor-info-row"><dt>소속</dt><dd id="mainCompany">-</dd></div>
+          <div class="monitor-info-row"><dt>허가 구역</dt><dd id="mainAreas">-</dd></div>
         </dl>
         <div class="monitor-result" id="mainResult"></div>
       </div>

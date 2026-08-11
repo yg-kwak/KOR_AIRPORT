@@ -33,13 +33,18 @@
     WHERE pg.person_id = #{personId} AND g.ar_code IS NOT NULL
   </select>
 
-  <!-- 실시간 이벤트 화면 허가구역 — 이름에서 번호를 뽑아 이어 붙인다. 정렬해야 표기가 늘 같다 -->
+  <!-- 실시간 이벤트 화면 허가구역 — 이름에서 번호를 뽑아 이어 붙인다.
+       매핑된 그룹이 하위 노드일 수 있으므로 반드시 **최상위 구역**으로 올려 중복을 없앤다.
+       그대로 세면 "인원구역2 / 인원구역2 안쪽 / 2안쪽 A" 가 2 를 세 번 찍어 12345 가 2122345 가 된다.
+       하위는 부모의 ar_code 를 물려받으므로 그것으로 최상위를 찾는다(재귀 불필요).
+       정렬해야 표기가 늘 같다. -->
   <select id="selectAcGroupNames" resultType="string">
-    SELECT g.ac_group_name
+    SELECT DISTINCT rootg.ac_group_name
     FROM tb_person_ac_group pg
-    JOIN tb_ac_group g ON g.ac_group_id = pg.ac_group_id
-    WHERE pg.person_id = #{personId} AND g.ac_group_name IS NOT NULL
-    ORDER BY g.ac_group_name
+    JOIN tb_ac_group g   ON g.ac_group_id = pg.ac_group_id
+    JOIN tb_ac_group rootg ON rootg.ar_code = g.ar_code AND rootg.parent_ac_group_id IS NULL
+    WHERE pg.person_id = #{personId} AND rootg.ac_group_name IS NOT NULL
+    ORDER BY rootg.ac_group_name
   </select>
 
 </mapper>

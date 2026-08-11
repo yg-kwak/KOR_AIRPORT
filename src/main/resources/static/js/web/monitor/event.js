@@ -18,6 +18,7 @@
   let stream = null;      // 현재 EventSource
   let keepAlive = null;   // 세션 유지 타이머
   let holdTimer = null;   // MAIN 유지 타이머
+  let devices = [];       // 단말기 전체 목록(검색은 이 안에서 한다)
   let mainHeld = false;   // MAIN 이 지금 한 건을 붙잡고 있는가(그 건은 띠에서 뺀다)
   const history = [];     // 최근 → 과거 순. 화면은 뒤집어 그린다
 
@@ -44,7 +45,6 @@
     // 출입거부면 초록이던 곳이 통째로 붉어진다 — 멀리서 모니터만 봐도 구분되어야 한다
     $('monitorMain').classList.toggle('deny', !e.granted);
     $('monitorMain').classList.add('shown');
-    $('monitorState').textContent = '수신 중 · 최근 ' + (e.eventTime || '');
   }
 
   function onAuth(e) {
@@ -84,8 +84,9 @@
           ${photo(e.registeredPhoto, '등록 사진')}
           ${photo(e.authPhoto, '인증 사진')}
         </div>
-        <div class="monitor-card-name">${esc(e.personName || e.personId || '미등록')}</div>
-        <div class="monitor-card-company">${esc(e.companyName || '')}</div>
+        <div class="monitor-card-name">${esc(e.personName || e.personId || '-')}</div>
+        <div class="monitor-card-company">${esc(e.companyName || '-')}</div>
+        <div class="monitor-card-areas">${esc(e.areas || '-')}</div>
         <div class="monitor-card-result">${esc(e.resultLabel || '')}</div>
       </div>`).join('');
   }
@@ -136,13 +137,28 @@
     $('monitorState').textContent = '연결 중';
   }
 
+  /* 단말기 목록은 한 번만 읽고 화면에서 거른다 — 장비를 다시 두드릴 이유가 없다.
+     고르고 있던 단말기가 검색에서 빠져도 선택은 유지한다(수신이 끊기면 안 된다). */
+  function renderDevices() {
+    const q = $('deviceSearch').value.trim().toLowerCase();
+    const picked = $('deviceSelect').value;
+    const hit = devices.filter((d) =>
+      !q || String(d.name || '').toLowerCase().includes(q) || String(d.id).includes(q));
+    const rows = hit.some((d) => String(d.id) === picked) || !picked
+      ? hit
+      : hit.concat(devices.filter((d) => String(d.id) === picked));
+    $('deviceSelect').innerHTML = '<option value="">단말기를 선택하세요</option>'
+      + rows.map((d) => `<option value="${esc(d.id)}">${esc(d.name || d.id)}</option>`).join('');
+    $('deviceSelect').value = picked;
+  }
+
   async function loadDevices() {
-    const list = await api.get(BASE + '/devices');
-    $('deviceSelect').insertAdjacentHTML('beforeend',
-      (list || []).map((d) => `<option value="${esc(d.id)}">${esc(d.name || d.id)}</option>`).join(''));
+    devices = (await api.get(BASE + '/devices')) || [];
+    renderDevices();
   }
 
   function bind() {
+    $('deviceSearch').addEventListener('input', renderDevices);
     $('deviceSelect').addEventListener('change', (e) => start(e.target.value));
     $('btnStop').addEventListener('click', () => { $('deviceSelect').value = ''; stop(); });
     window.addEventListener('beforeunload', stop); // 떠나면 서버도 구독을 정리한다
