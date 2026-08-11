@@ -18,4 +18,7 @@ public interface TbPersonAcGroupMapper {
 
   /** 카드 구역 표기용 — 매핑된 출입그룹의 최상위 구역코드(ar_code, 자식은 부모 상속) 중복 제거 목록. */
   List<String> selectAreaCodes(@Param("personId") String personId);
+
+  /** 실시간 이벤트 화면의 허가구역 표기용 — 인원에게 매핑된 출입그룹 이름(구역 번호를 뽑는다). */
+  List<String> selectAcGroupNames(@Param("personId") String personId);
 }

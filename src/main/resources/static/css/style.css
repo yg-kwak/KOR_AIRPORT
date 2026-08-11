@@ -678,3 +678,56 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
   border-radius: 6px; background: var(--bg-soft, #fafafa); font-size: 13px; line-height: 1.6;
   white-space: pre-wrap; max-height: 320px; overflow-y: auto; }
 .card-title { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+
+/* 실시간 이벤트 모니터링 — MAIN(등록사진·인증사진·출입자정보) + 지난 인증 6칸.
+   사진 칸은 비어 있어도 높이를 지킨다(사진이 없다고 칸이 무너지면 옆 사람 것이 밀려 헷갈린다). */
+:root { --monitor-ok: #3cb371; --monitor-deny: #dc143c; } /* 통과 / 출입거부 */
+.monitor-state { font-size: 13px; color: var(--nt-text-2); margin-right: 12px; }
+.monitor-state.warn { color: var(--nt-amber); font-weight: 600; }
+
+.monitor-main { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 14px 0 18px; }
+.monitor-panel { border: 1px solid var(--nt-border); border-radius: 6px; overflow: hidden;
+  background: var(--nt-bg); display: flex; flex-direction: column; }
+.monitor-panel-head { background: var(--monitor-ok); color: #fff; font-size: 17px; font-weight: 700;
+  padding: 8px 14px; }
+/* 출입거부면 초록이던 곳이 통째로 붉어진다 — 멀리 있는 모니터에서 색만 보고 판단한다 */
+.monitor-main.deny .monitor-panel-head { background: var(--monitor-deny); }
+.monitor-photo { flex: 1; min-height: 300px; display: flex; align-items: center; justify-content: center;
+  background: var(--nt-bg-gray); padding: 10px; }
+.monitor-photo img { max-width: 100%; max-height: 340px; object-fit: contain; }
+.monitor-card-icon { width: 150px; height: auto; fill: none; stroke: #7c4dff; stroke-width: 3; }
+.monitor-card-icon text { fill: #7c4dff; stroke: none; font-size: 13px; font-weight: 600; }
+.monitor-card-photos .monitor-card-icon { width: 46%; }
+
+.monitor-info { display: grid; grid-template-columns: auto 1fr; gap: 10px 18px; margin: 0;
+  padding: 18px 16px; align-items: baseline; }
+.monitor-info dt { color: var(--nt-text-2); font-weight: 600; text-align: right; }
+.monitor-info dd { margin: 0; font-size: 19px; font-weight: 600; word-break: break-all; }
+.monitor-result { margin: auto 10px 10px; padding: 26px 10px; border-radius: 6px; text-align: center;
+  font-size: 30px; font-weight: 700; color: #fff; background: var(--nt-bg-gray); min-height: 92px; }
+.monitor-main.shown .monitor-result { background: var(--monitor-ok); }
+.monitor-main.shown.deny .monitor-result { background: var(--monitor-deny); }
+
+/* 지난 인증 — 왼쪽이 오래된 것(7), 오른쪽이 최근(2) */
+.monitor-history { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.monitor-card { border: 1px solid var(--monitor-ok); border-radius: 6px; padding: 6px;
+  text-align: center; background: var(--nt-bg); }
+.monitor-card.deny { border-color: var(--monitor-deny); }
+.monitor-card-result { margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--monitor-ok); }
+.monitor-card.deny .monitor-card-result { color: var(--monitor-deny); }
+.monitor-card-photos { display: flex; gap: 4px; justify-content: center; align-items: center;
+  height: 120px; background: var(--nt-bg-gray); border-radius: 4px; }
+.monitor-card-photos img { max-width: 48%; max-height: 116px; object-fit: contain; }
+.monitor-card-blank { border-style: dashed; border-color: var(--nt-border); min-height: 160px; }
+.monitor-card-name { margin-top: 5px; font-weight: 600; font-size: 13px; }
+.monitor-card-company { color: var(--nt-text-2); font-size: 12px; }
+
+/* 좁은 화면 — 3단을 2단/1단으로 접고 지난 인증은 3칸씩 */
+@media (max-width: 1200px) {
+  .monitor-main { grid-template-columns: 1fr 1fr; }
+  .monitor-history { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 760px) {
+  .monitor-main { grid-template-columns: 1fr; }
+  .monitor-history { grid-template-columns: repeat(2, 1fr); }
+}

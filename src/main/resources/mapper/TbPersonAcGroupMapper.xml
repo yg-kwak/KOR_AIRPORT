@@ -33,4 +33,13 @@
     WHERE pg.person_id = #{personId} AND g.ar_code IS NOT NULL
   </select>
 
+  <!-- 실시간 이벤트 화면 허가구역 — 이름에서 번호를 뽑아 이어 붙인다. 정렬해야 표기가 늘 같다 -->
+  <select id="selectAcGroupNames" resultType="string">
+    SELECT g.ac_group_name
+    FROM tb_person_ac_group pg
+    JOIN tb_ac_group g ON g.ac_group_id = pg.ac_group_id
+    WHERE pg.person_id = #{personId} AND g.ac_group_name IS NOT NULL
+    ORDER BY g.ac_group_name
+  </select>
+
 </mapper>

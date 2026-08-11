@@ -100,6 +100,22 @@ public class BiostarSession {
     refresh(client(), base, loginId, password, sessionKey(base, loginId));
   }
 
+  /**
+   * 캐시된 {@code bs-session-id} — 없으면 로그인해 발급한다.
+   *
+   * <p>HTTP 호출은 {@link #post}/{@link #get} 이 세션을 알아서 붙이므로 이 값이 필요 없다. <b>WebSocket 핸드셰이크</b>만은 예외다
+   * — 이 클래스의 재시도 흐름 밖에서 헤더를 직접 붙여야 한다({@link BiostarEventSocket}). 로그에 남기지 않는다.
+   *
+   * @param force true 면 캐시를 버리고 새로 로그인한다(만료된 세션으로 소켓을 다시 여는 것을 막는다)
+   */
+  public String sessionId(String base, String loginId, String password, boolean force)
+      throws Exception {
+    String key = sessionKey(base, loginId);
+    return force
+        ? refresh(client(), base, loginId, password, key)
+        : acquire(client(), base, loginId, password, key);
+  }
+
   /*
    * BiostarX 인증서는 설치 시 만들어진 self-signed 라 SAN 에 실제 서버 IP 가 없다.
    * 그러면 trust-all 을 써도 "No subject alternative names matching IP address ..." 로 핸드셰이크가 깨진다

@@ -283,6 +283,19 @@
   <select id="selectAcGroupIds" resultType="int">
     SELECT ac_group_id FROM tb_visit_ac_group WHERE visit_no = #{visitNo}
   </select>
+  <!-- 실시간 이벤트 허가구역(방문객) — 여러 방문에 이름이 올라 있을 수 있어 가장 최근 방문 하나만 본다.
+       지금 인증한 사람이라면 그 방문이 진행중인 방문이다. -->
+  <select id="selectAcGroupNamesByPerson" resultType="string">
+    SELECT g.ac_group_name
+    FROM tb_visit_person vp
+    JOIN tb_visit_ac_group vag ON vag.visit_no = vp.visit_no
+    JOIN tb_ac_group g ON g.ac_group_id = vag.ac_group_id
+    WHERE vp.person_id = #{personId}
+      AND vp.visit_no = (SELECT MAX(visit_no) FROM tb_visit_person WHERE person_id = #{personId})
+      AND g.ac_group_name IS NOT NULL
+    ORDER BY g.ac_group_name
+  </select>
+
   <delete id="deleteAcGroups">DELETE FROM tb_visit_ac_group WHERE visit_no = #{visitNo}</delete>
   <insert id="insertAcGroups">
     INSERT INTO tb_visit_ac_group (visit_no, ac_group_id) VALUES

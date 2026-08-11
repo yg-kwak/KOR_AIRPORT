@@ -142,7 +142,9 @@ INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_leve
   (701, N'기관등록관리', 700,  '/company/company',    2, 1, NULL,      'Y'),
   (702, N'기관차량등록', 700,  '/company/companyCar',        2, 2, NULL,      'Y'),
   (800, N'카드관리',     NULL, NULL,                 1, 6, 'card',     'Y'),
-  (801, N'카드등록관리', 800,  '/card/card',          2, 1, NULL,      'Y');
+  (801, N'카드등록관리', 800,  '/card/card',          2, 1, NULL,      'Y'),
+  (900, N'모니터링',     NULL, NULL,                 1, 7, 'monitor',  'Y'),
+  (901, N'실시간 이벤트', 900, '/monitor/event',      2, 1, NULL,      'Y');
 
 /* 관리자 권한 + 공통코드관리 전권 + 관리자 계정 */
 INSERT INTO dbo.tb_menu_auth (auth_name) VALUES (N'관리자');

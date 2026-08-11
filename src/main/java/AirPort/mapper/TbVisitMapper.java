@@ -92,6 +92,14 @@ public interface TbVisitMapper {
   // ── 사용자출입그룹(ac_group_id) ──
   List<Integer> selectAcGroupIds(@Param("visitNo") int visitNo);
 
+  /**
+   * 실시간 이벤트 화면의 허가구역 표기용 — 방문객이 <b>가장 최근 방문</b>에서 받은 출입그룹 이름.
+   *
+   * <p>방문객(임시·장기·상주·순찰·대여)의 구역은 방문 단위(`tb_visit_ac_group`)로 잡힌다. 정규인원처럼 `tb_person_ac_group` 을 보면
+   * 비어 있다.
+   */
+  List<String> selectAcGroupNamesByPerson(@Param("personId") String personId);
+
   int deleteAcGroups(@Param("visitNo") int visitNo);
 
   int insertAcGroups(@Param("visitNo") int visitNo, @Param("acGroupIds") List<Integer> acGroupIds);

@@ -1,0 +1,130 @@
+/* 실시간 이벤트 모니터링 — 단말기를 고르면 SSE 로 인증 이벤트를 받아 화면에 띄운다.
+   MAIN(1) 에 방금 인증한 사람, 아래 띠에 지난 인증 6건(오른쪽이 최근). */
+(function () {
+  const BASE = '/monitor/event';
+  const HISTORY = 6; // MAIN(1) 뒤의 2~7번 자리
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
+
+  /* 로그인 세션 유지 주기 — SSE 는 요청 하나라 연결만으로는 세션이 갱신되지 않는다.
+     그냥 두면 한 시간 뒤 세션이 만료되고, 그 뒤 재연결이 로그인으로 튕기면서 화면이 조용히 죽는다. */
+  const KEEPALIVE_MS = 5 * 60 * 1000;
+
+  let stream = null;      // 현재 EventSource
+  let keepAlive = null;   // 세션 유지 타이머
+  const history = [];     // 최근 → 과거 순. 화면은 뒤집어 그린다
+
+  /* 카드 그림 — 얼굴이 없는 자리에 세운다. 카드로만 인증한 사람(임시·장기·상주·순찰·대여)은
+     장비가 얼굴을 찍지 않아 인증 사진이 없다. 빈칸으로 두면 '사진이 없는 것'과 '인증이 안 된 것'이 구분되지 않는다. */
+  const CARD_ICON = `<svg class="monitor-card-icon" viewBox="0 0 96 62" aria-label="카드 인증">
+      <rect x="1.5" y="1.5" width="93" height="59" rx="7"/>
+      <line x1="1.5" y1="18" x2="94.5" y2="18"/>
+      <rect x="60" y="34" width="24" height="14" rx="2"/>
+      <text x="12" y="46">카드</text></svg>`;
+
+  /* 사진 없음도 자리를 지켜야 한다 — 칸이 무너지면 옆 사진이 밀려 누구 것인지 헷갈린다 */
+  const photo = (base64, alt) => (base64
+    ? `<img src="data:image/jpeg;base64,${base64}" alt="${esc(alt)}"/>`
+    : CARD_ICON);
+
+  function showMain(e) {
+    $('mainRegistered').innerHTML = photo(e.registeredPhoto, '등록 사진');
+    $('mainAuth').innerHTML = photo(e.authPhoto, '인증 사진');
+    $('mainName').textContent = e.personName || (e.personId ? e.personId : '미등록');
+    $('mainCompany').textContent = e.companyName || '-';
+    $('mainAreas').textContent = e.areas || '-';
+    $('mainResult').textContent = e.resultLabel || '';
+    // 출입거부면 초록이던 곳이 통째로 붉어진다 — 멀리서 모니터만 봐도 구분되어야 한다
+    $('monitorMain').classList.toggle('deny', !e.granted);
+    $('monitorMain').classList.add('shown');
+    $('monitorState').textContent = '수신 중 · 최근 ' + (e.eventTime || '');
+  }
+
+  function onAuth(e) {
+    history.unshift(e);
+    if (history.length > HISTORY + 1) history.pop(); // MAIN 1건 + 지난 6건
+    showMain(e);
+    renderHistory();
+  }
+
+  /* MAIN 에 올라간 1건은 띠에서 뺀다 — 같은 사람이 두 칸에 겹쳐 보이면 두 번 인증한 것처럼 읽힌다.
+     배열은 최근이 앞이고 화면은 왼쪽이 오래된 것 — 뒤집어 그려야 7 6 5 4 3 2 가 된다.
+     아직 6건이 안 찼으면 왼쪽을 빈칸으로 메운다. 그래야 처음부터 오른쪽(2번 자리)부터 차오르고,
+     최근 인증이 늘 같은 자리에 있어 눈이 그 칸만 보면 된다. */
+  function renderHistory() {
+    const past = history.slice(1, HISTORY + 1).reverse(); // 오래된 → 최근
+    const blanks = '<div class="monitor-card monitor-card-blank"></div>'.repeat(HISTORY - past.length);
+    $('monitorHistory').innerHTML = blanks + past.map((e) => `
+      <div class="monitor-card${e.granted ? '' : ' deny'}">
+        <div class="monitor-card-photos">
+          ${photo(e.registeredPhoto, '등록 사진')}
+          ${photo(e.authPhoto, '인증 사진')}
+        </div>
+        <div class="monitor-card-name">${esc(e.personName || e.personId || '미등록')}</div>
+        <div class="monitor-card-company">${esc(e.companyName || '')}</div>
+        <div class="monitor-card-result">${esc(e.resultLabel || '')}</div>
+      </div>`).join('');
+  }
+
+  /* 사유가 있으면 사유가 먼저다 — '연결됨'을 앞세우면 소켓만 열리고 이벤트는 안 오는 상태가
+     "수신 중"으로 보인다. 화면을 켜 두는 용도라 그렇게 되면 아무도 이상을 눈치채지 못한다. */
+  function onStatus(s) {
+    const el = $('monitorState');
+    if (s.message) {
+      el.textContent = s.message;
+      el.classList.add('warn');
+    } else if (s.connected) {
+      el.textContent = '수신 중';
+      el.classList.remove('warn');
+    } else {
+      el.textContent = 'BiostarX 연결 중';
+      el.classList.add('warn');
+    }
+  }
+
+  function stop() {
+    if (stream) { stream.close(); stream = null; }
+    if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
+    $('btnStop').disabled = true;
+    $('monitorState').textContent = '대기';
+    $('monitorState').classList.remove('warn');
+  }
+
+  function start(deviceId) {
+    stop();
+    if (!deviceId) return;
+    stream = new EventSource(BASE + '/stream?deviceId=' + encodeURIComponent(deviceId));
+    /* 한 건이 깨져도 다음 인증은 계속 받아야 한다 — 리스너에서 예외가 나가면 그 뒤가 조용히 멈춘다 */
+    const on = (name, fn) => stream.addEventListener(name, (m) => {
+      try { fn(JSON.parse(m.data)); } catch (err) { console.warn('이벤트 처리 실패', err); }
+    });
+    on('auth', onAuth);
+    on('status', onStatus);
+    stream.onerror = () => {
+      // EventSource 는 스스로 다시 붙는다. 사용자에게는 상태만 알린다
+      $('monitorState').textContent = '연결 재시도 중';
+      $('monitorState').classList.add('warn');
+    };
+    // 세션이 이미 끊겼으면 api 래퍼가 로그인 화면으로 보낸다 — 죽은 채로 남지 않는다
+    keepAlive = setInterval(() => api.get(BASE + '/alive').catch(() => {}), KEEPALIVE_MS);
+    $('btnStop').disabled = false;
+    $('monitorState').textContent = '연결 중';
+  }
+
+  async function loadDevices() {
+    const list = await api.get(BASE + '/devices');
+    $('deviceSelect').insertAdjacentHTML('beforeend',
+      (list || []).map((d) => `<option value="${esc(d.id)}">${esc(d.name || d.id)}</option>`).join(''));
+  }
+
+  function bind() {
+    $('deviceSelect').addEventListener('change', (e) => start(e.target.value));
+    $('btnStop').addEventListener('click', () => { $('deviceSelect').value = ''; stop(); });
+    window.addEventListener('beforeunload', stop); // 떠나면 서버도 구독을 정리한다
+    renderHistory(); // 빈칸 6개를 먼저 세워 둔다 — 어디가 채워질 자리인지 보이게
+    loadDevices();
+  }
+
+  document.addEventListener('DOMContentLoaded', bind);
+})();

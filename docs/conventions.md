@@ -115,6 +115,7 @@ DOMContentLoaded → bind()  → load()
 - 변수: 검색=`param`, 단건=`row`, 세션 사용자 추출은 `actor(session)` private 헬퍼.
 - Controller 는 얇게: **read 권한 확인·모델 구성·서비스 위임만**. 쓰기 권한 검증/비즈니스/감사는 Service. SQL 금지(불변식).
 - 응답: 데이터는 `ApiResponse.ok(...)`/`fail`, 예외는 `GlobalExceptionHandler` 가 표준 바디+상태(403/401/404/400/500)로 변환.
+- **실시간 스트림(SSE) 엔드포인트**: 서버가 계속 밀어 주는 화면은 `GET /stream` 에 `SseEmitter` 를 반환한다(`MonitorController`). 표준 세트 밖이지만 규칙은 같다 — 컨트롤러는 위임만 하고 권한(`requireRead`)·감사는 서비스가 본다. **감사는 구독 시작에 한 번만** 남긴다(이벤트마다 남기면 감사추적이 장비 로그가 된다). 구독자 수명(`onCompletion`/`onTimeout`/`onError`)에 외부 연결을 맞물려, 마지막 구독자가 떠나면 외부 소켓도 닫는다.
 - **자가서비스(본인 계정) 엔드포인트**는 예외: `AccountController`(`/account/*`, 헤더 사용자 메뉴)처럼 **세션 사용자 자신**만 대상으로 하는 기능은 `tb_menu` 에 등록하지 않고 **메뉴 권한(menuId) 게이트 없이** 로그인만 요구한다(`AuthInterceptor` 가 인증 보장, menuId=null 이라 접속감사 미기록·수정은 서비스에서 `null` menuId 로 감사). 무권한 사용자가 남의 데이터를 건드릴 수 없으므로 안전. 남의 데이터를 다루면 이 예외를 쓰지 말고 표준 menu 게이트를 따른다.
 
 ## 5. Service — 명명 · 암복호화 · 감사 규칙

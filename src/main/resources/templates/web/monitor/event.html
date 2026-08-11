@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head}"></head>
+<body>
+<div th:replace="~{fragments/main :: header}"></div>
+<div class="layout-container">
+  <div th:replace="~{fragments/sidebar :: sidebar(${menus})}"></div>
+  <main class="layout-content">
+    <h2>실시간 이벤트</h2>
+
+    <!-- 조회할 단말기 — 고르기 전에는 아무 것도 흐르지 않는다(장비 전체를 받아 거르지 않는다) -->
+    <section class="content-card">
+      <div class="setting-form">
+        <div class="form-group wide">
+          <label for="deviceSelect">단말기 <span class="req">*</span></label>
+          <select id="deviceSelect" class="input">
+            <option value="">단말기를 선택하세요</option>
+          </select>
+        </div>
+        <div class="setting-actions">
+          <span id="monitorState" class="monitor-state">대기</span>
+          <button class="btn" id="btnStop" disabled>중지</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN — 마지막 인증 1건. 출입거부면 .deny 가 붙어 초록이 붉게 바뀐다 -->
+    <section class="monitor-main" id="monitorMain">
+      <div class="monitor-panel">
+        <div class="monitor-panel-head">등록 사진</div>
+        <div class="monitor-photo" id="mainRegistered"></div>
+      </div>
+      <div class="monitor-panel">
+        <div class="monitor-panel-head">인증 사진</div>
+        <div class="monitor-photo" id="mainAuth"></div>
+      </div>
+      <div class="monitor-panel">
+        <div class="monitor-panel-head">출입자 정보</div>
+        <dl class="monitor-info">
+          <dt>이름</dt><dd id="mainName">-</dd>
+          <dt>소속</dt><dd id="mainCompany">-</dd>
+          <dt>허가 구역</dt><dd id="mainAreas">-</dd>
+        </dl>
+        <div class="monitor-result" id="mainResult"></div>
+      </div>
+    </section>
+
+    <!-- 지난 인증 로그 — 왼쪽이 오래된 것(7), 오른쪽이 최근(2) -->
+    <h3 class="card-title">지난 인증 로그</h3>
+    <section class="monitor-history" id="monitorHistory"></section>
+  </main>
+</div>
+
+<script src="/js/web/monitor/event.js" defer></script>
+</body>
+</html>
