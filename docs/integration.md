@@ -203,6 +203,8 @@ System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true"
   - **소속**: `tb_person.affiliation`(방문객 자유입력)이 있으면 그 값, 없으면 `tb_company.company_name`. 방문객은 기관에 매이지 않고 소속을 직접 적으므로 그 값이 정확하다.
   - **허가구역**: 인원 구분에 따라 출처가 다르다 — 정규(PT01)는 사람에게 붙은 `tb_person_ac_group`, **그 밖(임시·장기·상주·순찰·대여)은 방문 단위인 `tb_visit_ac_group`**(가장 최근 방문). 방문객은 `tb_person_ac_group` 이 비어 있어(materialize 미구현) 거기만 보면 허가구역이 늘 공란이다. 출입그룹 이름에서 번호만 이어 붙인다(예 "125").
 - **감사**: 구독 시작에 한 번만 READ 로 남긴다. 이벤트마다 남기면 인증 한 번에 한 줄씩 쌓여 감사추적이 장비 로그가 된다.
+- **브라우저가 스트림을 끊는 것은 정상이다** — 화면을 하루 종일 켜 두면 한산한 시간대에 몇 분마다 끊겼다 붙는다(EventSource 가 스스로 재연결한다). 우리 서버가 BiostarX 로 연 소켓은 그대로라 장비 쪽은 아무 영향이 없다.
+  그때 서버가 그 스트림에 연결유지 신호를 쓰면 `CloseNowException` 이 난다. **이것을 500 오류로 다루면 안 된다** — 서버 잘못이 아니고, 게다가 응답이 이미 나간 뒤라 오류 본문(JSON)을 실을 수도 없다(`Content-Type` 이 `text/event-stream`). `GlobalExceptionHandler` 가 끊김을 알아보고 INFO 한 줄만 남긴 뒤 본문 없이 끝낸다.
 
 ## 신뢰성
 - 외부 장애 시 우리 시스템이 멈추지 않도록 경계 설정(타임아웃/서킷브레이커). TODO.

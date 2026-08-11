@@ -11,8 +11,14 @@
      그냥 두면 한 시간 뒤 세션이 만료되고, 그 뒤 재연결이 로그인으로 튕기면서 화면이 조용히 죽는다. */
   const KEEPALIVE_MS = 5 * 60 * 1000;
 
+  /* 마지막 인증을 MAIN 에 붙잡아 두는 시간. 이 시간이 지나면 아래 띠로 내리고 MAIN 을 비운다.
+     지나간 사람이 계속 커다랗게 떠 있으면, 방금 지나간 사람으로 오독된다. */
+  const MAIN_HOLD_MS = 60 * 1000;
+
   let stream = null;      // 현재 EventSource
   let keepAlive = null;   // 세션 유지 타이머
+  let holdTimer = null;   // MAIN 유지 타이머
+  let mainHeld = false;   // MAIN 이 지금 한 건을 붙잡고 있는가(그 건은 띠에서 뺀다)
   const history = [];     // 최근 → 과거 순. 화면은 뒤집어 그린다
 
   /* 카드 그림 — 얼굴이 없는 자리에 세운다. 카드로만 인증한 사람(임시·장기·상주·순찰·대여)은
@@ -44,7 +50,24 @@
   function onAuth(e) {
     history.unshift(e);
     if (history.length > HISTORY + 1) history.pop(); // MAIN 1건 + 지난 6건
+    mainHeld = true;
     showMain(e);
+    renderHistory();
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(demoteMain, MAIN_HOLD_MS);
+  }
+
+  /* 1분간 아무도 안 지나갔다 — MAIN 을 비우고 그 사람을 띠로 내린다.
+     기록이 사라지는 것이 아니라 자리를 옮기는 것이다. */
+  function demoteMain() {
+    mainHeld = false;
+    $('mainRegistered').innerHTML = '';
+    $('mainAuth').innerHTML = '';
+    $('mainName').textContent = '-';
+    $('mainCompany').textContent = '-';
+    $('mainAreas').textContent = '-';
+    $('mainResult').textContent = '';
+    $('monitorMain').classList.remove('shown', 'deny');
     renderHistory();
   }
 
@@ -53,7 +76,7 @@
      아직 6건이 안 찼으면 왼쪽을 빈칸으로 메운다. 그래야 처음부터 오른쪽(2번 자리)부터 차오르고,
      최근 인증이 늘 같은 자리에 있어 눈이 그 칸만 보면 된다. */
   function renderHistory() {
-    const past = history.slice(1, HISTORY + 1).reverse(); // 오래된 → 최근
+    const past = history.slice(mainHeld ? 1 : 0, (mainHeld ? 1 : 0) + HISTORY).reverse();
     const blanks = '<div class="monitor-card monitor-card-blank"></div>'.repeat(HISTORY - past.length);
     $('monitorHistory').innerHTML = blanks + past.map((e) => `
       <div class="monitor-card${e.granted ? '' : ' deny'}">
@@ -86,6 +109,7 @@
   function stop() {
     if (stream) { stream.close(); stream = null; }
     if (keepAlive) { clearInterval(keepAlive); keepAlive = null; }
+    clearTimeout(holdTimer); holdTimer = null;
     $('btnStop').disabled = true;
     $('monitorState').textContent = '대기';
     $('monitorState').classList.remove('warn');

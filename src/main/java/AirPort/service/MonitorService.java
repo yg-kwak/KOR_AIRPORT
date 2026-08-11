@@ -308,10 +308,25 @@ public class MonitorService {
     return Map.of("connected", eventSocket.isReady(), "message", error == null ? "" : error);
   }
 
-  /** SSE 연결 유지 — 중간 프록시가 조용한 연결을 끊는 것을 막는다. */
+  /**
+   * SSE 연결 유지 — 중간 프록시가 조용한 연결을 끊는 것을 막는다.
+   *
+   * <p>이름 붙은 이벤트가 아니라 <b>주석</b>({@code :} 로 시작하는 줄)으로 보낸다. 규격상 주석은 브라우저가 이벤트로 올리지 않고 연결 유지 신호로만 쓴다
+   * — 화면 쪽에 처리할 것이 없어진다.
+   */
   @Scheduled(fixedDelay = 25_000)
   public void ping() {
-    viewers.forEach((emitter, deviceId) -> send(emitter, "ping", ""));
+    viewers.forEach((emitter, deviceId) -> keepAlive(emitter));
+  }
+
+  private void keepAlive(SseEmitter emitter) {
+    try {
+      synchronized (emitter) {
+        emitter.send(SseEmitter.event().comment("keep-alive"));
+      }
+    } catch (Exception e) {
+      release(emitter); // 이미 닫힌 화면 — 조용히 정리한다
+    }
   }
 
   /**
