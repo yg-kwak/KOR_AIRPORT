@@ -20,6 +20,10 @@ import org.springframework.stereotype.Service;
  * 방문객 ↔ BiostarX 동기화 — 저장 시 방문객(tb_person)을 <b>visit_type(PT)→PTD.code_tag 부모 그룹 아래</b>로 편입한다.
  * 정규(기관 그룹)와 달리 중간 기관 그룹을 만들지 않는다. (docs/integration.md)
  *
+ * <p>여기를 지나는 인원(임시·장기·상주·순찰·대여)은 모두 <b>카드 전용 인증</b>이다 — 얼굴을 등록하지 않으므로 개인 인증 모드({@link
+ * BiostarUserAdapter#OPERATION_MODE_CARD_ONLY})를 사용자마다 붙인다. 정규인원은 얼굴+카드라 {@link
+ * PersonBiostarService} 가 이 값을 지정하지 않는다.
+ *
  * <p>저장(syncVisitors)은 실패해도 방문을 유지하고 경고만 돌려준다(장비에 없으면 출입 불가라 안전한 방향 + 재저장 upsert 자가치유).
  * 퇴실(disable)·삭제(delete)는 실패 시 호출자가 롤백한다(정합성 우선). 출입그룹 materialize 는 승인 단계 과제로 남긴다.
  */
@@ -112,7 +116,9 @@ public class VisitBiostarService {
               null,
               null,
               null,
-              cards);
+              cards,
+              // 방문객은 얼굴을 등록하지 않는다 — 카드만으로 인증하게 개인 인증 모드를 붙인다
+              BiostarUserAdapter.OPERATION_MODE_CARD_ONLY);
       try {
         boolean exists = biostarUserAdapter.userExists(ip, id, pw, pid);
         BiostarResult res =
@@ -227,7 +233,8 @@ public class VisitBiostarService {
       List<BiostarUserCard> current = CardService.toBiostarCardsOf(cardMapper.selectByPerson(pid));
       BiostarUserRequest before =
           new BiostarUserRequest(
-              pid, null, null, null, null, null, null, null, null, null, null, null, null, current);
+              pid, null, null, null, null, null, null, null, null, null, null, null, null, current,
+              null);
       BiostarUserRequest after =
           new BiostarUserRequest(
               pid,
@@ -243,7 +250,8 @@ public class VisitBiostarService {
               null,
               null,
               null,
-              java.util.List.of()); // 카드 전체 제거
+              java.util.List.of(), // 카드 전체 제거
+              null); // 인증 모드는 건드리지 않는다(before 와 같아 전송 대상이 아니다)
       BiostarResult res = biostarUserAdapter.updateUser(ip, id, pw, before, after);
       if (!res.success()) {
         fails.add(pid + "(" + res.message() + ")");
@@ -275,7 +283,7 @@ public class VisitBiostarService {
 
   private static BiostarUserRequest empty(String userId) {
     return new BiostarUserRequest(
-        userId, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        userId, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
   }
 
   private static String datetime(String value, String defaultTime) {

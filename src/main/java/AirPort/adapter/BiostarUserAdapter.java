@@ -25,6 +25,17 @@ public class BiostarUserAdapter {
   /** 얼굴 템플릿 실제 길이 — 헤더 32바이트 + 데이터 512바이트. bin_type 5·9 모두 같다(장비 등록값으로 확인). */
   private static final int TEMPLATE_BYTES = 544;
 
+  /**
+   * 개인 인증 모드 <b>카드만</b> — 방문객(임시·장기·상주·순찰·대여)용.
+   *
+   * <p>정규인원은 얼굴을 등록해 얼굴+카드로 인증하지만 방문객은 얼굴이 없다. 장비 기본 모드가 얼굴을 요구하면 카드를 대도 문이 열리지 않으므로, 사용자마다 개인 인증
+   * 모드를 붙여 카드만으로 인증하게 한다. 정규인원에는 지정하지 않는다(장비/사용자그룹 설정을 그대로 따른다).
+   */
+  public static final int OPERATION_MODE_CARD_ONLY = 21;
+
+  /** 개인 인증 모드의 인증 방식 — 1 = 개인(사용자별) 설정. */
+  private static final int OPERATION_METHOD_PRIVATE = 1;
+
   /** 얼굴 변환 실패 시 함께 안내하는 사진 요건 — 사유만으로는 무엇을 바꿔야 할지 알 수 없어 붙인다. */
   private static final String PHOTO_HINT =
       "정면을 바라본 한 사람만 있는 사진(모자·마스크·색안경 없이, 밝고 초점이 맞은 사진)으로 다시 시도하세요.";
@@ -207,6 +218,9 @@ public class BiostarUserAdapter {
         }
       }
       applyFaceDelta(user, before, after);
+      if (!java.util.Objects.equals(before.operationMode(), after.operationMode())) {
+        appendOperationMode(user, after); // 지정이 없어지면(null) 아예 보내지 않는다 — 장비 기본으로 되돌린다
+      }
 
       if (user.isEmpty()) {
         return BiostarResult.ok(); // 변경 없음 → 호출 생략
@@ -314,8 +328,25 @@ public class BiostarUserAdapter {
     return s == null ? "" : s;
   }
 
+  /**
+   * 개인 인증 모드 — {@code private_operation_modes}. 지정이 없으면(null) 넣지 않는다.
+   *
+   * <p>{@code index} 는 이 사용자의 모드 슬롯 번호로 0 하나만 쓴다(모드는 하나면 충분하다).
+   */
+  private static void appendOperationMode(ObjectNode user, BiostarUserRequest req) {
+    if (req.operationMode() == null) {
+      return;
+    }
+    user.putArray("private_operation_modes")
+        .addObject()
+        .put("index", 0)
+        .put("user_id", req.userId())
+        .put("operation_method", OPERATION_METHOD_PRIVATE)
+        .put("operation_mode", req.operationMode().intValue());
+  }
+
   /** POST /api/users payload 구성 — null 필드는 넣지 않는다. */
-  private String userPayload(BiostarUserRequest req) throws Exception {
+  String userPayload(BiostarUserRequest req) throws Exception { // 테스트에서 직접 확인한다
     ObjectNode user = objectMapper.createObjectNode();
     putIfPresent(user, "name", req.name());
     putIfPresent(user, "photo", req.photo());
@@ -347,6 +378,7 @@ public class BiostarUserAdapter {
       face.put("useProfile", "true");
       cred.put("check_visualFace_img_validation", false);
     }
+    appendOperationMode(user, req);
 
     ObjectNode root = objectMapper.createObjectNode();
     root.set("User", user);

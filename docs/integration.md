@@ -167,6 +167,8 @@ System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true"
     설정관리 화면에서 실제 그룹 ID 로 바꾼다. 바로 앞줄의 `code 201 "User can not be found with id"` 는
     신규 방문객 존재 확인이라 정상이다.
   - **카드 보유 상태(입실중 VS03·미반납 VS05) 카드 규칙**: 카드 **교환만 허용** — 카드 회수(빈 카드)나 방문객 제외는 수정으로 불가, 퇴실 처리로만 가능(카드 없는 입실중 상태 방지).
+  - **인증 모드는 카드 전용**: 방문객(임시·장기·상주·순찰·대여)은 **얼굴을 등록하지 않는다.** 장비/사용자그룹 기본 모드가 얼굴을 요구하면 카드를 대도 문이 열리지 않으므로, 사용자 payload 에 개인 인증 모드를 함께 보낸다 — `private_operation_modes: [{index:0, user_id:{인원ID}, operation_method:1, operation_mode:21}]`(21 = 카드만, `BiostarUserAdapter.OPERATION_MODE_CARD_ONLY`). 등록(POST)·수정(PUT) 모두 실린다.
+    **정규인원(PT01)에는 보내지 않는다** — 얼굴+카드로 인증하므로 장비/사용자그룹 설정을 그대로 따라야 한다. 붙이면 그 설정을 덮어써 얼굴 인증이 막힌다. 경계는 서비스로 갈린다: 방문객은 전부 `VisitBiostarService` 를 지나고 정규는 `PersonBiostarService` 만 지난다. 퇴실(disable)은 이 값을 건드리지 않는다(before/after 가 같아 델타에 안 실린다).
 - TODO: 사용자/카드/얼굴 등 나머지 도메인 모델 ↔ BiostarX 모델 매핑 표.
 - TODO: 실시간 이벤트 수신 방식(폴링 `events/search` vs 웹훅) 확정.
 

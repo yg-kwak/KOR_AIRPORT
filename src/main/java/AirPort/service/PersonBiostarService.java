@@ -115,7 +115,7 @@ public class PersonBiostarService {
   /** 비교 기준이 없을 때 쓰는 빈 요청 — 모든 항목이 '변경됨'이 되어 전 항목이 전송된다. */
   public static BiostarUserRequest empty(String userId) {
     return new BiostarUserRequest(
-        userId, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        userId, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
   }
 
   /** 저장된 인원(수정 전 상태) → BiostarX 전송 값. 얼굴 템플릿은 보관하지 않으므로 없음. */
@@ -189,7 +189,8 @@ public class PersonBiostarService {
         faceImage,
         t9,
         t5,
-        cards);
+        cards,
+        null); // 개인 인증 모드 미지정 — 정규인원은 얼굴+카드라 장비/사용자그룹 설정을 그대로 따른다
   }
 
   /** 기관의 BiostarX 사용자그룹 ID. */
