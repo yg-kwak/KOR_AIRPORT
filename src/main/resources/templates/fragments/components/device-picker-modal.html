@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 공통 BiostarX 장치 선택 팝업. 기관 선택 팝업(company-picker-modal)과 같은 사용 방식.
+     사용: <div th:replace="~{fragments/components/device-picker-modal :: devicePicker}"></div>
+          const sel = await devicePicker.open('/system/loginUser/biostarDevices'); // {id, name} | null
+     장치 목록은 화면마다 다른 URL 로 읽는다 — 메뉴 권한을 각 화면이 자기 menu_id 로 확인하기 때문이다. -->
+<div th:fragment="devicePicker" class="modal-overlay code-picker-overlay" id="devicePickerModal">
+  <div class="modal-container wide">
+    <div class="modal-header">
+      <h2 class="modal-title">BiostarX 장치 선택</h2>
+      <button class="modal-close" id="devicePickerClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="search-keyword" style="margin-bottom:10px">
+        <input type="text" id="devicePickerKeyword" class="input" style="flex:1"
+               placeholder="장치ID 또는 장치명으로 검색" autocomplete="off"/>
+      </div>
+      <p class="form-hint" id="devicePickerInfo"></p>
+      <div class="matrix-wrap">
+        <table class="grid">
+          <thead>
+          <tr><th class="w-40"></th><th class="w-200">장치ID</th><th style="text-align:left">장치명</th></tr>
+          </thead>
+          <tbody id="devicePickerBody">
+          <tr><td colspan="3" class="empty">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="devicePickerCancel">취소</button>
+      <button class="btn btn-primary" id="devicePickerOk">선택</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

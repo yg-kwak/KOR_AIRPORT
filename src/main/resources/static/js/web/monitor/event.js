@@ -18,7 +18,7 @@
   let stream = null;      // 현재 EventSource
   let keepAlive = null;   // 세션 유지 타이머
   let holdTimer = null;   // MAIN 유지 타이머
-  let devices = [];       // 단말기 전체 목록(검색은 이 안에서 한다)
+  let deviceId = null;    // 보고 있는 단말기
   let mainHeld = false;   // MAIN 이 지금 한 건을 붙잡고 있는가(그 건은 띠에서 뺀다)
   const history = [];     // 최근 → 과거 순. 화면은 뒤집어 그린다
 
@@ -116,10 +116,10 @@
     $('monitorState').classList.remove('warn');
   }
 
-  function start(deviceId) {
+  function start(id) {
     stop();
-    if (!deviceId) return;
-    stream = new EventSource(BASE + '/stream?deviceId=' + encodeURIComponent(deviceId));
+    if (!id) return;
+    stream = new EventSource(BASE + '/stream?deviceId=' + encodeURIComponent(id));
     /* 한 건이 깨져도 다음 인증은 계속 받아야 한다 — 리스너에서 예외가 나가면 그 뒤가 조용히 멈춘다 */
     const on = (name, fn) => stream.addEventListener(name, (m) => {
       try { fn(JSON.parse(m.data)); } catch (err) { console.warn('이벤트 처리 실패', err); }
@@ -137,33 +137,28 @@
     $('monitorState').textContent = '연결 중';
   }
 
-  /* 단말기 목록은 한 번만 읽고 화면에서 거른다 — 장비를 다시 두드릴 이유가 없다.
-     고르고 있던 단말기가 검색에서 빠져도 선택은 유지한다(수신이 끊기면 안 된다). */
-  function renderDevices() {
-    const q = $('deviceSearch').value.trim().toLowerCase();
-    const picked = $('deviceSelect').value;
-    const hit = devices.filter((d) =>
-      !q || String(d.name || '').toLowerCase().includes(q) || String(d.id).includes(q));
-    const rows = hit.some((d) => String(d.id) === picked) || !picked
-      ? hit
-      : hit.concat(devices.filter((d) => String(d.id) === picked));
-    $('deviceSelect').innerHTML = '<option value="">단말기를 선택하세요</option>'
-      + rows.map((d) => `<option value="${esc(d.id)}">${esc(d.name || d.id)}</option>`).join('');
-    $('deviceSelect').value = picked;
-  }
-
-  async function loadDevices() {
-    devices = (await api.get(BASE + '/devices')) || [];
-    renderDevices();
+  /* 단말기 선택 — 사용자관리와 같은 공통 팝업(검색 가능). 고른 뒤 장치ID·장치명을 함께 보여 준다.
+     같은 장치를 다시 고르면 흐르던 수신을 끊지 않는다(재구독은 감사·재연결만 늘린다). */
+  async function pickDevice() {
+    const sel = await devicePicker.open(BASE + '/devices');
+    if (!sel || sel.id === deviceId) return;
+    deviceId = sel.id;
+    const label = sel.id + (sel.name ? ' · ' + sel.name : '');
+    $('deviceField').value = label;
+    $('deviceField').title = label; // 칸이 좁아 잘리면 마우스를 올려 확인한다
+    start(sel.id);
   }
 
   function bind() {
-    $('deviceSearch').addEventListener('input', renderDevices);
-    $('deviceSelect').addEventListener('change', (e) => start(e.target.value));
-    $('btnStop').addEventListener('click', () => { $('deviceSelect').value = ''; stop(); });
+    $('deviceField').addEventListener('click', pickDevice);
+    $('btnStop').addEventListener('click', () => {
+      deviceId = null;
+      $('deviceField').value = '';
+      $('deviceField').title = '';
+      stop();
+    });
     window.addEventListener('beforeunload', stop); // 떠나면 서버도 구독을 정리한다
     renderHistory(); // 빈칸 6개를 먼저 세워 둔다 — 어디가 채워질 자리인지 보이게
-    loadDevices();
   }
 
   document.addEventListener('DOMContentLoaded', bind);

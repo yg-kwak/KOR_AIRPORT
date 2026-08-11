@@ -148,49 +148,11 @@
     location.href = BASE + '/excel' + q;
   }
 
-  // ---- BiostarX 장치 조회 팝업 (선택 → dev_id 저장) ----
-  let allDevices = []; // 조회된 전체 장치(클라이언트 필터용)
-
-  async function openDeviceModal() {
-    $('deviceFilter').value = '';
-    $('deviceInfo').textContent = 'BiostarX 장치를 불러오는 중...';
-    $('deviceList').innerHTML = '<tr><td colspan="3" class="empty">불러오는 중...</td></tr>';
-    $('deviceModal').classList.add('open');
-    const res = await api.get(BASE + '/biostarDevices'); // {success,message,devices}
-    if (!res || !res.success) {
-      $('deviceInfo').textContent = (res && res.message) || 'BiostarX 장치 조회 실패';
-      $('deviceList').innerHTML = '<tr><td colspan="3" class="empty">조회 실패</td></tr>';
-      allDevices = [];
-      return;
-    }
-    allDevices = res.devices || [];
-    $('deviceInfo').textContent = `총 ${allDevices.length}개 — 장치 1건을 선택하고 [선택]을 누르세요.`;
-    renderDeviceList();
-  }
-
-  // 장치ID/장치명으로 클라이언트 필터
-  function renderDeviceList() {
-    const kw = $('deviceFilter').value.trim().toLowerCase();
-    const rows = kw
-      ? allDevices.filter((d) => String(d.id).includes(kw) || (d.name || '').toLowerCase().includes(kw))
-      : allDevices;
-    $('deviceList').innerHTML = rows.length
-      ? rows.map((d) => `
-        <tr>
-          <td><input type="radio" name="devicePick" data-id="${esc(d.id)}"/></td>
-          <td>${esc(d.id)}</td>
-          <td style="text-align:left">${esc(d.name)}</td>
-        </tr>`).join('')
-      : '<tr><td colspan="3" class="empty">검색 결과가 없습니다.</td></tr>';
-  }
-
-  function closeDeviceModal() { $('deviceModal').classList.remove('open'); }
-
-  function confirmDevice() {
-    const sel = $('deviceList').querySelector('input[name="devicePick"]:checked');
-    if (!sel) { toast.warning('장치를 선택해주세요.'); return; }
-    $('devId').value = sel.dataset.id; // dev_id = 장치 id
-    closeDeviceModal();
+  /* 장치 선택은 공통 팝업(devicePicker)을 쓴다 — 실시간 이벤트 화면도 같은 팝업이다.
+     목록 URL 은 이 화면 것으로 준다(권한을 이 화면 menu_id 로 확인한다). */
+  async function pickDevice() {
+    const sel = await devicePicker.open(BASE + '/biostarDevices');
+    if (sel) $('devId').value = sel.id; // dev_id = 장치 id
   }
 
   // ---- 등록/수정 모달 ----
@@ -285,19 +247,8 @@
         $('workLocationName').value = sel.codeName;
       }
     });
-    // 장치ID: BiostarX 장치 조회 팝업으로 선택 → dev_id 채움
-    $('devId').addEventListener('click', openDeviceModal);
-    $('deviceClose').addEventListener('click', closeDeviceModal);
-    $('deviceCancel').addEventListener('click', closeDeviceModal);
-    $('deviceConfirm').addEventListener('click', confirmDevice);
-    $('deviceFilter').addEventListener('input', renderDeviceList);
-    $('deviceModal').addEventListener('click', (e) => { if (e.target === $('deviceModal')) closeDeviceModal(); });
-    // 행 클릭 → 라디오 체크
-    $('deviceList').addEventListener('click', (e) => {
-      if (e.target.closest('input[type="radio"]')) return;
-      const radio = e.target.closest('tr')?.querySelector('input[type="radio"]');
-      if (radio) radio.checked = true;
-    });
+    // 장치ID: 공통 BiostarX 장치 선택 팝업 → dev_id 채움
+    $('devId').addEventListener('click', pickDevice);
 
     $('btnExcel').addEventListener('click', excelDownload);
     $('btnSave').addEventListener('click', save);
