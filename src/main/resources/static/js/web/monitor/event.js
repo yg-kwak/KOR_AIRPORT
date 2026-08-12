@@ -24,6 +24,7 @@
   let deviceId = null;    // 보고 있는 단말기
   let mainHeld = false;   // MAIN 이 지금 한 건을 붙잡고 있는가(그 건은 띠에서 뺀다)
   let soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; // 기본은 켜짐
+  let koVoice = null;     // 한국어 음성(미리 찾아 둔다 — 인증 순간에 찾으면 늦다)
   const history = [];     // 최근 → 과거 순. 화면은 뒤집어 그린다
 
   /* 카드 그림 — 얼굴이 없는 자리에 세운다. 카드로만 인증한 사람(임시·장기·상주·순찰·대여)은
@@ -59,16 +60,25 @@
     if (!soundOn) return;
     try {
       const synth = window.speechSynthesis;
-      const voice = synth && synth.getVoices().find((v) => (v.lang || '').toLowerCase().startsWith('ko'));
-      if (!voice) { beep(ok); return; }
-      synth.cancel(); // 앞의 발화를 끊는다 — 실시간 화면에서 중요한 것은 방금 지나간 사람이다
+      if (!synth || !koVoice) { beep(ok); return; }
+      // 앞의 발화가 남아 있을 때만 끊는다 — 실시간 화면에서 중요한 것은 방금 지나간 사람이다.
+      // 조용한데도 cancel 을 부르면 이어지는 speak 가 씹히거나 늦게 시작한다(Chrome).
+      if (synth.speaking || synth.pending) synth.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.voice = voice;
-      u.lang = voice.lang;
+      u.voice = koVoice;
+      u.lang = koVoice.lang;
       synth.speak(u);
     } catch (err) {
       beep(ok);
     }
+  }
+
+  /* 음성 목록은 페이지 로드보다 늦게 채워진다. 인증이 왔을 때 비어 있으면 한국어 음성이
+     있는데도 알림음으로 새므로, 미리 찾아 두고 목록이 바뀌면 다시 찾는다. */
+  function findVoice() {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    koVoice = synth.getVoices().find((v) => (v.lang || '').toLowerCase().startsWith('ko')) || null;
   }
 
   /* 한국어 음성이 없을 때의 대체음 — 성공은 높고 짧게, 실패는 낮고 길게. */
@@ -94,12 +104,15 @@
   }
 
   function onAuth(e) {
+    // 소리를 먼저 시작한다 — 그리기(사진 2장 + 지난 인증 6칸 다시 그리기)가 끝난 뒤에
+    // 부르면 그만큼 발화가 늦어 화면과 어긋난다. speak 는 큐에 넣고 곧바로 돌아오므로
+    // 그리는 동안 음성 엔진이 준비되어 결과적으로 화면과 같이 나온다.
+    speak(e.granted ? '인증 성공' : '인증 실패', e.granted);
     history.unshift(e);
     if (history.length > HISTORY + 1) history.pop(); // MAIN 1건 + 지난 6건
     mainHeld = true;
     showMain(e);
     renderHistory();
-    speak(e.granted ? '인증 성공' : '인증 실패', e.granted);
     clearTimeout(holdTimer);
     holdTimer = setTimeout(demoteMain, MAIN_HOLD_MS);
   }
@@ -209,10 +222,12 @@
     $('btnSound').addEventListener('click', () => {
       soundOn = !soundOn;
       applySound();
-      if (soundOn) speak('소리 켜짐', true);
+      //if (soundOn) speak('소리 켜짐', true);
     });
-    // 음성 목록은 늦게 로드된다 — 준비되면 다시 고를 수 있게 이벤트만 받아 둔다
-    if (window.speechSynthesis) window.speechSynthesis.getVoices();
+    if (window.speechSynthesis) {
+      findVoice();
+      window.speechSynthesis.addEventListener('voiceschanged', findVoice);
+    }
     applySound();
     window.addEventListener('beforeunload', stop); // 떠나면 서버도 구독을 정리한다
     renderHistory(); // 빈칸 6개를 먼저 세워 둔다 — 어디가 채워질 자리인지 보이게
