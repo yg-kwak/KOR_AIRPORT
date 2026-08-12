@@ -15,11 +15,15 @@
      지나간 사람이 계속 커다랗게 떠 있으면, 방금 지나간 사람으로 오독된다. */
   const MAIN_HOLD_MS = 60 * 1000;
 
+  /* 소리 설정은 이 브라우저에 남긴다 — 상황실 PC 마다 조건이 다르다(스피커 유무·야간 소음). */
+  const SOUND_KEY = 'monitorSound';
+
   let stream = null;      // 현재 EventSource
   let keepAlive = null;   // 세션 유지 타이머
   let holdTimer = null;   // MAIN 유지 타이머
   let deviceId = null;    // 보고 있는 단말기
   let mainHeld = false;   // MAIN 이 지금 한 건을 붙잡고 있는가(그 건은 띠에서 뺀다)
+  let soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; // 기본은 켜짐
   const history = [];     // 최근 → 과거 순. 화면은 뒤집어 그린다
 
   /* 카드 그림 — 얼굴이 없는 자리에 세운다. 카드로만 인증한 사람(임시·장기·상주·순찰·대여)은
@@ -47,12 +51,55 @@
     $('monitorMain').classList.add('shown');
   }
 
+  /* 인증마다 결과를 읽어 준다 — 상황실은 화면을 늘 보고 있지 않다.
+     브라우저 내장 음성(speechSynthesis)을 쓴다. 음성 파일을 두면 문구를 바꿀 때마다
+     파일을 다시 만들어야 하고, 한국어 음성은 Windows 에 이미 들어 있다.
+     한국어 음성이 없는 PC 도 있으므로 그때는 짧은 알림음으로 대신한다 — 무음보다는 낫다. */
+  function speak(text, ok) {
+    if (!soundOn) return;
+    try {
+      const synth = window.speechSynthesis;
+      const voice = synth && synth.getVoices().find((v) => (v.lang || '').toLowerCase().startsWith('ko'));
+      if (!voice) { beep(ok); return; }
+      synth.cancel(); // 앞의 발화를 끊는다 — 실시간 화면에서 중요한 것은 방금 지나간 사람이다
+      const u = new SpeechSynthesisUtterance(text);
+      u.voice = voice;
+      u.lang = voice.lang;
+      synth.speak(u);
+    } catch (err) {
+      beep(ok);
+    }
+  }
+
+  /* 한국어 음성이 없을 때의 대체음 — 성공은 높고 짧게, 실패는 낮고 길게. */
+  function beep(ok) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = ok ? 880 : 320;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (ok ? 0.25 : 0.6));
+      osc.start();
+      osc.stop(ctx.currentTime + (ok ? 0.25 : 0.6));
+      osc.onended = () => ctx.close();
+    } catch (err) { /* 소리를 못 내도 화면은 그대로 돈다 */ }
+  }
+
+  function applySound() {
+    localStorage.setItem(SOUND_KEY, soundOn ? 'on' : 'off');
+    $('btnSound').classList.toggle('off', !soundOn);
+    $('btnSound').setAttribute('aria-pressed', String(soundOn));
+  }
+
   function onAuth(e) {
     history.unshift(e);
     if (history.length > HISTORY + 1) history.pop(); // MAIN 1건 + 지난 6건
     mainHeld = true;
     showMain(e);
     renderHistory();
+    speak(e.granted ? '인증 성공' : '인증 실패', e.granted);
     clearTimeout(holdTimer);
     holdTimer = setTimeout(demoteMain, MAIN_HOLD_MS);
   }
@@ -157,6 +204,16 @@
       $('deviceField').title = '';
       stop();
     });
+    /* 켤 때 한 번 읽어 준다 — 브라우저는 사용자가 손대기 전에는 소리를 막는다.
+       이 클릭이 그 '손댐'이 되어, 이후 인증 안내가 조용히 묻히지 않는다. */
+    $('btnSound').addEventListener('click', () => {
+      soundOn = !soundOn;
+      applySound();
+      if (soundOn) speak('소리 켜짐', true);
+    });
+    // 음성 목록은 늦게 로드된다 — 준비되면 다시 고를 수 있게 이벤트만 받아 둔다
+    if (window.speechSynthesis) window.speechSynthesis.getVoices();
+    applySound();
     window.addEventListener('beforeunload', stop); // 떠나면 서버도 구독을 정리한다
     renderHistory(); // 빈칸 6개를 먼저 세워 둔다 — 어디가 채워질 자리인지 보이게
   }
