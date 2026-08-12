@@ -224,7 +224,7 @@ public class MonitorService {
   }
 
   /** 장비 이벤트 + 우리 DB 값. 없는 값은 비워 둔다 — 미등록 인증도 화면에는 보여야 한다(누가 지나갔는지가 정보다). */
-  private AuthEventResult enrich(BiostarAuthEvent event) {
+  AuthEventResult enrich(BiostarAuthEvent event) { // 테스트에서 직접 확인한다
     AuthEventResult row = new AuthEventResult();
     row.setEventTime(time(event.datetime()));
     row.setDeviceId(event.deviceId());

@@ -3,9 +3,15 @@ package AirPort.common;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import AirPort.common.exception.GlobalExceptionHandler;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
@@ -50,11 +56,56 @@ class ClientDisconnectTest {
 
   @Test
   void 응답이_이미_나갔으면_본문을_쓰지_않는다() {
-    // 끊김이 아니어도 마찬가지다 — 헤더가 나간 뒤에는 상태코드도 본문도 바꿀 수 없다
+    // 헤더가 나간 뒤에는 상태코드도 본문도 바꿀 수 없다 — 본문만 생략한다.
+    // (스택을 남기는지는 아래 테스트가 지킨다)
     MockHttpServletResponse committed = new MockHttpServletResponse();
     committed.setCommitted(true);
 
     assertNull(handler.handleEtc(new RuntimeException("무언가 잘못됨"), committed));
+  }
+
+  /**
+   * 응답이 나간 뒤에 난 <b>진짜 오류</b>는 끊김과 다르게 다뤄야 한다.
+   *
+   * <p>엑셀 다운로드처럼 응답에 직접 쓰는 경로는 실패해도 헤더가 이미 커밋된 상태다. 이것을 끊김과 한 갈래로 묶으면 장애가 "클라이언트가 끊었다"는 INFO 한 줄로
+   * 조용해진다 — 본문은 못 쓰더라도 스택은 반드시 남아야 한다.
+   */
+  @Test
+  void 응답이_나간_뒤의_진짜_오류도_로그에는_남는다() {
+    MockHttpServletResponse committed = new MockHttpServletResponse();
+    committed.setCommitted(true);
+    Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    ListAppender<ILoggingEvent> captured = new ListAppender<>();
+    captured.start();
+    logger.addAppender(captured);
+    try {
+      handler.handleEtc(new RuntimeException("엑셀 쓰는 중 실패"), committed);
+    } finally {
+      logger.detachAppender(captured);
+    }
+
+    assertTrue(
+        captured.list.stream().anyMatch(ev -> ev.getLevel() == Level.ERROR),
+        "커밋된 응답에서 난 진짜 오류가 ERROR 로 남지 않으면 장애를 놓친다: " + captured.list);
+  }
+
+  @Test
+  void 끊김은_ERROR_로_남기지_않는다() {
+    // 화면을 닫을 때마다 나는 정상적인 일이다 — ERROR 로 쌓이면 진짜 오류가 묻힌다
+    Logger logger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    ListAppender<ILoggingEvent> captured = new ListAppender<>();
+    captured.start();
+    logger.addAppender(captured);
+    try {
+      handler.handleEtc(
+          new CloseNowException("stream is not writable"), new MockHttpServletResponse());
+    } finally {
+      logger.detachAppender(captured);
+    }
+
+    assertTrue(
+        captured.list.stream().noneMatch(ev -> ev.getLevel() == Level.ERROR),
+        "끊김은 ERROR 가 아니다: " + captured.list);
   }
 
   @Test
