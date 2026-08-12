@@ -52,17 +52,51 @@
     $('monitorMain').classList.add('shown');
   }
 
-  /* 인증마다 결과를 읽어 준다 — 상황실은 화면을 늘 보고 있지 않다.
-     브라우저 내장 음성(speechSynthesis)을 쓴다. 음성 파일을 두면 문구를 바꿀 때마다
-     파일을 다시 만들어야 하고, 한국어 음성은 Windows 에 이미 들어 있다.
-     한국어 음성이 없는 PC 도 있으므로 그때는 짧은 알림음으로 대신한다 — 무음보다는 낫다. */
+  /* 인증마다 결과를 소리로 알린다 — 상황실은 화면을 늘 보고 있지 않다.
+
+     미리 만들어 둔 음성 파일을 쓴다. 브라우저 내장 음성(speechSynthesis)은 speak() 를
+     불러도 실제 소리가 나기까지 **1초 남짓** 걸린다(엔진이 그때 말을 만든다) — 실제로
+     재 보니 첫 발화 1240ms, 이후에도 평균 1055ms 였다. 화면보다 눈에 띄게 늦는다.
+     파일은 미리 받아 디코딩해 두므로 재생 시작이 즉시다.
+
+     파일을 못 받으면 내장 음성으로, 그것도 안 되면 알림음으로 내려간다 — 무음보다 낫다. */
+  const SOUND_URL = { ok: '/sound/auth-granted.wav', deny: '/sound/auth-denied.wav' };
+  let audioCtx = null;
+  const buffers = {}; // 디코딩까지 끝내 둔다 — 인증 순간에 할 일을 남기지 않는다
+
+  async function loadSounds() {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      await Promise.all(Object.entries(SOUND_URL).map(async ([k, url]) => {
+        const res = await fetch(url);
+        if (!res.ok) return;
+        buffers[k] = await audioCtx.decodeAudioData(await res.arrayBuffer());
+      }));
+    } catch (err) { /* 파일이 없으면 아래 대체 경로로 간다 */ }
+  }
+
   function speak(text, ok) {
     if (!soundOn) return;
+    const buf = buffers[ok ? 'ok' : 'deny'];
+    if (audioCtx && buf) {
+      try {
+        // 브라우저가 소리를 막아 둔 상태면 깨운다(사용자가 화면을 손댄 뒤에는 통과한다)
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        src.connect(audioCtx.destination);
+        src.start();
+        return;
+      } catch (err) { /* 아래 대체 경로로 */ }
+    }
+    speakByEngine(text, ok);
+  }
+
+  /* 음성 파일을 못 받은 경우의 대체 — 늦지만 무음보다는 낫다. */
+  function speakByEngine(text, ok) {
     try {
       const synth = window.speechSynthesis;
       if (!synth || !koVoice) { beep(ok); return; }
-      // 앞의 발화가 남아 있을 때만 끊는다 — 실시간 화면에서 중요한 것은 방금 지나간 사람이다.
-      // 조용한데도 cancel 을 부르면 이어지는 speak 가 씹히거나 늦게 시작한다(Chrome).
       if (synth.speaking || synth.pending) synth.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.voice = koVoice;
@@ -81,10 +115,10 @@
     koVoice = synth.getVoices().find((v) => (v.lang || '').toLowerCase().startsWith('ko')) || null;
   }
 
-  /* 한국어 음성이 없을 때의 대체음 — 성공은 높고 짧게, 실패는 낮고 길게. */
+  /* 음성 파일도 내장 음성도 없을 때 — 성공은 높고 짧게, 실패는 낮고 길게. */
   function beep(ok) {
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
@@ -93,7 +127,6 @@
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (ok ? 0.25 : 0.6));
       osc.start();
       osc.stop(ctx.currentTime + (ok ? 0.25 : 0.6));
-      osc.onended = () => ctx.close();
     } catch (err) { /* 소리를 못 내도 화면은 그대로 돈다 */ }
   }
 
@@ -224,6 +257,7 @@
       applySound();
       //if (soundOn) speak('소리 켜짐', true);
     });
+    loadSounds(); // 미리 받아 디코딩해 둔다 — 인증 순간에 남는 일이 없어야 화면과 같이 난다
     if (window.speechSynthesis) {
       findVoice();
       window.speechSynthesis.addEventListener('voiceschanged', findVoice);
