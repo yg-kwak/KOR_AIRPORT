@@ -356,8 +356,9 @@ public class BiostarEventSocket {
   /**
    * 한 건 파싱 — 이벤트가 아닌 메시지(세션 응답 등)는 따로 처리한다.
    *
-   * <p>받은 프레임은 <b>INFO</b> 로 한 줄 남긴다. 화면에 아무것도 안 뜰 때 "장비가 안 보낸 것"과 "받았지만 걸러진 것"을 가르는 유일한 단서인데,
-   * debug 로 두면 기본 레벨에서 안 찍혀 둘을 구분할 수 없다. 출입 이벤트는 분당 몇 건이라 로그가 넘치지 않는다.
+   * <p>받은 프레임은 <b>DEBUG</b> 로 한 줄 남긴다. 연동이 자리를 잡아 평소에는 필요 없지만, <b>"인증했는데 화면에 안 뜬다"를 가르는 첫 단서</b>다 —
+   * 이 줄이 보이면 장비는 보냈고 우리가 거른 것이고, 안 보이면 애초에 안 온 것이다. 그 증상이 나오면 이 로거를 DEBUG 로 올려 확인한다. (걸러진 사유는
+   * {@code MonitorService} 가 INFO 로 남기므로 기본 레벨에서도 보인다.)
    */
   private void dispatch(String message, java.util.concurrent.CompletableFuture<String> authReply) {
     BiostarAuthEvent parsed;
@@ -371,7 +372,7 @@ public class BiostarEventSocket {
       handleNonEvent(message, authReply);
       return;
     }
-    log.info(
+    log.debug(
         "BiostarX 이벤트 수신 — {}({}) 장치={} 인원={} 사진ID={}",
         parsed.eventName(),
         parsed.eventCode(),
