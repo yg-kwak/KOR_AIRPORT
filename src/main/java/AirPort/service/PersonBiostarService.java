@@ -17,6 +17,7 @@ import AirPort.model.TbCompany;
 import AirPort.model.TbPerson;
 import AirPort.model.TbSystem;
 import AirPort.security.ARIAUtil;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -136,8 +137,14 @@ public class PersonBiostarService {
         CardService.toBiostarCardsOf(cardMapper.selectByPerson(p.getPersonId())));
   }
 
-  /** 등록/수정 요청(폼) → BiostarX 전송 값. */
+  /**
+   * 등록/수정 요청(폼) → BiostarX 전송 값.
+   *
+   * <p><b>비활성 상태면 얼굴을 함께 지운다.</b> 출입을 막아 놓고 생체정보만 장비에 남겨 두면, 상태를 되돌리는 순간 예전 얼굴로 문이 열린다. 퇴사·분실처럼 사람이
+   * 떠났거나 카드를 잃은 상태에서는 남겨 둘 이유도 없다(개인정보 최소화).
+   */
   private BiostarUserRequest biostarRequest(PersonForm f, List<Integer> acIds) {
+    boolean disabled = isDisabled(f.getStatusCode());
     // 사용자 사진(photo)은 원본, 인증용 얼굴(visualFaces)은 장비가 돌려준 정규화 이미지를 쓴다.
     // 원본이 없으면(장치 촬영) 정규화 이미지를 사진으로도 쓴다.
     String photo =
@@ -148,15 +155,15 @@ public class PersonBiostarService {
         f.getPersonId(),
         f.getPersonName(),
         f.getPersonPhone(),
-        photo,
+        disabled ? null : photo,
         f.getCompanyCode(),
         f.getStatusCode(),
         f.getAccessStartDt(),
         f.getAccessEndDt(),
         f.getTitleCode(),
         acIds,
-        f.getFaceTemplate9(),
-        f.getFaceTemplate5(),
+        disabled ? null : f.getFaceTemplate9(),
+        disabled ? null : f.getFaceTemplate5(),
         CardService.toBiostarCards(f.getCards()));
   }
 
@@ -206,6 +213,24 @@ public class PersonBiostarService {
   public String codeName(String cmmId, String codeId) {
     TbCommon code = code(cmmId, codeId);
     return code == null ? null : code.getCodeName();
+  }
+
+  /**
+   * 이 상태가 <b>비활성</b>인가 — {@code tb_common}(PS).code_tag 가 그대로 BiostarX 의 {@code disabled} 다.
+   *
+   * <p>정지·퇴사·회수·분실이 여기 해당한다. 어느 코드가 비활성인지는 <b>공통코드가 원천</b>이라 코드에 박지 않는다 — 현장에서 상태를 추가해도 이 판정이 따라간다.
+   */
+  public boolean isDisabled(String statusCode) {
+    return "true".equalsIgnoreCase(codeTag(PS, statusCode));
+  }
+
+  /** 화면이 저장 전에 "얼굴이 지워진다"고 안내하려면 어떤 상태가 비활성인지 알아야 한다. */
+  public List<String> disabledStatusCodes() {
+    List<String> codes = new ArrayList<>();
+    for (TbCommon c : commonMapper.selectByCodeTag(PS, "true")) {
+      codes.add(c.getCodeId());
+    }
+    return codes;
   }
 
   /** 공통코드의 code_tag(예: PS 상태 → disabled 값). 없으면 null. */

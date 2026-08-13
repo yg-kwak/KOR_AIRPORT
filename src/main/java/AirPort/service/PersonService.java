@@ -126,7 +126,7 @@ public class PersonService {
       // 동시 등록 레이스(중복검사 통과 후 PK 충돌) — 친화적 메시지로 변환
       throw new BusinessException(ErrorCode.DUPLICATE, "이미 존재하는 인원ID 입니다. 다른 ID 로 다시 시도하세요.");
     }
-    savePhoto(form); // 저장은 원본 사진(카드 출력에 쓴다)
+    savePhoto(form); // 저장은 원본 사진(카드 출력에 쓴다). 비활성 상태면 안에서 지운다
     saveAcGroups(form.getPersonId(), form.getAcGroupIds());
     personFileService.apply(form);
     cardService.saveCards(form.getPersonId(), form.getCards(), actor, menuId);
@@ -179,9 +179,9 @@ public class PersonService {
     personMapper.update(row);
 
     if (photoOf(form) != null) {
-      savePhoto(form);
+      savePhoto(form); // 비활성 상태면 화면이 사진을 보냈더라도 안에서 지운다
     } else {
-      photoMapper.deleteByPerson(form.getPersonId()); // 얼굴 삭제
+      photoMapper.deleteByPerson(form.getPersonId()); // 화면에서 얼굴을 비웠다
     }
     saveAcGroups(form.getPersonId(), form.getAcGroupIds());
     personFileService.apply(form);
@@ -283,11 +283,29 @@ public class PersonService {
         : null;
   }
 
+  /**
+   * 등록사진 저장 — <b>비활성 상태(정지·퇴사·회수·분실)면 지운다.</b>
+   *
+   * <p>출입을 막아 놓고 생체정보만 남겨 두면 상태를 되돌리는 순간 예전 얼굴로 문이 열린다. 사람이 떠났거나 카드를 잃은 상태에서 얼굴을 보관할 이유도 없다 (개인정보
+   * 최소화). 장비 쪽 얼굴은 {@link PersonBiostarService} 가 같은 판정으로 함께 지운다 — <b>한쪽만 지우면 다음 저장에서 되살아난다.</b>
+   *
+   * <p>되돌릴 수 없으므로 화면이 저장 전에 알린다(`PAGE_DISABLED_STATUS`).
+   */
   private void savePhoto(PersonForm form) {
+    if (personBiostar.isDisabled(form.getStatusCode())) {
+      photoMapper.deleteByPerson(form.getPersonId());
+      return;
+    }
     String photo = photoOf(form);
     if (photo != null) {
       photoMapper.upsert(form.getPersonId(), photo);
     }
+  }
+
+  /** 화면이 "저장하면 얼굴이 지워진다"고 알리려면 어떤 상태가 비활성인지 알아야 한다. */
+  public List<String> disabledStatusCodes(TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireRead(actor, menuId);
+    return personBiostar.disabledStatusCodes();
   }
 
   private void saveAcGroups(String personId, List<Integer> acGroupIds) {

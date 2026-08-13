@@ -293,6 +293,8 @@
   };
   // 출입종료일 상한 — 서버(app.person.access-end-max)와 같은 값을 쓴다(두 곳에 적으면 어긋난다)
   window.MAX_ACCESS_END_DT = [[${maxAccessEndDt}]];
+  // 저장하면 얼굴이 지워지는 상태들(tb_common PS 의 code_tag='true') — 화면에 박지 않는다
+  window.PAGE_DISABLED_STATUS = [[${disabledStatusCodes}]];
 </script>
 <!-- 카드 브라우저 인쇄 영역(화면 숨김, @media print 에서만 노출) — 클라이언트 PC 프린터로 여백 없이 출력 -->
 <div id="cardPrintArea" aria-hidden="true"></div>

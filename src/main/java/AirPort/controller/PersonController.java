@@ -102,6 +102,9 @@ public class PersonController {
     model.addAttribute("menus", menuService.tree(actor(session)));
     model.addAttribute("perm", perm);
     model.addAttribute("maxAccessEndDt", personService.maxAccessEndDt()); // 입력 max·기본값
+    // 어떤 상태가 비활성인지는 공통코드(PS.code_tag)가 원천 — 화면에 박지 않고 내려준다
+    model.addAttribute(
+        "disabledStatusCodes", personService.disabledStatusCodes(actor(session), menuId()));
     return "web/person/person";
   }
 

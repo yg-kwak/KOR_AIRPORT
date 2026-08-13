@@ -14,6 +14,10 @@
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
   const fmtDt = (v) => (v == null ? '' : String(v).replace('T', ' '));
 
+  /* 저장하면 얼굴이 지워지는 상태 — 공통코드(PS.code_tag)가 원천이라 서버가 내려준다.
+     화면에 코드를 박으면 현장에서 상태를 추가했을 때 안내가 조용히 빠진다. */
+  const DISABLED_STATUS = window.PAGE_DISABLED_STATUS || [];
+
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
   const MAX_ACCESS_END_DT = window.MAX_ACCESS_END_DT || '2037-12-31T23:59'; // 서버 설정(app.person.access-end-max)
@@ -281,25 +285,21 @@
       [payload.accessStartDt, '출입시작일'], [payload.accessEndDt, '출입종료일'],
     ].find(([v]) => !v);
     if (required) { toast.warning(`${required[1]}은(는) 필수입니다.`); return; }
-    if (!PERSON_ID_ALLOWED.test(payload.personId)) {
-      toast.warning('인원ID 는 영문·숫자만 사용할 수 있습니다.'); return;
-    }
-    if (payload.birthDate && (!BIRTH_DATE_FORMAT.test(payload.birthDate) || !isRealDate(payload.birthDate))) {
-      toast.warning('생년월일은 YYYY-MM-DD 형식으로 입력하세요. 예: 1990-01-01'); return;
-    }
-    if (payload.accessEndDt > MAX_ACCESS_END_DT) {
-      toast.warning(`출입종료일은 ${MAX_ACCESS_END_DT.replace('T', ' ')} 를 초과할 수 없습니다.`); return;
-    }
-    if (payload.accessStartDt > payload.accessEndDt) {
-      toast.warning('출입시작일은 출입종료일보다 늦을 수 없습니다.'); return;
-    }
+    if (!PERSON_ID_ALLOWED.test(payload.personId)) { toast.warning('인원ID 는 영문·숫자만 사용할 수 있습니다.'); return; }
+    if (payload.birthDate && (!BIRTH_DATE_FORMAT.test(payload.birthDate) || !isRealDate(payload.birthDate))) { toast.warning('생년월일은 YYYY-MM-DD 형식으로 입력하세요. 예: 1990-01-01'); return; }
+    if (payload.accessEndDt > MAX_ACCESS_END_DT) { toast.warning(`출입종료일은 ${MAX_ACCESS_END_DT.replace('T', ' ')} 를 초과할 수 없습니다.`); return; }
+    if (payload.accessStartDt > payload.accessEndDt) { toast.warning('출입시작일은 출입종료일보다 늦을 수 없습니다.'); return; }
     const titleName = $('titleName').value.trim();
-    if (titleName && !TITLE_ALLOWED.test(titleName)) {
-      toast.warning('직위에 특수문자를 사용할 수 없습니다.'); return;
-    }
+    if (titleName && !TITLE_ALLOWED.test(titleName)) { toast.warning('직위에 특수문자를 사용할 수 없습니다.'); return; }
     // 카드 발급 시 출입구역이 없으면 실제로 못 여는 무효 카드가 되므로 구역 선택을 강제한다
-    if (payload.cards.length && !payload.acGroupIds.length) {
-      toast.warning('카드를 발급하려면 출입구역을 선택하세요.'); return;
+    if (payload.cards.length && !payload.acGroupIds.length) { toast.warning('카드를 발급하려면 출입구역을 선택하세요.'); return; }
+    // 비활성 상태(정지·퇴사·회수·분실)로 저장하면 얼굴이 지워진다 — 되돌릴 수 없으므로 먼저 알린다.
+    // 지울 얼굴이 없으면 묻지 않는다(없는 것을 지운다고 겁줄 이유가 없다).
+    if (DISABLED_STATUS.includes(payload.statusCode) && (face.photo || face.image)) {
+      const st = $('statusName').value || payload.statusCode;
+      const ok = await confirmModal.open({ title: '얼굴 정보 삭제', confirmText: '삭제하고 저장',
+        message: `'${st}' 상태로 저장하면 등록된 얼굴 정보가 삭제됩니다. BiostarX 장비의 얼굴도 함께 지워지며 되돌릴 수 없습니다.` });
+      if (!ok) return;
     }
     // 서버 메시지(연동 경고 포함) 자동 토스트. 수정은 변경분만 BiostarX 로 전송된다.
     if (editMode === 'create') await api.post(BASE, payload);
