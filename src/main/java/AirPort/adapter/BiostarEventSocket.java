@@ -357,8 +357,9 @@ public class BiostarEventSocket {
    * 한 건 파싱 — 이벤트가 아닌 메시지(세션 응답 등)는 따로 처리한다.
    *
    * <p>받은 프레임은 <b>DEBUG</b> 로 한 줄 남긴다. 연동이 자리를 잡아 평소에는 필요 없지만, <b>"인증했는데 화면에 안 뜬다"를 가르는 첫 단서</b>다 —
-   * 이 줄이 보이면 장비는 보냈고 우리가 거른 것이고, 안 보이면 애초에 안 온 것이다. 그 증상이 나오면 이 로거를 DEBUG 로 올려 확인한다. (걸러진 사유는
-   * {@code MonitorService} 가 INFO 로 남기므로 기본 레벨에서도 보인다.)
+   * 이 줄이 보이면 장비는 보냈고 우리가 거른 것이고, 안 보이면 애초에 안 온 것이다. 그 증상이 나오면 {@code AirPort.adapter}·{@code
+   * AirPort.service} 로거를 DEBUG 로 올린다 — <b>걸러진 사유도 {@code MonitorService} 가 DEBUG 로 남긴다</b>(상시 운용에서
+   * 인증마다 여러 줄이 쌓여 INFO 에서 내렸다).
    */
   private void dispatch(String message, java.util.concurrent.CompletableFuture<String> authReply) {
     BiostarAuthEvent parsed;

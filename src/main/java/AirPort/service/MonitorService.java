@@ -193,13 +193,13 @@ public class MonitorService {
     // 왜 안 떴는지는 여기서 갈린다 — 인증이 아니었는지, 다른 단말기였는지. 사유를 안 남기면
     // "장비가 안 보냈다"와 구분되지 않아 현장에서 원인을 좁힐 수 없다.
     if (!event.displayable()) {
-      // INFO 다 — 인증했는데 화면에 안 뜰 때, 표에 없는 코드였다는 사실이 유일한 단서다.
-      // 여기 찍힌 코드를 BiostarAuthEvent 표에 넣으면 바로 뜬다.
-      log.info("화면 제외 — 표기 대상이 아닌 이벤트: {}({})", event.eventName(), event.eventCode());
+      // 상시 운용에서 인증마다 쌓여 INFO 에서 내렸다. "인증했는데 화면에 안 뜬다" 를 볼 때만
+      // AirPort.service 로거를 DEBUG 로 올린다 — 여기 찍힌 코드를 BiostarAuthEvent 표에 넣으면 뜬다.
+      log.debug("화면 제외 — 표기 대상이 아닌 이벤트: {}({})", event.eventName(), event.eventCode());
       return;
     }
     if (event.deviceId() == null || !watched(event.deviceId())) {
-      log.info("화면 제외 — 보고 있지 않은 단말기({}). 보는 중: {}", event.deviceId(), viewers.values());
+      log.debug("화면 제외 — 보고 있지 않은 단말기({}). 보는 중: {}", event.deviceId(), viewers.values());
       return;
     }
     worker.execute(() -> enrichAndPush(event));
@@ -247,8 +247,8 @@ public class MonitorService {
           eventAdapter.authImage(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), event.imageId()));
     }
     // 사진이 왜 안 나오는지는 이 한 줄로 판가름난다 — 이벤트에 사진 ID 가 없었는지, 장비가 안 줬는지,
-    // 우리 DB 에 등록사진이 없었는지. 인증 한 건에 한 줄이라 로그가 넘치지 않는다.
-    log.info(
+    // 우리 DB 에 등록사진이 없었는지. 평소엔 필요 없어 DEBUG 다(상시 운용에서 인증마다 쌓인다).
+    log.debug(
         "인증 {}({}) 인원={} 사진ID={} 인증사진={} 등록사진={}",
         event.eventName(),
         event.eventCode(),
