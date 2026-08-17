@@ -59,6 +59,12 @@ WHERE a.auth_name = N'관리자'
 PRINT '  + 권한 ' + CAST(@@ROWCOUNT AS varchar(10)) + '건 부여';
 GO
 
+/* 차량구역3 공통코드 — 이 파일의 다른 절과 같이 재실행해도 안전해야 한다(그냥 INSERT 면 돌릴 때마다 늘어난다) */
+INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, code_tag, code_remark, user_input, use_yn)
+SELECT 'CAR', N'차량출입구역', 'CAR03', N'차량구역3', NULL, NULL, 'N', 'Y'
+WHERE NOT EXISTS (SELECT 1 FROM dbo.tb_common WHERE cmm_id = 'CAR' AND code_id = 'CAR03');
+GO
+
 /* ────────────────────────────────────────────────────────────────────────────
    적용 결과 확인
    ──────────────────────────────────────────────────────────────────────────── */
