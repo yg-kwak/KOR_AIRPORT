@@ -38,6 +38,7 @@ public class VisitRosterService {
   private final CardService cardService;
   private final CardIssueService cardIssue;
   private final VisitBiostarService visitBiostar;
+  private final ParkingPassService parkingPass;
   private final AuditService auditService;
 
   public VisitRosterService(
@@ -49,6 +50,7 @@ public class VisitRosterService {
       CardService cardService,
       CardIssueService cardIssue,
       VisitBiostarService visitBiostar,
+      ParkingPassService parkingPass,
       AuditService auditService) {
     this.visitMapper = visitMapper;
     this.personMapper = personMapper;
@@ -58,6 +60,7 @@ public class VisitRosterService {
     this.cardService = cardService;
     this.cardIssue = cardIssue;
     this.visitBiostar = visitBiostar;
+    this.parkingPass = parkingPass;
     this.auditService = auditService;
   }
 
@@ -155,6 +158,8 @@ public class VisitRosterService {
       }
     }
     // 방문 차량(tb_car) — 전체 재구성(기존 차량 카드 회수·소프트삭제 후 새로 발급)
+    // 재구성하면 예전 차량번호를 알 수 없게 되므로, 지우기 전에 읽어 둔다(주차 정기권 회수 대상 판정용)
+    java.util.Set<String> parkedBefore = parkingPass.visitCarNos(visitNo);
     for (Integer carId : visitMapper.selectCarIds(visitNo)) {
       cardMapper.releaseByCar(carId);
       carMapper.softDelete(carId);
@@ -186,20 +191,25 @@ public class VisitRosterService {
         }
       }
     }
+    // 주차 차단기 — 차량구역이 붙은 차량은 정기권을 다시 등록하고, 빠진 차량은 회수한다.
+    // 실패해도 저장을 취소하지 않는다(차단기는 부가 기능) — 경고로 올려 놓친 차량이 드러나게 한다.
+    String parkWarn = parkingPass.syncVisit(visitNo, form, parkedBefore, actor, menuId);
     // 전원 카드를 받아야 BiostarX 에 올린다.
     // 한 명이라도 카드가 없으면 '신청'으로 남는데, 그 상태에서 장비에 사용자가 올라가 있으면
     // 삭제는 "BiostarX 에 등록된 방문객이 있다"고 막히고 퇴실은 '입실 중'이 아니라 못 해 방문이 갇힌다.
     if (personIds.isEmpty() || carded < personIds.size()) {
-      return personIds.isEmpty()
-          ? null
-          : "카드를 받지 않은 방문객이 "
-              + (personIds.size() - carded)
-              + "명 있어 신청 상태로 두었습니다. 전원 카드를 발급하면 입실 중으로 바뀌고 BiostarX 에 등록됩니다.";
+      return join(
+          parkWarn,
+          personIds.isEmpty()
+              ? null
+              : "카드를 받지 않은 방문객이 "
+                  + (personIds.size() - carded)
+                  + "명 있어 신청 상태로 두었습니다. 전원 카드를 발급하면 입실 중으로 바뀌고 BiostarX 에 등록됩니다.");
     }
     // BiostarX 방문객 동기화(PT→PTD code_tag 부모 그룹 + 선택 출입그룹)
     String fail = visitBiostar.syncVisitors(form.getVisitType(), personIds, form.getAcGroupIds());
     if (fail == null) {
-      return null;
+      return parkWarn;
     }
     // 장비에 못 올렸으면 입실로 볼 수 없다. 상태만 '입실 중'으로 바뀌면 카드가 문을 열지 못하는데도
     // 처리가 끝난 것처럼 보인다 — 신청으로 되돌려 무엇이 남았는지 드러낸다.
@@ -209,7 +219,16 @@ public class VisitRosterService {
         AuditService.UPDATE,
         menuId,
         "BiostarX 동기화 실패로 신청 상태 유지(방문 " + visitNo + "): " + fail);
-    return "BiostarX 동기화에 실패해 '신청' 상태로 두었습니다. 사유: " + fail + " — 원인을 해결한 뒤 다시 저장하세요.";
+    return join(
+        parkWarn, "BiostarX 동기화에 실패해 '신청' 상태로 두었습니다. 사유: " + fail + " — 원인을 해결한 뒤 다시 저장하세요.");
+  }
+
+  /** 경고 문구 합치기 — 둘 다 없으면 null(성공). 화면은 문구 하나만 띄운다. */
+  private static String join(String first, String second) {
+    if (first == null) {
+      return second;
+    }
+    return second == null ? first : first + "\n" + second;
   }
 
   /** 방문객 tb_person 저장 — personId 있으면 갱신(기존 인원 유지), 없으면 IS 채번 신규. (키오스크 재사용) */
@@ -267,8 +286,13 @@ public class VisitRosterService {
     return c.getCarId();
   }
 
-  /** 방문의 방문객/차량을 정리 — 카드 회수 후 인원 소프트삭제·차량 소프트삭제. */
-  public void clearRoster(int visitNo) {
+  /**
+   * 방문의 방문객/차량을 정리 — 카드 회수 후 인원 소프트삭제·차량 소프트삭제.
+   *
+   * <p>차량이 사라지면 주차 차단기도 함께 닫는다. 이걸 빼면 방문을 지워도 정기권이 남아 그 차는 계속 들어올 수 있다.
+   */
+  public void clearRoster(int visitNo, TbLoginUser actor, Integer menuId) {
+    parkingPass.removeAll("방문 " + visitNo, parkingPass.visitCarNos(visitNo), actor, menuId);
     for (String pid : visitMapper.selectPersonIds(visitNo)) {
       cardMapper.releaseByPerson(pid);
       personMapper.softDelete(pid);

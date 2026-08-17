@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbParkingEventMapper">
+
+  <!-- 주차서버는 우리 응답을 못 받으면 같은 이벤트를 다시 보낸다. 유일키(UQ_tb_parking_event)에 맡기면
+       중복이 예외로 터져 재전송마다 500 을 돌려주게 되고, 그러면 저쪽이 또 보낸다. 넣기 전에 있는지 보고
+       없을 때만 넣는다(있으면 0건 → 서비스가 '이미 받은 건'으로 처리). -->
+  <insert id="insert" parameterType="TbParkingEvent">
+    INSERT INTO tb_parking_event
+      (event_type, event_name, lot_area, eqpm_id, car_no, event_dt, in_dt, in_eqpm_id,
+       user_name, pass_type, is_cust_def, parking_id, car_image_url, history_id, lpr_trns_id, raw_json)
+    SELECT
+      #{eventType}, #{eventName}, #{lotArea}, #{eqpmId}, #{carNo}, #{eventDt}, #{inDt}, #{inEqpmId},
+      #{userName}, #{passType}, #{isCustDef}, #{parkingId}, #{carImageUrl}, #{historyId},
+      #{lprTrnsId}, #{rawJson}
+    WHERE NOT EXISTS (
+      SELECT 1 FROM tb_parking_event e
+      WHERE e.event_type = #{eventType} AND e.car_no = #{carNo} AND e.event_dt = #{eventDt})
+  </insert>
+
+  <!-- ══════════ 주차 조회 화면(조회 전용) ══════════ -->
+
+  <sql id="searchWhere">
+    <where>
+      <!-- 원문 eventType 이 여섯 가지(입/출 × 정상·미개방·후면)라 화면은 계열로 고른다 -->
+      <if test="direction == 'in'">AND p.event_type LIKE 'Entered%'</if>
+      <if test="direction == 'out'">AND p.event_type LIKE 'Exited%'</if>
+      <if test="notOpenOnly">AND p.event_type LIKE '%NotOpen'</if>
+      <if test="startDate != null and startDate != ''">
+        AND p.event_dt &gt;= CAST(#{startDate} AS datetime2)
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND p.event_dt &lt; DATEADD(DAY, 1, CAST(#{endDate} AS datetime2))
+      </if>
+      <if test="keyword != null and keyword != ''">
+        AND
+        <choose>
+          <when test="searchType == 'carNo'">p.car_no LIKE '%' + #{keyword} + '%'</when>
+          <when test="searchType == 'userName'">p.user_name LIKE '%' + #{keyword} + '%'</when>
+          <otherwise>
+            (p.car_no LIKE '%' + #{keyword} + '%' OR p.user_name LIKE '%' + #{keyword} + '%')
+          </otherwise>
+        </choose>
+      </if>
+    </where>
+  </sql>
+
+  <!-- 정렬: 화이트리스트. 기본은 최신순(event_dt DESC) -->
+  <sql id="orderBy">
+    ORDER BY
+    <choose>
+      <when test="sort == 'carNo'">p.car_no <if test="desc">DESC</if>, p.event_id DESC</when>
+      <when test="sort == 'eventType'">p.event_type <if test="desc">DESC</if>, p.event_id DESC</when>
+      <when test="sort == 'eventDt'">p.event_dt <if test="desc">DESC</if>, p.event_id DESC</when>
+      <otherwise>p.event_dt DESC, p.event_id DESC</otherwise>
+    </choose>
+  </sql>
+
+  <sql id="listColumns">
+    p.event_id, p.event_type, p.event_name, p.lot_area, p.eqpm_id, p.car_no, p.event_dt,
+    p.in_dt, p.in_eqpm_id, p.user_name, p.pass_type, p.is_cust_def, p.parking_id,
+    p.car_image_url, p.reg_dt,
+    car.car_name, car.company_name
+  </sql>
+
+  <!-- 우리 DB 에 등록된 차량이면 차량명·기관을 함께 보여 준다. 주차서버는 공백 없이 보내므로 우리 쪽 번호도
+       공백을 지워 맞춘다. 같은 번호가 여러 행이면 최근 것 하나만(OUTER APPLY TOP 1) — 조인하면 행이 불어난다. -->
+  <sql id="listJoins">
+    FROM tb_parking_event p
+    OUTER APPLY (
+      SELECT TOP 1 c.car_name, co.company_name
+      FROM tb_car c
+      LEFT JOIN tb_company co ON co.company_code = c.company_code
+      WHERE c.del_yn = 'N' AND REPLACE(c.car_no, ' ', '') = p.car_no
+      ORDER BY c.car_id DESC
+    ) car
+  </sql>
+
+  <select id="selectList" parameterType="AirPort.model.ParkingEventSearchParam"
+          resultType="TbParkingEvent">
+    SELECT <include refid="listColumns"/>
+    <include refid="listJoins"/>
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="selectCount" parameterType="AirPort.model.ParkingEventSearchParam" resultType="long">
+    SELECT COUNT(*)
+    FROM tb_parking_event p
+    <include refid="searchWhere"/>
+  </select>
+
+</mapper>

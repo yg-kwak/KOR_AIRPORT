@@ -242,5 +242,74 @@ System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true"
 - 화면: 정규인원 수정 모달 카드정보 탭 관리 열의 **출력** 버튼 → 미리보기(앞/뒤) 후 인쇄. (`/person/person/card/print/preview`, `/card/print`)
 - **일괄 출력**: 목록에서 인원 선택 → **카드 출력**(선택 삭제 왼쪽). 전량 검증(카드 1장·얼굴 보유) 후 각자 출력. 카드 2장 이상 보유자가 있으면 인원ID를 알리고 아무것도 출력하지 않는다. (`/card/print/bulk`)
 
+## 주차 차단기 (아마노 주차관제, adapter/AmanoParkingAdapter)
+
+차량에 **차량구역**(`tb_common` cmm_id=`CAR`)을 부여하면, 그 구역 차단기가 자동으로 열리도록 아마노 주차관제에 **정기권**을 등록한다. 차량이 붙는 화면이 둘이라 `ParkingPassService` 한 곳에 모았다 — 구역→종별 매핑과 회수 규칙이 갈리면 두 화면의 차단기 동작이 달라진다.
+
+| 화면 | 구역 출처 | 정기권 종료일 |
+|---|---|---|
+| 방문(임시·장기·상주) | `tb_visit_car_ac_group`(방문 단위) | `tb_visit.work_end_dt` |
+| 기관차량등록 | `tb_car_ac_group`(차량 단위) | **`20371231`** — 상주라 끝나는 날이 없다 |
+
+### 규격
+- `POST http://{host}:9948/interop/{resource}.do` (https 는 9938). **POST 전용**, `application/json` **UTF-8**.
+- 인증: **HTTP Basic** — `Authorization: Basic base64(userId:userPw)`.
+- 쓰는 리소스: `setCustdefInfo.do`(정기권 등록) · `deleteCustdefInfo.do`(정기권 삭제) · `getCustdefList.do`(조회, 점검용).
+- **성공 판정은 HTTP 상태가 아니라 본문 `data.success`** 다. 거부도 `HTTP 200` 으로 돌아온다. 사유는 `data.errorMessage`(한글 UTF-8 — 응답에 charset 이 없어 명시적으로 UTF-8 로 읽는다).
+
+### 실증으로 확인한 제약 (2026-08-13, 시험서버)
+- **차량 1대 = 정기권 1건 = 종별 1개.** 같은 `(lotAreaNo, carNo)` 로 종별만 바꿔 다시 등록하면 `"[정기차량 등록] 이미 등록된 차량 (…)"` 으로 **거부**된다.
+- 그래서 재등록은 반드시 **삭제 → 등록** 순서다(`AmanoParkingAdapter.register` 가 내부에서 먼저 지운다). 삭제는 없는 차량이어도 성공으로 돌아와 신규 등록에도 안전하다.
+### 구역 → 종별 (현재 설정)
+- **차단기가 달린 구역만 `code_tag` 를 갖는다.** 단말기가 한 대라 지금은 **차량구역2(`CAR02` → `passType2`)뿐**이고, 나머지 구역은 주차와 무관해 비어 있다.
+- 그래서 고른 구역 중 **종별이 있는 것**을 찾는다. 정렬해 맨 앞을 집으면 `차량구역1+2` 를 고른 순간 태그 없는 `CAR01` 이 잡혀 **등록이 통째로 빠진다**(회귀 테스트로 고정: `종별이_없는_구역을_함께_골라도_차단기가_붙은_구역으로_등록한다`).
+- 종별이 비어 있는 것은 정상이라 DEBUG 로만 남긴다. 값이 있는데 1~8 밖이면 설정 실수라 WARN.
+- **미결**: 단말기가 늘어 **종별이 붙은 구역을 2군데 이상** 고르게 되면 어떻게 보낼지. API 로는 표현할 수 없어 아마노에 **조합 종별**(`passType3`~`passType8`)을 신설하는 협의가 필요하다(구역 3개의 조합은 7가지라 종별 8개 안에 들어간다). **잠정 동작**: 종별이 있는 구역 중 가장 앞선 하나로만 등록하고 나머지는 WARN 로그로 남긴다 — `ParkingPassService.passType`. 종별이 하나뿐인 지금은 이 분기를 타지 않는다.
+
+### 필드 매핑 (등록)
+| 아마노 | 값 |
+|---|---|
+| `lotAreaNo` | 설정 `app.parking.lot-area-no` (청주공항 20) |
+| `carNo` | `tb_car.car_no` — **공백 제거**(규격이 "공백없이 전체번호") |
+| `userName` | `tb_car.car_name` |
+| `passType` | 차량구역 `tb_common(CAR).code_tag` 의 숫자 → `passType{n}` (1~8 밖이면 등록하지 않는다). **종별이 붙은 구역만 차단기가 있다** — 현재 단말기가 한 대라 `CAR02` 뿐 |
+| `startDate` | 등록 당일 `yyyyMMdd` |
+| `endDate` | 방문은 `tb_visit.work_end_dt` 의 `yyyyMMdd`, 기관차량은 `20371231` |
+| `dongCode`·`hoCode`·`remark`·`tel`·`mobile`·`carModel` | 공란 (공동주택용) |
+| `groupNo` | 0 · `siteID` 0 · `noAlarm` false · `isVIP` false · `iTendatedOverlapped` 0 |
+
+삭제 본문은 `{lotAreaNo, carNo}` **뿐**이다(차량번호 단위 — 구역별 삭제가 없다).
+
+### 반영 시점 (ParkingPassService)
+- **방문 저장**(`VisitRosterService.saveChildren` → `syncVisit`): 차량을 재구성하기 **전에** 기존 차량번호를 읽어 두고, 저장 후 ① 빠진 차량은 정기권 삭제 ② 남은 차량은 삭제 후 재등록.
+- **방문 삭제·정리**(`clearRoster` → `removeAll`): 그 방문 차량의 정기권을 전부 회수한다. 안 지우면 방문이 없어져도 그 차는 계속 들어온다.
+- **기관차량 등록·수정**(`CompanyCarService.create/update` → `syncCar`): 저장 후 재등록. **차량번호를 고치면 옛 번호의 정기권을 회수**한다 — 안 지우면 예전 번호가 계속 차단기를 연다.
+- **기관차량 삭제**(`CompanyCarService.delete` → `removeAll`): 정기권 회수.
+- **차량구역을 모두 해제하면 정기권을 지운다**(구역 없음 = 주차 권한 없음). 안 지우면 화면에서는 권한을 뺐는데 차단기만 계속 열린다.
+- **실패해도 방문 저장을 롤백하지 않는다** — 차단기는 부가 기능이라, 주차관제가 죽었을 때 방문 등록 자체가 멈추면 안 된다. 대신 사유를 화면 경고 + `logAlways`(tb_system_log)로 남긴다. (BiostarX 사용자 동기화는 반대로 롤백 — 그쪽은 출입 자체가 걸린다.)
+- 방문 종료일이 없으면 **등록하지 않는다**(무기한 개방 방지).
+
+### 입·출차 이벤트 수신 (주차서버 → 우리, `POST /api/InOutCar`)
+
+**방향이 반대인 유일한 연동이다.** 정기권은 우리가 아마노를 호출하지만, 입·출차는 **주차서버가 우리를 호출한다**. 아마노는 조회 API 를 주지 않고(문서상 "지원되지 않음"), 대신 파트너사가 `http://{도메인명}/api/InOutCar` 를 제공하면 밀어 주는 방식이다.
+
+- **경로는 저쪽 규격**이라 우리 화면 규약(`/{영역}/{stem}` ↔ `tb_menu.menu_url`)의 예외다. `code-lint [4]` 와 `WebConfig` 가 `/api/**` 를 제외한다.
+- **인증이 없다** — 세션도 토큰도 없는 요청이다. 보내는 쪽 IP 로 막는다: `app.parking.event.allow-ips`(콤마 구분). **비우면 모두 허용**이니 운영에서는 반드시 채운다.
+- **응답은 항상 200.** 못 알아들은 요청(eventType 없음·시각 형식 오류)도, 저장에 실패해도 200 이다. 500 을 주면 주차서버가 같은 건을 계속 재전송해 저쪽 큐가 막힌다. 사유는 우리 로그에 남긴다.
+- **중복 수신은 정상이다.** 응답을 못 받으면 주차서버가 다시 보낸다. `(event_type, car_no, event_dt)` 유일키 + `INSERT … WHERE NOT EXISTS` 로 한 줄만 남긴다.
+
+| eventType | 뜻 |
+|---|---|
+| `EnteredCar` / `ExitedCar` | 입·출차 (차단기 자동 열림) |
+| `EnteredCarNotOpen` / `ExitedCarNotOpen` | 인식했으나 **차단기 안 열림**(수동입차 포함) — "왜 못 들어갔나" 를 찾는 단서 |
+| `EnteredRearCar` / `ExitedRearCar` | 후면 인식 (기본 제공 아님, 기본 정보만 온다) |
+
+주요 필드: `carNumber`(미인식은 **`No_Detection`**, 부분인식은 `X` 포함) · `eventTime`/`inDtm`(`yyyyMMddHHmmss`) · `passType`(`passType1`~`8`/`normal`/`visitor`) · `iID`(**-1 이면 출입권한 없는 차량**) · `isCustDef`(정기차량 여부). 문서가 "필드는 추가될 수 있다"고 명시해 **모르는 키는 무시**하고 원문을 `raw_json` 에 보관한다.
+
+화면은 **차량관리 → 주차 조회**(menu 602, `/carInfo/parkingEvent`) — 기간·입출구분·미개방·차량번호로 조회하고, 출차 건은 함께 온 입차 시각을 같이 보여 준다. 우리 DB 에 등록된 차량이면 차량명·기관을 붙인다.
+
+### 설정 (`application.properties`, 비밀값은 환경변수로만)
+`app.parking.enabled`(기본 **false** — 개발·시험이 현장 주차장을 건드리지 않게) · `app.parking.base-url` · `app.parking.user` · `app.parking.password` · `app.parking.lot-area-no` · `app.parking.event.allow-ips`(수신 허용 IP). 각각 `PARKING_ENABLED`/`PARKING_URL`/`PARKING_USER`/`PARKING_PASSWORD`/`PARKING_LOT_AREA_NO`/`PARKING_EVENT_ALLOW_IPS` 로 주입한다. **수신(`/api/InOutCar`)은 `enabled` 와 무관하게 항상 열려 있다** — 저쪽이 보내는 것을 우리가 켜고 끄는 값이 아니다. (`security.md`, `deployment.md`)
+
 ## 관련 문서
 [architecture.md](architecture.md) · [security.md](security.md) · [backend.md](backend.md)

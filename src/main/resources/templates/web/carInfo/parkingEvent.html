@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head}"></head>
+<body>
+<div th:replace="~{fragments/main :: header}"></div>
+<div class="layout-container">
+  <div th:replace="~{fragments/sidebar :: sidebar(${menus})}"></div>
+  <main class="layout-content">
+    <h2>주차 조회</h2>
+
+    <!-- 검색 -->
+    <section class="search-section">
+      <div class="search-field">
+        <label>기간</label>
+        <div class="search-keyword">
+          <select id="periodType" class="input w-120">
+            <option value="1m">1개월</option>
+            <option value="3m">3개월</option>
+            <option value="6m">6개월</option>
+            <option value="1y">1년</option>
+            <option value="custom">직접입력</option>
+          </select>
+          <span id="dateRange" class="date-range" style="display:none">
+            <input type="date" id="startDate" class="input w-160"/>
+            <span class="date-sep">~</span>
+            <input type="date" id="endDate" class="input w-160"/>
+          </span>
+        </div>
+      </div>
+      <div class="search-field">
+        <label>구분</label>
+        <select id="directionFilter" class="input w-120">
+          <option value="">전체</option>
+          <option value="in">입차</option>
+          <option value="out">출차</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>차단기</label>
+        <!-- 인식은 했지만 열리지 않은 건(…NotOpen). 왜 못 들어갔는지 찾을 때 쓴다 -->
+        <select id="openFilter" class="input w-140">
+          <option value="">전체</option>
+          <option value="notOpen">미개방만</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>검색어</label>
+        <div class="search-keyword">
+          <select id="searchType" class="input w-120">
+            <option value="all">전체</option>
+            <option value="carNo">차량번호</option>
+            <option value="userName">고객명</option>
+          </select>
+          <input type="text" id="keyword" class="input w-300" placeholder="검색어를 입력해주세요" autocomplete="off"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnSearch">검색</button>
+      <button class="btn" id="btnReset">초기화</button>
+    </section>
+
+    <!-- 목록 -->
+    <section class="content-card">
+      <div class="grid-toolbar">
+        <span class="grid-total" id="totalInfo"></span>
+        <div class="grid-actions">
+          <select id="pageSize" class="input">
+            <option value="30">30개씩 보기</option>
+            <option value="50">50개씩 보기</option>
+            <option value="100">100개씩 보기</option>
+            <option value="200">200개씩 보기</option>
+          </select>
+        </div>
+      </div>
+      <table class="grid">
+        <thead>
+        <tr>
+          <th class="w-160 sortable" data-sort="eventDt">일시<span class="sort-ind"></span></th>
+          <th class="w-100 sortable" data-sort="eventType">구분<span class="sort-ind"></span></th>
+          <th class="w-140 sortable" data-sort="carNo">차량번호<span class="sort-ind"></span></th>
+          <th class="w-120">차량명</th>
+          <th class="w-160">소속</th>
+          <th class="w-120">차량유형</th>
+          <th class="w-100">차단기</th>
+          <th class="w-160">입차시각</th>
+        </tr>
+        </thead>
+        <tbody id="gridBody">
+        <tr><td colspan="8" class="empty">조회 결과가 없습니다.</td></tr>
+        </tbody>
+      </table>
+      <div class="paging" id="paging"></div>
+    </section>
+  </main>
+</div>
+
+<script src="/js/web/carInfo/parkingEvent.js" defer></script>
+</body>
+</html>

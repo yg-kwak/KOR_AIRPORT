@@ -152,14 +152,14 @@ public class LongTermController {
   @ResponseBody
   public ApiResponse<Void> delete(@RequestParam int visitNo, HttpSession session) {
     return ApiResponse.okMessage(
-        withWarning("삭제되었습니다.", visitService.delete(visitNo, actor(session), menuId())));
+        withSyncFailure("삭제되었습니다.", visitService.delete(visitNo, actor(session), menuId())));
   }
 
   @PostMapping("/checkout")
   @ResponseBody
   public ApiResponse<Void> checkout(@RequestParam int visitNo, HttpSession session) {
     return ApiResponse.okMessage(
-        withWarning("퇴실 처리되었습니다.", visitService.checkout(visitNo, actor(session), menuId())));
+        withSyncFailure("퇴실 처리되었습니다.", visitService.checkout(visitNo, actor(session), menuId())));
   }
 
   /** 방문객 개별 퇴실 (AJAX) — 카드 발급된 방문객은 제거 대신 이 방식으로 내보낸다. */
@@ -171,7 +171,18 @@ public class LongTermController {
     return ApiResponse.okMessage("퇴실 처리되었습니다.");
   }
 
+  /**
+   * 저장(등록·수정) 경고 — 사유가 담긴 문장 그대로 붙인다.
+   *
+   * <p>이름표를 씌우지 않는다. 이 자리로 오는 문구는 BiostarX 동기화 실패만이 아니라 "카드를 받지 않은 방문객이 N명", "주차 차단기 등록 실패" 도 있어서,
+   * 한 가지 이름을 붙이면 나머지가 사실과 다르게 표시된다.
+   */
   private static String withWarning(String message, String warn) {
+    return warn == null ? message : message + " " + warn;
+  }
+
+  /** 삭제·퇴실 경고 — BiostarX 가 돌려준 사유(예: {@code P2(HTTP 500)})라 이름표가 있어야 읽힌다. */
+  private static String withSyncFailure(String message, String warn) {
     return warn == null ? message : message + " (BiostarX 동기화 실패: " + warn + ")";
   }
 

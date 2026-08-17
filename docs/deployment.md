@@ -48,6 +48,19 @@ BiostarX 동기화는 **트랜잭션 안에서** 일어난다(실패 시 저장�
 
 BiostarX 호출 타임아웃은 연결 5초 / 요청 7~10초(`BiostarSession`)다. 한 저장이 여러 번 왕복할 수 있으므로 풀 크기는 그 곱을 감안한다.
 
+### 주차 차단기 연동 (아마노)
+방문 차량의 정기권 등록·삭제. **기본이 꺼짐**이라, 운영 서버에서만 켠다 — 개발·시험 환경이 켜져 있으면 현장 주차장의 정기권을 실제로 지우고 다시 넣는다. (`integration.md`)
+
+| 환경변수 | 프로퍼티 | 값 |
+|---|---|---|
+| `PARKING_ENABLED` | `app.parking.enabled` | 운영만 `true` (기본 `false`) |
+| `PARKING_URL` | `app.parking.base-url` | `http://{host}:9948` (https 는 9938) |
+| `PARKING_USER` / `PARKING_PASSWORD` | `app.parking.user` / `.password` | 연동 계정(HTTP Basic) — **커밋 금지**, 환경변수/`.env` 로만 |
+| `PARKING_LOT_AREA_NO` | `app.parking.lot-area-no` | 주차장 번호(청주공항 `20`) |
+| `PARKING_EVENT_ALLOW_IPS` | `app.parking.event.allow-ips` | 입·출차 이벤트를 받을 주차서버 IP(콤마 구분). **비우면 모두 허용** |
+
+**입·출차 이벤트 수신은 방향이 반대다.** 주차서버가 우리 `POST /api/InOutCar` 를 호출하므로, 아마노 쪽에 **우리 서버 주소를 등록해 달라고 요청**해야 한다(`http://{우리도메인}/api/InOutCar`). 방화벽에서 주차서버 → 우리 서버 방향을 열고, `PARKING_EVENT_ALLOW_IPS` 에 그 IP 를 넣는다. 이 경로는 `PARKING_ENABLED` 와 무관하게 항상 열려 있다.
+
 ### 로그 — 하루에 파일 하나
 운영 설정 파일에는 **`LOG_PATH` 한 줄**이면 된다. 형식·분할·보관은 jar 기본값이다(보관기간만 `LOG_KEEP_DAYS`).
 

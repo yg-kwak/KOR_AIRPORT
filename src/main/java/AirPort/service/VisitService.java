@@ -278,7 +278,7 @@ public class VisitService {
           ErrorCode.INVALID_INPUT,
           "BiostarX 사용자 삭제 실패로 방문 삭제가 취소되었습니다. 사유: " + warn + " — 다시 시도하세요.");
     }
-    roster.clearRoster(visitNo); // 방문객/차량 정리(카드 회수 포함)
+    roster.clearRoster(visitNo, actor, menuId); // 방문객/차량 정리(카드 회수·주차 정기권 회수 포함)
     visitMapper.deleteManagers(visitNo);
     visitMapper.deleteAcGroups(visitNo);
     visitMapper.deleteCarAcGroups(visitNo);

@@ -48,6 +48,8 @@ class VisitRosterRemoveTest {
   private final AirPort.service.CardIssueService cardIssue =
       mock(AirPort.service.CardIssueService.class);
   private final VisitBiostarService visitBiostar = mock(VisitBiostarService.class);
+  private final AirPort.service.ParkingPassService parkingPass =
+      mock(AirPort.service.ParkingPassService.class);
   private final AuditService auditService = mock(AuditService.class);
 
   private VisitRosterService service() {
@@ -60,6 +62,7 @@ class VisitRosterRemoveTest {
         cardService,
         cardIssue,
         visitBiostar,
+        parkingPass,
         auditService);
   }
 

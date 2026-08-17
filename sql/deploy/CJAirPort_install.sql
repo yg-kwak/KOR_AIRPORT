@@ -473,6 +473,36 @@ END
 GO
 
 
+/* 주차 입·출차 이벤트 (이력)
+   아마노 주차관제가 우리 쪽으로 밀어 준다(POST /api/InOutCar). 우리가 조회하러 가지 않는다.
+   같은 이벤트를 두 번 받아도 한 줄만 남도록 (event_type, car_no, event_dt) 를 유일키로 둔다. */
+IF OBJECT_ID('dbo.tb_parking_event', 'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.tb_parking_event (
+    event_id      int IDENTITY(1,1) NOT NULL,
+    event_type    nvarchar(30)  NOT NULL,
+    event_name    nvarchar(100) NULL,
+    lot_area      int           NULL,
+    eqpm_id       int           NULL,
+    car_no        nvarchar(50)  NOT NULL,
+    event_dt      datetime2(0)  NOT NULL,
+    in_dt         datetime2(0)  NULL,
+    in_eqpm_id    int           NULL,
+    user_name     nvarchar(100) NULL,
+    pass_type     nvarchar(20)  NULL,
+    is_cust_def   nchar(1)      NULL,
+    parking_id    int           NULL,
+    car_image_url nvarchar(500) NULL,
+    history_id    int           NULL,
+    lpr_trns_id   int           NULL,
+    raw_json      nvarchar(max) NULL,
+    reg_dt        datetime2(0)  NOT NULL DEFAULT getdate(),
+    CONSTRAINT PK_tb_parking_event PRIMARY KEY (event_id),
+    CONSTRAINT UQ_tb_parking_event UNIQUE (event_type, car_no, event_dt)
+  );
+END
+GO
+
 /* 감사추적 (이력) */
 IF OBJECT_ID('dbo.tb_system_log', 'U') IS NULL
 BEGIN
@@ -638,6 +668,7 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use
     (502, N'출입권한관리', 500,  '/security/acGroup',   2, 2, NULL,      'Y'),
     (600, N'차량관리',     NULL, NULL,                 1, 4, 'car',      'Y'),
     (601, N'차량등록관리', 600,  '/carInfo/car',        2, 1, NULL,      'Y'),
+    (602, N'주차 조회',    600,  '/carInfo/parkingEvent', 2, 2, NULL,    'Y'),
     (700, N'기관관리',     NULL, NULL,                 1, 5, 'company',  'Y'),
     (701, N'기관등록관리', 700,  '/company/company',    2, 1, NULL,      'Y'),
     (702, N'기관차량등록', 700,  '/company/companyCar',        2, 2, NULL,      'Y'),
@@ -663,7 +694,8 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use
          (@authId, 702, 'Y', 'Y', 'Y', 'Y'),
          (@authId, 101, 'Y', 'Y', 'Y', 'Y'),
          (@authId, 102, 'Y', 'Y', 'Y', 'Y'),
-         (@authId, 901, 'Y', 'Y', 'Y', 'Y');
+         (@authId, 901, 'Y', 'Y', 'Y', 'Y'),
+         (@authId, 602, 'Y', 'Y', 'Y', 'Y');   -- 주차 조회
 
   /* 관리자 계정: 아이디 admin / 비밀번호 admin123 (ARIA 암호문) */
   INSERT INTO dbo.tb_login_user
@@ -691,7 +723,8 @@ INSERT INTO dbo.tb_common (cmm_id, cmm_name, code_id, code_name, user_input, use
          (@viewerAuthId, 702, 'Y', 'N', 'N', 'N'),
          (@viewerAuthId, 101, 'Y', 'N', 'N', 'N'),
          (@viewerAuthId, 102, 'Y', 'N', 'N', 'N'),
-         (@viewerAuthId, 901, 'Y', 'N', 'N', 'N');
+         (@viewerAuthId, 901, 'Y', 'N', 'N', 'N'),
+         (@viewerAuthId, 602, 'Y', 'N', 'N', 'N');   -- 주차 조회
 
   INSERT INTO dbo.tb_login_user
     (user_id, user_name, password, dept_name, use_yn, root_yn, auth_id, start_menu_id, work_location_code)
@@ -856,6 +889,21 @@ BEGIN
   CREATE INDEX IX_tb_system_log_reg_dt ON dbo.tb_system_log (reg_dt DESC, log_id DESC)
     INCLUDE (user_id, user_name, action_type, menu_id);
   PRINT '  + IX_tb_system_log_reg_dt';
+END
+GO
+
+/* 주차 입·출차: 주차 조회 화면의 기본 조회(기간 범위 + 최신순)와 차량번호별 내역 */
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_tb_parking_event_dt' AND object_id = OBJECT_ID('dbo.tb_parking_event'))
+BEGIN
+  CREATE INDEX IX_tb_parking_event_dt ON dbo.tb_parking_event (event_dt DESC, event_id DESC)
+    INCLUDE (event_type, car_no, pass_type);
+  PRINT '  + IX_tb_parking_event_dt';
+END
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_tb_parking_event_car' AND object_id = OBJECT_ID('dbo.tb_parking_event'))
+BEGIN
+  CREATE INDEX IX_tb_parking_event_car ON dbo.tb_parking_event (car_no) INCLUDE (event_dt, event_type);
+  PRINT '  + IX_tb_parking_event_car';
 END
 GO
 

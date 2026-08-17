@@ -41,6 +41,7 @@ public class CompanyCarService {
   private final MenuAuthService menuAuthService;
   private final AuditService auditService;
   private final CardIssueService cardIssue;
+  private final ParkingPassService parkingPass;
 
   public CompanyCarService(
       TbCarMapper carMapper,
@@ -50,7 +51,8 @@ public class CompanyCarService {
       TbPersonMapper personMapper,
       MenuAuthService menuAuthService,
       AuditService auditService,
-      CardIssueService cardIssue) {
+      CardIssueService cardIssue,
+      ParkingPassService parkingPass) {
     this.carMapper = carMapper;
     this.companyMapper = companyMapper;
     this.cardMapper = cardMapper;
@@ -59,6 +61,7 @@ public class CompanyCarService {
     this.menuAuthService = menuAuthService;
     this.auditService = auditService;
     this.cardIssue = cardIssue;
+    this.parkingPass = parkingPass;
   }
 
   /** 목록 조회 — <b>기관</b> 목록(삭제되지 않은 기관) + 등록차량 수. 차량 자체는 기관을 눌러 모달에서 다룬다. */
@@ -108,9 +111,13 @@ public class CompanyCarService {
     return cardMapper.selectByCar(carId);
   }
 
-  /** 차량 등록 — 신규 차량. 출입구역·관리자도 함께 저장한다. */
+  /**
+   * 차량 등록 — 신규 차량. 출입구역·관리자도 함께 저장한다.
+   *
+   * @return 주차 차단기 반영 경고(성공/미대상이면 null)
+   */
   @Transactional
-  public void create(CarForm form, TbLoginUser actor, Integer menuId) {
+  public String create(CarForm form, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
     validate(form);
     if (carMapper.existsByCarNo(form.getCarNo(), null) > 0) {
@@ -120,17 +127,24 @@ public class CompanyCarService {
     carMapper.insert(row);
     saveAcCodes(row.getCarId(), form.getAcCodes());
     auditService.log(actor, AuditService.CREATE, menuId, "기관차량 등록: " + form.getCarNo());
+    // 기관차량은 상주라 끝나는 날이 없다 — 정기권 종료일은 상한(2037-12-31)으로 길게 잡는다
+    return parkingPass.syncCar(row, form.getAcCodes(), null, actor, menuId);
   }
 
-  /** 차량 수정 — 기관 미할당 차량을 불러온 경우도 여기로 들어와 소속 기관이 채워진다. */
+  /**
+   * 차량 수정 — 기관 미할당 차량을 불러온 경우도 여기로 들어와 소속 기관이 채워진다.
+   *
+   * @return 주차 차단기 반영 경고(성공/미대상이면 null)
+   */
   @Transactional
-  public void update(CarForm form, TbLoginUser actor, Integer menuId) {
+  public String update(CarForm form, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId); // 정책: 등록/수정은 create_auth 로 판정
     if (form.getCarId() == null) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "차량ID가 필요합니다.");
     }
     validate(form);
-    if (carMapper.selectById(form.getCarId()) == null) {
+    TbCar existing = carMapper.selectById(form.getCarId());
+    if (existing == null) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
     if (carMapper.existsByCarNo(form.getCarNo(), form.getCarId()) > 0) {
@@ -141,6 +155,8 @@ public class CompanyCarService {
     carMapper.updateManager(form.getCarId(), blankToNull(form.getCarManagerId()));
     saveAcCodes(form.getCarId(), form.getAcCodes());
     auditService.log(actor, AuditService.UPDATE, menuId, "기관차량 수정: " + form.getCarNo());
+    // 번호를 고쳤으면 옛 번호의 정기권을 회수한다 — 안 지우면 예전 번호가 계속 차단기를 연다
+    return parkingPass.syncCar(row, form.getAcCodes(), existing.getCarNo(), actor, menuId);
   }
 
   private TbCar toRow(CarForm form) {
@@ -165,9 +181,15 @@ public class CompanyCarService {
     }
   }
 
-  /** 차량 삭제(소프트) — 발급된 카드가 있으면 막는다(먼저 회수해야 한다). */
+  /**
+   * 차량 삭제(소프트) — 발급된 카드가 있으면 막는다(먼저 회수해야 한다).
+   *
+   * <p>주차 정기권도 함께 회수한다. 안 지우면 차량을 지워도 그 번호가 계속 차단기를 연다.
+   *
+   * @return 주차 차단기 반영 경고(성공/미대상이면 null)
+   */
   @Transactional
-  public void delete(int carId, TbLoginUser actor, Integer menuId) {
+  public String delete(int carId, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireDelete(actor, menuId);
     TbCar car = carMapper.selectById(carId);
     if (car == null || "Y".equals(car.getDelYn())) {
@@ -179,6 +201,8 @@ public class CompanyCarService {
     carAcGroupMapper.deleteByCar(carId);
     carMapper.softDelete(carId);
     auditService.log(actor, AuditService.DELETE, menuId, "기관차량 삭제: " + car.getCarNo());
+    return parkingPass.removeAll(
+        "기관차량 " + car.getCarNo(), java.util.List.of(car.getCarNo()), actor, menuId);
   }
 
   /**

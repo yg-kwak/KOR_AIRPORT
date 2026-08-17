@@ -323,6 +323,33 @@ CREATE TABLE dbo.tb_visit_car_ac_group (
   CONSTRAINT PK_tb_visit_car_ac_group PRIMARY KEY (visit_no, code_id)
 );
 
+/* 주차 입·출차 이벤트 (이력)
+   아마노 주차관제가 우리 쪽으로 밀어 준다(POST /api/InOutCar). 우리가 조회하러 가지 않는다.
+   같은 이벤트를 두 번 받아도 한 줄만 남도록 (event_type, car_no, event_dt) 를 유일키로 둔다
+   — 주차서버는 응답을 못 받으면 재전송한다. (docs/integration.md) */
+CREATE TABLE dbo.tb_parking_event (
+  event_id      int IDENTITY(1,1) NOT NULL,
+  event_type    nvarchar(30)  NOT NULL,   -- EnteredCar/ExitedCar/...NotOpen/...RearCar
+  event_name    nvarchar(100) NULL,       -- 주차서버가 준 이벤트 이름(원문)
+  lot_area      int           NULL,       -- 주차장 번호
+  eqpm_id       int           NULL,       -- 장치(차단기) 번호
+  car_no        nvarchar(50)  NOT NULL,   -- 차량번호. 미인식은 'No_Detection', 부분인식은 X 포함
+  event_dt      datetime2(0)  NOT NULL,   -- 입·출차 시각
+  in_dt         datetime2(0)  NULL,       -- 입차 시각(출차 이벤트에서 체류시간 계산용)
+  in_eqpm_id    int           NULL,
+  user_name     nvarchar(100) NULL,       -- 주차서버에 등록된 고객명(정기권 등록명)
+  pass_type     nvarchar(20)  NULL,       -- passType1~8 / normal(일반) / visitor(방문예약)
+  is_cust_def   nchar(1)      NULL,       -- 정기차량 여부 Y/N
+  parking_id    int           NULL,       -- 주차 고유 ID(iID). -1 이면 출입권한 없는 차량
+  car_image_url nvarchar(500) NULL,
+  history_id    int           NULL,
+  lpr_trns_id   int           NULL,
+  raw_json      nvarchar(max) NULL,       -- 원문 보존 — 규격이 늘어도 과거 이벤트를 다시 읽을 수 있다
+  reg_dt        datetime2(0)  NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_parking_event PRIMARY KEY (event_id),
+  CONSTRAINT UQ_tb_parking_event UNIQUE (event_type, car_no, event_dt)
+);
+
 /* 감사추적 (이력) */
 CREATE TABLE dbo.tb_system_log (
   log_id        bigint IDENTITY(1,1) NOT NULL,
@@ -347,6 +374,12 @@ CREATE TABLE dbo.tb_system_log (
 /* 감사추적: reg_dt 범위 + 최신순 정렬 (+ 유형·메뉴·사용자 필터) */
 CREATE INDEX IX_tb_system_log_reg_dt ON dbo.tb_system_log (reg_dt DESC, log_id DESC)
   INCLUDE (user_id, user_name, action_type, menu_id);
+
+/* 주차 입·출차: 기간 범위 + 최신순 정렬 (주차 조회 화면의 기본 조회) */
+CREATE INDEX IX_tb_parking_event_dt ON dbo.tb_parking_event (event_dt DESC, event_id DESC)
+  INCLUDE (event_type, car_no, pass_type);
+/* 주차 입·출차: 차량번호로 그 차의 입출차 내역 (UQ 는 event_type 이 앞이라 탐색 불가) */
+CREATE INDEX IX_tb_parking_event_car ON dbo.tb_parking_event (car_no) INCLUDE (event_dt, event_type);
 
 /* 카드: 인원/차량별 보유 카드 — 정규인원 목록의 카드 장수(행마다), 카드번호 EXISTS 검색, 회수 */
 CREATE INDEX IX_tb_card_person ON dbo.tb_card (person_id) INCLUDE (biostar_card_value, card_status)

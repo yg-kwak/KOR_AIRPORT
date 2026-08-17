@@ -154,28 +154,33 @@ public class CompanyCarController {
     return ApiResponse.okMessage("카드를 회수했습니다.");
   }
 
-  /** 차량 등록 (AJAX) */
+  /** 차량 등록 (AJAX) — 차량구역이 있으면 주차 차단기 정기권까지 등록한다. */
   @PostMapping
   @ResponseBody
   public ApiResponse<Void> create(@RequestBody CarForm form, HttpSession session) {
-    companyCarService.create(form, actor(session), menuId());
-    return ApiResponse.okMessage("등록되었습니다.");
+    return ApiResponse.okMessage(
+        withWarning("등록되었습니다.", companyCarService.create(form, actor(session), menuId())));
   }
 
   /** 차량 수정 (AJAX) */
   @PutMapping
   @ResponseBody
   public ApiResponse<Void> update(@RequestBody CarForm form, HttpSession session) {
-    companyCarService.update(form, actor(session), menuId());
-    return ApiResponse.okMessage("수정되었습니다.");
+    return ApiResponse.okMessage(
+        withWarning("수정되었습니다.", companyCarService.update(form, actor(session), menuId())));
   }
 
   /** 차량 삭제 (AJAX) — 소프트 삭제. 발급된 카드가 있으면 거부 */
   @DeleteMapping
   @ResponseBody
   public ApiResponse<Void> delete(@RequestParam int carId, HttpSession session) {
-    companyCarService.delete(carId, actor(session), menuId());
-    return ApiResponse.okMessage("삭제되었습니다.");
+    return ApiResponse.okMessage(
+        withWarning("삭제되었습니다.", companyCarService.delete(carId, actor(session), menuId())));
+  }
+
+  /** 경고는 그 자체로 사유가 담긴 문장이라 이름표를 덧붙이지 않는다. */
+  private static String withWarning(String message, String warn) {
+    return warn == null ? message : message + " " + warn;
   }
 
   private TbLoginUser actor(HttpSession session) {

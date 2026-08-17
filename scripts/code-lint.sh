@@ -47,6 +47,9 @@ SEED="sql/seed/02_seed.sql"; MAP_FAIL=0
 while IFS= read -r path; do
   [ -z "$path" ] && continue
   [[ "$path" == /kiosk/* ]] && continue  # 키오스크(무인증 공개 경로)는 메뉴 대상 아님
+  # 외부 시스템이 우리를 호출하는 수신 경로. 주소를 저쪽 규격이 정하므로(예: 아마노가 지정한
+  # /api/InOutCar) 우리 화면 규약을 따를 수 없고, 메뉴가 아니라 권한 판정 대상도 아니다.
+  [[ "$path" == /api/* ]] && continue
   if ! grep -q "'$path'" "$SEED"; then
     echo "  ❌ $path — seed 의 menu_url 에 없음. tb_menu 에 등록하거나 @RequestMapping 을 menu_url 과 일치시키세요(메뉴 해석·권한 근거). (docs/architecture.md §5)"
     FAIL=1; MAP_FAIL=1

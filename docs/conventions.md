@@ -36,6 +36,9 @@
   - **`Tb{어간}` = 영속 레코드(엔티티)**: DB 컬럼 미러. mapper `resultType`/`parameterType` 전용이며 단순 CRUD 의 `@RequestBody` 로도 재사용. **조회 결과 행 타입은 항상 엔티티(`Tb*`)** — `SearchParam`/`Form` 을 `resultType` 으로 쓰지 않는다.
   - **그 외 = 비영속 DTO/뷰모델**, 반드시 역할 접미사로 명명: `{어간}SearchParam`(목록 조회조건, `PageParam` 상속) · `{어간}Form`(쓰기 커맨드, 테이블과 비1:1) · `{어간}Node`·`{어간}Permission`·`{어간}Result`(계산·뷰). model 클래스는 `Tb*` 이거나 이 접미사 중 하나로 끝나야 한다.
   - 이유: 관심사 분리(레코드 vs 조회/커맨드), `PageParam` 공통 재사용, 요청 바인딩 표면 축소(엔티티 mass-assignment 방지).
+- **외부 연동 어댑터는 `{시스템}{역할}Adapter`**(예: `BiostarUserAdapter`, `AmanoParkingAdapter`). 요청·응답 DTO 는 **`adapter` 패키지에 record 로** 두고 `model` 접미사 규칙을 따르지 않는다 — 화면 DTO 가 아니라 외부 규격의 일부다(예: `BiostarUserRequest`, `ParkingPassRequest`, `ParkingResult`). 서비스는 어댑터만 부르고 HTTP/JSON 을 모른다.
+- **외부 시스템이 우리를 호출하는 수신 경로는 `/api/**`** 에 두고 `{역할}ApiController` 로 명명한다(예: `ParkingEventApiController`). 주소를 저쪽 규격이 정하므로 화면 규약(`/{영역}/{stem}` ↔ `tb_menu.menu_url`)을 따를 수 없다 — `code-lint [4]` 와 `WebConfig` 가 이 접두를 제외한다. 세션이 없으니 **보내는 쪽 IP 로 막고**, **응답은 항상 200**(오류로 응답하면 상대가 같은 건을 무한 재전송한다), **중복 수신을 정상으로 보고** 유일키+`NOT EXISTS` 로 한 줄만 남긴다. (`integration.md`)
+- **외부 연동 실패 정책은 "그 기능이 없으면 출입이 뚫리는가"로 가른다** — 뚫리면 **예외로 롤백**(BiostarX 사용자·카드 동기화, 카드 차단), 막히기만 하면 **경고 + 저장 유지**(카드 차단 해제, 주차 정기권). 어느 쪽이든 실패는 `auditService.logAlways` 로 `tb_system_log` 에 남긴다. (`integration.md`)
 - **로컬 전용 부팅 시더**는 `config` 에 `@Profile("local")` `ApplicationRunner` 로 둔다(운영 미로드). 비밀값은 `application-local.properties`(git-ignore)에서 `@Value` 주입, 커밋 금지. 예: `BiostarLocalSeeder`(tb_system 시드). (`integration.md`)
 
 ## 2. HTML — id/class 명명 규칙
@@ -182,8 +185,8 @@ DOMContentLoaded → bind()  → load()
 ## 8. 포맷팅 · 커밋 · 주석
 - Java: **google-java-format** (spotless `googleJavaFormat()`, `/commit` 시 자동).
 - 프론트(HTML/JS/CSS): prettier (PostToolUse 훅).
-- 커밋: Conventional Commits(한국어). 타입 `feat|fix|refactor|docs|style|test|chore|perf`. scope 예: `common|visitor|acgroup|menu|biostar|auth|audit|ui|db|infra|deploy|card|person|company|kiosk|search`.
-  (`kiosk` = 무인증 방문 신청 등 키오스크/공개 화면, `card`/`person` = 카드·인원 도메인)
+- 커밋: Conventional Commits(한국어). 타입 `feat|fix|refactor|docs|style|test|chore|perf`. scope 예: `common|visitor|acgroup|menu|biostar|auth|audit|ui|db|infra|deploy|card|person|company|kiosk|search|monitor|parking`.
+  (`kiosk` = 무인증 방문 신청 등 키오스크/공개 화면, `card`/`person` = 카드·인원 도메인, `monitor` = 실시간 이벤트 화면, `parking` = 아마노 주차관제 연동)
 - 주석: "무엇"이 아니라 "왜". 정책 결정(예: 등록/수정=create_auth)은 결정 지점에 주석으로 남긴다.
 
 ## 9. 강제 (Enforcement)

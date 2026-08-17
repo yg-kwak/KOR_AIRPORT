@@ -14,6 +14,9 @@ public class WebConfig implements WebMvcConfigurer {
     "/error",
     "/favicon.ico",
     "/kiosk/**", // 무인증 방문 신청(키오스크) — 로그인·메뉴통제 제외
+    // 외부 시스템이 우리를 호출하는 수신 경로(주차 입·출차 등). 세션이 없어 로그인 검사를 통과할 수 없다.
+    // 메뉴가 아니므로 권한 판정 대상도 아니다 — 대신 보내는 쪽 IP 로 막는다(ParkingEventApiController).
+    "/api/**",
     "/css/**",
     "/js/**",
     "/ic/**",

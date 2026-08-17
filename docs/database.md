@@ -369,6 +369,32 @@ PK: `visit_no` + `code_id`. 방문 전체에 적용할 공통 차량 출입구�
 | code_id | nvarchar(50) | Y | 출입구역 | → `tb_common`(cmm_id='CAR').code_id |
 | reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
 
+### tb_parking_event — 주차 입·출차 이벤트 (이력)
+PK: `event_id` (IDENTITY). **아마노 주차관제가 우리 쪽으로 밀어 준 이력**이다 — 우리가 조회하러 가지 않는다(`POST /api/InOutCar`, `integration.md`). 주차서버는 응답을 못 받으면 같은 건을 다시 보내므로 `UQ_tb_parking_event (event_type, car_no, event_dt)` 로 중복을 막는다(INSERT 는 `NOT EXISTS` — 유일키 예외로 500 을 주면 재전송이 반복된다).
+
+| 컬럼 | 타입 | PK | 설명 | 비고 |
+|------|------|----|------|------|
+| event_id | int | Y | 이벤트ID | IDENTITY |
+| event_type | nvarchar(30) | | 이벤트 유형 | NOT NULL. `EnteredCar`/`ExitedCar`(정상) · `…NotOpen`(인식했으나 차단기 미개방) · `…RearCar`(후면 인식) |
+| event_name | nvarchar(100) | | 이벤트 이름 | 주차서버 원문 |
+| lot_area | int | | 주차장 번호 | 청주공항 20 |
+| eqpm_id | int | | 장치(차단기) 번호 | |
+| car_no | nvarchar(50) | | 차량번호 | NOT NULL. 미인식은 `No_Detection`, 부분인식은 `X` 포함 |
+| event_dt | datetime2(0) | | 입·출차 시각 | NOT NULL |
+| in_dt | datetime2(0) | | 입차 시각 | 출차 이벤트에 함께 오는 값(그 차가 언제 들어왔는지) |
+| in_eqpm_id | int | | 입차 시 장치 번호 | |
+| user_name | nvarchar(100) | | 고객명 | 주차서버에 등록된 정기권 고객명 |
+| pass_type | nvarchar(20) | | 차량 유형 | `passType1`~`passType8`(정기권 종별) · `normal`(일반) · `visitor`(방문예약) |
+| is_cust_def | nchar(1) | | 정기차량 여부 | Y/N |
+| parking_id | int | | 주차 고유 ID | 주차서버 `iID`. **-1 이면 출입권한 없는 차량** |
+| car_image_url | nvarchar(500) | | 차량 이미지 주소 | 현장에 따라 미제공 |
+| history_id | int | | 입출 이력 번호 | 주차서버 특수 목적용 |
+| lpr_trns_id | int | | LPR 이력 번호 | 주차서버 특수 목적용 |
+| raw_json | nvarchar(max) | | 수신 원문 | 규격이 늘어도 지난 이벤트를 다시 읽을 수 있게 보관 |
+| reg_dt | datetime2(0) | | 수신일자 | 기본 getdate() |
+
+우리 DB 의 차량명·기관은 조회 시점에 `tb_car` 를 차량번호(공백 제거)로 맞춰 붙인다 — 이벤트 행에 복사해 두지 않는다(차량 정보가 바뀌면 이력이 과거 값으로 굳는다).
+
 ### tb_system_log — 감사추적 (이력, 불변식)
 PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략히 적재**한다. 정책은 `security.md`.
 
