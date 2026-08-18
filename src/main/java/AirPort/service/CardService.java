@@ -298,6 +298,17 @@ public class CardService {
     return cardMapper.selectUnassigned(keyword, cardType);
   }
 
+  /**
+   * 카드번호로 우리 DB 의 카드 1장 — 없으면 null.
+   *
+   * <p>스캔한 실물 카드가 <b>이미 등록된 카드</b>인지 보려고 쓴다. 있으면 화면이 패스구분·명칭·상태를 그대로 채워, 같은 카드를 다시 손으로 입력하다 값이 어긋나는
+   * 것을 막는다.
+   */
+  public TbCard findByCardNo(String cardNo, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireRead(actor, menuId);
+    return (cardNo == null || cardNo.isBlank()) ? null : cardMapper.selectByCardNo(cardNo);
+  }
+
   /** 장치 리더로 카드번호 읽기 — 로그인 계정의 장치(tb_login_user.dev_id). */
   public BiostarCard scan(TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);

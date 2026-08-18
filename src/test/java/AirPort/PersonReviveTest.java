@@ -48,6 +48,7 @@ class PersonReviveTest {
 
   private PersonService service() {
     return new PersonService(
+        "2037-12-31T23:59",
         "2028-05-31T23:59",
         personMapper,
         photoMapper,

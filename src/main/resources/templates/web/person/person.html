@@ -291,8 +291,11 @@
     canCreate: [[${perm.canCreate}]],
     canDelete: [[${perm.canDelete}]]
   };
-  // 출입종료일 상한 — 서버(app.person.access-end-max)와 같은 값을 쓴다(두 곳에 적으면 어긋난다)
+  // 출입종료일 — 상한과 기본값은 다르다. 서버 설정을 그대로 내려받는다(두 곳에 적으면 어긋난다).
+  //  MAX     = app.person.access-end-max     : 넘기면 저장을 막는다(장비가 못 받는 값)
+  //  DEFAULT = app.person.access-end-default : 등록 모달 기본값(계약 기간, 넘겨도 저장된다)
   window.MAX_ACCESS_END_DT = [[${maxAccessEndDt}]];
+  window.DEFAULT_ACCESS_END_DT = [[${defaultAccessEndDt}]];
   // 저장하면 얼굴이 지워지는 상태들(tb_common PS 의 code_tag='true') — 화면에 박지 않는다
   window.PAGE_DISABLED_STATUS = [[${disabledStatusCodes}]];
 </script>

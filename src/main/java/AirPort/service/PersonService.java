@@ -45,8 +45,11 @@ public class PersonService {
 
   public PersonService(
       @org.springframework.beans.factory.annotation.Value(
-              "${app.person.access-end-max:2028-05-31T23:59}")
+              "${app.person.access-end-max:2037-12-31T23:59}")
           String maxAccessEndDt,
+      @org.springframework.beans.factory.annotation.Value(
+              "${app.person.access-end-default:2028-05-31T23:59}")
+          String defaultAccessEndDt,
       TbPersonMapper personMapper,
       TbPersonPhotoMapper photoMapper,
       TbPersonAcGroupMapper acGroupMapper,
@@ -56,9 +59,14 @@ public class PersonService {
       AuditService auditService,
       MenuAuthService menuAuthService,
       CodeValidationService codeValidator) {
-    // 운영 상한이 장비 상한을 넘으면 BiostarX 등록이 실패한다 — 더 작은 쪽을 쓴다
+    // 상한이 장비 상한을 넘으면 BiostarX 등록이 실패한다 — 더 작은 쪽을 쓴다
     this.maxAccessEndDt =
         maxAccessEndDt.compareTo(BIOSTAR_MAX_EXPIRY) > 0 ? BIOSTAR_MAX_EXPIRY : maxAccessEndDt;
+    // 기본값이 상한을 넘으면 모달을 열자마자 저장할 수 없는 값이 들어간다 — 상한으로 눌러 둔다
+    this.defaultAccessEndDt =
+        defaultAccessEndDt.compareTo(this.maxAccessEndDt) > 0
+            ? this.maxAccessEndDt
+            : defaultAccessEndDt;
     this.personMapper = personMapper;
     this.photoMapper = photoMapper;
     this.acGroupMapper = acGroupMapper;
@@ -144,6 +152,11 @@ public class PersonService {
   /** 출입종료일 상한 — 화면(입력 max·기본값)과 서버 검증이 같은 값을 쓰도록 내려준다. */
   public String maxAccessEndDt() {
     return maxAccessEndDt;
+  }
+
+  /** 등록 모달 기본값 — 상한과 다르다(넘겨도 저장된다). */
+  public String defaultAccessEndDt() {
+    return defaultAccessEndDt;
   }
 
   /** 다음 인원ID 자동 채번 — 등록 모달의 인원ID 초기값. 사용자가 바꿀 수 있고, 중복은 저장 시 막힌다. */
@@ -333,10 +346,19 @@ public class PersonService {
   private static final String BIOSTAR_MAX_EXPIRY = "2037-12-31T23:59";
 
   /**
-   * 출입종료일 상한 — 등록 모달의 기본값이자 저장 시 검증 기준. 계약 기간이라 바뀐다. 재빌드 없이 늘릴 수 있게 설정으로 뺀다 ({@code
-   * app.person.access-end-max}).
+   * 출입종료일 <b>상한</b> — 저장 시 검증 기준. 넘기면 거부한다({@code app.person.access-end-max}).
+   *
+   * <p>기본값과 다르다. 기본값은 계약 기간이라 자주 바뀌고 넘겨서 저장해도 되지만, 이 값은 <b>장비가 받아 주는 한계</b>라 넘기면 BiostarX 등록 자체가
+   * 실패한다. 한 값으로 두면 계약 기간을 넘긴 인원을 아예 저장할 수 없다.
    */
   private final String maxAccessEndDt;
+
+  /**
+   * 출입종료일 <b>기본값</b> — 등록 모달을 열었을 때 채워지는 값({@code app.person.access-end-default}).
+   *
+   * <p>계약 기간이라 그때그때 바뀐다. 넘겨서 입력해도 <b>저장은 된다</b> — 계약이 연장될 수 있어 막지 않는다.
+   */
+  private final String defaultAccessEndDt;
 
   /** 직위(user_title) 허용 문자 — 한글·영문·숫자·공백만(특수문자 금지). */
   private static final Pattern TITLE_ALLOWED = Pattern.compile("^[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ\\s]+$");
@@ -368,9 +390,13 @@ public class PersonService {
     }
 
     // 날짜는 "YYYY-MM-DD" 형식이라 문자열 비교로 대소 판정이 가능하다
+    // 상한만 막는다 — 기본값(계약 기간)을 넘기는 것은 정상이다(계약은 연장된다)
     if (form.getAccessEndDt().compareTo(maxAccessEndDt) > 0) {
       throw new BusinessException(
-          ErrorCode.INVALID_INPUT, "출입종료일은 " + maxAccessEndDt.replace('T', ' ') + " 를 초과할 수 없습니다.");
+          ErrorCode.INVALID_INPUT,
+          "출입종료일은 "
+              + maxAccessEndDt.replace('T', ' ')
+              + " 까지만 지정할 수 있습니다. BiostarX 가 받을 수 있는 마지막 날짜입니다.");
     }
     if (form.getAccessStartDt().compareTo(form.getAccessEndDt()) > 0) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "출입시작일은 출입종료일보다 늦을 수 없습니다.");

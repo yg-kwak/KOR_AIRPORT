@@ -101,7 +101,8 @@ public class PersonController {
     }
     model.addAttribute("menus", menuService.tree(actor(session)));
     model.addAttribute("perm", perm);
-    model.addAttribute("maxAccessEndDt", personService.maxAccessEndDt()); // 입력 max·기본값
+    model.addAttribute("maxAccessEndDt", personService.maxAccessEndDt()); // 저장 상한(넘기면 거부)
+    model.addAttribute("defaultAccessEndDt", personService.defaultAccessEndDt()); // 등록 모달 기본값
     // 어떤 상태가 비활성인지는 공통코드(PS.code_tag)가 원천 — 화면에 박지 않고 내려준다
     model.addAttribute(
         "disabledStatusCodes", personService.disabledStatusCodes(actor(session), menuId()));
@@ -221,6 +222,13 @@ public class PersonController {
   }
 
   /** 장치 리더로 카드번호 읽기 (AJAX) — 로그인 계정의 장치(dev_id) */
+  /** 카드번호로 기존 카드 조회 (AJAX) — 스캔한 카드가 이미 등록돼 있으면 그 정보를 화면이 채운다. */
+  @GetMapping("/card/byNo")
+  @ResponseBody
+  public ApiResponse<TbCard> cardByNo(@RequestParam String cardNo, HttpSession session) {
+    return ApiResponse.ok(cardService.findByCardNo(cardNo, actor(session), menuId()));
+  }
+
   @PostMapping("/card/scan")
   @ResponseBody
   public ApiResponse<BiostarCard> cardScan(HttpSession session) {

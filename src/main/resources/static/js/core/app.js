@@ -1,6 +1,12 @@
 /* 공통 뼈대: AJAX fetch 래퍼. 표준 응답(ApiResponse) 처리. (docs/frontend.md) */
 window.api = (function () {
-  async function request(method, url, body) {
+  /**
+   * @param cfg.quiet true 면 실패해도 토스트를 띄우지 않고 null 을 돌려준다(예외도 삼킨다).
+   *   본 동작에 곁들이는 <b>부가 조회</b>에만 쓴다 — 실패가 본 동작의 실패처럼 보이면 안 된다.
+   *   (예: 카드 스캔 뒤 기존 카드 정보 조회 — 못 읽어도 번호는 읽은 것이다)
+   */
+  async function request(method, url, body, cfg) {
+    const quiet = !!(cfg && cfg.quiet);
     const opts = {
       method,
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -23,6 +29,7 @@ window.api = (function () {
     const json = await res.json().catch(() => null);
     if (!res.ok || (json && json.success === false)) {
       const msg = (json && json.message) || '처리 중 오류가 발생했습니다.';
+      if (quiet) return null;
       notify('error', msg);
       throw new Error(msg);
     }
@@ -38,7 +45,7 @@ window.api = (function () {
   }
 
   return {
-    get: (url) => request('GET', url),
+    get: (url, cfg) => request('GET', url, undefined, cfg),
     post: (url, body) => request('POST', url, body),
     put: (url, body) => request('PUT', url, body),
     del: (url, body) => request('DELETE', url, body), // body 는 일괄삭제(ID 목록) 등에만 사용

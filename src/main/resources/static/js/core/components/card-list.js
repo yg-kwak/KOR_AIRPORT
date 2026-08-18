@@ -115,13 +115,20 @@ window.cardList = (function () {
   }
   function closePicker() { $('cardPickerModal').classList.remove('open'); }
 
-  // 선택 → 카드번호와 기존 정보(패스구분·명칭·상태)를 입력칸에 채운다
+  /* 기존 카드의 정보(패스구분·명칭·상태)를 입력칸에 채운다.
+     선택 팝업과 스캔이 같은 함수를 쓴다 — 두 곳이 갈리면 같은 카드인데 값이 달라진다. */
+  function fillFrom(card) {
+    if (!card) return;
+    if (card.passType) { $('passType').value = card.passType; $('passTypeName').value = card.passTypeName || ''; }
+    if (card.cardName) $('cardName').value = card.cardName;
+    if (card.cardStatus) { $('cardStatus').value = card.cardStatus; $('cardStatusName').value = card.cardStatusName || ''; }
+  }
+
+  // 선택 → 카드번호와 기존 정보를 입력칸에 채운다
   function applyPicked() {
     if (!picked) { toast.warning('카드를 선택하세요.'); return; }
     $('cardNo').value = picked.biostarCardValue || '';
-    if (picked.passType) { $('passType').value = picked.passType; $('passTypeName').value = picked.passTypeName || ''; }
-    if (picked.cardName) $('cardName').value = picked.cardName;
-    if (picked.cardStatus) { $('cardStatus').value = picked.cardStatus; $('cardStatusName').value = picked.cardStatusName || ''; }
+    fillFrom(picked);
     closePicker();
   }
 
@@ -173,11 +180,23 @@ window.cardList = (function () {
     toast.success('카드를 등록했습니다. 인원을 저장해야 사용자에게 부여됩니다.');
   }
 
+  /* 스캔 — 번호를 읽고, 이미 등록된 카드면 그 정보까지 채운다.
+     같은 실물 카드를 다시 손으로 입력하다 패스구분·명칭·상태가 어긋나는 것을 막는다. */
   async function scan(id) {
     const res = await api.post(state[id].baseUrl + '/card/scan', {});
     if (!res || !res.success) { toast.error((res && res.message) || '카드를 읽지 못했습니다.'); return; }
     $('cardNo').value = res.cardNo;
-    toast.success('카드번호를 읽었습니다.');
+    // quiet — 이 조회가 실패해도 스캔은 성공한 것이다. 오류를 띄우면 번호를 읽고도 실패로 보인다.
+    // (이 컴포넌트를 쓰는 화면이 baseUrl + '/card/byNo' 를 제공하지 않아도 스캔은 그대로 동작한다)
+    const known = await api.get(
+      `${state[id].baseUrl}/card/byNo?cardNo=${encodeURIComponent(res.cardNo)}`, { quiet: true });
+    if (!known) { toast.success('카드번호를 읽었습니다.'); return; }
+    fillFrom(known);
+    // 이미 누군가에게 붙어 있으면 확인에서 거부된다 — 그 사실을 지금 알려 준다
+    const holder = known.personId ? '인원 ' + known.personId : (known.carId ? '차량' : null);
+    toast.warning(holder
+      ? `이미 ${holder} 에게 발급된 카드입니다. 기존 정보를 불러왔지만 먼저 회수해야 합니다.`
+      : '이미 등록된 카드입니다. 기존 정보를 불러왔습니다.');
   }
 
   /** 컨테이너와 엔드포인트를 연결한다(화면당 1회). */

@@ -42,6 +42,7 @@ class PersonDeleteCardReleaseTest {
     existing.setDelYn("N");
     when(personMapper.selectById("P001")).thenReturn(existing);
     return new PersonService(
+        "2037-12-31T23:59",
         "2028-05-31T23:59",
         personMapper,
         photoMapper,

@@ -33,7 +33,17 @@ class PersonServiceSearchTest {
     AuditService audit = mock(AuditService.class);
     // list() 는 personMapper·auditService·ARIA(static) 만 사용 → 나머지 의존성은 null 로 충분
     return new PersonService(
-        "2028-05-31T23:59", personMapper, null, null, null, null, null, audit, null, null);
+        "2037-12-31T23:59",
+        "2028-05-31T23:59",
+        personMapper,
+        null,
+        null,
+        null,
+        null,
+        null,
+        audit,
+        null,
+        null);
   }
 
   @Test

@@ -20,7 +20,8 @@
 
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
-  const MAX_ACCESS_END_DT = window.MAX_ACCESS_END_DT || '2037-12-31T23:59'; // 서버 설정(app.person.access-end-max)
+  const MAX_ACCESS_END_DT = window.MAX_ACCESS_END_DT || '2037-12-31T23:59'; // 저장 상한 — 장비가 못 받는 값
+  const DEFAULT_ACCESS_END_DT = window.DEFAULT_ACCESS_END_DT || MAX_ACCESS_END_DT; // 등록 기본값 — 계약 기간(넘겨도 저장됨)
   const TITLE_ALLOWED = /^[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/; // 직위: 특수문자 금지
   const PERSON_ID_ALLOWED = /^[0-9A-Za-z]+$/; // 인원ID: 영문·숫자만(BiostarX 사용자ID 와 같은 키)
   const BIRTH_DATE_FORMAT = /^\d{4}-\d{2}-\d{2}$/; // 생년월일: placeholder 와 같은 YYYY-MM-DD
@@ -213,9 +214,9 @@
     showTab('info');
     $('personId').readOnly = mode === 'edit'; // PK 는 수정 불가
     if ($('btnDelete')) $('btnDelete').style.display = mode === 'edit' ? '' : 'none';
-    if (mode === 'create') { // 초기값: 인원ID 자동 채번, 시작=현재 일시, 종료=상한
+    if (mode === 'create') { // 초기값: 인원ID 자동 채번, 시작=현재 일시, 종료=기본값(상한 아님)
       $('accessStartDt').value = nowLocal();
-      $('accessEndDt').value = MAX_ACCESS_END_DT;
+      $('accessEndDt').value = DEFAULT_ACCESS_END_DT;
       $('personId').value = (await api.get(BASE + '/nextId')) || '';
     }
     acGroupTree.set(AC_TREE, []); // 체크 초기화
@@ -287,7 +288,7 @@
     if (required) { toast.warning(`${required[1]}은(는) 필수입니다.`); return; }
     if (!PERSON_ID_ALLOWED.test(payload.personId)) { toast.warning('인원ID 는 영문·숫자만 사용할 수 있습니다.'); return; }
     if (payload.birthDate && (!BIRTH_DATE_FORMAT.test(payload.birthDate) || !isRealDate(payload.birthDate))) { toast.warning('생년월일은 YYYY-MM-DD 형식으로 입력하세요. 예: 1990-01-01'); return; }
-    if (payload.accessEndDt > MAX_ACCESS_END_DT) { toast.warning(`출입종료일은 ${MAX_ACCESS_END_DT.replace('T', ' ')} 를 초과할 수 없습니다.`); return; }
+    if (payload.accessEndDt > MAX_ACCESS_END_DT) { toast.warning(`출입종료일은 ${MAX_ACCESS_END_DT.replace('T', ' ')} 까지만 지정할 수 있습니다. BiostarX 가 받을 수 있는 마지막 날짜입니다.`); return; }
     if (payload.accessStartDt > payload.accessEndDt) { toast.warning('출입시작일은 출입종료일보다 늦을 수 없습니다.'); return; }
     const titleName = $('titleName').value.trim();
     if (titleName && !TITLE_ALLOWED.test(titleName)) { toast.warning('직위에 특수문자를 사용할 수 없습니다.'); return; }
