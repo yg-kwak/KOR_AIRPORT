@@ -209,3 +209,19 @@ DOMContentLoaded → bind()  → load()
 
 ## 관련 문서
 [architecture.md](architecture.md) · [backend.md](backend.md) · [frontend.md](frontend.md) · [database.md](database.md) · [security.md](security.md) · [design.md](design.md)
+
+### 입력 문자열은 들어오는 문에서 trim 한다
+요청 JSON 의 모든 `String` 은 `AirPort/config/JsonConfig` 의 역직렬화기가 `trim()` 해서 받는다.
+ARIA 복호화(`ARIAUtil.ariaDecrypt`)가 블록 패딩을 벗기며 trim 하기 때문에, 그렇게 하지 않으면
+**암호화 컬럼만 앞뒤 공백이 사라지고 평문 컬럼은 남는다**. 서비스마다 `trim()` 을 흩지 말 것 — 새 항목에서 반드시 빠진다.
+
+### 길이 한도는 `Texts.maxLen` 으로 서비스에서 먼저 잡는다
+DB 까지 보내면 절단 오류(MSSQL 8152)로 500 이 난다. 한도는 컬럼 DDL 과 같은 값을 쓰고 주석에 컬럼을 적는다.
+`GlobalExceptionHandler` 에 절단 → 400 그물이 있지만 **어느 항목인지 말해 주지 못하므로** 주요 항목은 서비스에서 먼저 본다.
+
+### 목록 페이징 값은 `PageParam` 이 보정한다
+`size` 는 1..1000 으로 죈다. 0/음수가 내려가면 `FETCH NEXT` 가 SQL 오류(10744)를 내고, 이 클래스는 모든 목록이 공유해 **전 화면이 같이 500** 이 된다.
+`getOffset()` 은 long 으로 곱해 자른다(오버플로 시 음수 OFFSET 방지).
+
+### 기간 조건은 `SearchDates.require` 로 검사한다
+`yyyy-MM-dd` 가 아니면 400. 검사 없이 두면 `CAST(? AS datetime2)` 까지 내려가 SQL 오류(241)로 500 이 난다.

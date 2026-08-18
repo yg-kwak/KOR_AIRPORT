@@ -1,6 +1,7 @@
 package AirPort.service;
 
 import AirPort.common.PageResult;
+import AirPort.common.Texts;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCommonMapper;
@@ -105,6 +106,7 @@ public class CommonService {
   @Transactional
   public void create(TbCommon row, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
+    Texts.maxLen(row.getCodeName(), 100, "코드명"); // tb_common.code_name nvarchar(100)
     // 기존 코드구분에만 코드 추가. cmm_name 은 클라이언트 값을 믿지 않고 서버에서 파생.
     String groupName = commonMapper.selectGroupName(row.getCmmId());
     if (groupName == null) {
@@ -128,7 +130,11 @@ public class CommonService {
    */
   @Transactional
   public void update(TbCommon row, TbLoginUser actor, Integer menuId) {
-    menuAuthService.requireCreate(actor, menuId); // 정책: 등록/수정은 create_auth 로 판정
+    menuAuthService.requireCreate(actor, menuId);
+    Texts.maxLen(
+        row.getCodeName(),
+        100,
+        "코드명"); // tb_common.code_name nvarchar(100) // 정책: 등록/수정은 create_auth 로 판정
     TbCommon existing = commonMapper.selectOne(row.getCmmId(), row.getCodeId());
     if (existing == null) {
       throw new BusinessException(ErrorCode.NOT_FOUND);

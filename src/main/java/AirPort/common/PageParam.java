@@ -7,6 +7,13 @@ package AirPort.common;
  */
 public class PageParam {
 
+  /**
+   * 한 페이지 최대 행 수. URL 로 임의의 값이 들어와도 이 위를 넘기지 않는다.
+   *
+   * <p>엑셀 내려받기는 {@code selectListAll}(OFFSET/FETCH 없음)로 전건을 뽑으므로 이 상한과 무관하다.
+   */
+  private static final int MAX_SIZE = 1000;
+
   private int page = 1; // 1-base
   private int size = 30;
   private String keyword;
@@ -15,8 +22,13 @@ public class PageParam {
   private String sort; // 정렬 컬럼 키(화이트리스트)
   private String dir = "asc"; // asc | desc
 
+  /**
+   * 건너뛸 행 수. {@code page}·{@code size} 가 아무리 커도 int 를 넘기지 않게 long 으로 곱한 뒤 자른다 — 곱셈이 오버플로하면 음수
+   * OFFSET 이 되어 SQL 이 터진다.
+   */
   public int getOffset() {
-    return (Math.max(page, 1) - 1) * size;
+    long offset = (long) (Math.max(page, 1) - 1) * getSize();
+    return (int) Math.min(offset, Integer.MAX_VALUE);
   }
 
   public boolean isDesc() {
@@ -31,8 +43,14 @@ public class PageParam {
     this.page = page;
   }
 
+  /**
+   * 한 페이지 행 수 — <b>1 이상 {@value #MAX_SIZE} 이하로 보정</b>한다.
+   *
+   * <p>보정하지 않으면 {@code size=0}·음수가 그대로 {@code FETCH NEXT ? ROWS} 로 내려가 SQL 오류(10744)가 난다. 이 클래스는 모든
+   * 목록 화면이 공유하므로 한 곳이 뚫리면 전 화면이 같이 500 이 된다.
+   */
   public int getSize() {
-    return size;
+    return Math.min(Math.max(size, 1), MAX_SIZE);
   }
 
   public void setSize(int size) {

@@ -48,6 +48,53 @@ public class GlobalExceptionHandler {
         .body(ApiResponse.fail(ErrorCode.INVALID_INPUT.code(), "요청 형식이 올바르지 않습니다."));
   }
 
+  /**
+   * 요청 파라미터 타입 불일치 → 400. {@code ?size=xyz} 처럼 숫자 자리에 글자가 오면 여기로 온다.
+   *
+   * <p>{@code BindException} 은 검색 조건 객체(PageParam 등)에 바인딩할 때, {@code
+   * MethodArgumentTypeMismatchException} 은 {@code @RequestParam} 단건에서 난다. 둘 다 <b>보낸 쪽 잘못</b>이라 500
+   * 이면 안 된다.
+   */
+  @ExceptionHandler({
+    org.springframework.validation.BindException.class,
+    org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class
+  })
+  public ResponseEntity<ApiResponse<Void>> handleBindFailure(Exception e) {
+    log.warn("parameter bind failure: {}", e.getMessage());
+    return ResponseEntity.badRequest()
+        .body(ApiResponse.fail(ErrorCode.INVALID_INPUT.code(), "요청 값의 형식이 올바르지 않습니다."));
+  }
+
+  /**
+   * 컬럼 길이를 넘겨 잘릴 때(MSSQL 8152/2628) → 400.
+   *
+   * <p>서비스마다 주요 항목은 길이를 미리 검사하지만, 컬럼은 수십 개고 사람이 다 적어 두면 반드시 빠진다. 빠진 자리에서 500 이 나지 않도록 받아 낸다 — 값이
+   * 길어서 못 넣은 것은 <b>보낸 쪽 잘못</b>이다.
+   */
+  @ExceptionHandler(org.springframework.dao.DataAccessException.class)
+  public ResponseEntity<ApiResponse<Void>> handleDataAccess(
+      org.springframework.dao.DataAccessException e) {
+    if (isTruncation(e)) {
+      log.warn("컬럼 길이 초과로 저장하지 못했습니다: {}", rootMessage(e));
+      return ResponseEntity.badRequest()
+          .body(ApiResponse.fail(ErrorCode.INVALID_INPUT.code(), "입력한 값이 너무 깁니다. 길이를 줄여 주세요."));
+    }
+    log.error("data access error", e);
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(ApiResponse.fail(ErrorCode.INTERNAL.code(), ErrorCode.INTERNAL.defaultMessage()));
+  }
+
+  /** MSSQL 절단 오류인가 — 8152(구버전 메시지)·2628(어느 컬럼인지 알려주는 신버전). */
+  private static boolean isTruncation(Throwable e) {
+    for (Throwable t = e; t != null && t.getCause() != t; t = t.getCause()) {
+      if (t instanceof java.sql.SQLException sql
+          && (sql.getErrorCode() == 8152 || sql.getErrorCode() == 2628)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiResponse<Void>> handleEtc(
       Exception e, jakarta.servlet.http.HttpServletResponse response) {

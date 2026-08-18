@@ -5,6 +5,7 @@ import AirPort.adapter.biostar.BiostarGroupResult;
 import AirPort.adapter.biostar.BiostarUserGroup;
 import AirPort.adapter.biostar.BiostarUserGroups;
 import AirPort.common.PageResult;
+import AirPort.common.Texts;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCommonMapper;
@@ -344,6 +345,7 @@ public class CompanyService {
     if (row.getCompanyName() == null || row.getCompanyName().isBlank()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "기관명은 필수입니다.");
     }
+    Texts.maxLen(row.getCompanyName(), 100, "기관명"); // tb_company.company_name nvarchar(100)
     // 엑셀 일괄등록은 코드ID 를 직접 적으므로 없는 코드가 그대로 저장되지 않게 막는다
     codeValidator.validate(
         "CO", row.getCompanyType(), "기관구분", prev == null ? null : prev.getCompanyType());

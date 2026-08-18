@@ -1,6 +1,7 @@
 package AirPort.service;
 
 import AirPort.common.PageResult;
+import AirPort.common.Texts;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCarMapper;
@@ -116,5 +117,7 @@ public class CarService {
     if (row.getCarNo() == null || row.getCarNo().isBlank()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "차량번호는 필수입니다.");
     }
+    Texts.maxLen(row.getCarNo(), 20, "차량번호"); // tb_car.car_no nvarchar(20)
+    Texts.maxLen(row.getCarName(), 50, "차량명"); // tb_car.car_name nvarchar(50)
   }
 }

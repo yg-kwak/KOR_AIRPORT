@@ -1,6 +1,7 @@
 package AirPort.service;
 
 import AirPort.common.PageResult;
+import AirPort.common.SearchDates;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbSystemLogMapper;
@@ -39,6 +40,7 @@ public class SystemLogService {
   /** 목록 조회 — 검색조건·건수 감사(READ). */
   public PageResult<TbSystemLog> list(
       SystemLogSearchParam param, TbLoginUser actor, Integer menuId) {
+    SearchDates.require(param.getStartDate(), param.getEndDate());
     long total = logMapper.selectCount(param);
     auditService.log(
         actor, AuditService.READ, menuId, "감사추적 조회 (" + searchSummary(param, total) + ")");
@@ -65,6 +67,7 @@ public class SystemLogService {
   /** 엑셀 다운로드용 전체(동일 검색/정렬). 목적(purpose)은 감사 remark. */
   public List<TbSystemLog> listAllForExcel(
       SystemLogSearchParam param, TbLoginUser actor, Integer menuId, String purpose) {
+    SearchDates.require(param.getStartDate(), param.getEndDate());
     menuAuthService.requireRead(actor, menuId);
     if (purpose == null || purpose.isBlank()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "다운로드 목적을 입력해주세요.");

@@ -2,6 +2,7 @@ package AirPort.service;
 
 import AirPort.adapter.parking.ParkingEventNotice;
 import AirPort.common.PageResult;
+import AirPort.common.SearchDates;
 import AirPort.mapper.TbParkingEventMapper;
 import AirPort.model.ParkingEventSearchParam;
 import AirPort.model.TbLoginUser;
@@ -85,6 +86,7 @@ public class ParkingEventService {
   /** 목록 조회 — 검색조건·건수 감사(READ). */
   public PageResult<TbParkingEvent> list(
       ParkingEventSearchParam param, TbLoginUser actor, Integer menuId) {
+    SearchDates.require(param.getStartDate(), param.getEndDate());
     menuAuthService.requireRead(actor, menuId);
     long total = eventMapper.selectCount(param);
     auditService.log(

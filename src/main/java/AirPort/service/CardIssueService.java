@@ -1,5 +1,6 @@
 package AirPort.service;
 
+import AirPort.common.Texts;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCardMapper;
@@ -175,6 +176,7 @@ public class CardIssueService {
       require(row.getPassType(), "패스구분");
     }
     require(row.getCardName(), "카드명칭");
+    Texts.maxLen(row.getCardName(), 100, "카드명칭"); // tb_card.card_name nvarchar(100)
     require(row.getCardStatus(), "카드상태");
     // 엑셀 일괄등록은 코드ID 를 직접 적으므로 없는 코드가 그대로 저장되지 않게 막는다
     // (수정은 기존 값과 다를 때만 — 코드가 나중에 정리돼도 기존 행 수정이 막히지 않게)
