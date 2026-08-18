@@ -11,7 +11,4 @@ public interface TbCarAcGroupMapper {
   int insertBatch(@Param("carId") int carId, @Param("codeIds") List<String> codeIds);
 
   List<String> selectCodeIds(@Param("carId") int carId);
-
-  /** 목록 표시용 — 부여된 구역명을 콤마로 이은 문자열. */
-  String selectCodeNames(@Param("carId") int carId);
 }

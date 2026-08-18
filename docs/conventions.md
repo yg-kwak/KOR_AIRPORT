@@ -66,7 +66,7 @@
 | 카드 선택 팝업 | `core/components/card-picker-visit.js` + 조각 `fragments/components/card-picker-visit`. 화면 상태를 모르고 `{kind, listUrl, scanUrl, exclude, onPick}` 만 받는다(`kind:'car'` 면 SCAN 숨김). 중복 발급 방지용 `exclude` 는 호출 화면이 계산. **마크업은 조각으로만** — 방문(임시·장기)·기관차량이 함께 쓴다 | `visitCardPicker.open({...})` |
 | 처리 중 표시 | 서버 왕복이 있는 동작은 `js/core/busy.js` 가 자동 처리(api 래퍼가 호출). 직접 fetch 하는 곳은 `busy.wrap(promise)` 로 감싼다. 0.25초 미만 요청은 표시하지 않아 깜빡이지 않고, 표시 중에는 화면을 덮어 중복 클릭을 막는다 | 엑셀 업로드 `busy.wrap(fetch(...))` |
 | 검색/폼 모델 필드 | **게터를 반드시 만든다**(Lombok 미사용). 없으면 요청 바인딩도 MyBatis `<if test>` 평가도 리플렉션 게터로 하므로 값이 늘 기본값이 되어 **검색 조건이 조용히 무시된다**. `ArchitectureTest.검색_파라미터의_필드는_게터를_가진다` 가 강제 | `private boolean systemOnly;` → `isSystemOnly()` 필수 |
-| 상태 배지 class | `badge` + 톤 `badge-info|success|warning|error|done|none`. **색만으로 구분하지 않는다**(톤별 점 모양·테두리도 다름: ●유효 / ■완료 / ○점선=없음). 마크업은 `js/core/badge.js`(`badge.of/none/count/visitStatus/cardStatus/personStatus`) 로 만든다. 코드→톤 매핑(VS 방문상태·CS 카드상태·PS 인원상태)도 badge.js 가 원천 | 방문상태 `badge.visitStatus('VS03','입실 중')`, 미발급 `badge.none('미발급')` |
+| 상태 배지 class | `badge` + 톤 `badge-info\|success\|warning\|error\|done\|none`. **색만으로 구분하지 않는다**(톤별 점 모양·테두리도 다름: ●유효 / ■완료 / ○점선=없음). 마크업은 `js/core/badge.js`(`badge.of/none/count/visitStatus/cardStatus/personStatus`) 로 만든다. 코드→톤 매핑(VS 방문상태·CS 카드상태·PS 인원상태)도 badge.js 가 원천 | 방문상태 `badge.visitStatus('VS03','입실 중')`, 미발급 `badge.none('미발급')` |
 | **data-\*** | 서버값/동작을 JS 로 전달 | `data-sort`(정렬키) `data-act`(동작) `data-json`(행 데이터) `data-page`, PK 는 `data-{필드}` |
 - 서버 → JS 전역 전달은 `window.PAGE_*` (예: `PAGE_PERM`) 인라인 스크립트로.
 - **의존 선택 패턴**(선택값에 따라 다른 필드 자동): 부모는 `<select>`(서버가 허용 목록 제공), 자식은 `readonly` 입력 + `change` 시 자동 채움. 서버가 파생값을 재검증·재설정한다(클라이언트 값 불신). 예: 공통코드 등록의 코드구분ID→코드구분명.
@@ -89,7 +89,7 @@
 | 화면 상태 | 단일 객체 `state` | `{ page, size, keyword, searchType, useYn, sort, dir }` |
 | 함수 | 동사 camelCase | `load` `search` `reset` `save` `remove` `bind` |
 | 그리기 함수 | `render` 접두 | `renderRows` `renderPaging` `renderTotal` `renderSortIndicators` |
-| 모달 함수 | `openModal` / `closeModal` | 모드 인자: `openModal('create'|'edit', row)` |
+| 모달 함수 | `openModal` / `closeModal` | 모드 인자: `openModal('create'\|'edit', row)` |
 | 헬퍼 | `$`(getElementById), `esc`(XSS 이스케이프) | 서버 데이터를 innerHTML 에 넣을 땐 **반드시 `esc()`** |
 
 **호출 흐름 (표준)**

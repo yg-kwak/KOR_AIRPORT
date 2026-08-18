@@ -165,8 +165,8 @@ PK: `car_id` (IDENTITY). 차량 1대에 관리자 1명(1:1). **삭제는 물리 
 | car_no | nvarchar(20) | | | 차량번호 | 예: 12가3456 (개인정보 암호화 대상 여부 재검토 TODO) |
 | car_name | nvarchar(50) | | | 차량명칭 |                                      |
 | car_type | nvarchar(30) | | | 차종 | `tb_common`(cmm_id='CT').code_id     |
-| car_manager_id | nvarchar(30) | | 차량관리자 | → `tb_person.person_id` (소속 기관의 정규인원). 기관차량등록에서 지정 |
-| company_code | nvarchar(30) | | 소속 기관 | → `tb_company.company_code`. 기관차량등록(`/company/companyCar`)에서 채운다 |
+| car_manager_id | nvarchar(30) | | | 차량관리자 | → `tb_person.person_id` (소속 기관의 정규인원). 기관차량등록에서 지정 |
+| company_code | nvarchar(30) | | | 소속 기관 | → `tb_company.company_code`. 기관차량등록(`/company/companyCar`)에서 채운다 |
 | del_yn | nchar(1) | | | 삭제여부 | 기본 'N', CHK Y/N. 삭제 시 'Y' (소프트 삭제)   |
 | reg_dt / mod_dt | datetime2(0) | | | 입력/수정일자 | 기본 getdate()                         |
 
@@ -210,7 +210,7 @@ PK: `person_id`. **`tb_login_user`(로그인 계정)와 다른 개체** — 혼�
 | 컬럼 | 타입 | PK | Enc | 설명 | 비고 |
 |------|------|----|-----|------|------|
 | person_id | nvarchar(30) | Y | | 인원ID | |
-| car_id | int | | 차량ID | → `tb_car.car_id`. **차량 카드**(card_type=차량)일 때 채운다. person_id 와 배타적 |
+| car_id | int | | | 차량ID | → `tb_car.car_id`. **차량 카드**(card_type=차량)일 때 채운다. person_id 와 배타적 |
 | person_name | nvarchar(255) | | **Y** | 성명 | ARIA 암호화 |
 | birth_date | nvarchar(255) | | **Y** | 생년월일 | ARIA 암호화 |
 | person_phone | nvarchar(255) | | **Y** | 연락처 | ARIA 암호화 |
@@ -416,7 +416,7 @@ PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략�
 - `tb_login_user.work_location_code` → `tb_common`(cmm_id='LO')
 - `tb_system_log.action_type` → `tb_common`(cmm_id='AT'), `tb_system_log.menu_id` → `tb_menu`
 - `tb_ac_group.biostar_ac_id` → BiostarX 출입그룹 (외부, `integration.md`)
-- `tb_car.car_manager_id` → `tb_login_user.user_id` (논리 관계, FK 미강제. 관리자 삭제도 소프트 삭제 전제)
+- `tb_car.car_manager_id` → `tb_person.person_id` (소속 기관의 정규인원. 논리 관계, FK 미강제 — 인원 삭제도 소프트 삭제 전제)
 - `tb_company.company_type` → `tb_common`(cmm_id='CO')
 - `tb_person.company_code` → `tb_company.company_code`, `tb_person.title_code` → `tb_common`(cmm_id='UT')
 - `tb_person.person_type`(발급유형: 정규/임시/상주) → `tb_common`(cmm_id='PT')

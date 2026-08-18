@@ -15,7 +15,7 @@ public class TbCar {
   private String carNo;
   private String carName;
   private String carType; // tb_common(CT) code_id
-  private String carManagerId; // → tb_login_user.user_id (TODO: 관리자ID 화면 추후)
+  private String carManagerId; // → tb_person.person_id (소속 기관의 정규인원, 기관차량등록에서 지정)
   private String companyCode; // → tb_company.company_code (기관차량등록)
   private String delYn;
   private LocalDateTime regDt;
