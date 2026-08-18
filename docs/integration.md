@@ -16,7 +16,7 @@
 ## 인증 / 세션
 - 로그인: `POST /api/login` (body: 로그인 정보) → 성공 시 응답 헤더 **`bs-session-id`** 수신.
 - 이후 모든 요청은 헤더 `bs-session-id: {세션}` 를 실어 보낸다.
-- 세션은 **`adapter.BiostarSession`** 이 캐시·갱신한다(API 호출마다 로그인하지 않는다):
+- 세션은 **`adapter.biostar.BiostarSession`** 이 캐시·갱신한다(API 호출마다 로그인하지 않는다):
   - 캐시 세션이 없으면 로그인해 발급, IP/로그인ID 조합이 바뀌면 캐시 폐기 후 재로그인.
   - 인증 API 응답이 **HTTP 401 + `Response.code == "10"`("Login required.")** 면 세션 만료로 보고 재로그인 후 **1회 재시도**.
   - `BiostarAdapter` 는 `session.post(base, loginId, pw, path, body)` 로만 인증 호출한다(직접 로그인 금지).
@@ -273,7 +273,7 @@ System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true"
 - 화면: 정규인원 수정 모달 카드정보 탭 관리 열의 **출력** 버튼 → 미리보기(앞/뒤) 후 인쇄. (`/person/person/card/print/preview`, `/card/print`)
 - **일괄 출력**: 목록에서 인원 선택 → **카드 출력**(선택 삭제 왼쪽). 전량 검증(카드 1장·얼굴 보유) 후 각자 출력. 카드 2장 이상 보유자가 있으면 인원ID를 알리고 아무것도 출력하지 않는다. (`/card/print/bulk`)
 
-## 주차 차단기 (아마노 주차관제, adapter/AmanoParkingAdapter)
+## 주차 차단기 (아마노 주차관제, adapter/parking)
 
 차량에 **차량구역**(`tb_common` cmm_id=`CAR`)을 부여하면, 그 구역 차단기가 자동으로 열리도록 아마노 주차관제에 **정기권**을 등록한다. 차량이 붙는 화면이 둘이라 `ParkingPassService` 한 곳에 모았다 — 구역→종별 매핑과 회수 규칙이 갈리면 두 화면의 차단기 동작이 달라진다.
 

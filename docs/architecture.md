@@ -23,6 +23,7 @@
 
 ## 2. 레이어 구조
 패키지는 도메인별 하위 폴더 **없이 역할별 평면 구조**로 구성하고, 도메인 구분은 **클래스명 접두사**(`Visitor*`, `AcGroup*`, `Menu*` 등)로 한다.
+**예외는 `adapter` 뿐**이다 — 외부 시스템별로 나눈다(`adapter/biostar`, `adapter/parking`, `adapter/cardprint`). 업무가 아니라 연동 상대 기준이다.
 
 ```
 AirPort

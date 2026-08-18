@@ -1,7 +1,7 @@
 package AirPort.service;
 
-import AirPort.adapter.BiostarImportAdapter;
-import AirPort.adapter.BiostarUserDetail;
+import AirPort.adapter.biostar.BiostarImportAdapter;
+import AirPort.adapter.biostar.BiostarUserDetail;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCommonMapper;
@@ -244,7 +244,7 @@ public class PersonImportBiostarService {
     }
     // 부모→자식 한 단계씩 내려가며 넓힌다(깊이 제한 없음)
     Map<Long, List<Long>> children = new HashMap<>();
-    for (AirPort.adapter.BiostarUserGroup g :
+    for (AirPort.adapter.biostar.BiostarUserGroup g :
         importAdapter.searchUserGroups(c.ip(), c.id(), c.pw())) {
       if (g.parentId() != null) {
         children.computeIfAbsent(g.parentId(), k -> new ArrayList<>()).add(g.id());

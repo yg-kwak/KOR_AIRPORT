@@ -1,8 +1,8 @@
 package AirPort.service;
 
-import AirPort.adapter.BiostarCard;
-import AirPort.adapter.BiostarCardAdapter;
-import AirPort.adapter.BiostarUserCard;
+import AirPort.adapter.biostar.BiostarCard;
+import AirPort.adapter.biostar.BiostarCardAdapter;
+import AirPort.adapter.biostar.BiostarUserCard;
 import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
@@ -110,7 +110,7 @@ public class CardService {
     if (cfg == null) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 설정이 없습니다. 설정관리에서 먼저 등록하세요.");
     }
-    AirPort.adapter.BiostarResult res =
+    AirPort.adapter.biostar.BiostarResult res =
         block
             ? biostarCardAdapter.blacklistCard(
                 cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), biostarCardId)

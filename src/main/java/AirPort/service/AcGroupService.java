@@ -1,7 +1,7 @@
 package AirPort.service;
 
-import AirPort.adapter.BiostarAdapter;
-import AirPort.adapter.BiostarGroups;
+import AirPort.adapter.biostar.BiostarAdapter;
+import AirPort.adapter.biostar.BiostarGroups;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbAcGroupMapper;

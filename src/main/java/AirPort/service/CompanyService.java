@@ -1,9 +1,9 @@
 package AirPort.service;
 
-import AirPort.adapter.BiostarAdapter;
-import AirPort.adapter.BiostarGroupResult;
-import AirPort.adapter.BiostarUserGroup;
-import AirPort.adapter.BiostarUserGroups;
+import AirPort.adapter.biostar.BiostarAdapter;
+import AirPort.adapter.biostar.BiostarGroupResult;
+import AirPort.adapter.biostar.BiostarUserGroup;
+import AirPort.adapter.biostar.BiostarUserGroups;
 import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;

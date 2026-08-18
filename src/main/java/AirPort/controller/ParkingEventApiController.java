@@ -1,6 +1,6 @@
 package AirPort.controller;
 
-import AirPort.adapter.ParkingEventNotice;
+import AirPort.adapter.parking.ParkingEventNotice;
 import AirPort.service.ParkingEventService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;

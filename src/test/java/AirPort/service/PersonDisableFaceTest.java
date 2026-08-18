@@ -10,9 +10,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import AirPort.TestKeys;
-import AirPort.adapter.BiostarResult;
-import AirPort.adapter.BiostarUserAdapter;
-import AirPort.adapter.BiostarUserRequest;
+import AirPort.adapter.biostar.BiostarResult;
+import AirPort.adapter.biostar.BiostarUserAdapter;
+import AirPort.adapter.biostar.BiostarUserRequest;
 import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbCompanyMapper;

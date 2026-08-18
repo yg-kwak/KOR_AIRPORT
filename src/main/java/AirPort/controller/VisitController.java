@@ -135,7 +135,7 @@ public class VisitController {
   /** 카드 스캔 (AJAX) — 방문객 카드용(리더로 카드번호 읽기). 차량 카드는 스캔 미지원. */
   @PostMapping("/card/scan")
   @ResponseBody
-  public ApiResponse<AirPort.adapter.BiostarCard> scanCard(HttpSession session) {
+  public ApiResponse<AirPort.adapter.biostar.BiostarCard> scanCard(HttpSession session) {
     return ApiResponse.ok(cardService.scan(actor(session), menuId()));
   }
 

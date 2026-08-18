@@ -1,9 +1,9 @@
 package AirPort.service;
 
-import AirPort.adapter.BiostarResult;
-import AirPort.adapter.BiostarUserAdapter;
-import AirPort.adapter.BiostarUserCard;
-import AirPort.adapter.BiostarUserRequest;
+import AirPort.adapter.biostar.BiostarResult;
+import AirPort.adapter.biostar.BiostarUserAdapter;
+import AirPort.adapter.biostar.BiostarUserCard;
+import AirPort.adapter.biostar.BiostarUserRequest;
 import AirPort.mapper.TbAcGroupMapper;
 import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbCommonMapper;
@@ -130,7 +130,7 @@ public class VisitBiostarService {
         } else {
           personMapper.updateBiostarUserId(pid, pid);
         }
-      } catch (AirPort.adapter.BiostarSessionException e) {
+      } catch (AirPort.adapter.biostar.BiostarSessionException e) {
         fails.add(pid + "(" + e.getMessage() + ")"); // 통신·세션 오류도 실패로 집계(성공 오판 방지)
       }
     }
@@ -164,7 +164,7 @@ public class VisitBiostarService {
         if (biostarUserAdapter.userExists(ip, id, pw, pid)) {
           found.add(pid);
         }
-      } catch (AirPort.adapter.BiostarSessionException e) {
+      } catch (AirPort.adapter.biostar.BiostarSessionException e) {
         found.add(pid); // 확인 불가 — 있는 것으로 보고 삭제를 막는다
       }
     }
@@ -194,7 +194,7 @@ public class VisitBiostarService {
         if (!res.success()) {
           fails.add(pid + "(" + res.message() + ")");
         }
-      } catch (AirPort.adapter.BiostarSessionException e) {
+      } catch (AirPort.adapter.biostar.BiostarSessionException e) {
         fails.add(pid + "(" + e.getMessage() + ")"); // 통신·세션 오류 — '없음'으로 오판하지 않는다
       }
     }
@@ -225,7 +225,7 @@ public class VisitBiostarService {
         if (!biostarUserAdapter.userExists(ip, id, pw, pid)) {
           continue; // 장비에 없음(미동기) — 비활성화 대상 아님
         }
-      } catch (AirPort.adapter.BiostarSessionException e) {
+      } catch (AirPort.adapter.biostar.BiostarSessionException e) {
         fails.add(pid + "(" + e.getMessage() + ")"); // 통신·세션 오류 — '없음'으로 오판하지 않는다
         continue;
       }

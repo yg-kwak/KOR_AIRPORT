@@ -9,7 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import AirPort.adapter.ParkingEventNotice;
+import AirPort.adapter.parking.ParkingEventNotice;
 import AirPort.controller.ParkingEventApiController;
 import AirPort.mapper.TbParkingEventMapper;
 import AirPort.model.TbParkingEvent;

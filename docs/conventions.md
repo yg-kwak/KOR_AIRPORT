@@ -18,6 +18,10 @@
 
 ## 1. 패키지/구조
 - **역할별 평면 구조**: `controller / service / mapper / model / adapter / config / security / common / util`. 도메인별 하위 폴더 금지. (구조 원천: `architecture.md`)
+  - **예외는 `adapter` 하나** — 외부 시스템별로 하위 폴더를 둔다: `adapter/biostar` · `adapter/parking` · `adapter/cardprint`.
+    도메인(업무) 구분이 아니라 **연동 상대** 구분이라 성격이 다르다. 한 시스템의 어댑터·요청/응답 DTO·세션이 한 폴더에 모여야
+    "이 연동이 무엇을 주고받는지"가 한눈에 보이고, 패키지-사설 멤버(`BiostarAdapter.responseError` 등)를 그 연동 안에서만 공유할 수 있다.
+    상대가 늘면 폴더를 하나 더 만든다. `service`·`controller` 는 그대로 평면이다.
 - **네이밍 앵커 = 테이블 어간(stem).** 한 기능의 모든 이름은 테이블명 `tb_{stem}` 의 `stem`(camelCase)에서 파생한다 — 토큰을 하나로 통일해 혼동을 없앤다.
   - 예: `tb_common` → `common`, `tb_login_user` → `loginUser`.
 

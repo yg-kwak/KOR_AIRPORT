@@ -12,8 +12,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import AirPort.adapter.BiostarCardAdapter;
-import AirPort.adapter.BiostarResult;
+import AirPort.adapter.biostar.BiostarCardAdapter;
+import AirPort.adapter.biostar.BiostarResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbCommonMapper;
@@ -115,7 +115,7 @@ class CardBlacklistSyncTest {
     unregistered.setBiostarCardId(null); // 장비 미등록(테스트 시드 카드 등)
     when(cardMapper.selectById(10)).thenReturn(unregistered);
     when(adapter.createCard(anyString(), anyString(), any(), eq("11111111")))
-        .thenReturn(AirPort.adapter.BiostarCard.ok("99", "11111111"));
+        .thenReturn(AirPort.adapter.biostar.BiostarCard.ok("99", "11111111"));
 
     org.springframework.transaction.support.TransactionSynchronizationManager
         .setActualTransactionActive(true);
@@ -134,7 +134,7 @@ class CardBlacklistSyncTest {
     unregistered.setBiostarCardId(null);
     when(cardMapper.selectById(10)).thenReturn(unregistered);
     when(adapter.createCard(anyString(), anyString(), any(), eq("11111111")))
-        .thenReturn(AirPort.adapter.BiostarCard.fail("HTTP 500"));
+        .thenReturn(AirPort.adapter.biostar.BiostarCard.fail("HTTP 500"));
 
     org.springframework.transaction.support.TransactionSynchronizationManager
         .setActualTransactionActive(true);
@@ -177,7 +177,7 @@ class CardBlacklistSyncTest {
     when(adapter.registeredCardIds(anyString(), anyString(), any()))
         .thenReturn(java.util.Set.of("88")); // 77 없음
     when(adapter.createCard(anyString(), anyString(), any(), eq("11111111")))
-        .thenReturn(AirPort.adapter.BiostarCard.ok("99", "11111111"));
+        .thenReturn(AirPort.adapter.biostar.BiostarCard.ok("99", "11111111"));
 
     org.springframework.transaction.support.TransactionSynchronizationManager
         .setActualTransactionActive(true);
@@ -194,10 +194,10 @@ class CardBlacklistSyncTest {
   void 카드목록_조회_실패면_있는것처럼_진행하지_않고_예외() {
     when(cardMapper.selectById(10)).thenReturn(card("CS01"));
     when(adapter.registeredCardIds(anyString(), anyString(), any()))
-        .thenThrow(new AirPort.adapter.BiostarSessionException("연결 실패"));
+        .thenThrow(new AirPort.adapter.biostar.BiostarSessionException("연결 실패"));
 
     assertThrows(
-        AirPort.adapter.BiostarSessionException.class,
+        AirPort.adapter.biostar.BiostarSessionException.class,
         () -> service().ensureBiostarCard(10, null, 801));
     verify(adapter, never()).createCard(anyString(), anyString(), any(), anyString());
   }

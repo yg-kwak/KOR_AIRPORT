@@ -1,6 +1,6 @@
 package AirPort.service;
 
-import AirPort.adapter.BiostarUserDetail;
+import AirPort.adapter.biostar.BiostarUserDetail;
 import AirPort.mapper.TbAcGroupMapper;
 import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbCommonMapper;

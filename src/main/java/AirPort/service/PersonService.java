@@ -1,6 +1,6 @@
 package AirPort.service;
 
-import AirPort.adapter.BiostarUserRequest;
+import AirPort.adapter.biostar.BiostarUserRequest;
 import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;

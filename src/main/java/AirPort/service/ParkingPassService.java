@@ -1,8 +1,8 @@
 package AirPort.service;
 
-import AirPort.adapter.AmanoParkingAdapter;
-import AirPort.adapter.ParkingPassRequest;
-import AirPort.adapter.ParkingResult;
+import AirPort.adapter.parking.AmanoParkingAdapter;
+import AirPort.adapter.parking.ParkingPassRequest;
+import AirPort.adapter.parking.ParkingResult;
 import AirPort.mapper.TbCarMapper;
 import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbVisitMapper;

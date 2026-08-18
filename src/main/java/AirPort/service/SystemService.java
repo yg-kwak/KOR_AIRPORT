@@ -1,7 +1,7 @@
 package AirPort.service;
 
-import AirPort.adapter.BiostarAdapter;
-import AirPort.adapter.BiostarResult;
+import AirPort.adapter.biostar.BiostarAdapter;
+import AirPort.adapter.biostar.BiostarResult;
 import AirPort.mapper.TbSystemMapper;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbSystem;

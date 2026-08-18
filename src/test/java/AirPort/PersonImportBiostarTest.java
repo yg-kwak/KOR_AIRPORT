@@ -11,8 +11,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import AirPort.adapter.BiostarImportAdapter;
-import AirPort.adapter.BiostarUserDetail;
+import AirPort.adapter.biostar.BiostarImportAdapter;
+import AirPort.adapter.biostar.BiostarUserDetail;
 import AirPort.common.exception.BusinessException;
 import AirPort.mapper.TbAcGroupMapper;
 import AirPort.mapper.TbCardMapper;
@@ -97,10 +97,10 @@ class PersonImportBiostarTest {
     when(importAdapter.searchUserGroups(any(), any(), any()))
         .thenReturn(
             List.of(
-                new AirPort.adapter.BiostarUserGroup(1003L, "정규", 1L),
-                new AirPort.adapter.BiostarUserGroup(1009L, "슈프리마", 1003L),
-                new AirPort.adapter.BiostarUserGroup(1004L, "임시", 1L),
-                new AirPort.adapter.BiostarUserGroup(2001L, "임시하위", 1004L)));
+                new AirPort.adapter.biostar.BiostarUserGroup(1003L, "정규", 1L),
+                new AirPort.adapter.biostar.BiostarUserGroup(1009L, "슈프리마", 1003L),
+                new AirPort.adapter.biostar.BiostarUserGroup(1004L, "임시", 1L),
+                new AirPort.adapter.biostar.BiostarUserGroup(2001L, "임시하위", 1004L)));
   }
 
   private static BiostarUserDetail user(String id, Integer groupId) {

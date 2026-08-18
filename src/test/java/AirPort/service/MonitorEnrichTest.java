@@ -12,10 +12,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import AirPort.TestKeys;
-import AirPort.adapter.BiostarAdapter;
-import AirPort.adapter.BiostarAuthEvent;
-import AirPort.adapter.BiostarEventAdapter;
-import AirPort.adapter.BiostarEventSocket;
+import AirPort.adapter.biostar.BiostarAdapter;
+import AirPort.adapter.biostar.BiostarAuthEvent;
+import AirPort.adapter.biostar.BiostarEventAdapter;
+import AirPort.adapter.biostar.BiostarEventSocket;
 import AirPort.mapper.TbCompanyMapper;
 import AirPort.mapper.TbPersonAcGroupMapper;
 import AirPort.mapper.TbPersonMapper;

@@ -1,6 +1,6 @@
 package AirPort.controller;
 
-import AirPort.adapter.BiostarResult;
+import AirPort.adapter.biostar.BiostarResult;
 import AirPort.common.ApiResponse;
 import AirPort.common.CurrentMenu;
 import AirPort.common.SessionKeys;

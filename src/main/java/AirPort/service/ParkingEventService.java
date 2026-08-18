@@ -1,6 +1,6 @@
 package AirPort.service;
 
-import AirPort.adapter.ParkingEventNotice;
+import AirPort.adapter.parking.ParkingEventNotice;
 import AirPort.common.PageResult;
 import AirPort.mapper.TbParkingEventMapper;
 import AirPort.model.ParkingEventSearchParam;

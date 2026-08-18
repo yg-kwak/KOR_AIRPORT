@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import AirPort.adapter.BiostarAuthEvent;
+import AirPort.adapter.biostar.BiostarAuthEvent;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

@@ -1,7 +1,7 @@
 package AirPort.controller;
 
-import AirPort.adapter.BiostarCard;
-import AirPort.adapter.BiostarFace;
+import AirPort.adapter.biostar.BiostarCard;
+import AirPort.adapter.biostar.BiostarFace;
 import AirPort.common.ApiResponse;
 import AirPort.common.CurrentMenu;
 import AirPort.common.PageResult;

@@ -123,7 +123,7 @@ public class LongTermController {
 
   @PostMapping("/card/scan")
   @ResponseBody
-  public ApiResponse<AirPort.adapter.BiostarCard> scanCard(HttpSession session) {
+  public ApiResponse<AirPort.adapter.biostar.BiostarCard> scanCard(HttpSession session) {
     return ApiResponse.ok(cardService.scan(actor(session), menuId()));
   }
 
