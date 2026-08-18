@@ -706,12 +706,22 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
   padding: 8px 14px; }
 /* 출입거부면 초록이던 곳이 통째로 붉어진다 — 멀리 있는 모니터에서 색만 보고 판단한다 */
 .monitor-main.deny .monitor-panel-head { background: var(--monitor-deny); }
+/* 사진을 담는 회색 칸. 크기는 패널이 정하고(옆 '출입자 정보' 높이에 맞춰 늘어난다)
+   사진은 그 안에서 가운데 선다 — 실제 크기는 아래 img 규칙이 정한다. */
 .monitor-photo { flex: 1; min-height: 300px; display: flex; align-items: center; justify-content: center;
-  background: var(--nt-bg-gray); padding: 10px; }
-.monitor-photo img { max-width: 100%; max-height: 340px; object-fit: contain; }
+  background: var(--nt-bg-gray); padding: 0; overflow: hidden; }
+/* 칸은 그대로 두고 사진만 그 안에 맞춘다 — 등록 사진과 인증 사진이 같은 높이로 선다.
+   contain 이라 잘리지도, 비율이 일그러지지도 않는다(cover 는 세로 사진의 머리·턱을 잘라낸다).
+   높이를 260px 로 둔 것은 원본이 작기 때문이다 — 실제 등록 사진은 224x224 / 141x187 이라
+   칸 가로(약 390px)에 맞춰 늘리면 1.7배까지 확대돼 뭉개진다. 이 높이면 확대가 1.2배 안쪽이다. */
+.monitor-photo img { width: 100%; height: 260px; object-fit: contain; display: block; }
 .monitor-card-icon { width: 150px; height: auto; fill: none; stroke: #7c4dff; stroke-width: 3; }
 .monitor-card-icon text { fill: #7c4dff; stroke: none; font-size: 13px; font-weight: 600; }
-.monitor-card-photos .monitor-card-icon { width: 46%; }
+/* 사진 없는 정규인원 — 카드(보라)와 달리 회색이다. 인증 수단이 아니라 '빠진 것'을 뜻한다. */
+.monitor-face-icon { width: 140px; height: auto; fill: none; stroke: var(--nt-text-2);
+  stroke-width: 5; stroke-linecap: round; }
+.monitor-card-photos .monitor-card-icon,
+.monitor-card-photos .monitor-face-icon { width: 46%; }
 
 /* 이름·소속·허가구역이 남는 높이를 1/3씩 나눠 갖는다. 상황실 모니터는 멀리서 보므로
    칸을 채우는 만큼 글자도 키운다(칸을 넘칠 때만 줄인다 — clamp 의 아래쪽 값). */
@@ -740,8 +750,9 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .monitor-card-result { margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--monitor-ok); }
 .monitor-card.deny .monitor-card-result { color: var(--monitor-deny); }
 .monitor-card-photos { display: flex; gap: 4px; justify-content: center; align-items: center;
-  height: 120px; background: var(--nt-bg-gray); border-radius: 4px; }
-.monitor-card-photos img { max-width: 48%; max-height: 116px; object-fit: contain; }
+  height: 120px; background: var(--nt-bg-gray); border-radius: 4px; overflow: hidden; }
+/* MAIN 과 같은 규칙 — 두 장이 반씩 나눠 갖고 칸을 꽉 채운다(flex-basis 0 이라야 정확히 반이다) */
+.monitor-card-photos img { flex: 1 1 0; min-width: 0; height: 100%; object-fit: cover; display: block; }
 .monitor-card-blank { border-style: dashed; border-color: var(--nt-border); min-height: 160px; }
 .monitor-card-name { margin-top: 5px; font-weight: 600; font-size: 13px; }
 .monitor-card-company, .monitor-card-areas { color: var(--nt-text-2); font-size: 12px; }

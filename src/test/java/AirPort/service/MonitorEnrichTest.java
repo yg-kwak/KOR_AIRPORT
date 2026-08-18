@@ -1,7 +1,9 @@
 package AirPort.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -93,6 +95,31 @@ class MonitorEnrichTest {
     TbCompany c = new TbCompany();
     c.setCompanyName(name);
     when(companyMapper.selectById(code)).thenReturn(c);
+  }
+
+  // ── 사진 없는 칸에 세울 그림 ───────────────────────────────
+
+  @Test
+  void 정규인원은_얼굴이_있어야_정상이라_사람_모양으로_표시한다() {
+    person("PT01", null, null);
+
+    assertTrue(service.enrich(EVENT).isFaceUser());
+  }
+
+  @Test
+  void 카드로만_인증하는_인원은_얼굴이_없는_것이_정상이다() {
+    // 임시·장기·상주·순찰·대여 — 장비가 얼굴을 찍지 않는다. 사람 모양으로 두면 '등록이 빠진 것'처럼 보인다
+    for (String type : new String[] {"PT02", "PT03", "PT04", "PT05", "PT06"}) {
+      person(type, null, null);
+      assertFalse(service.enrich(EVENT).isFaceUser(), type);
+    }
+  }
+
+  @Test
+  void 우리_DB_에_없는_사용자는_사람_모양으로_표시하지_않는다() {
+    when(personMapper.selectById("400001")).thenReturn(null);
+
+    assertFalse(service.enrich(EVENT).isFaceUser());
   }
 
   // ── 허가구역 출처 ─────────────────────────────────────────────

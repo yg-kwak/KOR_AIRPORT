@@ -239,6 +239,8 @@ public class MonitorService {
       row.setCompanyName(affiliationOf(person));
       row.setAreas(areaNos(acGroupNames(person)));
       row.setRegisteredPhoto(photoMapper.selectPhoto(event.userId()));
+      // 사진 없는 칸에 사람 모양을 세울지 카드 모양을 세울지 — 정규인원만 얼굴이 있어야 정상이다
+      row.setFaceUser(PERSON_TYPE_REGULAR.equals(person.getPersonType()));
     }
 
     TbSystem cfg = systemMapper.selectOne();

@@ -35,14 +35,21 @@
       <rect x="60" y="34" width="24" height="14" rx="2"/>
       <text x="12" y="46">카드</text></svg>`;
 
-  /* 사진 없음도 자리를 지켜야 한다 — 칸이 무너지면 옆 사진이 밀려 누구 것인지 헷갈린다 */
-  const photo = (base64, alt) => (base64
+  /* 사람 그림 — 얼굴이 있어야 정상인 정규인원의 빈 사진칸에 세운다.
+     카드 그림으로 두면 '등록이 빠진 사람'과 '원래 얼굴을 안 찍는 사람'이 구분되지 않는다. */
+  const FACE_ICON = `<svg class="monitor-face-icon" viewBox="0 0 96 96" aria-label="사진 없음">
+      <circle cx="48" cy="33" r="19"/>
+      <path d="M14 90c0-18.8 15.2-34 34-34s34 15.2 34 34"/></svg>`;
+
+  /* 사진 없음도 자리를 지켜야 한다 — 칸이 무너지면 옆 사진이 밀려 누구 것인지 헷갈린다.
+     무엇으로 채울지는 서버가 내려준 faceUser 가 정한다(인원 구분은 화면이 알 일이 아니다). */
+  const photo = (base64, alt, faceUser) => (base64
     ? `<img src="data:image/jpeg;base64,${base64}" alt="${esc(alt)}"/>`
-    : CARD_ICON);
+    : (faceUser ? FACE_ICON : CARD_ICON));
 
   function showMain(e) {
-    $('mainRegistered').innerHTML = photo(e.registeredPhoto, '등록 사진');
-    $('mainAuth').innerHTML = photo(e.authPhoto, '인증 사진');
+    $('mainRegistered').innerHTML = photo(e.registeredPhoto, '등록 사진', e.faceUser);
+    $('mainAuth').innerHTML = photo(e.authPhoto, '인증 사진', e.faceUser);
     $('mainName').textContent = e.personName || (e.personId ? e.personId : '미등록');
     $('mainCompany').textContent = e.companyName || '-';
     $('mainAreas').textContent = e.areas || '-';
@@ -174,8 +181,8 @@
     $('monitorHistory').innerHTML = blanks + past.map((e) => `
       <div class="monitor-card${e.granted ? '' : ' deny'}">
         <div class="monitor-card-photos">
-          ${photo(e.registeredPhoto, '등록 사진')}
-          ${photo(e.authPhoto, '인증 사진')}
+          ${photo(e.registeredPhoto, '등록 사진', e.faceUser)}
+          ${photo(e.authPhoto, '인증 사진', e.faceUser)}
         </div>
         <div class="monitor-card-name">${esc(e.personName || e.personId || '-')}</div>
         <div class="monitor-card-company">${esc(e.companyName || '-')}</div>

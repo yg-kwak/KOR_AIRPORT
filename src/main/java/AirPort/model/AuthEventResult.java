@@ -26,6 +26,24 @@ public class AuthEventResult {
   private String resultLabel; // 화면 표기 문구 ("O 인증 성공" / "X 안티 패스" / "X 출입제한구역")
   private boolean granted; // 통과 여부 — 화면 색이 여기서 갈린다(통과 초록, 거부 빨강)
 
+  /**
+   * 얼굴을 등록하는 인원인가(정규인원).
+   *
+   * <p>사진 없는 칸에 <b>무엇을 세울지</b>가 여기서 갈린다. 정규인원은 얼굴이 있어야 정상이라 빠진 것이 눈에 띄어야 하고(사람 모양), 임시·장기·상주처럼 카드로만
+   * 인증하는 인원은 애초에 얼굴을 안 찍으므로 없는 것이 정상이다(카드 모양). 둘을 같은 그림으로 두면 "등록이 빠진 사람" 과 "원래 없는 사람" 이 구분되지 않는다.
+   *
+   * <p>인원 구분은 우리 DB 사정이라 화면이 알 일이 아니다 — 서버가 정해서 내려준다. 미등록 인증(우리 DB 에 없는 사용자)이면 false.
+   */
+  private boolean faceUser;
+
+  public boolean isFaceUser() {
+    return faceUser;
+  }
+
+  public void setFaceUser(boolean faceUser) {
+    this.faceUser = faceUser;
+  }
+
   public String getEventTime() {
     return eventTime;
   }
