@@ -697,7 +697,7 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
 .monitor-state { font-size: 13px; color: var(--nt-text-2); align-self: center; }
 /* 소리 켜기/끄기 — 상태를 색과 아이콘 모양 둘로 알린다(색만으로 구분하지 않는다) */
 .btn-sound { display: inline-flex; align-items: center; justify-content: center;
-  width: 38px; height: 38px; padding: 0; border: 1px solid var(--nt-border);
+  width: 38px; height: 36px; padding: 0; border: 1px solid var(--nt-border); /* 높이는 .btn(36px) 과 맞춘다 */
   border-radius: 6px; background: var(--nt-bg); color: var(--nt-blue); cursor: pointer; }
 .btn-sound:hover { border-color: var(--nt-blue); }
 .btn-sound svg { width: 20px; height: 20px; }
