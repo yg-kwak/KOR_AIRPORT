@@ -22,6 +22,14 @@ public interface TbPersonMapper {
 
   TbPerson selectById(@Param("personId") String personId);
 
+  /**
+   * 주어진 인원ID 중 <b>살아 있는(del_yn='N')</b> 것만 — 존재 여부만 필요할 때.
+   *
+   * <p>가져오기 대상 목록이 장비 사용자 1명마다 {@link #selectById} 를 부르면 인원 수만큼 질의가 나간다. 목록에는 '등록됨/신규' 만 필요하므로 한 번에
+   * 확인한다.
+   */
+  List<String> selectExistingIds(@Param("personIds") List<String> personIds);
+
   /** 정규인원(PT01) 중 숫자형 인원ID 의 다음 값(자동 채번). 없으면 기본 400001. */
   String selectNextPersonId();
 
@@ -31,6 +39,14 @@ public interface TbPersonMapper {
   int insert(TbPerson row);
 
   int update(TbPerson row);
+
+  /**
+   * BiostarX 가져오기(갱신) 전용 — <b>장비가 원천인 컬럼만</b> 덮어쓴다.
+   *
+   * <p>{@link #update} 를 쓰면 생년월일·신원조회·보안교육·인원상태처럼 <b>우리 화면에서만 채우는 값</b>이 함께 비워진다. 장비에는 그런 개념이 없어
+   * 가져온 행에는 값이 없기 때문이다.
+   */
+  int updateFromBiostar(TbPerson row);
 
   /** 소프트 삭제 — del_yn='Y'. */
   int softDelete(@Param("personId") String personId);

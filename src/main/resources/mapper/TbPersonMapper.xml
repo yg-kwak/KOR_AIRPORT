@@ -123,6 +123,13 @@
     WHERE person_id LIKE #{prefix} + '[0-9][0-9][0-9][0-9][0-9][0-9]'
   </select>
 
+  <!-- 가져오기 대상 목록용 — 존재 여부만 본다. 1명씩 selectById 를 부르면 인원 수만큼 질의가 나간다 -->
+  <select id="selectExistingIds" resultType="string">
+    SELECT person_id FROM tb_person
+    WHERE del_yn = 'N' AND person_id IN
+    <foreach collection="personIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+  </select>
+
   <select id="selectById" resultType="TbPerson">
     SELECT <include refid="listColumns"/>
     <include refid="listJoins"/>
@@ -143,6 +150,20 @@
   </insert>
 
   <!-- 인원 수정 — person_id/person_type 은 불변 -->
+  <!-- BiostarX 가져오기(갱신) — 장비가 원천인 컬럼만. update 를 쓰면 생년월일·신원조회·보안교육·
+       인원상태처럼 우리 화면에서만 채우는 값이 함께 비워진다(장비에 그 개념이 없어 가져온 행에는 값이 없다). -->
+  <update id="updateFromBiostar" parameterType="TbPerson">
+    UPDATE tb_person
+    SET person_name = #{personName},
+        person_phone = #{personPhone},
+        company_code = #{companyCode},
+        title_code = #{titleCode},
+        access_start_dt = #{accessStartDt},
+        access_end_dt = #{accessEndDt},
+        mod_dt = getdate()
+    WHERE person_id = #{personId}
+  </update>
+
   <update id="update" parameterType="TbPerson">
     UPDATE tb_person
     SET person_name = #{personName},

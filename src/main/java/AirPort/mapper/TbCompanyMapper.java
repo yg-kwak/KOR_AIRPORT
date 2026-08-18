@@ -43,4 +43,13 @@ public interface TbCompanyMapper {
 
   /** BiostarX 사용자그룹 ID 에 매핑된 기관코드 — 없으면 null(가져오기 제외). */
   String selectCodeByBiostarGroupId(@Param("biostarGroupId") Integer biostarGroupId);
+
+  /**
+   * BiostarX 사용자그룹이 매핑된 기관 전부 — {@code biostar_group_id}/{@code company_code}/{@code company_name}
+   * 만 채운다.
+   *
+   * <p>가져오기 대상 목록이 장비 사용자 1명마다 {@link #selectCodeByBiostarGroupId} 를 부르면 인원 수만큼 질의가 나간다. 매핑은 기관
+   * 수만큼(보통 수십 개)뿐이라 한 번에 읽어 화면에서 맞춘다.
+   */
+  List<TbCompany> selectBiostarGroupMappings();
 }

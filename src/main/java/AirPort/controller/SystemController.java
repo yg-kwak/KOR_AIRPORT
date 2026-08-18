@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 /** 설정관리(tb_system) — BiostarX 연동정보. 단일 행 폼 + 저장/연결테스트. */
@@ -71,23 +70,32 @@ public class SystemController {
     return ApiResponse.okMessage("저장되었습니다.");
   }
 
-  /** BiostarX 가져오기 미리보기 (AJAX) — 무엇이 들어오고 무엇이 빠지는지만 센다. */
-  @GetMapping("/import/preview")
+  /** 가져오기 대상 목록 (AJAX) — 화면에서 고를 사용자. 장비 상세는 읽지 않는다(1명당 1회 왕복). */
+  @GetMapping("/import/candidates")
   @ResponseBody
-  public ApiResponse<AirPort.model.ImportResult> importPreview(HttpSession session) {
-    return ApiResponse.ok(importService.preview(actor(session), menuId()));
+  public ApiResponse<java.util.List<AirPort.model.ImportCandidateResult>> importCandidates(
+      HttpSession session) {
+    return ApiResponse.ok(importService.candidates(actor(session), menuId()));
   }
 
-  /** BiostarX 가져오기 실행 (AJAX) — 카드·얼굴·출입권한은 선택. 장비에는 쓰지 않는다. */
+  /** BiostarX 가져오기 미리보기 (AJAX) — 고른 사람에게 무엇이 일어나는지만 센다. DB 를 건드리지 않는다. */
+  @PostMapping("/import/preview")
+  @ResponseBody
+  public ApiResponse<AirPort.model.ImportResult> importPreview(
+      @RequestBody AirPort.model.ImportForm form, HttpSession session) {
+    return ApiResponse.ok(importService.preview(form, actor(session), menuId()));
+  }
+
+  /**
+   * BiostarX 가져오기 실행 (AJAX) — 고른 사람을 장비 기준으로 맞춘다. 장비에는 쓰지 않는다.
+   *
+   * <p>카드·출입권한은 <b>덮어쓰기</b>다(우리에만 있던 것은 사라진다). 그래서 대상은 폼으로 받은 선택 목록뿐이다.
+   */
   @PostMapping("/import")
   @ResponseBody
   public ApiResponse<AirPort.model.ImportResult> importRun(
-      @RequestParam(defaultValue = "false") boolean cards,
-      @RequestParam(defaultValue = "false") boolean face,
-      @RequestParam(defaultValue = "false") boolean acGroups,
-      HttpSession session) {
-    return ApiResponse.ok(
-        importService.importUsers(cards, face, acGroups, actor(session), menuId()));
+      @RequestBody AirPort.model.ImportForm form, HttpSession session) {
+    return ApiResponse.ok(importService.importUsers(form, actor(session), menuId()));
   }
 
   /** BiostarX 연결 테스트 (AJAX) — 성공/실패 메시지 반환(자동 토스트). */

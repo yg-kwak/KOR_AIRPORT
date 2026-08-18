@@ -1,8 +1,10 @@
-/* 설정관리(tb_system) — 단일 폼 + 저장 + BiostarX 연결 테스트. 안내는 공통 toast(서버 return 문구). */
+/* 설정관리(tb_system) — 단일 폼 + 저장 + BiostarX 연결 테스트 + 가져오기. 안내는 공통 toast(서버 return 문구). */
 (function () {
   const BASE = '/system/system';
   const PERM = window.PAGE_PERM || { canCreate: false };
   const $ = (id) => document.getElementById(id);
+  const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
 
   function payload() {
     return {
@@ -25,63 +27,173 @@
     const p = payload();
     if (!p.biostarIp) { toast.warning('BiostarX IP를 입력해주세요.'); return; }
     if (!p.biostarId) { toast.warning('BiostarX ID를 입력해주세요.'); return; }
-    const btn = $('btnTest');
-    btn.disabled = true;
+    await withBusy($('btnTest'), '테스트 중...', () => api.post(BASE + '/test', p));
+  }
+
+  /* 버튼을 잠그고 라벨을 바꿔 두 번 눌리는 것을 막는다(가져오기는 되돌릴 수 없다). */
+  async function withBusy(btn, busyLabel, fn) {
     const label = btn.textContent;
-    btn.textContent = '테스트 중...';
+    btn.disabled = true;
+    btn.textContent = busyLabel;
     try {
-      await api.post(BASE + '/test', p); // 성공/실패 모두 서버 메시지로 자동 토스트
+      return await fn();
     } catch (e) {
-      /* 실패 토스트는 api 래퍼가 이미 표시 */
+      return null; /* 실패 토스트는 api 래퍼가 이미 표시 */
     } finally {
       btn.disabled = false;
       btn.textContent = label;
     }
   }
 
-  /* 가져오기 결과를 사람이 읽을 문장으로. 건너뛴 사유가 제일 중요하다 — 왜 안 들어왔는지 모르면 손쓸 수 없다. */
+  /* ── 가져오기 대상 선택 ───────────────────────────────── */
+
+  let candidates = []; // 불러온 전체. 검색은 서버를 다시 부르지 않고 여기서 거른다
+  const picked = new Set(); // 고른 사용자ID — 검색으로 행이 가려져도 선택은 유지한다
+  let outcome = {}; // 미리보기 결과: 사용자ID → 신규|갱신|변경없음
+  let details = {}; // 미리보기 결과: 사용자ID → 바뀔 내용(비고 열)
+
+  /* 목록의 '구분' 열이자 필터 값. 미리보기를 돌리기 전에는 등록 여부만 알 수 있고,
+     돌린 뒤에는 실제로 무엇이 일어날지(갱신인지 변경없음인지)까지 갈린다. */
+  const stateOf = (c) => outcome[c.userId] || (c.registered ? '등록됨' : '신규');
+
+  function visible() {
+    const kw = $('impKeyword').value.trim().toLowerCase();
+    const state = $('impStateFilter').value;
+    return candidates.filter((c) => {
+      if (state && stateOf(c) !== state) return false;
+      if (!kw) return true;
+      return (c.userId || '').toLowerCase().includes(kw)
+        || (c.userName || '').toLowerCase().includes(kw);
+    });
+  }
+
+  function renderCandidates() {
+    const rows = visible();
+    const body = $('impBody');
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="6" class="empty">대상이 없습니다.</td></tr>';
+    } else {
+      body.innerHTML = rows.map((c) => `
+        <tr>
+          <td><input type="checkbox" class="imp-pick" value="${esc(c.userId)}"
+                     ${picked.has(c.userId) ? 'checked' : ''}
+                     ${c.importable ? '' : 'disabled'}/></td>
+          <td>${esc(c.userId)}</td>
+          <td>${esc(c.userName || '-')}</td>
+          <td style="text-align:left">${esc(c.companyName || '-')}</td>
+          <td>${esc(stateOf(c))}</td>
+          <td style="text-align:left">${esc(details[c.userId] || c.reason || '')}</td>
+        </tr>`).join('');
+    }
+    $('impTotal').textContent = `대상 ${candidates.length}명 · 표시 ${rows.length}명 · 선택 ${picked.size}명`;
+    syncCheckAll();
+  }
+
+  /* 전체선택 체크박스는 '보이는 것 중 고를 수 있는 행'만 대변한다. */
+  function pickable() {
+    return visible().filter((c) => c.importable);
+  }
+
+  function syncCheckAll() {
+    const list = pickable();
+    $('impCheckAll').checked = list.length > 0 && list.every((c) => picked.has(c.userId));
+  }
+
+  async function loadCandidates() {
+    const list = await withBusy($('btnImportLoad'), '불러오는 중...', () =>
+      api.get(BASE + '/import/candidates'));
+    if (!list) return;
+    candidates = list;
+    picked.clear();
+    outcome = {}; // 목록을 새로 받았으니 지난 미리보기 결과는 버린다
+    details = {};
+    $('importPick').style.display = '';
+    $('importResult').style.display = 'none';
+    renderCandidates();
+    if (!list.length) toast.warning('가져올 수 있는 대상이 없습니다. 발급구분(PTD01)과 기관 매핑을 확인하세요.');
+  }
+
+  /* ── 실행 ────────────────────────────────────────────── */
+
+  function importPayload() {
+    return {
+      userIds: [...picked],
+      cards: $('impCards').checked,
+      face: $('impFace').checked,
+      acGroups: $('impAcGroups').checked,
+    };
+  }
+
+  /* 목록의 구분 열·필터가 미리보기 결과를 따르도록 표시한다 — 신규/갱신을 나눠 대상자를 찾는다. */
+  function applyOutcome(r) {
+    outcome = {};
+    details = r.details || {};
+    (r.newUserIds || []).forEach((id) => { outcome[id] = '신규'; });
+    (r.updatedUserIds || []).forEach((id) => { outcome[id] = '갱신'; });
+    (r.unchangedUserIds || []).forEach((id) => { outcome[id] = '변경없음'; });
+    renderCandidates();
+  }
+
+  /* 결과 상자에는 숫자만 둔다 — 수천 명을 나열하면 읽을 수 없다.
+     사람별로 무엇이 바뀌는지는 목록의 '비고' 열에 붙고, 신규/갱신은 '구분' 열과 필터로 찾는다. */
   function showResult(r) {
     const box = $('importResult');
-    const head = r.preview ? '[미리보기] 실제로 가져오지 않았습니다.' : '가져오기 완료';
-    const lines = [head,
-      `대상 ${r.total}명 · ${r.preview ? '가져올 수 있음 ' + r.target : '가져옴 ' + r.imported}명 · 건너뜀 ${r.skipped}명`];
-    if (!r.preview) lines.push(`카드 ${r.cards} · 얼굴 ${r.faces} · 출입권한 ${r.acGroups}`);
-    if (r.skippedReasons && r.skippedReasons.length) {
-      lines.push('', '건너뛴 인원:');
-      r.skippedReasons.forEach((x) => lines.push('  · ' + x));
-    }
-    box.textContent = lines.join('\n');
+    box.textContent = [
+      r.preview ? '[미리보기] 실제로 가져오지 않았습니다. 사람별 내용은 목록의 비고 열에 표시됩니다.' : '가져오기 완료',
+      `선택 ${r.total}명 · 신규 ${r.imported} · 갱신 ${r.updated} · 변경없음 ${r.unchanged} · 건너뜀 ${r.skipped}`,
+      `카드 ${r.cards} · 얼굴 +${r.faces}/-${r.facesRemoved} · 출입권한 ${r.acGroups}`,
+    ].join('\n');
     box.style.display = '';
   }
 
   async function runImport(preview) {
-    const btn = $(preview ? 'btnImportPreview' : 'btnImportRun');
+    if (!picked.size) { toast.warning('가져올 사용자를 선택해주세요.'); return; }
     if (!preview) {
       const ok = await confirmModal.open({
         title: 'BiostarX 가져오기',
-        message: '장비의 정규 사용자를 우리 시스템으로 가져옵니다. 장비 데이터는 바뀌지 않습니다. 진행할까요?',
+        message: `선택한 ${picked.size}명을 Biostar X 기준으로 맞춥니다. 출입관리시스템에만 있던 카드·출입권한은 사라지고,`
+          + ' Biostar X에 얼굴이 없으면 등록사진도 지워집니다. 되돌릴 수 없습니다. 진행할까요?',
         confirmText: '가져오기',
       });
       if (!ok) return;
     }
-    const label = btn.textContent;
-    btn.disabled = true; btn.textContent = '처리 중...';
-    try {
-      const q = `cards=${$('impCards').checked}&face=${$('impFace').checked}&acGroups=${$('impAcGroups').checked}`;
-      const r = preview ? await api.get(BASE + '/import/preview') : await api.post(BASE + '/import?' + q);
-      if (r) showResult(r);
-    } catch (e) {
-      /* 실패 토스트는 api 래퍼가 표시 */
-    } finally {
-      btn.disabled = false; btn.textContent = label;
+    const btn = $(preview ? 'btnImportPreview' : 'btnImportRun');
+    const r = await withBusy(btn, '처리 중...', () =>
+      api.post(BASE + (preview ? '/import/preview' : '/import'), importPayload()));
+    if (!r) return;
+    showResult(r);
+    if (preview) {
+      applyOutcome(r); // 목록에서 신규/갱신을 걸러 볼 수 있게 한다
+    } else {
+      await loadCandidates(); // 반영 뒤에는 등록 여부를 서버에서 다시 읽는다
     }
+  }
+
+  function bindPick() {
+    $('impBody').addEventListener('change', (e) => {
+      const box = e.target.closest('.imp-pick');
+      if (!box) return;
+      if (box.checked) picked.add(box.value); else picked.delete(box.value);
+      $('impTotal').textContent =
+        `대상 ${candidates.length}명 · 표시 ${visible().length}명 · 선택 ${picked.size}명`;
+      syncCheckAll();
+    });
+    $('impCheckAll').addEventListener('change', (e) => {
+      pickable().forEach((c) => (e.target.checked ? picked.add(c.userId) : picked.delete(c.userId)));
+      renderCandidates();
+    });
+    $('impKeyword').addEventListener('input', renderCandidates);
+    $('impStateFilter').addEventListener('change', renderCandidates);
   }
 
   function bind() {
     if ($('btnSave')) $('btnSave').addEventListener('click', save); // 권한 없으면 버튼 없음(가드)
     $('btnTest').addEventListener('click', test);
-    if ($('btnImportPreview')) $('btnImportPreview').addEventListener('click', () => runImport(true));
-    if ($('btnImportRun')) $('btnImportRun').addEventListener('click', () => runImport(false));
+    if (!$('btnImportLoad')) return; // 가져오기 영역 자체가 권한으로 감춰진다
+    $('btnImportLoad').addEventListener('click', loadCandidates);
+    $('btnImportPreview').addEventListener('click', () => runImport(true));
+    $('btnImportRun').addEventListener('click', () => runImport(false));
+    bindPick();
   }
 
   document.addEventListener('DOMContentLoaded', bind);
