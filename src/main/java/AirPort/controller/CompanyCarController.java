@@ -142,16 +142,17 @@ public class CompanyCarController {
   @PostMapping("/card")
   @ResponseBody
   public ApiResponse<Void> issueCard(@RequestBody CarCardForm form, HttpSession session) {
-    companyCarService.issueCard(form, actor(session), menuId());
-    return ApiResponse.okMessage("카드를 발급했습니다.");
+    return ApiResponse.okMessage(
+        withWarning("카드를 발급했습니다.", companyCarService.issueCard(form, actor(session), menuId())));
   }
 
   /** 차량용 카드 회수 (AJAX) — 삭제가 아니라 미배정으로 되돌린다. */
   @DeleteMapping("/card")
   @ResponseBody
   public ApiResponse<Void> releaseCard(@RequestParam int cardId, HttpSession session) {
-    companyCarService.releaseCard(cardId, actor(session), menuId());
-    return ApiResponse.okMessage("카드를 회수했습니다.");
+    return ApiResponse.okMessage(
+        withWarning(
+            "카드를 회수했습니다.", companyCarService.releaseCard(cardId, actor(session), menuId())));
   }
 
   /** 차량 등록 (AJAX) — 차량구역이 있으면 주차 차단기 정기권까지 등록한다. */

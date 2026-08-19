@@ -17,6 +17,7 @@ import AirPort.adapter.parking.AmanoParkingAdapter;
 import AirPort.adapter.parking.ParkingPassRequest;
 import AirPort.adapter.parking.ParkingResult;
 import AirPort.mapper.TbCarMapper;
+import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbVisitMapper;
 import AirPort.model.TbCar;
@@ -40,11 +41,21 @@ class ParkingPassServiceTest {
   private final AmanoParkingAdapter parking = mock(AmanoParkingAdapter.class);
   private final TbVisitMapper visitMapper = mock(TbVisitMapper.class);
   private final TbCarMapper carMapper = mock(TbCarMapper.class);
+  private final AirPort.mapper.TbCarAcGroupMapper carAcGroupMapper =
+      mock(AirPort.mapper.TbCarAcGroupMapper.class);
+  private final TbCardMapper cardMapper = mock(TbCardMapper.class);
   private final TbCommonMapper commonMapper = mock(TbCommonMapper.class);
   private final AuditService auditService = mock(AuditService.class);
 
   private final ParkingPassService service =
-      new ParkingPassService(parking, visitMapper, carMapper, commonMapper, auditService);
+      new ParkingPassService(
+          parking,
+          visitMapper,
+          carMapper,
+          carAcGroupMapper,
+          cardMapper,
+          commonMapper,
+          auditService);
 
   /** 현장과 같은 설정 — <b>단말기가 한 대라 차량구역2 에만 종별이 붙어 있다</b>. 나머지 구역은 주차 차단기와 무관하다. */
   @BeforeEach
@@ -55,6 +66,8 @@ class ParkingPassServiceTest {
     area("CAR01", null);
     area("CAR02", "02");
     area("CAR03", null);
+    // 기관차량은 카드가 발급돼 있다고 본다(카드가 없으면 정기권 대상이 아니다 — 아래 전용 테스트에서 확인)
+    when(cardMapper.selectByCar(anyInt())).thenReturn(List.of(new AirPort.model.TbCard()));
   }
 
   /** 차량구역 공통코드 — code_tag 가 아마노 정기권 종별을 정한다(없으면 차단기 없는 구역). */
@@ -76,6 +89,7 @@ class ParkingPassServiceTest {
                   VisitCarForm c = new VisitCarForm();
                   c.setCarNo(no);
                   c.setCarName("차량" + no);
+                  c.setCardId(900); // 카드를 받은 차량만 차단기 대상이다
                   return c;
                 })
             .toList());
@@ -197,10 +211,32 @@ class ParkingPassServiceTest {
 
   @Test
   void 방문_정리_시_차량의_정기권을_회수한다() {
-    service.removeAll("방문 7", Set.of("12가3456", "99나9999"), null, 101);
+    service.removeAll("방문 7", Set.of("12가3456", "99나9999"), 7, null, null, 101);
 
     verify(parking).delete("12가3456");
     verify(parking).delete("99나9999");
+  }
+
+  @Test
+  void 카드를_받지_않은_방문_차량은_등록하지_않는다() {
+    // 차량구역은 "어디를 다닐 수 있나"이고, 실제로 출입하는 것은 카드를 받은 차량이다.
+    // 구역만 골라 두고 카드를 아직 안 준 차량이 차단기를 통과하면 안 된다.
+    VisitForm f = form(List.of("CAR02"), "12가3456");
+    f.getCars().get(0).setCardId(null);
+
+    assertNull(service.syncVisit(7, f, Set.of(), null, 101));
+
+    verify(parking, never()).register(any());
+  }
+
+  @Test
+  void 방문_차량의_카드를_떼면_정기권을_회수한다() {
+    VisitForm f = form(List.of("CAR02"), "12가3456");
+    f.getCars().get(0).setCardId(null);
+
+    service.syncVisit(7, f, Set.of("12가3456"), null, 101);
+
+    verify(parking).delete("12가3456");
   }
 
   // ── 기관차량 ──────────────────────────────────────────────
@@ -223,6 +259,17 @@ class ParkingPassServiceTest {
 
     verify(parking).delete("11가1111");
     assertEquals("34나7890", captureRegister().carNo());
+  }
+
+  @Test
+  void 카드가_없는_기관차량은_등록하지_않는다() {
+    // 카드 발급 전에는 차단기를 열어 줄 이유가 없다 — 발급 시점에 등록된다
+    when(cardMapper.selectByCar(anyInt())).thenReturn(List.of());
+
+    service.syncCar(car("34나7890"), List.of("CAR02"), null, null, 101);
+
+    verify(parking, never()).register(any());
+    verify(parking).delete("34나7890"); // 전에 있었다면 여기서 회수된다
   }
 
   @Test

@@ -69,24 +69,43 @@ public class AmanoParkingAdapter {
   }
 
   /**
-   * 정기권 등록 — <b>삭제 후 등록</b>한다.
+   * 정기권 등록 — <b>등록을 먼저 시도하고, 이미 있을 때만 지우고 다시 넣는다</b>.
    *
    * <p>아마노는 같은 (주차장, 차량번호)가 이미 있으면 {@code "[정기차량 등록] 이미 등록된 차량 (…)"} 으로 거부한다(2026-08-13 시험서버 실증).
-   * 재저장 때마다 등록을 다시 날리는 우리 정책을 그대로 지키려면 먼저 지워야 한다. 삭제는 없는 차량이어도 성공으로 돌아오므로 신규 등록에도 안전하다.
+   * 그래서 한때는 <b>항상</b> 지우고 등록했는데, 그러면 <b>신규 차량에도 삭제가 한 번씩 나갔다</b> — 아마노 쪽에서 보면 없는 차를 지우는 호출이 계속 쌓인다.
+   *
+   * <p>조회로 미리 확인하는 방법은 쓸 수 없다. {@code getCustdefList.do} 는 <b>차량번호로 걸러지지 않아</b> 전체 목록(수천 건)이
+   * 돌아온다(2026-08-19 실증). 그래서 등록을 먼저 던지고 거부 사유를 보고 판단한다 — 신규는 호출 1번으로 끝나고, 우리 기록과 아마노 실제가 어긋나 있어도
+   * 스스로 맞는다.
    */
   public ParkingResult register(ParkingPassRequest req) {
     if (!enabled()) {
       return ParkingResult.fail("주차 연동이 꺼져 있습니다.");
     }
+    ParkingResult first = tryRegister(req);
+    if (first.success() || !alreadyRegistered(first)) {
+      return first;
+    }
+    // 이미 있는 차량 — 종별·기간을 바꾸려면 지우고 다시 넣는 수밖에 없다(수정 API 가 없다)
     ParkingResult cleared = delete(req.carNo());
     if (!cleared.success()) {
-      return cleared; // 지우지 못하면 등록도 거부당한다 — 사유를 그대로 올린다
+      return cleared; // 지우지 못하면 등록도 계속 거부당한다 — 사유를 그대로 올린다
     }
+    return tryRegister(req);
+  }
+
+  private ParkingResult tryRegister(ParkingPassRequest req) {
     try {
       return call(REGISTER_PATH, registerBody(req), "정기권 등록", req.carNo());
     } catch (Exception e) {
       return ParkingResult.fail(friendly(e, "정기권 등록"));
     }
+  }
+
+  /** 거부 사유가 "이미 등록된 차량" 인가 — 이때만 지우고 다시 넣는다(다른 사유는 지워선 안 된다). */
+  private static boolean alreadyRegistered(ParkingResult r) {
+    String m = r.message();
+    return m != null && m.contains("이미 등록된");
   }
 
   /** 정기권 삭제 — 본문은 {@code (lotAreaNo, carNo)} 뿐이다. 등록돼 있지 않은 차량도 성공으로 돌아온다. */
@@ -133,8 +152,17 @@ public class AmanoParkingAdapter {
     return n.toString();
   }
 
-  /** POST 후 {@code data.success} 로 성공을 판정한다. 실패 사유는 {@code data.errorMessage}. */
+  /**
+   * POST 후 {@code data.success} 로 성공을 판정한다. 실패 사유는 {@code data.errorMessage}.
+   *
+   * <p>주고받은 본문은 <b>DEBUG</b> 로 남긴다 — 현장에서 "왜 차단기가 안 열리나"를 따질 때 우리가 무엇을 보냈고 아마노가 무엇이라 답했는지가 있어야 한다.
+   * 평소에는 꺼 두고(로그가 빠르게 쌓인다) 필요할 때만 켠다: {@code logging.level.AirPort.adapter.parking=DEBUG}.
+   */
   private ParkingResult call(String path, String body, String what, String carNo) throws Exception {
+    // 요청은 보내기 전에 남긴다 — 응답이 오지 않아도(타임아웃) 무엇을 보냈는지는 남아야 한다.
+    // Authorization 헤더는 절대 찍지 않는다(연동 비밀번호가 그대로 드러난다).
+    log.debug("주차 API 요청 — POST {}{} {}", baseUrl, path, forLog(body));
+    long startedNs = System.nanoTime();
     HttpResponse<String> resp =
         client()
             .send(
@@ -146,6 +174,12 @@ public class AmanoParkingAdapter {
                     .build(),
                 // 응답에 charset 이 없어도 본문은 UTF-8 이다. 지정하지 않으면 한글 오류 사유가 깨져 읽을 수 없다.
                 HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+    log.debug(
+        "주차 API 응답 — {} HTTP {} ({}ms) {}",
+        path,
+        resp.statusCode(),
+        (System.nanoTime() - startedNs) / 1_000_000,
+        forLog(resp.body()));
     if (resp.statusCode() == 401) {
       return ParkingResult.fail("주차관제 인증에 실패했습니다. 연동 계정을 확인하세요. (HTTP 401)");
     }
@@ -160,6 +194,42 @@ public class AmanoParkingAdapter {
     String reason = data.path("errorMessage").asText("");
     log.warn("주차 {} 거부 — {} : {}", what, carNo, reason.isBlank() ? "(사유 없음)" : reason);
     return ParkingResult.fail(reason.isBlank() ? (what + "이(가) 거부되었습니다.") : reason);
+  }
+
+  /**
+   * 로그에 남길 본문 — <b>성명은 가린다</b>.
+   *
+   * <p>성명은 DB 에 ARIA 로 암호화해 두는 항목이다(AGENTS §4). 연동을 들여다보려고 켠 DEBUG 로그에 그것이 평문으로 쌓이면 암호화가 무의미해진다.
+   * 차량번호·종별·기간은 그대로 남긴다 — 차단기 문제를 따지려면 그 값들이 필요하고, 이미 WARN 로그에도 나온다.
+   */
+  private String forLog(String body) {
+    if (body == null || body.isBlank()) {
+      return "(본문 없음)";
+    }
+    String out;
+    try {
+      JsonNode n = objectMapper.readTree(body);
+      maskNames(n);
+      out = n.toString();
+    } catch (Exception e) {
+      // 파싱이 안 되면 통째로 가린다 — 개인정보가 섞여 있을지 알 수 없다
+      return "(본문 파싱 실패 — " + body.length() + "자)";
+    }
+    // 조회 응답은 수천 건이 온다 — 로그 파일을 삼키지 않게 자른다
+    return out.length() <= 1500 ? out : out.substring(0, 1500) + "…(총 " + out.length() + "자)";
+  }
+
+  /** 중첩된 목록 안까지 훑어 성명을 가린다. */
+  private static void maskNames(JsonNode node) {
+    if (node.isObject()) {
+      ObjectNode o = (ObjectNode) node;
+      if (!o.path("userName").asText("").isBlank()) {
+        o.put("userName", "***");
+      }
+      o.fields().forEachRemaining(e -> maskNames(e.getValue()));
+    } else if (node.isArray()) {
+      node.forEach(AmanoParkingAdapter::maskNames);
+    }
   }
 
   private String basicAuth() {

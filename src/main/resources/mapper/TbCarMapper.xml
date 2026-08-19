@@ -157,4 +157,22 @@
     DELETE FROM tb_car          WHERE car_id = #{carId};
   </delete>
 
+
+  <!-- 이 차량번호를 쓰는 살아 있는 기관차량(차량구역이 붙고 카드가 발급된 것). 정기권을 지우기 전에 확인한다.
+       아마노 정기권은 (주차장, 차량번호) 하나에 한 장뿐이라, 방문 하나를 지웠다고 그냥 지우면
+       같은 차를 쓰는 기관차량이 차단기 앞에서 막힌다.
+       차량번호는 공백을 빼고 비교한다 — 화면 입력에 공백이 섞여도 같은 차로 봐야 한다. -->
+  <select id="selectParkingCarByNo" resultType="TbCar">
+    SELECT TOP 1 car_id, car_no, car_name, car_type, company_code, del_yn
+      FROM tb_car
+     WHERE REPLACE(car_no, ' ', '') = #{carNo}
+       AND ISNULL(del_yn, 'N') = 'N'
+       AND EXISTS (SELECT 1 FROM tb_car_ac_group g WHERE g.car_id = tb_car.car_id)
+       AND EXISTS (SELECT 1 FROM tb_card d
+                    WHERE d.car_id = tb_car.car_id AND ISNULL(d.del_yn, 'N') = 'N')
+    <if test="excludeCarId != null">
+       AND car_id &lt;&gt; #{excludeCarId}
+    </if>
+     ORDER BY car_id
+  </select>
 </mapper>

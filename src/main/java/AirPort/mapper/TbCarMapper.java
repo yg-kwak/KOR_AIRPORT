@@ -41,4 +41,13 @@ public interface TbCarMapper {
   int purge(@Param("carId") int carId);
 
   int softDelete(@Param("carId") Integer carId);
+
+  /**
+   * 이 차량번호를 쓰는 살아 있는 기관차량(차량구역이 붙은 것). 없으면 null.
+   *
+   * @param carNo 공백을 뺀 차량번호
+   * @param excludeCarId 지금 지우는 기관차량(제외). 없으면 null
+   */
+  TbCar selectParkingCarByNo(
+      @Param("carNo") String carNo, @Param("excludeCarId") Integer excludeCarId);
 }

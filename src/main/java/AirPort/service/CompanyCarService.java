@@ -202,7 +202,7 @@ public class CompanyCarService {
     carMapper.softDelete(carId);
     auditService.log(actor, AuditService.DELETE, menuId, "기관차량 삭제: " + car.getCarNo());
     return parkingPass.removeAll(
-        "기관차량 " + car.getCarNo(), java.util.List.of(car.getCarNo()), actor, menuId);
+        "기관차량 " + car.getCarNo(), java.util.List.of(car.getCarNo()), null, carId, actor, menuId);
   }
 
   /**
@@ -211,7 +211,7 @@ public class CompanyCarService {
    * <p>같은 카드번호가 인원/다른 차량에 발급돼 있으면 거부한다(한 실물 카드는 한 대상에만).
    */
   @Transactional
-  public void issueCard(CarCardForm form, TbLoginUser actor, Integer menuId) {
+  public String issueCard(CarCardForm form, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
     require(form.getCarId() == null ? null : String.valueOf(form.getCarId()), "차량");
     require(form.getCardNo(), "카드번호");
@@ -255,18 +255,28 @@ public class CompanyCarService {
         AuditService.CREATE,
         menuId,
         "차량카드 발급: " + car.getCarNo() + " / " + form.getCardNo());
+    // 카드를 받은 시점이 차단기를 열어 줄 시점이다 — 차량구역이 지정돼 있으면 여기서 정기권이 나간다
+    return parkingPass.syncCar(
+        car, carAcGroupMapper.selectCodeIds(car.getCarId()), null, actor, menuId);
   }
 
   /** 차량 카드 회수 — 삭제가 아니라 {@code car_id=NULL}(다른 차량이 재사용할 수 있다). */
   @Transactional
-  public void releaseCard(int cardId, TbLoginUser actor, Integer menuId) {
+  public String releaseCard(int cardId, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireDelete(actor, menuId);
     TbCard card = cardMapper.selectById(cardId);
     if (card == null || "Y".equals(card.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
+    Integer carId = card.getCarId();
     cardMapper.assignCar(cardId, null);
     auditService.log(actor, AuditService.DELETE, menuId, "차량카드 회수: " + card.getBiostarCardValue());
+    // 카드를 거둬들였으면 차단기도 닫는다 — 안 닫으면 카드 없는 차가 계속 들어온다
+    TbCar car = carId == null ? null : carMapper.selectById(carId);
+    if (car == null) {
+      return null;
+    }
+    return parkingPass.syncCar(car, carAcGroupMapper.selectCodeIds(carId), null, actor, menuId);
   }
 
   private void validate(CarForm form) {

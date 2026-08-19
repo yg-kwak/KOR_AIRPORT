@@ -313,4 +313,22 @@
     <foreach collection="codeIds" item="code" separator=",">(#{visitNo}, #{code})</foreach>
   </insert>
 
+
+  <!-- 이 차량번호를 아직 쓰는 살아 있는 방문(차량구역이 붙고 카드가 발급된 것) — 종료일이 늦은 순.
+       정기권은 차량번호 하나에 한 장뿐이라, 한 방문을 지울 때 남은 방문이 있으면 그쪽 기준으로 되돌려야 한다. -->
+  <select id="selectParkingVisitsByCarNo" resultType="TbVisit">
+    SELECT DISTINCT v.visit_no, v.work_end_dt, v.company_name
+      FROM tb_visit v
+      JOIN tb_visit_car vc ON vc.visit_no = v.visit_no
+      JOIN tb_car c        ON c.car_id = vc.car_id AND ISNULL(c.del_yn, 'N') = 'N'
+      JOIN tb_card d       ON d.car_id = c.car_id  AND ISNULL(d.del_yn, 'N') = 'N'
+     WHERE REPLACE(c.car_no, ' ', '') = #{carNo}
+       AND ISNULL(v.del_yn, 'N') = 'N'
+       AND v.work_end_dt IS NOT NULL
+       AND EXISTS (SELECT 1 FROM tb_visit_car_ac_group g WHERE g.visit_no = v.visit_no)
+    <if test="excludeVisitNo != null">
+       AND v.visit_no &lt;&gt; #{excludeVisitNo}
+    </if>
+     ORDER BY v.work_end_dt DESC
+  </select>
 </mapper>

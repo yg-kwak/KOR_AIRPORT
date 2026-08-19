@@ -62,8 +62,13 @@ public class ParkingEventApiController {
   public ResponseEntity<Map<String, Object>> receive(
       @RequestBody ParkingEventNotice notice, HttpServletRequest request) {
     String from = request.getRemoteAddr();
+    // 받은 본문을 DEBUG 로 남긴다 — "주차서버가 보냈다는데 이력이 없다"를 따질 때 첫 증거다.
+    // 켜기: logging.level.AirPort.controller.ParkingEventApiController=DEBUG
+    if (log.isDebugEnabled()) {
+      log.debug("주차 이벤트 수신 — {} 로부터 {}", from, forLog(notice));
+    }
     if (!allowed(from)) {
-      log.warn("주차 이벤트 거부 — 허용되지 않은 IP {}", from);
+      log.warn("주차 이벤트 거부 — 허용되지 않은 IP {} (응답 403 FORBIDDEN)", from);
       return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("result", "FORBIDDEN"));
     }
     if (notice.eventType() == null || notice.eventType().isBlank()) {
@@ -81,7 +86,24 @@ public class ParkingEventApiController {
       // 200 을 유지한다 — 여기서 500 을 주면 주차서버가 같은 건을 계속 다시 보낸다
       log.error("주차 이벤트 저장 실패 — {} {}", notice.carNumber(), notice.eventTime(), e);
     }
+    log.debug("주차 이벤트 응답 — {} 에게 HTTP 200 {}", from, OK);
     return ResponseEntity.ok(OK);
+  }
+
+  /**
+   * 로그에 남길 수신 내용 — <b>고객명은 가린다</b>(개인정보를 로그에 평문으로 쌓지 않는다, AGENTS §4). 차량번호·종류·시각·차단기 개방 여부는 그대로 남긴다
+   * — 이력이 왜 안 남았는지 따지려면 그 값들이 필요하다.
+   */
+  private String forLog(ParkingEventNotice notice) {
+    try {
+      com.fasterxml.jackson.databind.JsonNode n = objectMapper.valueToTree(notice);
+      if (n.isObject() && !n.path("userName").asText("").isBlank()) {
+        ((com.fasterxml.jackson.databind.node.ObjectNode) n).put("userName", "***");
+      }
+      return n.toString();
+    } catch (Exception e) {
+      return "(본문을 읽지 못했습니다)";
+    }
   }
 
   /** 허용 IP 미설정이면 모두 통과(설치 초기). 설정돼 있으면 목록에 있는 주소만. */

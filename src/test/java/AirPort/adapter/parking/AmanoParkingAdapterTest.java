@@ -21,8 +21,8 @@ import org.junit.jupiter.api.Test;
 /**
  * 아마노 정기권 어댑터 단위 테스트 — 실제 주차관제 대신 로컬 HTTP 스텁을 띄운다.
  *
- * <p>지키려는 것: (1) 인증은 HTTP Basic, (2) 등록은 <b>삭제 후 등록</b>(같은 차량 재등록을 아마노가 거부한다), (3) 성공 판정은 HTTP 상태가
- * 아니라 {@code data.success}, (4) 한글 사유가 깨지지 않는다(UTF-8).
+ * <p>지키려는 것: (1) 인증은 HTTP Basic, (2) <b>신규는 등록 한 번</b>이고 <b>이미 있을 때만</b> 지우고 다시 넣는다, (3) 성공 판정은
+ * HTTP 상태가 아니라 {@code data.success}, (4) 한글 사유가 깨지지 않는다(UTF-8).
  */
 class AmanoParkingAdapterTest {
 
@@ -35,6 +35,16 @@ class AmanoParkingAdapterTest {
 
   /** 다음 응답 본문 — 테스트가 갈아 끼운다. */
   private volatile String nextBody = success();
+
+  /** 호출 순번(1부터)에 따라 응답을 다르게 주고 싶을 때. 기본은 nextBody 를 그대로 돌려준다. */
+  private volatile java.util.function.IntFunction<String> responder = n -> nextBody;
+
+  private static String rejected(String reason) {
+    return "{\"status\":\"200\",\"statusMsg\":\"success\",\"data\":"
+        + "{\"success\":false,\"errorMessage\":\""
+        + reason
+        + "\"}}";
+  }
 
   private static String success() {
     return "{\"status\":\"200\",\"statusMsg\":\"success\",\"data\":"
@@ -52,7 +62,7 @@ class AmanoParkingAdapterTest {
     paths.add(ex.getRequestURI().getPath());
     auths.add(String.valueOf(ex.getRequestHeaders().getFirst("Authorization")));
     bodies.add(new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
-    byte[] out = nextBody.getBytes(StandardCharsets.UTF_8);
+    byte[] out = responder.apply(paths.size()).getBytes(StandardCharsets.UTF_8);
     ex.getResponseHeaders().add("Content-Type", "application/json"); // charset 없이 — 현장과 같다
     ex.sendResponseHeaders(200, out.length);
     ex.getResponseBody().write(out);
@@ -74,11 +84,37 @@ class AmanoParkingAdapterTest {
   }
 
   @Test
-  void 등록은_삭제를_먼저_보낸다() {
-    // 아마노는 이미 있는 차량의 등록을 거부한다("이미 등록된 차량"). 재저장마다 등록을 다시 날리려면 먼저 지워야 한다.
+  void 신규_등록은_삭제를_보내지_않는다() {
+    // 예전에는 항상 지우고 등록해, 없는 차를 지우는 호출이 아마노에 계속 쌓였다.
     assertTrue(adapter(true).register(pass()).success());
 
-    assertEquals(List.of("/interop/deleteCustdefInfo.do", "/interop/setCustdefInfo.do"), paths);
+    assertEquals(List.of("/interop/setCustdefInfo.do"), paths);
+  }
+
+  @Test
+  void 이미_있는_차량이면_지우고_다시_넣는다() {
+    // 아마노는 같은 (주차장, 차량번호) 재등록을 거부한다. 수정 API 가 없어 지우고 넣는 수밖에 없다.
+    nextBody = rejected("[정기차량 등록] 이미 등록된 차량 (99테9901)");
+    responder = n -> (n == 1) ? nextBody : success(); // 첫 등록만 거부
+
+    assertTrue(adapter(true).register(pass()).success());
+
+    assertEquals(
+        List.of(
+            "/interop/setCustdefInfo.do", // 먼저 등록을 시도하고
+            "/interop/deleteCustdefInfo.do", // 거부되면 지운 뒤
+            "/interop/setCustdefInfo.do"), // 다시 넣는다
+        paths);
+  }
+
+  @Test
+  void 다른_사유로_거부되면_지우지_않는다() {
+    // '이미 등록된 차량'이 아닌 거부(권한·기간 오류 등)에 삭제를 날리면 멀쩡한 정기권이 사라진다.
+    nextBody = rejected("[정기차량 등록] 주차장 번호가 올바르지 않습니다");
+
+    assertFalse(adapter(true).register(pass()).success());
+
+    assertEquals(List.of("/interop/setCustdefInfo.do"), paths);
   }
 
   @Test
@@ -95,7 +131,7 @@ class AmanoParkingAdapterTest {
   void 등록_본문은_규격대로_채운다() throws Exception {
     adapter(true).register(pass());
 
-    JsonNode body = MAPPER.readTree(bodies.get(1)); // 0=삭제, 1=등록
+    JsonNode body = MAPPER.readTree(bodies.get(0)); // 신규는 등록 한 번뿐이다
     assertEquals(20, body.path("lotAreaNo").asInt());
     assertEquals("99테9901", body.path("carNo").asText());
     assertEquals("연동시험", body.path("userName").asText());
@@ -136,14 +172,15 @@ class AmanoParkingAdapterTest {
   }
 
   @Test
-  void 삭제가_실패하면_등록으로_넘어가지_않는다() {
-    // 지우지 못한 채 등록하면 "이미 등록된 차량" 으로 또 거부된다 — 사유를 그대로 올린다
-    nextBody = "{\"status\":\"200\",\"data\":{\"success\":false,\"errorMessage\":\"주차장 번호 오류\"}}";
+  void 이미_있는데_삭제가_실패하면_재등록을_시도하지_않는다() {
+    // 지우지 못한 채 다시 넣어 봐야 "이미 등록된 차량" 으로 또 거부된다 — 삭제 사유를 그대로 올린다
+    responder = n -> (n == 1) ? rejected("[정기차량 등록] 이미 등록된 차량 (99테9901)") : rejected("주차장 번호 오류");
 
     ParkingResult r = adapter(true).register(pass());
 
     assertFalse(r.success());
-    assertEquals(List.of("/interop/deleteCustdefInfo.do"), paths);
+    assertEquals("주차장 번호 오류", r.message());
+    assertEquals(List.of("/interop/setCustdefInfo.do", "/interop/deleteCustdefInfo.do"), paths);
   }
 
   @Test

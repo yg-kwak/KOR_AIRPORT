@@ -292,7 +292,8 @@ public class VisitRosterService {
    * <p>차량이 사라지면 주차 차단기도 함께 닫는다. 이걸 빼면 방문을 지워도 정기권이 남아 그 차는 계속 들어올 수 있다.
    */
   public void clearRoster(int visitNo, TbLoginUser actor, Integer menuId) {
-    parkingPass.removeAll("방문 " + visitNo, parkingPass.visitCarNos(visitNo), actor, menuId);
+    parkingPass.removeAll(
+        "방문 " + visitNo, parkingPass.visitCarNos(visitNo), visitNo, null, actor, menuId);
     for (String pid : visitMapper.selectPersonIds(visitNo)) {
       cardMapper.releaseByPerson(pid);
       personMapper.softDelete(pid);

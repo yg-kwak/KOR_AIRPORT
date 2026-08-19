@@ -110,4 +110,13 @@ public interface TbVisitMapper {
   int deleteCarAcGroups(@Param("visitNo") int visitNo);
 
   int insertCarAcGroups(@Param("visitNo") int visitNo, @Param("codeIds") List<String> codeIds);
+
+  /**
+   * 이 차량번호를 아직 쓰는 살아 있는 방문 — 종료일이 늦은 순.
+   *
+   * @param carNo 공백을 뺀 차량번호
+   * @param excludeVisitNo 지금 지우는 방문(제외). 없으면 null
+   */
+  List<TbVisit> selectParkingVisitsByCarNo(
+      @Param("carNo") String carNo, @Param("excludeVisitNo") Integer excludeVisitNo);
 }
