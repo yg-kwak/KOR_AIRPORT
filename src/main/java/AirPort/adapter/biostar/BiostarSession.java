@@ -277,10 +277,27 @@ public class BiostarSession {
     node.forEach(BiostarSession::maskDeep);
   }
 
+  /**
+   * 모든 BiostarX 호출이 지나는 자리 — 주고받은 본문을 <b>DEBUG</b> 로 남긴다.
+   *
+   * <p>현장에서 "왜 장비에 안 올라갔나"를 따지려면 우리가 무엇을 보냈고 장비가 무엇이라 답했는지가 있어야 한다. 성명·비밀번호는 {@link #maskBody} 가
+   * 가리고 사진 같은 긴 값은 잘라 낸다.
+   */
   private HttpResponse<String> send(
       HttpClient c, String method, String base, String path, String sid, String jsonBody)
       throws Exception {
+    // 요청은 보내기 전에 — 응답이 오지 않아도(타임아웃) 무엇을 보냈는지는 남아야 한다.
+    // 세션ID(bs-session-id)는 찍지 않는다. 그대로 쓰면 남의 세션으로 장비를 조작할 수 있다.
+    log.debug("BiostarX 요청 — {} {} {}", method, path, maskBody(jsonBody));
+    long startedNs = System.nanoTime();
     HttpResponse<String> resp = doSend(c, method, base, path, sid, jsonBody);
+    log.debug(
+        "BiostarX 응답 — {} {} HTTP {} ({}ms) {}",
+        method,
+        path,
+        resp.statusCode(),
+        (System.nanoTime() - startedNs) / 1_000_000,
+        maskBody(resp.body()));
     if (resp.statusCode() >= 400 && resp.statusCode() != 401) {
       log.warn("BiostarX 요청 실패 — {} {} 본문: {}", method, path, maskBody(jsonBody));
     }
