@@ -60,7 +60,7 @@ public class VisitPurgeService {
         limit);
   }
 
-  /** 매일 새벽 3시 10분. 장비를 호출하므로 업무 시간을 피한다. 주기는 {@code app.visit.purge.cron}. */
+  /** 매일 새벽 3시(운영 설정 기준). 장비를 호출하므로 업무 시간을 피한다. 주기는 {@code app.visit.purge.cron}. */
   @Scheduled(cron = "${app.visit.purge.cron:0 10 3 * * *}")
   public void sweep() {
     run();

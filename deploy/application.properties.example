@@ -1,123 +1,157 @@
 # =============================================================================
-# CJAirPort 운영 설정 예시 — 현장에서 이 파일을 복사해 쓴다.
+# CJAirPort 운영 설정 — 현장에서 고치는 파일은 이것 하나뿐이다.
 #
-#   배치:  C:\project\CJ_AirPort\config\application.properties
-#          (jar 옆 config\ 에 두면 실행 인자 없이 자동으로 읽힌다)
+#   배치:  C:/project/CJ_AirPort/config/application.properties
+#          (jar 옆 config 폴더에 두면 실행 인자 없이 자동으로 읽힌다)
 #   실행:  cd /d C:\project\CJ_AirPort && java -jar cjairport-0.0.1-SNAPSHOT.jar
 #
-#   여기 적은 값이 jar 내부 기본값을 덮어쓴다. 바꿀 항목만 남기고 나머지는 지워도 된다
-#   (지우면 아래 '기본값' 주석의 값이 적용된다).
+#   여기 적은 값이 jar 안의 기본값을 덮어쓴다. 필요한 줄만 남기고 나머지는 지워도 된다
+#   — 지우면 jar 기본값이 그대로 쓰인다.
 #
-#   ※ 경로는 슬래시(/) 로 쓴다. 역슬래시(\)는 이스케이프로 해석돼 오작동한다.
-#   ※ 이 파일에는 DB 비밀번호·암호화 키가 평문으로 들어간다.
-#      서비스 계정만 읽도록 권한을 제한한다(속성 → 보안). git 에 넣지 않는다.
+#   ※ 경로는 슬래시(/)로 쓴다. 역슬래시(\)는 이스케이프로 해석돼 값이 깨진다.
+#   ※ 이 파일에는 DB 비밀번호와 암호화 키가 평문으로 들어간다.
+#      서비스 계정만 읽도록 권한을 제한하고(속성 → 보안), git 에 넣지 않는다.
+#
+#   [1] 반드시 채운다   [2] 현장에 맞춘다   [3] 문제가 생겼을 때만
 # =============================================================================
 
-# ===== 앱 =====
-# 로그·모니터링에 찍히는 이름. 바꿀 일 없음.
-spring.application.name=cjairport
 
-# ===== 서버 / 세션 =====
-# 접속 포트. 80·443 을 쓰려면 서비스 계정에 권한이 필요하고 IIS 등과 충돌하지 않아야 한다.
-server.port=8080
-# 유휴 세션 만료(마지막 서버 요청 기준). 30m, 2h 처럼 단위를 붙인다. 기본값 1h
-server.servlet.session.timeout=1h
-# 세션 쿠키를 스크립트에서 못 읽게 한다(XSS 방어). 기본값 true — 그대로 둔다.
-server.servlet.session.cookie.http-only=true
-# 다른 사이트에서 넘어온 요청에 쿠키를 보낼지. 기본값 lax — 그대로 둔다.
-server.servlet.session.cookie.same-site=lax
-# HTTPS 에서만 쿠키 전송. 아래 SSL 을 켰다면 true 로 둔다.
-server.servlet.session.cookie.secure=true
+# =============================================================================
+# [1] 반드시 채운다 — 비어 있으면 앱이 뜨지 않거나 데이터가 깨진다
+# =============================================================================
 
-# ===== HTTPS =====
-# 얼굴 촬영(웹캠)은 HTTPS 가 아니면 브라우저가 카메라를 차단한다 → 운영은 true.
+# ----- DB (MSSQL) -----
+# 같은 PC 면 localhost, 별도 서버면 IP,포트 또는 IP\인스턴스명.
+# DB 이름은 설치 스크립트(sql/deploy/CJAirPort_install.sql)가 만든 이름과 같아야 한다.
+# 사설 인증서를 쓰는 서버라 trustServerCertificate=true 를 유지한다.
+spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=CJ_AIRPORT;encrypt=true;trustServerCertificate=true
+spring.datasource.username=<DB 계정>
+spring.datasource.password=<DB 비밀번호>
+
+# ----- 개인정보 암호화 키 (ARIA, 32자) -----
+# 🔴 DB 의 암호문(성명·비밀번호)을 만든 키와 반드시 같아야 한다.
+#    다르면 관리자 계정조차 로그인할 수 없고, 등록된 인원 성명이 전부 깨져 보인다.
+#    설치 스크립트로 넣은 기본 데이터를 쓴다면 그 데이터를 만든 키를 그대로 쓴다.
+#    운영 중에 이 키를 바꾸면 기존 데이터를 되살릴 수 없다.
+app.crypto.aria-key=<32자 키>
+
+# ----- 로그 저장 위치 -----
+# 이 한 줄이면 하루에 파일 하나(cjairport.{날짜}.0.txt)로 쌓인다.
+#   기동·오류·경고 + 업무 이력(메뉴 접속·조회·등록·수정·삭제·로그인) + 요청 로그(URL·상태·처리시간)
+#   같은 요청은 [요청ID] 가 같아 한 줄기로 이어 볼 수 있다.
+# 서비스로 돌리면 작업 디렉터리가 달라질 수 있으므로 반드시 절대경로로 쓴다.
+LOG_PATH=C:/project/CJ_AirPort/logs
+
+# ----- HTTPS -----
+# 🔴 얼굴 촬영(웹캠)은 HTTPS 가 아니면 브라우저가 카메라를 아예 차단한다. 운영은 반드시 true.
 server.ssl.enabled=true
 server.ssl.key-store=C:/project/CJ_AirPort/certs/cjairport.p12
 server.ssl.key-store-type=PKCS12
 server.ssl.key-store-password=<키스토어 비밀번호>
 server.ssl.key-alias=cjairport
+# HTTPS 를 켰으면 세션 쿠키도 HTTPS 에서만 오가게 한다.
+server.servlet.session.cookie.secure=true
 
-# ===== DB (MSSQL) =====
-# 같은 PC 면 localhost, 별도 서버면 IP\인스턴스명 또는 IP,포트.
-# 사설 인증서를 쓰는 서버라 trustServerCertificate=true 를 유지한다.
-spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=CJ_AIRPORT;encrypt=true;trustServerCertificate=true
-spring.datasource.username=<DB 계정>
-spring.datasource.password=<DB 비밀번호>
-# JDBC 드라이버. 바꿀 일 없음.
-spring.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
-# 커넥션 풀 — BiostarX 동기화가 트랜잭션 안에서 일어나(실패 시 롤백 정책) 저장 1건이 외부 응답을
-# 기다리는 동안 커넥션을 점유한다. 기본값 10 이면 등록 10건만으로 풀이 말라 조회까지 멈춘다.
-# 동시 사용자(관리자 PC + 키오스크) 수보다 넉넉히 잡는다.
-spring.datasource.hikari.maximum-pool-size=30
-spring.datasource.hikari.minimum-idle=5
-# 풀이 말랐을 때 무한 대기하지 않고 10초 뒤 실패시킨다(화면이 멈춘 채 있는 것보다 사유가 보이는 편이 낫다)
-spring.datasource.hikari.connection-timeout=10000
-spring.datasource.hikari.max-lifetime=1800000
-# 60초 넘게 반납되지 않으면 경고 로그 — 외부 연동이 트랜잭션을 오래 잡는지 추적용
-spring.datasource.hikari.leak-detection-threshold=60000
 
-# ===== MyBatis (바꿀 일 없음 — jar 안의 리소스를 가리킨다) =====
-mybatis.config-location=classpath:mybatis-config.xml
-mybatis.mapper-locations=classpath:mapper/**/*.xml
+# =============================================================================
+# [2] 현장에 맞춘다 — 기본값으로도 돌아가지만 운영 규칙에 맞춰 확인한다
+# =============================================================================
 
-# ===== 화면(Thymeleaf) =====
-# 운영은 캐시를 켠다(false 면 요청마다 템플릿을 다시 읽어 느리다).
+# ----- 접속 포트 / 세션 -----
+# 80·443 을 쓰려면 서비스 계정에 권한이 필요하고 IIS 등과 충돌하지 않아야 한다.
+server.port=8080
+# 유휴 세션 만료(마지막 서버 요청 기준). 30m, 2h 처럼 단위를 붙인다.
+# 방문객 등록처럼 입력이 긴 작업 중에 끊기지 않도록 1시간으로 둔다.
+server.servlet.session.timeout=1h
+
+# ----- 화면 캐시 -----
+# 운영은 반드시 true. false 면 요청마다 화면 템플릿을 다시 읽어 느려진다.
 spring.thymeleaf.cache=true
-# 템플릿 위치. 바꿀 일 없음.
-spring.thymeleaf.prefix=classpath:/templates/
-spring.thymeleaf.suffix=.html
 
-# ===== 업로드 제한 =====
-# 얼굴 사진 업로드 한도와 직결된다(서버는 4MB 까지 사진을 받는다). 기본값 5MB
-spring.servlet.multipart.max-file-size=5MB
-spring.servlet.multipart.max-request-size=5MB
+# ----- 정규인원 출입종료일 -----
+# 두 값은 역할이 다르다. 하나로 합치지 않는다.
+#  · 기본값: 등록 창을 열었을 때 미리 채워지는 날짜. 계약 기간이라 그때그때 바뀐다.
+#            이 날짜를 넘겨 입력해도 저장은 된다(계약이 연장될 수 있어 막지 않는다).
+#  · 상한  : 이 날짜를 넘기면 저장을 거부한다. BiostarX 유효기간의 기술적 한계라
+#            넘겨서 저장하면 장비 등록이 실패한다 — 화면에서 먼저 막는다.
+#            장비 사양이 바뀌지 않는 한 그대로 둔다.
+app.person.access-end-default=2028-05-31T23:59
+app.person.access-end-max=2037-12-31T23:59
 
-# ===== 인코딩 (바꿀 일 없음) =====
-server.servlet.encoding.charset=UTF-8
-server.servlet.encoding.force=true
-
-# ===== 정규인원 =====
-# 출입종료일 상한 — 등록 모달의 기본값이자 저장할 때 막는 기준. 계약이 연장되면 이 날짜만 바꾼다.
-#app.person.access-end-max=2028-05-31T23:59
-
-# ===== 방문 데이터 정기 파기 =====
-# 🔴 퇴실 완료 후 보존기간이 지난 임시·장기 방문을 통째로 지운다(방문/인솔자매핑/방문객/차량).
-#    물리 삭제이고 BiostarX 사용자도 함께 지운다 — 되돌릴 수 없다. DB 백업 주기를 먼저 확인한다.
-#    처음에는 미리보기로 두고, 감사추적에서 대상이 맞는지 1~2주 확인한 뒤 false 로 켠다.
+# ----- 방문 데이터 정기 파기 (개인정보 보존기간) -----
+# 🔴 퇴실 완료 후 보존기간이 지난 임시·장기 방문을 통째로 지운다(방문·인솔자매핑·방문객·차량).
+#    물리 삭제이고 BiostarX 사용자도 함께 지운다 — 되돌릴 수 없다.
+#    처음에는 미리보기(true)로 두고, 감사추적에서 대상이 맞는지 1~2주 확인한 뒤 false 로 켠다.
+#    지운 내역은 감사추적에서 메뉴 [시스템] · 유형 '자동 파기'로 볼 수 있다.
 app.visit.purge.dry-run=true
-# 보존 기간(일). 기본값 365
-#app.visit.purge.keep-days=365
-# 실행 주기. 기본값 매일 03:10
-#app.visit.purge.cron=0 10 3 * * *
+# 보존 기간(일)
+app.visit.purge.keep-days=365
+# 실행 시각 — 초 분 시 일 월 요일. 장비를 호출하므로 업무 시간을 피한다.
+app.visit.purge.cron=0 00 03 * * *
+# 1회 실행 상한. 첫 실행에 수만 건이 한꺼번에 지워지는 사고를 막는다.
+app.visit.purge.limit=200
 
-# ===== 로그 =====
-# 이 한 줄이면 로그가 이 폴더에 하루 한 파일(cjairport.{날짜}.0.txt)로 쌓인다(형식·보관은 jar 기본값).
-#   기동·오류·경고 + 업무 이력(메뉴 접속·조회·등록·수정·삭제·로그인) + 요청 로그(URL·상태·처리시간)
-#   같은 요청은 [요청ID] 가 같아 한 줄기로 이어 볼 수 있다.
-# 서비스로 돌리면 작업 디렉터리가 달라질 수 있으므로 반드시 절대경로로 지정한다.
-LOG_PATH=C:/project/CJ_AirPort/logs
+# ----- 주차 차단기 연동 (아마노 주차관제) -----
+# 임시인원·기관차량에 차량구역을 부여하면 그 구역 차단기가 열리도록 정기권을 등록한다.
+# 🔴 기본은 꺼짐. 시험 장비가 현장 주차장을 건드리지 않게 하기 위해서다.
+#    현장에서만 true 로 켠다. 끄면 아래 값들은 읽지 않는다.
+app.parking.enabled=false
+# 연동 서버 주소. 포트는 http 9948 / https 9938
+app.parking.base-url=http://<주차서버IP>:9948
+# 연동 계정(HTTP Basic)
+app.parking.user=<주차 연동 계정>
+app.parking.password=<주차 연동 비밀번호>
+# 주차장 번호(아마노에서 배정) — 청주공항은 20
+app.parking.lot-area-no=20
+# 입·출차 이벤트 수신(POST /api/InOutCar) — 주차서버가 우리를 호출한다.
+# 세션이 없어 로그인으로 막을 수 없으므로 보내는 쪽 IP 로 막는다(콤마 구분).
+#   비워 두면 어디서든 받는다 — 설치 초기에 주차서버 주소를 모른 채 연동을 붙여 볼 때 쓴다.
+#   주소가 확인되면 넣어 둔다. 그때부터 그 목록만 받는다.
+app.parking.event.allow-ips=
 
-# 보관 기간(일). 기본값 30 — 더 오래 남겨야 하면 늘린다.
-#LOG_KEEP_DAYS=60
-# 요청 로그(URL 한 줄)가 필요 없으면 OFF.
-#logging.level.REQUEST=OFF
-# BiostarX 연동 문제를 파고들 때만 잠깐 켠다(로그가 많이 쌓인다).
-#logging.level.AirPort.adapter=DEBUG
-
-# ===== 개인정보 암호화 키 (ARIA, 32자) =====
-# 🔴 DB 의 암호문(성명·비밀번호)을 만든 키와 반드시 같아야 한다.
-#    다르면 관리자 계정조차 로그인할 수 없고, 기존 인원 성명이 전부 깨져 보인다.
-#    설치 스크립트(sql/deploy)로 넣은 기본 데이터를 쓴다면 그 데이터를 만든 키를 그대로 쓴다.
-app.crypto.aria-key=<32자 키>
-
-# ===== 카드 출력 =====
-# 카드 디자인(export JSON) 경로. 파일이 없으면 카드 출력 메뉴만 동작하지 않는다.
+# ----- 카드 출력 -----
+# 카드 디자인(export JSON) 경로. 파일이 없으면 카드 출력만 동작하지 않는다.
 card-print.project-file=C:/project/CJ_AirPort/card-templates/card_project.json
 # 디자인 캔버스 가로 폭(요소 좌표 기준). 템플릿을 새로 뽑지 않는 한 바꾸지 않는다.
 card-print.canvas-width=540
 
+
 # =============================================================================
-# 여기에 없는 것 — BiostarX 접속정보(IP·계정·비밀번호)
-#   app.biostar.* 는 개발(local) 전용이라 운영에서는 읽지 않는다.
-#   앱을 띄운 뒤 [설정관리] 화면에서 입력하고 [연결 테스트] 로 확인한다(tb_system 에 암호화 저장).
+# [3] 문제가 생겼을 때만 — 평소에는 지워 두거나 주석으로 남긴다
+# =============================================================================
+
+# ----- 접속이 몰려 화면이 멈출 때 -----
+# BiostarX 동기화가 트랜잭션 안에서 일어나(실패 시 롤백) 저장 1건이 외부 응답을 기다리는 동안
+# DB 커넥션을 붙잡는다. 동시 사용자(관리자 PC + 키오스크) 수보다 넉넉히 잡는다.
+#spring.datasource.hikari.maximum-pool-size=30
+#spring.datasource.hikari.minimum-idle=5
+
+# ----- 사진·엑셀 업로드가 거부될 때 -----
+# 얼굴 사진 업로드 한도와 직결된다(서버는 4MB 까지 사진을 받는다).
+#spring.servlet.multipart.max-file-size=5MB
+#spring.servlet.multipart.max-request-size=5MB
+
+# ----- 로그 -----
+# 보관 기간(일). 넘으면 오래된 날짜부터 지운다. 기본값 30
+#LOG_KEEP_DAYS=60
+# 요청 로그(URL 한 줄)가 필요 없으면 OFF
+#logging.level.REQUEST=OFF
+# 연동을 파고들 때 — 이 한 줄이면 외부와 주고받은 요청·응답이 본문째 남는다.
+#   BiostarX(장비 등록·수정·삭제) · 아마노 주차(정기권 등록·삭제) · 주차서버가 보낸 입·출차 이벤트
+#   각 줄에 소요시간(ms)과 [요청ID] 가 붙어 한 건을 처음부터 끝까지 이어 볼 수 있다.
+# 성명·비밀번호는 *** 로 가려 남고, 사진처럼 긴 값과 목록은 잘라 낸다.
+# 🔴 평소에는 반드시 꺼 둔다 — 로그가 매우 빠르게 쌓인다(실시간 이벤트 화면을 켜 두면 특히).
+#logging.level.AirPort=DEBUG
+
+
+# =============================================================================
+# 여기에 없는 것
+#
+# · BiostarX 접속정보(IP·계정·비밀번호)
+#     설정 파일이 아니라 화면에서 넣는다. 앱을 띄운 뒤 [시스템관리 → 설정관리] 에서
+#     입력하고 [연결 테스트] 로 확인한다(tb_system 에 암호화 저장).
+#     app.biostar.* 는 개발용이라 운영에서는 읽지 않는다.
+#
+# · 나머지 전부 (DB 드라이버·MyBatis·화면 경로·인코딩·HTTP/2·스케줄러 스레드 등)
+#     jar 안의 기본값이 맞다. 여기에 옮겨 적을 필요가 없고, 적으면 관리할 것만 늘어난다.
 # =============================================================================
