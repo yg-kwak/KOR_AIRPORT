@@ -10,6 +10,7 @@ import AirPort.mapper.TbPersonMapper;
 import AirPort.mapper.TbSystemMapper;
 import AirPort.model.ImportCandidateResult;
 import AirPort.model.ImportForm;
+import AirPort.model.ImportGroupResult;
 import AirPort.model.ImportResult;
 import AirPort.model.TbCommon;
 import AirPort.model.TbCompany;
@@ -101,7 +102,12 @@ public class PersonImportBiostarService {
    * <p>여기서는 사용자 <b>상세를 읽지 않는다</b>. 카드·출입그룹은 1명당 1회 왕복이라, 목록을 그리자고 인원 수만큼 호출하면 화면이 열리지 않는다. 무엇이
    * 달라지는지는 고른 뒤 미리보기가 알려 준다.
    */
-  public List<ImportCandidateResult> candidates(TbLoginUser actor, Integer menuId) {
+  /**
+   * 가져오기 대상 목록.
+   *
+   * @param groupId 특정 사용자그룹만 볼 때 그 ID. null 이면 정규등록 그룹 전체 — 장비에 수천 명이 있으면 그룹으로 좁혀 나눠 부르는 편이 낫다.
+   */
+  public List<ImportCandidateResult> candidates(Long groupId, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
     Conn c = conn();
     Set<Long> scope = regularGroupScope(c);
@@ -113,9 +119,14 @@ public class PersonImportBiostarService {
         continue;
       }
       // 정규등록 그룹 밖은 애초에 우리 대상이 아니다 — 목록에 올리지 않는다
-      if (u.userGroupId() != null && scope.contains(u.userGroupId().longValue())) {
-        targets.add(u);
+      if (u.userGroupId() == null || !scope.contains(u.userGroupId().longValue())) {
+        continue;
       }
+      // 그룹을 골랐으면 그 그룹만 — 한 번에 수천 명을 받지 않아도 되게 한다
+      if (groupId != null && u.userGroupId().longValue() != groupId) {
+        continue;
+      }
+      targets.add(u);
     }
     Map<Integer, TbCompany> byGroup = companiesByBiostarGroup();
     Set<String> registered = existingPersonIds(targets);
@@ -152,12 +163,51 @@ public class PersonImportBiostarService {
   }
 
   /** 이미 우리 DB 에 살아 있는 인원ID — 목록에는 '등록됨/신규' 만 필요하다. */
+  /**
+   * MSSQL 은 <b>한 요청에 매개변수 2100개</b>까지만 받는다. 인원ID 를 그대로 {@code IN (…)} 에 넣으면 장비에 4000명이 있을 때 그 수만큼
+   * 매개변수가 되어 요청 자체가 거부된다("들어오는 요청에 매개 변수가 너무 많습니다" — 2026-08-19 현장 보고).
+   *
+   * <p>여유를 두고 1000개씩 끊어 묻는다. 사용자그룹으로 좁혀 불러오더라도 그 그룹이 2100명을 넘을 수 있어, 화면에서 좁히는 것과 별개로 여기서 막아야 한다.
+   */
+  private static final int ID_CHUNK = 1000;
+
   private Set<String> existingPersonIds(List<BiostarUserDetail> targets) {
     if (targets.isEmpty()) {
       return Set.of();
     }
-    return new HashSet<>(
-        personMapper.selectExistingIds(targets.stream().map(BiostarUserDetail::userId).toList()));
+    List<String> ids = targets.stream().map(BiostarUserDetail::userId).toList();
+    Set<String> out = new HashSet<>();
+    for (int from = 0; from < ids.size(); from += ID_CHUNK) {
+      out.addAll(
+          personMapper.selectExistingIds(ids.subList(from, Math.min(from + ID_CHUNK, ids.size()))));
+    }
+    return out;
+  }
+
+  /**
+   * 가져올 수 있는 사용자그룹 목록 — 화면에서 그룹을 골라 나눠 부르기 위한 것.
+   *
+   * <p>정규등록 그룹 아래만 올린다. 기관과 연결되지 않은 그룹도 보여 준다 — 왜 그 사람들이 안 나오는지 화면에서 알 수 있어야 한다.
+   */
+  public List<ImportGroupResult> groups(TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireRead(actor, menuId);
+    Conn c = conn();
+    Set<Long> scope = regularGroupScope(c);
+    Map<Integer, TbCompany> byGroup = companiesByBiostarGroup();
+    List<ImportGroupResult> out = new ArrayList<>();
+    for (AirPort.adapter.biostar.BiostarUserGroup g :
+        importAdapter.searchUserGroups(c.ip(), c.id(), c.pw())) {
+      if (!scope.contains(g.id())) {
+        continue;
+      }
+      ImportGroupResult row = new ImportGroupResult();
+      row.setGroupId(g.id());
+      row.setGroupName(g.name());
+      TbCompany company = byGroup.get((int) g.id());
+      row.setCompanyName(company == null ? null : company.getCompanyName());
+      out.add(row);
+    }
+    return out;
   }
 
   /** 미리보기 — 고른 사람에게 무엇이 일어나는지만 계산한다. DB 를 건드리지 않는다. */

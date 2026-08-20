@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -35,6 +36,7 @@ import AirPort.service.PersonImportSyncService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * BiostarX 정규인원 가져오기 검증 — <b>단방향</b>이 핵심이다. 장비에 쓰는 순간 현장에 이미 올라간 얼굴·카드·출입그룹을 덮어쓴다.
@@ -208,7 +210,7 @@ class PersonImportBiostarTest {
         .thenReturn(List.of(company(1009, "C004", "슈프리마")));
     when(personMapper.selectExistingIds(List.of("400001", "400002"))).thenReturn(List.of("400001"));
 
-    List<ImportCandidateResult> list = service().candidates(null, 101);
+    List<ImportCandidateResult> list = service().candidates(null, null, 101);
 
     assertEquals(2, list.size()); // 정규등록 그룹 밖(IS1)은 목록에 올리지 않는다
     assertTrue(list.get(0).isRegistered()); // 이미 있음 → 갱신 대상
@@ -228,7 +230,7 @@ class PersonImportBiostarTest {
     when(companyMapper.selectBiostarGroupMappings())
         .thenReturn(List.of(company(1009, "C004", "슈프리마")));
 
-    service().candidates(null, 101);
+    service().candidates(null, null, 101);
 
     verify(companyMapper, never()).selectCodeByBiostarGroupId(any());
     verify(personMapper, never()).selectById(anyString());
@@ -237,12 +239,53 @@ class PersonImportBiostarTest {
   }
 
   @Test
+  void 인원ID_는_끊어_묻는다_MSSQL_매개변수_한도() {
+    // IN (…) 에 통째로 넣으면 4000명일 때 매개변수가 4000개가 되어 요청 자체가 거부된다
+    // ("들어오는 요청에 매개 변수가 너무 많습니다. 최대 2100개" — 2026-08-19 현장)
+    configured();
+    List<AirPort.adapter.biostar.BiostarUserDetail> many = new java.util.ArrayList<>();
+    for (int i = 0; i < 4321; i++) {
+      many.add(user("U" + i, 1009));
+    }
+    when(importAdapter.searchUsers(any(), any(), any())).thenReturn(many);
+    when(companyMapper.selectBiostarGroupMappings())
+        .thenReturn(List.of(company(1009, "C004", "슈프리마")));
+    when(personMapper.selectExistingIds(anyList())).thenReturn(List.of());
+
+    List<ImportCandidateResult> list = service().candidates(null, null, 101);
+
+    assertEquals(4321, list.size()); // 끊어 물어도 빠지는 사람이 없다
+    ArgumentCaptor<List<String>> cap = ArgumentCaptor.forClass(List.class);
+    verify(personMapper, org.mockito.Mockito.times(5)).selectExistingIds(cap.capture());
+    for (List<String> part : cap.getAllValues()) {
+      assertTrue(part.size() <= 2100, "한 번에 보낸 매개변수가 한도를 넘었다: " + part.size());
+    }
+  }
+
+  @Test
+  void 사용자그룹을_고르면_그_그룹만_불러온다() {
+    // 장비에 수천 명이면 한 번에 다 받지 않고 그룹으로 끊어 부를 수 있어야 한다
+    configured();
+    // 둘 다 정규등록 범위(1003, 그 하위 1009) 안이지만 고른 그룹만 나와야 한다
+    when(importAdapter.searchUsers(any(), any(), any()))
+        .thenReturn(List.of(user("400001", 1009), user("400002", 1003)));
+    when(companyMapper.selectBiostarGroupMappings())
+        .thenReturn(List.of(company(1009, "C004", "슈프리마"), company(1003, "C005", "대한항공")));
+    when(personMapper.selectExistingIds(anyList())).thenReturn(List.of());
+
+    List<ImportCandidateResult> list = service().candidates(1009L, null, 101);
+
+    assertEquals(1, list.size());
+    assertEquals("400001", list.get(0).getUserId());
+  }
+
+  @Test
   void 기관_매핑이_없는_사용자는_목록에_사유와_함께_남는다() {
     configured();
     when(importAdapter.searchUsers(any(), any(), any())).thenReturn(List.of(user("400009", 1009)));
     when(companyMapper.selectBiostarGroupMappings()).thenReturn(List.of()); // 매핑 없음
 
-    List<ImportCandidateResult> list = service().candidates(null, 101);
+    List<ImportCandidateResult> list = service().candidates(null, null, 101);
 
     assertFalse(list.get(0).isImportable());
     assertTrue(list.get(0).getReason().contains("기관 매핑 없음"), list.get(0).getReason());

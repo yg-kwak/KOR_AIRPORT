@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 /** 설정관리(tb_system) — BiostarX 연동정보. 단일 행 폼 + 저장/연결테스트. */
@@ -74,8 +75,16 @@ public class SystemController {
   @GetMapping("/import/candidates")
   @ResponseBody
   public ApiResponse<java.util.List<AirPort.model.ImportCandidateResult>> importCandidates(
+      @RequestParam(required = false) Long groupId, HttpSession session) {
+    return ApiResponse.ok(importService.candidates(groupId, actor(session), menuId()));
+  }
+
+  /** 가져올 수 있는 사용자그룹 (AJAX) — 수천 명일 때 그룹으로 끊어 부르기 위한 목록. */
+  @GetMapping("/import/groups")
+  @ResponseBody
+  public ApiResponse<java.util.List<AirPort.model.ImportGroupResult>> importGroups(
       HttpSession session) {
-    return ApiResponse.ok(importService.candidates(actor(session), menuId()));
+    return ApiResponse.ok(importService.groups(actor(session), menuId()));
   }
 
   /** BiostarX 가져오기 미리보기 (AJAX) — 고른 사람에게 무엇이 일어나는지만 센다. DB 를 건드리지 않는다. */

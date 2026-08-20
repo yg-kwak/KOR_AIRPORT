@@ -133,9 +133,23 @@
     $('impCheckAll').checked = list.length > 0 && list.every((c) => picked.has(c.userId));
   }
 
+  /* 그룹 목록은 화면을 열 때 한 번만 채운다. 실패해도 '전체'로 쓸 수 있어야 하므로 조용히 넘어간다. */
+  async function loadGroups() {
+    const sel = $('impGroup');
+    if (!sel) return;
+    const list = await api.get(BASE + '/import/groups', { quiet: true });
+    if (!list || !list.length) return;
+    sel.innerHTML = '<option value="">전체</option>'
+      + list.map((g) => {
+        const label = g.companyName ? `${g.companyName} (${g.groupName})` : `${g.groupName} — 기관 미연결`;
+        return `<option value="${g.groupId}">${esc(label)}</option>`;
+      }).join('');
+  }
+
   async function loadCandidates() {
-    const list = await withBusy($('btnImportLoad'), '불러오는 중...', () =>
-      api.get(BASE + '/import/candidates'));
+    const groupId = $('impGroup') ? $('impGroup').value : '';
+    const url = BASE + '/import/candidates' + (groupId ? `?groupId=${encodeURIComponent(groupId)}` : '');
+    const list = await withBusy($('btnImportLoad'), '불러오는 중...', () => api.get(url));
     if (!list) return;
     candidates = list;
     picked.clear();
@@ -228,6 +242,7 @@
     $('btnTest').addEventListener('click', test);
     if (!$('btnImportLoad')) return; // 가져오기 영역 자체가 권한으로 감춰진다
     $('btnImportLoad').addEventListener('click', loadCandidates);
+    loadGroups();
     $('btnImportPreview').addEventListener('click', () => runImport(true));
     $('btnImportRun').addEventListener('click', () => runImport(false));
     bindPick();

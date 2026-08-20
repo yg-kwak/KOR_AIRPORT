@@ -51,6 +51,10 @@ System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true"
 
 설정관리 → **BiostarX 가져오기**. `PersonImportBiostarService`(대상 선별) · `PersonImportSyncService`(1명 반영) · `BiostarImportAdapter`(읽기 전용).
 
+**사용자그룹으로 끊어 부를 수 있다.** 화면의 [사용자그룹]에서 고르면 그 그룹만 불러온다(`GET /import/candidates?groupId=`). 목록은 `GET /import/groups` — 정규등록 범위의 그룹을 기관명과 함께 준다(기관 미연결 그룹도 보여 준다. 왜 그 사람들이 안 나오는지 화면에서 알 수 있어야 한다).
+
+**인원ID 조회는 1000개씩 끊는다.** MSSQL 은 한 요청에 **매개변수 2100개**까지만 받는다. 등록 여부를 보는 `IN (…)` 에 인원ID 를 통째로 넣으면 4000명일 때 그대로 거부된다("들어오는 요청에 매개 변수가 너무 많습니다" — 2026-08-19 현장). 그룹으로 좁혀도 그 그룹이 2100명을 넘을 수 있으므로 **화면에서 좁히는 것과 별개로** 여기서 막는다.
+
 **대상은 전부 받아 온다.** `POST /api/v2/users/search` 를 `total` 만큼 `offset` 을 옮겨 가며 부른다(한 쪽 500명). 예전에는 `limit:1000, offset:0` 으로 **한 쪽만** 받아, 장비에 4000명이 넘는 현장에서 뒤쪽이 통째로 보이지 않았다(2026-08-19 현장 보고).
 
 **카드·얼굴 보유는 목록 응답에 함께 온다.** `card_count` · `visual_face_count` · `face_count` 를 그대로 읽으므로 **인원마다 상세를 부르지 않는다**(4000명이면 4000번이 된다). 화면의 [보유] 필터로 "얼굴 없음"만 골라 부분적으로 가져올 수 있다.
