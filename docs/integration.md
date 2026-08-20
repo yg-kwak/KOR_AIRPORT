@@ -51,6 +51,12 @@ System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true"
 
 설정관리 → **BiostarX 가져오기**. `PersonImportBiostarService`(대상 선별) · `PersonImportSyncService`(1명 반영) · `BiostarImportAdapter`(읽기 전용).
 
+**대상은 전부 받아 온다.** `POST /api/v2/users/search` 를 `total` 만큼 `offset` 을 옮겨 가며 부른다(한 쪽 500명). 예전에는 `limit:1000, offset:0` 으로 **한 쪽만** 받아, 장비에 4000명이 넘는 현장에서 뒤쪽이 통째로 보이지 않았다(2026-08-19 현장 보고).
+
+**카드·얼굴 보유는 목록 응답에 함께 온다.** `card_count` · `visual_face_count` · `face_count` 를 그대로 읽으므로 **인원마다 상세를 부르지 않는다**(4000명이면 4000번이 된다). 화면의 [보유] 필터로 "얼굴 없음"만 골라 부분적으로 가져올 수 있다.
+
+**목록은 100명씩 쪽을 넘긴다.** 수천 행을 한 번에 그리면 브라우저가 멈춘다. 검색·선택은 거른 전체를 기준으로 하므로 쪽을 넘겨도 선택은 유지된다.
+
 **고른 사람만 가져온다.** [대상 불러오기] → 목록에서 선택 → [미리보기] → [가져오기]. 이미 등록된 인원까지 장비 기준으로 덮어쓰므로, 무엇이 바뀌는지 모르고 전체를 돌리면 되돌릴 수 없다. 선택이 비어 있으면 서버가 거부한다.
 
 | 읽는 곳 | 쓰는 곳 |

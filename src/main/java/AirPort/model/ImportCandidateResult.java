@@ -17,4 +17,22 @@ public class ImportCandidateResult {
   private boolean registered; // 우리 DB 에 이미 있는가 — 있으면 '갱신', 없으면 '신규'
   private boolean importable; // 기관 매핑이 있어 가져올 수 있는가
   private String reason; // 가져올 수 없는 사유(importable=false 일 때)
+  private int cardCount; // 장비에 등록된 카드 수 — 목록 조회에서 함께 온다(추가 호출 없음)
+  private int faceCount; // 장비에 등록된 얼굴 수(visual_face + face)
+
+  public int getCardCount() {
+    return cardCount;
+  }
+
+  public void setCardCount(int cardCount) {
+    this.cardCount = cardCount;
+  }
+
+  public int getFaceCount() {
+    return faceCount;
+  }
+
+  public void setFaceCount(int faceCount) {
+    this.faceCount = faceCount;
+  }
 }

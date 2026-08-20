@@ -28,4 +28,36 @@ public record BiostarUserDetail(
     String expiryDatetime,
     String photo,
     List<String> cardNos,
-    List<Integer> accessGroupIds) {}
+    List<Integer> accessGroupIds,
+    /** 장비에 등록된 카드 수 — 목록 조회에서만 채워진다(상세 조회는 cardNos 를 쓴다). */
+    int cardCount,
+    /** 장비에 등록된 얼굴 수(visual_face + face) — 목록 조회에서만 채워진다. */
+    int faceCount) {
+
+  /** 상세 조회용 — 보유 개수는 목록에서만 의미가 있다. */
+  public BiostarUserDetail(
+      String userId,
+      String name,
+      String phone,
+      String userTitle,
+      Integer userGroupId,
+      String startDatetime,
+      String expiryDatetime,
+      String photo,
+      List<String> cardNos,
+      List<Integer> accessGroupIds) {
+    this(
+        userId,
+        name,
+        phone,
+        userTitle,
+        userGroupId,
+        startDatetime,
+        expiryDatetime,
+        photo,
+        cardNos,
+        accessGroupIds,
+        cardNos.size(),
+        photo == null ? 0 : 1);
+  }
+}

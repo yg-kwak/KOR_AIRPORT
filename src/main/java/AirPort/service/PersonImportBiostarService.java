@@ -131,6 +131,10 @@ public class PersonImportBiostarService {
       if (company == null) {
         row.setReason("기관 매핑 없음(사용자그룹 " + u.userGroupId() + ") — 기관등록관리에서 연결하세요.");
       }
+      // 카드·얼굴 보유 여부 — 목록 응답에 개수가 함께 오므로 인원마다 상세를 부르지 않는다.
+      // 무엇을 가져올지 고를 때 "이 사람은 얼굴이 없다"를 미리 보고 판단할 수 있어야 한다.
+      row.setCardCount(u.cardCount());
+      row.setFaceCount(u.faceCount());
       row.setRegistered(registered.contains(u.userId()));
       out.add(row);
     }

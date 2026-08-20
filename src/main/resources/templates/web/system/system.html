@@ -74,11 +74,28 @@
               <option value="변경없음">변경없음(미리보기)</option>
             </select>
           </div>
+          <div class="search-field">
+            <!-- 장비의 카드·얼굴 보유 여부 — 목록 조회에 개수가 함께 와서 추가 호출 없이 거를 수 있다 -->
+            <label>보유</label>
+            <select id="impHasFilter" class="input w-140">
+              <option value="">전체</option>
+              <option value="card">카드 있음</option>
+              <option value="nocard">카드 없음</option>
+              <option value="face">얼굴 있음</option>
+              <option value="noface">얼굴 없음</option>
+              <option value="both">카드+얼굴 있음</option>
+            </select>
+          </div>
           <button class="btn" id="btnImportPreview">미리보기</button>
           <button class="btn btn-primary" id="btnImportRun">가져오기</button>
         </div>
         <div class="grid-toolbar">
           <span class="grid-total" id="impTotal"></span>
+          <span class="imp-pager">
+            <button type="button" class="btn btn-sm" id="impPrev">이전</button>
+            <span id="impPageInfo"></span>
+            <button type="button" class="btn btn-sm" id="impNext">다음</button>
+          </span>
         </div>
         <div class="modal-table-scroll">
           <table class="grid">
@@ -88,12 +105,14 @@
               <th class="w-140">사용자ID</th>
               <th class="w-140">성명</th>
               <th class="w-160">기관</th>
+              <th class="w-80">카드</th>
+              <th class="w-80">얼굴</th>
               <th class="w-100">구분</th>
               <th>비고</th>
             </tr>
             </thead>
             <tbody id="impBody">
-            <tr><td colspan="6" class="empty">대상이 없습니다.</td></tr>
+            <tr><td colspan="8" class="empty">대상이 없습니다.</td></tr>
             </tbody>
           </table>
         </div>

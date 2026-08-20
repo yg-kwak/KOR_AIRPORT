@@ -56,24 +56,46 @@
      돌린 뒤에는 실제로 무엇이 일어날지(갱신인지 변경없음인지)까지 갈린다. */
   const stateOf = (c) => outcome[c.userId] || (c.registered ? '등록됨' : '신규');
 
+  /* 장비의 카드·얼굴 보유로 거른다. 무엇을 가져올지 고를 때
+     "얼굴이 없는 사람만" 같은 식으로 부분만 집어낼 수 있어야 한다. */
+  function matchHas(c, has) {
+    if (!has) return true;
+    if (has === 'card') return c.cardCount > 0;
+    if (has === 'nocard') return !c.cardCount;
+    if (has === 'face') return c.faceCount > 0;
+    if (has === 'noface') return !c.faceCount;
+    if (has === 'both') return c.cardCount > 0 && c.faceCount > 0;
+    return true;
+  }
+
   function visible() {
     const kw = $('impKeyword').value.trim().toLowerCase();
     const state = $('impStateFilter').value;
+    const has = $('impHasFilter').value;
     return candidates.filter((c) => {
       if (state && stateOf(c) !== state) return false;
+      if (!matchHas(c, has)) return false;
       if (!kw) return true;
       return (c.userId || '').toLowerCase().includes(kw)
         || (c.userName || '').toLowerCase().includes(kw);
     });
   }
 
+  /* 한 쪽에 그릴 행 수. 현장 장비에 4000명이 넘어 전부 그리면 브라우저가 멈춘다.
+     검색·선택은 '보이는 전체'(visible) 기준이라 쪽을 넘겨도 선택은 유지된다. */
+  const PAGE_SIZE = 100;
+  let page = 1;
+
   function renderCandidates() {
     const rows = visible();
+    const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    if (page > pages) page = pages;
+    const shown = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
     const body = $('impBody');
-    if (!rows.length) {
-      body.innerHTML = '<tr><td colspan="6" class="empty">대상이 없습니다.</td></tr>';
+    if (!shown.length) {
+      body.innerHTML = '<tr><td colspan="8" class="empty">대상이 없습니다.</td></tr>';
     } else {
-      body.innerHTML = rows.map((c) => `
+      body.innerHTML = shown.map((c) => `
         <tr>
           <td><input type="checkbox" class="imp-pick" value="${esc(c.userId)}"
                      ${picked.has(c.userId) ? 'checked' : ''}
@@ -81,12 +103,24 @@
           <td>${esc(c.userId)}</td>
           <td>${esc(c.userName || '-')}</td>
           <td style="text-align:left">${esc(c.companyName || '-')}</td>
+          <td>${c.cardCount > 0 ? c.cardCount : '-'}</td>
+          <td>${c.faceCount > 0 ? c.faceCount : '-'}</td>
           <td>${esc(stateOf(c))}</td>
           <td style="text-align:left">${esc(details[c.userId] || c.reason || '')}</td>
         </tr>`).join('');
     }
-    $('impTotal').textContent = `대상 ${candidates.length}명 · 표시 ${rows.length}명 · 선택 ${picked.size}명`;
+    $('impTotal').textContent =
+      `대상 ${candidates.length}명 · 표시 ${rows.length}명 · 선택 ${picked.size}명`;
+    $('impPageInfo').textContent = `${page} / ${pages}`;
+    $('impPrev').disabled = page <= 1;
+    $('impNext').disabled = page >= pages;
     syncCheckAll();
+  }
+
+  /* 조건이 바뀌면 첫 쪽부터 — 3쪽을 보다 검색하면 결과가 없어 빈 화면이 된다 */
+  function refilter() {
+    page = 1;
+    renderCandidates();
   }
 
   /* 전체선택 체크박스는 '보이는 것 중 고를 수 있는 행'만 대변한다. */
@@ -182,8 +216,11 @@
       pickable().forEach((c) => (e.target.checked ? picked.add(c.userId) : picked.delete(c.userId)));
       renderCandidates();
     });
-    $('impKeyword').addEventListener('input', renderCandidates);
-    $('impStateFilter').addEventListener('change', renderCandidates);
+    $('impKeyword').addEventListener('input', refilter);
+    $('impStateFilter').addEventListener('change', refilter);
+    $('impHasFilter').addEventListener('change', refilter);
+    $('impPrev').addEventListener('click', () => { page -= 1; renderCandidates(); });
+    $('impNext').addEventListener('click', () => { page += 1; renderCandidates(); });
   }
 
   function bind() {
