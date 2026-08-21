@@ -299,6 +299,7 @@ logging.level.AirPort=DEBUG
 - **브라우저 인쇄 방식**: 프론트(`card-print.js`)가 미리보기 PNG 들을 body 직속 `#cardPrintArea` 에 `.print-card-page > .print-card-img` 로 넣고 `window.print()`. CSS `@media print { @page{margin:0} .print-card-img{width:100%;height:100%;object-fit:fill} body>*:not(#cardPrintArea){display:none} }` 로 **여백 없이 카드에 꽉 차게**, 이미지가 이미 PNG라 붉은 점 없음. 앞/뒤는 `page-break-after:always` 로 2페이지(프린터 드라이버가 양면 처리). 풀블리드는 **드라이버의 over-the-edge 설정**으로 맞춘다.
 - 엔드포인트: `POST /person/person/card/print/preview`(단건 이미지), `/card/print`(단건 감사만), `/card/print/bulk/check`(대상 검증), `/card/print/bulk`(대상 전원 이미지 반환+감사). 인쇄 자체는 서버가 하지 않는다.
 - **얼굴(tb_person_photo)·카드가 모두 등록된 인원만** 출력(서버 검증 + 화면 게이트).
+- **사진 칸은 배경 아트워크의 흰 틀에 맞춘다.** 배경(v2: 900×1418)에 사진 틀이 그려져 있고 `photoPosition`/`photoSize` 가 그 틀과 어긋나면, 사진이 틀 밖으로 삐져나오거나 틀 안에 흰 띠가 남는다(v2 최초 반입 시 아래로 7px, 아래끝 23px 벗어나 있었다). 좌표 변환은 `배경px x (canvas-width / 배경가로)` — 틀 y 205px → `205 x 540/900 = 123`. (2026-08-21 정렬)
 - 설정: `card-print.project-file`(템플릿 경로, `card-templates/`는 대용량이라 저장소 제외), `card-print.canvas-width`(요소 좌표계 기준폭). 프린터명·오프셋·배율 등 서버 인쇄 설정은 브라우저 인쇄 전환으로 제거됨.
 - 화면: 정규인원 수정 모달 카드정보 탭 관리 열의 **출력** 버튼 → 미리보기(앞/뒤) 후 인쇄. (`/person/person/card/print/preview`, `/card/print`)
 - **일괄 출력**: 목록에서 인원 선택 → **카드 출력**(선택 삭제 왼쪽). 전량 검증(카드 1장·얼굴 보유) 후 각자 출력. 카드 2장 이상 보유자가 있으면 인원ID를 알리고 아무것도 출력하지 않는다. (`/card/print/bulk`)
