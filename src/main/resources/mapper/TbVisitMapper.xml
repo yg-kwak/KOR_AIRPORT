@@ -214,11 +214,17 @@
   </select>
   <delete id="deleteManagers">DELETE FROM tb_visit_manager WHERE visit_no = #{visitNo}</delete>
   <insert id="insertManagers">
-    INSERT INTO tb_visit_manager (visit_no, seq, person_id) VALUES
-    <foreach collection="personIds" item="pid" index="i" separator=",">
-      (#{visitNo}, #{i} + 1, #{pid})
+    INSERT INTO tb_visit_manager (visit_no, seq, person_id, manager_phone) VALUES
+    <foreach collection="managers" item="m" index="i" separator=",">
+      (#{visitNo}, #{i} + 1, #{m.personId}, #{m.phone})
     </foreach>
   </insert>
+
+  <!-- 인솔자 + 그 방문의 연락처 — 신청서는 정규인원 정보가 아니라 이 값을 찍는다 -->
+  <select id="selectManagers" resultType="TbVisitManager">
+    SELECT visit_no, seq, person_id, manager_phone
+    FROM tb_visit_manager WHERE visit_no = #{visitNo} ORDER BY seq
+  </select>
 
   <!-- 임시끼리 인솔자 겹침 검사 — 진행중(신청 VS01·입실중 VS03) 다른 임시(PT02) 방문에 이미 인솔자인 person_id.
        임시↔장기·상주(PT03/PT04) 및 장기끼리는 허용이므로 PT02 방문만 대상으로 한다. -->

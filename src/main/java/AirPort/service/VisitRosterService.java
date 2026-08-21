@@ -72,8 +72,9 @@ public class VisitRosterService {
   public String saveChildren(int visitNo, VisitForm form, TbLoginUser actor, Integer menuId) {
     // 인솔자
     visitMapper.deleteManagers(visitNo);
-    if (VisitService.notEmpty(form.getManagerIds())) {
-      visitMapper.insertManagers(visitNo, form.getManagerIds());
+    if (!form.managerIds().isEmpty()) {
+      visitMapper.insertManagers(
+          visitNo, AirPort.model.VisitManagerForm.encrypted(form.getManagers()));
     }
     // 사용자출입그룹 / 차량출입그룹
     visitMapper.deleteAcGroups(visitNo);

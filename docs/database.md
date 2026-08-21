@@ -321,13 +321,14 @@ PK: `visit_no` (IDENTITY). 임시·장기 출입자의 방문 1건. **정규(`tb
 | reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
 
 ### tb_visit_manager — 인솔자 (방문 1 : N)
-PK: `visit_no` + `seq` (복합). 인솔자는 정규인원(`tb_person`, `person_type='PT01'`). 같은 인솔자가 여러 visit 에 지정될 수 있어 `seq` 로 구분한다. **"임시는 인솔자 중복 불가, 장기는 가능" 같은 규칙은 `visit_type` 조건부라 서비스 계층에서 검증**(정적 제약으로는 불가).
+PK: `visit_no` + `seq` (복합). 인솔자는 정규인원(`tb_person`, `person_type='PT01'`). **연락처는 이 표에 둔다** — 같은 사람이라도 방문마다 연락 받을 번호가 다를 수 있고, 신청서에 찍히는 것은 그 방문의 번호여야 한다. 같은 인솔자가 여러 visit 에 지정될 수 있어 `seq` 로 구분한다. **"임시는 인솔자 중복 불가, 장기는 가능" 같은 규칙은 `visit_type` 조건부라 서비스 계층에서 검증**(정적 제약으로는 불가).
 
 | 컬럼 | 타입 | PK | 설명 | 비고 |
 |------|------|----|------|------|
 | visit_no | int | Y | 그룹번호 | → `tb_visit.visit_no` |
 | seq | int | Y | 순번 | |
 | person_id | nvarchar(30) | | 정규사용자ID | → `tb_person.person_id` (PT01) |
+| manager_phone | nvarchar(255) | | 연락처 | **ARIA 암호화**. 방문마다 수기 입력(필수) — `tb_person.person_phone` 을 당겨오지 않는다 |
 | reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | 기본 getdate() |
 
 ### tb_visit_person — 방문 인원 명단 (방문 1 : 인원 N)

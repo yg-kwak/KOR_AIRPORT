@@ -75,8 +75,10 @@ public class VisitPermitService {
     f.setAccessEnd(v.getWorkEndDt());
     f.setPurpose(v.getWorkPurpose());
     f.setApplyDate(datePart(v.getWorkStartDt()));
-    f.setPersonAreas(
-        areaNos(acGroupMapper.selectNamesByIds(visitMapper.selectAcGroupIds(visitNo))));
+    // 구역이 하나도 없는 방문도 신청서는 나와야 한다.
+    // 빈 목록을 그대로 넘기면 mapper 가 IN () 을 만들어 SQL 이 깨진다.
+    List<Integer> acIds = visitMapper.selectAcGroupIds(visitNo);
+    f.setPersonAreas(acIds.isEmpty() ? "" : areaNos(acGroupMapper.selectNamesByIds(acIds)));
     f.setCarAreas(areaNos(carAreaNames(visitMapper.selectCarAcCodes(visitNo))));
 
     for (String pid : visitMapper.selectPersonIds(visitNo)) {
@@ -99,11 +101,14 @@ public class VisitPermitService {
       PermitForm.Car x = new PermitForm.Car();
       x.setCarNo(c.getCarNo());
       x.setCarTypeName(codeName("CT", c.getCarType()));
+      // 차량표의 '출입자소속' — 방문(그룹)의 업체명이다. 차량마다 다른 값이 아니다.
+      x.setAffiliation(v.getCompanyName());
       List<TbCard> cards = cardMapper.selectByCar(carId);
       x.setCardName(cards.isEmpty() ? null : cards.get(0).getCardName());
       f.getCars().add(x);
     }
-    for (String pid : visitMapper.selectManagerIds(visitNo)) {
+    for (AirPort.model.TbVisitManager m : visitMapper.selectManagers(visitNo)) {
+      String pid = m.getPersonId();
       TbPerson p = personMapper.selectById(pid);
       if (p == null) {
         continue;
@@ -111,7 +116,8 @@ public class VisitPermitService {
       PermitForm.Manager x = new PermitForm.Manager();
       x.setName(decrypt(p.getPersonName()));
       x.setCompany(p.getCompanyName());
-      x.setPhone(decrypt(p.getPersonPhone()));
+      // 연락처는 정규인원 정보가 아니라 그 방문에 적어 둔 번호다
+      x.setPhone(decrypt(m.getManagerPhone()));
       List<TbCard> cards = cardMapper.selectByPerson(pid);
       x.setCardName(cards.isEmpty() ? null : cards.get(0).getCardName());
       f.getManagers().add(x);

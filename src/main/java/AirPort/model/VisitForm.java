@@ -25,9 +25,19 @@ public class VisitForm {
   private String returner;
   private String remark;
 
-  private List<String> managerIds; // 인솔자 = 정규인원(PT01) person_id
+  private List<VisitManagerForm> managers; // 인솔자 — 정규인원 + 그 방문의 연락처(수기 입력)
   private List<Integer> acGroupIds; // 사용자출입그룹 = tb_ac_group.ac_group_id
   private List<String> carAcCodes; // 차량출입그룹 = tb_common(CAR).code_id
   private List<VisitorForm> visitors; // 방문객
   private List<VisitCarForm> cars; // 방문 차량
+
+  /** 인솔자 person_id 만 — 겹침 검사·필수 검증처럼 ID 만 필요한 곳에서 쓴다. */
+  public List<String> managerIds() {
+    return managers == null
+        ? List.of()
+        : managers.stream()
+            .map(VisitManagerForm::getPersonId)
+            .filter(id -> id != null && !id.isBlank())
+            .toList();
+  }
 }

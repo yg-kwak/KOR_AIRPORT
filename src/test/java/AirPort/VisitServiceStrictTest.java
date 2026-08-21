@@ -93,7 +93,7 @@ class VisitServiceStrictTest {
     form.setVisitNo(28);
     form.setVisitType("PT02");
     form.setCompanyName("TEST");
-    form.setManagerIds(List.of("400001"));
+    form.setManagers(List.of(manager("400001", "010-1234-5678")));
     VisitorForm vf = new VisitorForm();
     vf.setPersonId("IS000001");
     vf.setPersonName("홍길동");
@@ -122,7 +122,7 @@ class VisitServiceStrictTest {
     form.setWorkStartDt("2026-07-30T09:00");
     form.setWorkEndDt("2026-07-30T18:00");
     form.setWorkPurpose("정비");
-    form.setManagerIds(List.of("400001"));
+    form.setManagers(List.of(manager("400001", "010-1234-5678")));
     VisitorForm keep = new VisitorForm();
     keep.setPersonId("IS000001");
     keep.setPersonName("재실자");
@@ -224,7 +224,7 @@ class VisitServiceStrictTest {
     form.setWorkStartDt("2026-07-30T09:00");
     form.setWorkEndDt("2026-07-30T18:00"); // 이미 지난 기간
     form.setWorkPurpose("정비");
-    form.setManagerIds(List.of("400001"));
+    form.setManagers(List.of(manager("400001", "010-1234-5678")));
     VisitorForm vf = new VisitorForm();
     vf.setPersonId("IS000001");
     vf.setPersonName("재실자");
@@ -272,5 +272,13 @@ class VisitServiceStrictTest {
         assertThrows(BusinessException.class, () -> service().delete(28, null, 101));
     assertTrue(ex.getMessage().contains("신청 상태의 방문만"), ex.getMessage());
     verify(visitMapper, never()).softDelete(anyInt());
+  }
+
+  /** 인솔자 — 연락처는 방문마다 손으로 적는 필수값이다. */
+  private static AirPort.model.VisitManagerForm manager(String personId, String phone) {
+    AirPort.model.VisitManagerForm m = new AirPort.model.VisitManagerForm();
+    m.setPersonId(personId);
+    m.setPhone(phone);
+    return m;
   }
 }

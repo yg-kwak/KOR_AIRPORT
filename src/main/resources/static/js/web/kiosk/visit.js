@@ -7,7 +7,7 @@
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
 
-  let managers = []; // [{personId, personName}]
+  let managers = []; // [{personId, personName, phone}]
   let visitors = []; // [{personName, birthDate, affiliation}]
   let cars = []; // [{carNo, carName, carType}]
   let carCodes = []; // tb_common(CAR) 차량구역
@@ -37,10 +37,12 @@
       : '<tr><td colspan="3" class="empty">검색 결과가 없습니다.</td></tr>';
   }
   function mgrRender() {
+    // 연락처는 방문마다 손으로 적는다 — 정규인원 정보에서 당겨오지 않는다
     $('mgrBody').innerHTML = managers.length
       ? managers.map((m, i) => `<tr><td>${esc(m.personId)}</td><td>${esc(m.personName)}</td>
+          <td><input type="text" class="input" data-act="mgr-phone" data-idx="${i}" value="${esc(m.phone || '')}" placeholder="연락처" autocomplete="off"/></td>
           <td><button type="button" class="btn btn-sm btn-danger" data-act="mgr-del" data-idx="${i}">제거</button></td></tr>`).join('')
-      : '<tr><td colspan="3" class="empty">선택된 인솔자가 없습니다.</td></tr>';
+      : '<tr><td colspan="4" class="empty">선택된 인솔자가 없습니다.</td></tr>';
   }
 
   // ---- 방문객 ----
@@ -90,7 +92,7 @@
       workEndDt: $('workEndDt').value || null,
       companyName: $('companyName').value.trim() || null,
       workPurpose: $('workPurpose').value.trim() || null,
-      managerIds: managers.map((m) => m.personId),
+      managers: managers.map((m) => ({ personId: m.personId, phone: (m.phone || '').trim() })),
       acGroupIds: acGroupTree.get(AC_TREE),
       carAcCodes,
       visitors: visitors.map((v) => ({
@@ -106,7 +108,8 @@
     if (!payload.workEndDt) { toast.warning('작업기간 종료를 입력하세요.'); return; }
     if (!payload.companyName) { toast.warning('업체명을 입력하세요.'); return; }
     if (!payload.workPurpose) { toast.warning('작업목적을 입력하세요.'); return; }
-    if (!payload.managerIds.length) { toast.warning('인솔자를 선택하세요.'); return; }
+    if (!payload.managers.length) { toast.warning('인솔자를 선택하세요.'); return; }
+    if (payload.managers.some((m) => !m.phone)) { toast.warning('인솔자 연락처를 입력하세요.'); return; }
     if (!payload.acGroupIds.length) { toast.warning('방문구역을 선택하세요.'); return; }
     if (!payload.visitors.length || payload.visitors.some((v) => !v.personName)) {
       toast.warning('방문객 성명을 입력하세요.'); return;
@@ -151,11 +154,16 @@
     $('mgrResult').addEventListener('click', (e) => {
       const row = e.target.closest('.mgr-pick'); if (!row) return;
       const id = row.dataset.id;
-      if (!managers.some((m) => m.personId === id)) managers.push({ personId: id, personName: row.dataset.name });
+      if (!managers.some((m) => m.personId === id)) managers.push({ personId: id, personName: row.dataset.name, phone: '' });
       mgrRender();
     });
     $('mgrBody').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-act="mgr-del"]'); if (b) { managers.splice(b.dataset.idx, 1); mgrRender(); }
+    });
+    // 연락처는 치는 대로 배열에 담는다 — 다시 그릴 때 사라지지 않게
+    $('mgrBody').addEventListener('input', (e) => {
+      const ph = e.target.closest('input[data-act="mgr-phone"]');
+      if (ph && managers[ph.dataset.idx]) managers[ph.dataset.idx].phone = ph.value;
     });
     $('btnAddVis').addEventListener('click', () => { collectVis(); visitors.push({ personName: '', birthDate: '', affiliation: '' }); visRender(); });
     $('visBody').addEventListener('click', (e) => {

@@ -277,6 +277,7 @@ CREATE TABLE dbo.tb_visit_manager (
   visit_no  int          NOT NULL,                    -- → tb_visit.visit_no
   seq       int          NOT NULL,                    -- 순번
   person_id nvarchar(30) NOT NULL,                    -- 정규사용자ID → tb_person.person_id (PT01)
+  manager_phone nvarchar(255) NULL,                   -- 연락처(ARIA 암호화) — 방문마다 손으로 적는다
   reg_dt    datetime2(0) NOT NULL DEFAULT getdate(),
   mod_dt    datetime2(0) NOT NULL DEFAULT getdate(),
   CONSTRAINT PK_tb_visit_manager PRIMARY KEY (visit_no, seq)

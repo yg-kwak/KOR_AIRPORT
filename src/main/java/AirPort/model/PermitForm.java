@@ -65,9 +65,18 @@ public class PermitForm {
 
   /** 방문 차량 — 한 행에 한 대. 운전자·주소는 양식에서 손으로 적는다. */
   public static class Car {
+    private String affiliation; // 출입자소속 — 방문(그룹)의 업체명
     private String carNo;
     private String carTypeName; // 차종
     private String cardName; // 차량출입증번호 칸 — 카드명칭
+
+    public String getAffiliation() {
+      return affiliation;
+    }
+
+    public void setAffiliation(String affiliation) {
+      this.affiliation = affiliation;
+    }
 
     public String getCarNo() {
       return carNo;

@@ -1,6 +1,6 @@
 /* 보호구역 임시출입허가 신청서 출력 — 서버가 준 값으로 양식을 그려 브라우저 인쇄에 넘긴다.
    프린터는 클라이언트 PC 라 서버에서 PDF 를 만들지 않는다(카드 출력과 같은 방식).
-   확인자·근무확인·운전자·주소 칸은 시스템이 보관하지 않는 값이라 비운다 — 인쇄 후 손으로 적는다. */
+   확인자·근무확인 칸은 시스템이 보관하지 않는 값이라 비운다 — 인쇄 후 손으로 적는다. */
 window.permitPrint = (function () {
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
@@ -35,12 +35,14 @@ window.permitPrint = (function () {
     }).join('');
   }
 
-  /* 차량 — 한 행에 1대. 운전자성명·생년월일·주소는 손으로 적는 칸 */
+  /* 차량 — 한 행에 1대(출입자소속/차량번호/차종/차량출입증번호).
+     운전자성명·생년월일·주소 칸은 뺐다 — 시스템이 보관하지 않는 값이라 늘 빈 칸으로 나갔다.
+     출입자소속은 방문(그룹)의 업체명이다. */
   function carRows(list) {
     return chunk(list, 1).map((one) => {
       const c = one[0];
-      return `<tr><td>&nbsp;</td>${c ? cell(c.carNo) + cell(c.carTypeName) : '<td>&nbsp;</td><td>&nbsp;</td>'}`
-        + `<td>&nbsp;</td><td>&nbsp;</td>${c ? cell(c.cardName) : '<td>&nbsp;</td>'}<td>&nbsp;</td></tr>`;
+      if (!c) return '<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>';
+      return `<tr>${cell(c.affiliation)}${cell(c.carNo)}${cell(c.carTypeName)}${cell(c.cardName)}</tr>`;
     }).join('');
   }
 
@@ -79,16 +81,15 @@ window.permitPrint = (function () {
 
   <table class="permit-table">
     <tr>
-      <th>출입자<br/>성명</th><th>생년월일</th><th>출입증<br/>번호</th><th>출입자소속<br/>및 주소</th>
-      <th>출입자<br/>성명</th><th>생년월일</th><th>출입증<br/>번호</th><th>출입자소속<br/>및 주소</th>
+      <th>출입자<br/>성명</th><th>생년월일</th><th>출입증<br/>번호</th><th>출입자소속</th>
+      <th>출입자<br/>성명</th><th>생년월일</th><th>출입증<br/>번호</th><th>출입자소속</th>
     </tr>
     ${visitorRows(d.visitors || [])}
   </table>
 
   <table class="permit-table">
     <tr>
-      <th>출입자소속</th><th>차량번호</th><th>차종</th><th>운전자성명</th>
-      <th>생년월일</th><th>차량출입증<br/>번호</th><th>주소</th>
+      <th>출입자소속</th><th>차량번호</th><th>차종</th><th>차량출입증<br/>번호</th>
     </tr>
     ${carRows(d.cars || [])}
   </table>

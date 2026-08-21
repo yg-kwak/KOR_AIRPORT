@@ -73,7 +73,9 @@ public class KioskVisitService {
     req(form.getWorkEndDt(), "작업기간 종료");
     req(form.getCompanyName(), "업체명");
     req(form.getWorkPurpose(), "작업목적");
-    bad(!has(form.getManagerIds()), "인솔자를 선택하세요.");
+    bad(form.managerIds().isEmpty(), "인솔자를 선택하세요.");
+    // 연락처 필수 — 관리자 화면과 같은 규칙을 쓴다(VisitManagerForm 에 모아 둠)
+    AirPort.model.VisitManagerForm.requirePhones(form.getManagers());
     bad(!has(form.getAcGroupIds()), "방문구역을 선택하세요.");
     bad(visitors.isEmpty(), "방문객 성명을 1명 이상 입력하세요.");
     bad(has(form.getCarAcCodes()) && cars.isEmpty(), "차량구역을 선택하면 차량정보를 입력해야 합니다.");
@@ -85,7 +87,8 @@ public class KioskVisitService {
     row.setStatusCode(VisitService.DEFAULT_STATUS); // 신청
     visitMapper.insert(row);
     int visitNo = row.getVisitNo();
-    visitMapper.insertManagers(visitNo, form.getManagerIds());
+    visitMapper.insertManagers(
+        visitNo, AirPort.model.VisitManagerForm.encrypted(form.getManagers()));
     visitMapper.insertAcGroups(visitNo, form.getAcGroupIds());
     if (has(form.getCarAcCodes())) {
       visitMapper.insertCarAcGroups(visitNo, form.getCarAcCodes());

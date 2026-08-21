@@ -144,11 +144,13 @@ public class VisitService {
     VisitDetail d = new VisitDetail();
     d.visit = visit;
     d.managers = new ArrayList<>();
-    for (String pid : visitMapper.selectManagerIds(visitNo)) {
+    for (AirPort.model.TbVisitManager m : visitMapper.selectManagers(visitNo)) {
       VisitorForm mf = new VisitorForm();
-      mf.setPersonId(pid);
-      TbPerson mp = personMapper.selectById(pid);
+      mf.setPersonId(m.getPersonId());
+      TbPerson mp = personMapper.selectById(m.getPersonId());
       mf.setPersonName(mp != null ? decrypt(mp.getPersonName()) : "");
+      // 그 방문에 적어 둔 연락처 — 정규인원의 번호가 아니다
+      mf.setPhone(decrypt(m.getManagerPhone()));
       d.managers.add(mf);
     }
     d.acGroupIds = visitMapper.selectAcGroupIds(visitNo);
@@ -407,15 +409,18 @@ public class VisitService {
     // 출입그룹을 선택했으면 대상(방문객/차량) 입력 강제, 방문객이 있으면 인솔자 필수
     check(notEmpty(form.getAcGroupIds()) && !hasVisitors, "사용자 출입그룹을 선택하면 방문객을 입력해야 합니다.");
     check(notEmpty(form.getCarAcCodes()) && !hasCars, "차량 출입그룹을 선택하면 차량을 입력해야 합니다.");
-    check(hasVisitors && !notEmpty(form.getManagerIds()), "방문객이 있으면 인솔자를 지정해야 합니다.");
+    check(hasVisitors && form.managerIds().isEmpty(), "방문객이 있으면 인솔자를 지정해야 합니다.");
+    // 연락처는 방문마다 손으로 적는다 — 정규인원 정보에서 당겨오지 않으므로 비면 신청서에 빈 칸이 남는다.
+    // 키오스크도 같은 규칙을 쓴다(VisitManagerForm 에 모아 둠).
+    AirPort.model.VisitManagerForm.requirePhones(form.getManagers());
   }
 
   /** 임시(PT02)끼리 인솔자 겹침 금지 — 진행중 다른 임시 방문의 인솔자면 차단(임시↔장기·상주, 장기끼리는 허용). */
   void checkManagerOverlap(VisitForm form, Integer excludeVisitNo) {
-    if (!VISIT_TYPE.equals(form.getVisitType()) || !notEmpty(form.getManagerIds())) {
+    if (!VISIT_TYPE.equals(form.getVisitType()) || form.managerIds().isEmpty()) {
       return;
     }
-    List<String> dup = visitMapper.selectActiveTempManagers(form.getManagerIds(), excludeVisitNo);
+    List<String> dup = visitMapper.selectActiveTempManagers(form.managerIds(), excludeVisitNo);
     check(notEmpty(dup), "이미 진행 중인 임시 방문의 인솔자입니다(임시끼리 중복 불가): " + String.join(", ", dup));
   }
 

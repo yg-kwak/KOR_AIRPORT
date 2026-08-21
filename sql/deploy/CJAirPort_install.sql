@@ -404,11 +404,19 @@ BEGIN
     visit_no  int          NOT NULL,                    -- → tb_visit.visit_no
     seq       int          NOT NULL,                    -- 순번
     person_id nvarchar(30) NOT NULL,                    -- 정규사용자ID → tb_person.person_id (PT01)
+    manager_phone nvarchar(255) NULL,                   -- 연락처(ARIA 암호화) — 방문마다 수기 입력
     reg_dt    datetime2(0) NOT NULL DEFAULT getdate(),
     mod_dt    datetime2(0) NOT NULL DEFAULT getdate(),
     CONSTRAINT PK_tb_visit_manager PRIMARY KEY (visit_no, seq)
   );
 END
+GO
+
+/* 이미 tb_visit_manager 가 있는 DB 에 이 파일을 돌리면 위 CREATE 를 건너뛰므로 컬럼이 안 생긴다.
+   재실행 안전이 이 스크립트의 원칙이라 여기서 따로 채운다(2026-08-20 추가분). */
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+               WHERE TABLE_NAME = 'tb_visit_manager' AND COLUMN_NAME = 'manager_phone')
+  ALTER TABLE dbo.tb_visit_manager ADD manager_phone nvarchar(255) NULL;
 GO
 
 

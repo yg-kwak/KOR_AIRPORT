@@ -107,12 +107,14 @@
   }
 
   // ---- 인솔자 ----
-  let managers = []; // [{personId, personName}]
+  let managers = []; // [{personId, personName, phone}]
+  /* 연락처는 정규인원에서 당겨오지 않는다 — 같은 사람이라도 방문마다 연락 받을 번호가 다르다. */
   function mgrRender() {
     $('mgrBody').innerHTML = managers.length
       ? managers.map((m, i) => `<tr><td>${esc(m.personId)}</td><td>${esc(m.personName)}</td>
+          <td><input type="text" class="input w-180" data-act="mgr-phone" data-idx="${i}" value="${esc(m.phone || '')}" placeholder="연락처" autocomplete="off"/></td>
           <td><button class="btn btn-sm btn-danger" data-act="mgr-del" data-idx="${i}">제거</button></td></tr>`).join('')
-      : '<tr><td colspan="3" class="empty">인솔자가 없습니다.</td></tr>';
+      : '<tr><td colspan="4" class="empty">인솔자가 없습니다.</td></tr>';
   }
 
   // ---- 방문객 ----
@@ -193,7 +195,7 @@
     if (v.statusCode === 'VS04') { $('editModal').querySelector('.visit-modal').classList.add('readonly'); $('modalTitle').textContent = '방문 상세 (퇴실완료 — 수정 불가)'; } // 읽기전용
     acGroupTree.set(AC_TREE, d.acGroupIds || []);
     carAcRender(d.carAcCodes || []);
-    managers = (d.managers || []).map((m) => ({ personId: m.personId, personName: m.personName || '' }));
+    managers = (d.managers || []).map((m) => ({ personId: m.personId, personName: m.personName || '', phone: m.phone || '' }));
     mgrRender();
     // issuedCardId = 저장된 카드(서버 응답 기준). 화면에서 방금 고른 카드와 구분해 퇴실 버튼 노출을 판단한다
     visitors = (d.visitors || []).map((x) => ({ ...x, issuedCardId: x.cardId || null }));
@@ -220,7 +222,7 @@
       permitDt: $('permitDt').value || null, receiver: $('receiver').value.trim() || null,
       returner: $('returner').value.trim() || null, workPurpose: $('workPurpose').value.trim() || null,
       remark: $('remark').value.trim() || null,
-      managerIds: managers.map((m) => m.personId),
+      managers: managers.map((m) => ({ personId: m.personId, phone: (m.phone || '').trim() })),
       acGroupIds: acGroupTree.get(AC_TREE),
       carAcCodes: carAcSelected(),
       visitors: visitors.map((v) => ({ personId: v.personId || null, personName: (v.personName || '').trim() || null,
@@ -238,7 +240,8 @@
     const hasVis = payload.visitors.length > 0, hasCar = payload.cars.length > 0;
     if (payload.acGroupIds.length && !hasVis) { toast.warning('사용자 출입그룹을 선택하면 방문객을 입력해야 합니다.'); return; }
     if (payload.carAcCodes.length && !hasCar) { toast.warning('차량 출입그룹을 선택하면 차량을 입력해야 합니다.'); return; }
-    if (hasVis && !payload.managerIds.length) { toast.warning('방문객이 있으면 인솔자를 지정해야 합니다.'); return; }
+    if (hasVis && !payload.managers.length) { toast.warning('방문객이 있으면 인솔자를 지정해야 합니다.'); return; }
+    if (payload.managers.some((m) => !m.phone)) { toast.warning('인솔자 연락처를 입력하세요.'); return; }
     // 카드 발급(cardId) 시 해당 출입구역 미선택이면 무효 카드가 되므로 구역 선택을 강제
     if (payload.visitors.some((v) => v.cardId) && !payload.acGroupIds.length) { toast.warning('방문객에게 카드를 발급하려면 인원 출입구역을 선택하세요.'); return; }
     if (payload.cars.some((c) => c.cardId) && !payload.carAcCodes.length) { toast.warning('차량에 카드를 발급하려면 차량 출입구역을 선택하세요.'); return; }
@@ -265,23 +268,15 @@
     load();
   }
 
-  // ---- 인솔자 선택 팝업 ----
-  let mgrPicked = null;
-  async function openMgr() {
-    mgrPicked = null;
-    $('mgrModal').classList.add('open');
-    loadMgrPick();
+  // ---- 인솔자 선택 팝업 — 구현은 visitor-manager.js (파일 크기 제한으로 분리) ----
+  function openMgr() {
+    visitManagerPicker.open(BASE + '/managers', (p) => {
+      if (managers.some((m) => m.personId === p.personId)) { toast.warning('이미 추가된 인솔자입니다.'); return; }
+      managers.push({ personId: p.personId, personName: p.personName, phone: '' });
+      mgrRender();
+    });
   }
-  function closeMgr() { $('mgrModal').classList.remove('open'); }
-  async function loadMgrPick() {
-    const rows = (await api.get(BASE + '/managers?keyword=' + encodeURIComponent($('mgrKeyword').value.trim()))) || [];
-    $('mgrPickBody').innerHTML = rows.length
-      ? rows.map((p, i) => `<tr class="row-click mgr-row" data-idx="${i}">
-          <td><input type="radio" name="mp" value="${i}"/></td><td>${esc(p.personId)}</td>
-          <td style="text-align:left">${esc(p.personName)}</td></tr>`).join('')
-      : '<tr><td colspan="3" class="empty">정규인원이 없습니다.</td></tr>';
-    $('mgrPickBody').dataset.rows = JSON.stringify(rows);
-  }
+  const closeMgr = () => visitManagerPicker.close();
 
   // ---- 카드 선택 팝업 — 구현은 공용 컴포넌트(core/components/card-picker-visit) ----
   function openCardPicker(kind, index) {
@@ -353,6 +348,11 @@
     $('mgrBody').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-act="mgr-del"]'); if (b) { managers.splice(b.dataset.idx, 1); mgrRender(); }
     });
+    // 연락처는 치는 대로 배열에 담는다 — 다시 그릴 때 사라지지 않게
+    $('mgrBody').addEventListener('input', (e) => {
+      const ph = e.target.closest('input[data-act="mgr-phone"]');
+      if (ph && managers[ph.dataset.idx]) managers[ph.dataset.idx].phone = ph.value;
+    });
     $('btnAddVis').addEventListener('click', () => { collectRows(); visitors.push({ personName: '', birthDate: '', affiliation: '', cardId: null, cardLabel: '' }); visRender(); });
     $('visBody').addEventListener('click', (e) => {
       const out = e.target.closest('button[data-act="vis-out"]'); if (out) { checkoutVisitor(Number(out.dataset.idx)); return; }
@@ -366,17 +366,13 @@
     });
 
     // 인솔자 팝업
-    $('mgrSearch').addEventListener('click', loadMgrPick);
-    $('mgrKeyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadMgrPick(); });
+    $('mgrSearch').addEventListener('click', () => visitManagerPicker.load());
+    $('mgrKeyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') visitManagerPicker.load(); });
     $('mgrPickBody').addEventListener('click', (e) => {
-      const row = e.target.closest('.mgr-row'); if (!row) return;
-      row.querySelector('input[type=radio]').checked = true;
-      mgrPicked = JSON.parse($('mgrPickBody').dataset.rows)[Number(row.dataset.idx)];
+      const row = e.target.closest('.mgr-row'); if (row) visitManagerPicker.select(Number(row.dataset.idx));
     });
     $('mgrOk').addEventListener('click', () => {
-      if (!mgrPicked) { toast.warning('인원을 선택하세요.'); return; }
-      if (managers.some((m) => m.personId === mgrPicked.personId)) { toast.warning('이미 추가된 인솔자입니다.'); closeMgr(); return; }
-      managers.push({ personId: mgrPicked.personId, personName: mgrPicked.personName }); mgrRender(); closeMgr();
+      if (!visitManagerPicker.confirm()) toast.warning('인원을 선택하세요.');
     });
     $('mgrCancel').addEventListener('click', closeMgr);
     $('mgrClose').addEventListener('click', closeMgr);

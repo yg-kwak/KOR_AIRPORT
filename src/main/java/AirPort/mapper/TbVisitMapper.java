@@ -48,7 +48,12 @@ public interface TbVisitMapper {
 
   int deleteManagers(@Param("visitNo") int visitNo);
 
-  int insertManagers(@Param("visitNo") int visitNo, @Param("personIds") List<String> personIds);
+  int insertManagers(
+      @Param("visitNo") int visitNo,
+      @Param("managers") List<AirPort.model.VisitManagerForm> managers);
+
+  /** 인솔자 + 그 방문의 연락처(암호문) — 신청서·수정 화면이 쓴다. */
+  List<AirPort.model.TbVisitManager> selectManagers(@Param("visitNo") int visitNo);
 
   /** 임시(PT02) 인솔자 겹침 — 진행중(신청·입실중) 다른 임시 방문에 이미 인솔자인 person_id 목록. */
   List<String> selectActiveTempManagers(

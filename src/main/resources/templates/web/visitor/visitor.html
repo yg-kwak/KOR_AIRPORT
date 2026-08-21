@@ -175,8 +175,9 @@
           <div class="grid-actions"><button type="button" class="btn btn-sm" id="btnAddMgr">인솔자 추가</button></div>
         </div>
         <table class="grid">
-          <thead><tr><th class="w-160">인원ID</th><th>성명</th><th class="w-80">관리</th></tr></thead>
-          <tbody id="mgrBody"><tr><td colspan="3" class="empty">인솔자가 없습니다.</td></tr></tbody>
+          <thead><tr><th class="w-160">인원ID</th><th>성명</th>
+            <th class="w-200">연락처 <span class="req">*</span></th><th class="w-80">관리</th></tr></thead>
+          <tbody id="mgrBody"><tr><td colspan="4" class="empty">인솔자가 없습니다.</td></tr></tbody>
         </table>
       </div>
 
@@ -250,6 +251,7 @@
   window.PAGE_PERM = { canCreate: [[${perm.canCreate}]], canDelete: [[${perm.canDelete}]] };
   window.VISIT_CFG = { base: [[${base}]], fixedType: [[${fixedVisitType}]], fixedTypeName: [[${fixedVisitTypeName}]] };
 </script>
+<script src="/js/web/visitor/visitor-manager.js" defer></script>
 <script src="/js/web/visitor/visitor.js" defer></script>
 <!-- 출입허가 신청서 인쇄 영역(화면 숨김, @media print 에서만 노출) -->
 <div id="permitPrintArea" aria-hidden="true"></div>

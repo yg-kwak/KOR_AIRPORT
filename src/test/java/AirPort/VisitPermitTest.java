@@ -154,7 +154,8 @@ class VisitPermitTest {
   @Test
   void 신청인은_첫_인솔자다() {
     visitExists();
-    when(visitMapper.selectManagerIds(17)).thenReturn(List.of("400001", "400002"));
+    when(visitMapper.selectManagers(17))
+        .thenReturn(List.of(mgrRow("400001", "010-1111-2222"), mgrRow("400002", null)));
     TbPerson first = person("400001", "박상준");
     first.setCompanyName("슈프리마");
     when(personMapper.selectById("400001")).thenReturn(first);
@@ -170,7 +171,7 @@ class VisitPermitTest {
   @Test
   void 인솔자가_없으면_신청인은_비운다() {
     visitExists();
-    when(visitMapper.selectManagerIds(17)).thenReturn(List.of());
+    when(visitMapper.selectManagers(17)).thenReturn(List.of());
 
     PermitForm f = service().permit(17, null, 101);
 
@@ -198,5 +199,51 @@ class VisitPermitTest {
     TbCommon c = new TbCommon();
     c.setCodeName(name);
     return c;
+  }
+
+  @Test
+  void 인솔자_연락처는_그_방문에_적은_값이다() {
+    // 정규인원(tb_person.person_phone)의 번호를 당겨오지 않는다 — 같은 사람이라도 방문마다 다르다
+    visitExists();
+    when(visitMapper.selectManagers(17))
+        .thenReturn(List.of(mgrRow("400001", "010-1111-2222"), mgrRow("400002", null)));
+    TbPerson p1 = person("400001", "박상준");
+    p1.setPersonPhone(AirPort.security.ARIAUtil.ariaEncrypt("010-9999-0000")); // 인원 정보의 번호
+    when(personMapper.selectById("400001")).thenReturn(p1);
+    when(personMapper.selectById("400002")).thenReturn(person("400002", "홍길동"));
+
+    PermitForm f = service().permit(17, null, 101);
+
+    assertEquals("010-1111-2222", f.getManagers().get(0).getPhone()); // 방문에 적은 값
+    assertNull(f.getManagers().get(1).getPhone()); // 안 적었으면 신청서도 빈 칸
+  }
+
+  @Test
+  void 차량의_출입자소속은_그룹의_업체명이다() {
+    // 차량마다 다른 값이 아니라 방문(그룹) 업체명 하나다
+    TbVisit v = new TbVisit();
+    v.setVisitNo(17);
+    v.setVisitType("PT02");
+    v.setDelYn("N");
+    v.setCompanyName("대한항공");
+    when(visitMapper.selectById(17)).thenReturn(v);
+    when(visitMapper.selectCarIds(17)).thenReturn(List.of(31));
+    AirPort.model.TbCar car = new AirPort.model.TbCar();
+    car.setCarId(31);
+    car.setCarNo("12가3456");
+    when(carMapper.selectById(31)).thenReturn(car);
+
+    PermitForm f = service().permit(17, null, 101);
+
+    assertEquals("대한항공", f.getCars().get(0).getAffiliation());
+    assertEquals("12가3456", f.getCars().get(0).getCarNo());
+  }
+
+  /** 인솔자 행 — 연락처는 그 방문에 적어 둔 값(암호문)이다. */
+  private static AirPort.model.TbVisitManager mgrRow(String personId, String phone) {
+    AirPort.model.TbVisitManager m = new AirPort.model.TbVisitManager();
+    m.setPersonId(personId);
+    m.setManagerPhone(phone == null ? null : AirPort.security.ARIAUtil.ariaEncrypt(phone));
+    return m;
   }
 }
