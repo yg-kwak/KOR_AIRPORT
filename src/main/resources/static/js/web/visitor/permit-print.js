@@ -1,6 +1,6 @@
 /* 보호구역 임시출입허가 신청서 출력 — 서버가 준 값으로 양식을 그려 브라우저 인쇄에 넘긴다.
    프린터는 클라이언트 PC 라 서버에서 PDF 를 만들지 않는다(카드 출력과 같은 방식).
-   확인자·근무확인 칸은 시스템이 보관하지 않는 값이라 비운다 — 인쇄 후 손으로 적는다. */
+   확인자·용무확인 칸은 시스템이 보관하지 않는 값이라 비운다 — 인쇄 후 손으로 적는다. */
 window.permitPrint = (function () {
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
@@ -66,15 +66,19 @@ window.permitPrint = (function () {
     <tr>
       <th rowspan="2" class="w-18">출입시간</th>
       <th colspan="2">출입구역</th>
-      <th rowspan="2" class="w-14">출입자의<br/>근무확인</th>
-      <th class="w-16">확인자소속</th>
-      <th class="w-14">성명</th>
+      <th rowspan="3" class="w-14">출입자의<br/> 용무확인</th>
+      <th rowspan="2" class="w-16">확인자소속</th>
+      <th rowspan="2" class="w-14">성명</th>
     </tr>
-    <tr><th class="w-11">차량</th><th class="w-16">인원</th><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <!-- 둘째 줄은 '출입구역' 아래 차량/인원 뿐이다. 용무확인·확인자소속·성명은 위에서 rowspan 으로
+         내려와 여기에 칸이 없다 — 빈 칸을 두면 적을 곳이 두 개로 갈려 보인다. -->
+    <tr><th class="w-11">차량</th><th class="w-16">인원</th></tr>
     <tr class="permit-tall">
       <td class="permit-period">${esc(dt(d.accessStart))}<br/>~ ${esc(dt(d.accessEnd))}</td>
       <td>${esc(d.carAreas)}</td><td>${esc(d.personAreas)}</td>
-      <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+      <!-- '출입자의 용무확인' 은 위에서 rowspan 으로 내려와 이 줄에 칸이 없다 —
+           칸을 나누지 않아야 확인자가 라벨 아래에 그대로 적을 수 있다 -->
+      <td>&nbsp;</td><td>&nbsp;</td>
     </tr>
     <tr><th>출입목적</th><td colspan="5" class="permit-left">${esc(d.purpose)}</td></tr>
   </table>
