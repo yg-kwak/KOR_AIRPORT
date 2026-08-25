@@ -14,10 +14,8 @@ java {
 }
 
 repositories {
-	// mavenCentral 하나만 본다. eGovFrame 저장소(maven.egovframe.go.kr)는 국내망 밖에서
-	// 닿지 않아 CI 빌드가 의존성 해석 단계에서 죽었다(2026-08 확인). 그 의존성을 쓰지
-	// 않으므로 저장소째 뺀다 — 폐쇄망·해외망 어디서 빌드해도 mavenCentral 만 있으면 된다.
 	mavenCentral()
+	maven { url 'https://maven.egovframe.go.kr/maven' }
 }
 
 dependencies {
@@ -40,6 +38,13 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok:1.18.30'
 	annotationProcessor 'org.projectlombok:lombok:1.18.30'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	// eGovFrame — 사업 요건상 의존성 포함, 코드에서는 미사용 (docs/backend.md)
+	implementation 'org.egovframe.rte:org.egovframe.rte.fdl.idgnr:4.3.0'
+	implementation 'org.egovframe.rte:org.egovframe.rte.fdl.property:4.3.0'
+	implementation 'org.egovframe.rte:org.egovframe.rte.fdl.cmmn:4.3.0'
+	implementation 'org.egovframe.rte:org.egovframe.rte.ptl.mvc:4.3.0'
+	implementation 'org.egovframe.rte:org.egovframe.rte.psl.dataaccess:4.3.0'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.3'

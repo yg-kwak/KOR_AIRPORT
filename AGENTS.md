@@ -17,7 +17,7 @@
 | 언어/런타임 | Java 17 |
 | 빌드 | Gradle 8.13 (wrapper: `gradlew.bat`, 저장소 루트) |
 | 백엔드 | Spring Boot 3.2.0 |
-| eGovFrame | **미사용 · 의존성 제거됨** (2026-08). 코드에서 쓰지 않는데 국내 전용 저장소라 망 밖에서 빌드가 막혔다 |
+| eGovFrame | 4.3.0 의존성 **포함하되 코드에서 미사용** (idgnr, property, cmmn, mvc, dataaccess) |
 | 퍼시스턴스 | MyBatis (JPA **미사용**) |
 | DB | **MSSQL 단일** |
 | 화면 | **Thymeleaf 서버사이드 렌더링** + static (Pretendard, 로컬 자산) |
