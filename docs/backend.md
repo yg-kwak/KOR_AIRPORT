@@ -8,10 +8,14 @@
 - 빌드: `gradlew.bat` (wrapper, 저장소 루트). 태스크: `compileJava`, `test`, `build`, `bootRun`.
 - 루트 패키지: `AirPort`.
 
-## eGovFrame — 포함하되 사용하지 않음
-- 사업 요건상 **의존성은 포함**한다(idgnr, property, cmmn, mvc, dataaccess + `maven.egovframe.go.kr` 저장소).
-- 그러나 실제 코드는 **순수 Spring Boot + MyBatis** 로 작성한다. eGov 인터페이스+`*Impl` 패턴, 표준 공통매퍼는 쓰지 않는다.
-- `resources/egovframework/**` 는 레퍼런스 리소스로만 존재. 신규 코드에서 참조하지 않는다.
+## eGovFrame — 쓰지 않는다 (의존성도 제거)
+- 코드는 **순수 Spring Boot + MyBatis** 다. eGov 인터페이스+`*Impl` 패턴, 표준 공통매퍼를 쓰지 않는다.
+- **2026-08 의존성 5개와 `maven.egovframe.go.kr` 저장소를 제거**했다. 참조가 한 곳도 없는데, 그 저장소가
+  국내망 밖에서 닿지 않아 **CI 빌드가 의존성 해석 단계에서 죽었다**(약 54초 만에 실패). 쓰지 않는 것 때문에
+  빌드가 막히는 상태였다.
+- 이제 `mavenCentral()` 하나만 본다 — 폐쇄망·해외망 어디서 빌드하든 조건이 같다.
+- 다시 넣어야 한다면(사업 요건 등) 아티팩트를 사내 저장소에 올려 그쪽을 가리키게 한다. 원 저장소를 직접
+  참조하면 같은 문제가 되돌아온다.
 
 ## 주요 의존성 (예정)
 MyBatis(`mybatis-spring-boot-starter`), Thymeleaf(+layout-dialect), Validation, Lombok, MSSQL JDBC(`mssql-jdbc`), Apache POI(엑셀), commons-lang3, Jasypt(프로퍼티 암호화), WebSocket(필요 시). **JPA/MariaDB 드라이버는 넣지 않는다.**

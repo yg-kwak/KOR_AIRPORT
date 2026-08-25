@@ -9,7 +9,7 @@
 - 루트 패키지: `AirPort`
 - 빌드/실행: `gradlew.bat build`, `gradlew.bat bootRun` (저장소 루트)
 - 서비스 포트, DB설정, Mapper 경로, 세션 타임아웃, SSL 활성화, 로그 저장 등 환경설정은 `application.properties` 에 등록
-- eGovFrame 은 **의존성만 포함하고 코드에서는 사용하지 않는다** (`backend.md`)
+- eGovFrame 은 **쓰지 않는다**. 의존성도 제거했다 (`backend.md`)
 
 ```
 [Thymeleaf 화면(templates/ + static/)]  ── 같은 앱 내 서버사이드 렌더링
