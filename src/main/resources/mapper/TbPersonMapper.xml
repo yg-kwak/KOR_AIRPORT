@@ -136,6 +136,15 @@
     WHERE p.person_id = #{personId}
   </select>
 
+  <!-- 실시간 이벤트 화면의 허가기간 — 초까지 보여 준다.
+       listColumns 는 varchar(16)(분까지)이다. 등록·수정 화면의 datetime-local 입력이 그 형식만 받으므로
+       그대로 두고, 초가 필요한 이 화면만 따로 읽는다. -->
+  <select id="selectAccessPeriod" resultType="TbPerson">
+    SELECT CONVERT(varchar(19), access_start_dt, 126) AS access_start_dt,
+           CONVERT(varchar(19), access_end_dt, 126)   AS access_end_dt
+    FROM tb_person WHERE person_id = #{personId}
+  </select>
+
   <insert id="insert" parameterType="TbPerson">
     INSERT INTO tb_person
       (person_id, person_name, birth_date, person_phone, company_code, title_code,

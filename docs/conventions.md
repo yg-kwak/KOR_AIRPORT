@@ -68,6 +68,7 @@
 | 검색/폼 모델 필드 | **게터를 반드시 만든다**(Lombok 미사용). 없으면 요청 바인딩도 MyBatis `<if test>` 평가도 리플렉션 게터로 하므로 값이 늘 기본값이 되어 **검색 조건이 조용히 무시된다**. `ArchitectureTest.검색_파라미터의_필드는_게터를_가진다` 가 강제 | `private boolean systemOnly;` → `isSystemOnly()` 필수 |
 | 상태 배지 class | `badge` + 톤 `badge-info\|success\|warning\|error\|done\|none`. **색만으로 구분하지 않는다**(톤별 점 모양·테두리도 다름: ●유효 / ■완료 / ○점선=없음). 마크업은 `js/core/badge.js`(`badge.of/none/count/visitStatus/cardStatus/personStatus`) 로 만든다. 코드→톤 매핑(VS 방문상태·CS 카드상태·PS 인원상태)도 badge.js 가 원천 | 방문상태 `badge.visitStatus('VS03','입실 중')`, 미발급 `badge.none('미발급')` |
 | **data-\*** | 서버값/동작을 JS 로 전달 | `data-sort`(정렬키) `data-act`(동작) `data-json`(행 데이터) `data-page`, PK 는 `data-{필드}` |
+- **좁은 칸에 날짜·시각을 넣을 때는 덩어리를 `<span>`(`white-space: nowrap`)으로 묶는다.** 붙임표(`-`)는 줄바꿈 자리로 쓰여, 접히는 순간 `2026-08-04` 한 덩어리가 두 줄에 나뉜다(`word-break: break-all` 이 부모에 있으면 더 심하다). 예: 실시간 이벤트 허가기간 `event.js periodHtml` — 시작·종료를 각각 묶어 가운데 ` ~ ` 에서만 접힌다.
 - 서버 → JS 전역 전달은 `window.PAGE_*` (예: `PAGE_PERM`) 인라인 스크립트로.
 - **의존 선택 패턴**(선택값에 따라 다른 필드 자동): 부모는 `<select>`(서버가 허용 목록 제공), 자식은 `readonly` 입력 + `change` 시 자동 채움. 서버가 파생값을 재검증·재설정한다(클라이언트 값 불신). 예: 공통코드 등록의 코드구분ID→코드구분명.
 - 공통 모달 등 재사용 조각은 `fragments/components/`, 화면 전용은 `web|kiosk/components/`. (`frontend.md`)
@@ -169,6 +170,7 @@ DOMContentLoaded → bind()  → load()
 - **페이징**은 MSSQL `OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY` (offset 계산은 `PageParam.getOffset()`).
 - null 기본값은 `ISNULL(#{x}, '기본')`. (jdbcTypeForNull=VARCHAR 설정 전제 — `mybatis-config`)
 - **암호화(ARIA) 컬럼 검색**: 성명 등 ARIA 컬럼은 결정적(ECB)이라 **부분(LIKE)·정렬 불가, 완전일치만** 가능. 서비스가 `keyword` 를 `ariaEncrypt` 해 `PageParam.keywordEnc` 로 넣고, mapper 는 `= #{keywordEnc}` 로 비교(`<if test="keywordEnc != null ...">` 가드). 카드번호·차량번호 등 평문은 LIKE.
+- **날짜 정밀도가 화면마다 다르면 조회를 나눈다.** 등록·수정 화면은 `datetime-local` 이라 `CONVERT(varchar(16), …, 126)`(분까지)여야 값이 채워지고, 보여주기만 하는 화면은 초가 필요할 수 있다. 공유 `listColumns` 의 정밀도를 올리면 **입력 화면이 조용히 빈칸이 된다** — 올리지 말고 전용 select 를 따로 둔다. 예: `TbPersonMapper.selectAccessPeriod`(실시간 이벤트 허가기간, `varchar(19)`).
 - **연관 테이블 검색은 `EXISTS` 상관 서브쿼리**로(JOIN 중복행 방지). 예: 방문 목록에서 방문객/인솔자(tb_visit_person·tb_visit_manager→tb_person)·차량(tb_car)·카드(tb_card) 검색.
 
 **검색 파라미터 모델**: 공통 `PageParam`(page/size/keyword/searchType/sort/dir) 을 상속한 `{도메인}SearchParam` 에 도메인 필터(useYn 등)를 추가한다.

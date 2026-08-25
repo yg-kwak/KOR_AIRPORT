@@ -21,6 +21,7 @@ public class AuthEventResult {
   private String personName;
   private String companyName;
   private String areas; // 허가구역 번호를 이어 붙인 값(1~5구역 → "12345")
+  private String period; // 허가기간 "YYYY-MM-DD ~ YYYY-MM-DD" (정규=출입기간, 그 밖=작업기간)
   private String registeredPhoto;
   private String authPhoto;
   private String resultLabel; // 화면 표기 문구 ("O 인증 성공" / "X 안티 패스" / "X 출입제한구역")
@@ -98,6 +99,14 @@ public class AuthEventResult {
 
   public void setAreas(String areas) {
     this.areas = areas;
+  }
+
+  public String getPeriod() {
+    return period;
+  }
+
+  public void setPeriod(String period) {
+    this.period = period;
   }
 
   public String getRegisteredPhoto() {

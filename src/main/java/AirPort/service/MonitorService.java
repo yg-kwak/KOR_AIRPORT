@@ -19,6 +19,7 @@ import AirPort.model.TbCompany;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbPerson;
 import AirPort.model.TbSystem;
+import AirPort.model.TbVisit;
 import AirPort.security.ARIAUtil;
 import java.util.List;
 import java.util.Map;
@@ -238,6 +239,7 @@ public class MonitorService {
       row.setPersonName(decrypt(person.getPersonName()));
       row.setCompanyName(affiliationOf(person));
       row.setAreas(areaNos(acGroupNames(person)));
+      row.setPeriod(period(person));
       row.setRegisteredPhoto(photoMapper.selectPhoto(event.userId()));
       // 사진 없는 칸에 사람 모양을 세울지 카드 모양을 세울지 — 정규인원만 얼굴이 있어야 정상이다
       row.setFaceUser(PERSON_TYPE_REGULAR.equals(person.getPersonType()));
@@ -291,6 +293,50 @@ public class MonitorService {
     return PERSON_TYPE_REGULAR.equals(person.getPersonType())
         ? acGroupMapper.selectAcGroupNames(person.getPersonId())
         : visitMapper.selectAcGroupNamesByPerson(person.getPersonId());
+  }
+
+  /**
+   * 허가기간 — 출처가 허가구역과 같은 갈래로 나뉜다.
+   *
+   * <ul>
+   *   <li>정규인원 — 사람에게 붙은 출입기간(`tb_person.access_start_dt`~`access_end_dt`)
+   *   <li>그 밖 — <b>방문 단위</b>의 작업기간(`tb_visit.work_start_dt`~`work_end_dt`). 구역과 <b>같은 방문</b>(가장
+   *       최근)을 본다.
+   * </ul>
+   *
+   * <p>둘 다 없으면 {@code null} 이다 — 화면은 "-" 로 둔다. 미등록 인증도 화면에는 올라와야 하므로 없는 값에 예외를 던지지 않는다.
+   */
+  private String period(TbPerson person) {
+    if (PERSON_TYPE_REGULAR.equals(person.getPersonType())) {
+      TbPerson period = personMapper.selectAccessPeriod(person.getPersonId());
+      return period == null ? null : range(period.getAccessStartDt(), period.getAccessEndDt());
+    }
+    TbVisit visit = visitMapper.selectLatestVisitByPerson(person.getPersonId());
+    return visit == null ? null : range(visit.getWorkStartDt(), visit.getWorkEndDt());
+  }
+
+  /**
+   * 기간 표기 — "2026-01-01 09:00:00 ~ 2037-12-31 23:59:00".
+   *
+   * <p>정규·방문 구분 없이 <b>같은 형식</b>이다. 화면에서 두 인원의 값을 나란히 볼 때 형식이 다르면 같은 뜻인지 매번 되짚어야 한다.
+   *
+   * <p>초까지 쓴다. 출입 판정은 초 단위로 일어나므로, 경계에 걸린 사람을 두고 "왜 막혔나"를 볼 때 분까지만으로는 답이 나오지 않는다. 값은 DB 에서 초까지 읽어
+   * 온다 — 없는 초를 {@code :00} 으로 지어내지 않는다.
+   *
+   * <p>한쪽만 비어 있어도 있는 쪽은 보여 준다(빈 쪽은 "?"). 기간이 반쯤 비었다는 사실 자체가 현장에서 확인할 거리다.
+   */
+  private static String range(String start, String end) {
+    String s = stamp(start);
+    String e = stamp(end);
+    if (s == null && e == null) {
+      return null;
+    }
+    return (s == null ? "?" : s) + " ~ " + (e == null ? "?" : e);
+  }
+
+  /** SQL 이 "YYYY-MM-DDThh:mm:ss"(style 126)로 내려준다. 화면에는 가운데 T 대신 공백을 쓴다. */
+  private static String stamp(String dt) {
+    return (dt == null || dt.isBlank()) ? null : dt.replace('T', ' ');
   }
 
   /** 소켓 상태가 바뀌면 보고 있는 모든 화면에 알린다 — 조용히 끊기면 "인증이 없는 것"과 구분되지 않는다. */

@@ -47,12 +47,24 @@
     ? `<img src="data:image/jpeg;base64,${base64}" alt="${esc(alt)}"/>`
     : (faceUser ? FACE_ICON : CARD_ICON));
 
+  /* 허가 기간은 값이 길어 좁은 화면에서 두 줄로 접힌다. 시작·종료를 각각 묶어
+     가운데 " ~ " 에서만 접히게 한다 — 묶지 않으면 "2026-08-04" 의 붙임표 뒤에서 갈라져
+     날짜 하나가 두 줄에 나뉜다(붙임표는 줄바꿈 자리로 쓰인다). */
+  const periodHtml = (period) => {
+    if (!period) return '-';
+    const both = period.split(' ~ ');
+    return both.length === 2
+      ? `<span>${esc(both[0])}</span> ~ <span>${esc(both[1])}</span>`
+      : esc(period);
+  };
+
   function showMain(e) {
     $('mainRegistered').innerHTML = photo(e.registeredPhoto, '등록 사진', e.faceUser);
     $('mainAuth').innerHTML = photo(e.authPhoto, '인증 사진', e.faceUser);
     $('mainName').textContent = e.personName || (e.personId ? e.personId : '미등록');
     $('mainCompany').textContent = e.companyName || '-';
     $('mainAreas').textContent = e.areas || '-';
+    $('mainPeriod').innerHTML = periodHtml(e.period);
     $('mainResult').textContent = e.resultLabel || '';
     // 출입거부면 초록이던 곳이 통째로 붉어진다 — 멀리서 모니터만 봐도 구분되어야 한다
     $('monitorMain').classList.toggle('deny', !e.granted);
@@ -166,6 +178,7 @@
     $('mainName').textContent = '-';
     $('mainCompany').textContent = '-';
     $('mainAreas').textContent = '-';
+    $('mainPeriod').textContent = '-';
     $('mainResult').textContent = '';
     $('monitorMain').classList.remove('shown', 'deny');
     renderHistory();

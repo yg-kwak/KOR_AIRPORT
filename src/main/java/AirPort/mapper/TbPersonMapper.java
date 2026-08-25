@@ -22,6 +22,9 @@ public interface TbPersonMapper {
 
   TbPerson selectById(@Param("personId") String personId);
 
+  /** 실시간 이벤트 화면의 허가기간 — 출입기간을 초까지 읽는다. 목록·수정용 조회는 분까지다. */
+  TbPerson selectAccessPeriod(@Param("personId") String personId);
+
   /**
    * 주어진 인원ID 중 <b>살아 있는(del_yn='N')</b> 것만 — 존재 여부만 필요할 때.
    *

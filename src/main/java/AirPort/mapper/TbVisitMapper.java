@@ -105,6 +105,9 @@ public interface TbVisitMapper {
    */
   List<String> selectAcGroupNamesByPerson(@Param("personId") String personId);
 
+  /** 그 인원의 가장 최근 방문 — 실시간 이벤트 화면의 허가기간(작업기간). 없으면 null. */
+  TbVisit selectLatestVisitByPerson(@Param("personId") String personId);
+
   int deleteAcGroups(@Param("visitNo") int visitNo);
 
   int insertAcGroups(@Param("visitNo") int visitNo, @Param("acGroupIds") List<Integer> acGroupIds);

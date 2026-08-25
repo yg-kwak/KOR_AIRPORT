@@ -25,13 +25,14 @@ import AirPort.mapper.TbVisitMapper;
 import AirPort.model.AuthEventResult;
 import AirPort.model.TbCompany;
 import AirPort.model.TbPerson;
+import AirPort.model.TbVisit;
 import AirPort.security.ARIAUtil;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * 실시간 이벤트에 붙이는 우리 DB 값 — <b>소속</b>과 <b>허가구역</b>의 출처 판정.
+ * 실시간 이벤트에 붙이는 우리 DB 값 — <b>소속</b>·<b>허가구역</b>·<b>허가기간</b>의 출처 판정.
  *
  * <p>둘 다 현장에서 틀리게 나와 고친 자리다. 소속은 방문객이 늘 비어 보였고(기관만 봤다), 허가구역은 매핑된 하위 그룹까지 세어 `12345` 가 `2122345` 로
  * 나왔다. 규칙이 조용히 뒤집히면 화면은 그럴듯한 값을 계속 보여 주므로 여기서 고정한다.
@@ -88,6 +89,7 @@ class MonitorEnrichTest {
     p.setAffiliation(affiliation);
     p.setCompanyCode(companyCode);
     when(personMapper.selectById("400001")).thenReturn(p);
+    when(personMapper.selectAccessPeriod("400001")).thenReturn(p); // 허가기간은 초까지 따로 읽는다
     return p;
   }
 
@@ -172,6 +174,68 @@ class MonitorEnrichTest {
 
       assertEquals("5", s.enrich(EVENT).getAreas(), type);
     }
+  }
+
+  // ── 허가기간 출처·표기 ────────────────────────────────────────
+
+  /** 방문 하나를 세운다. 화면의 허가기간은 이 값에서 나온다. */
+  private void visit(String start, String end) {
+    TbVisit v = new TbVisit();
+    v.setWorkStartDt(start);
+    v.setWorkEndDt(end);
+    when(visitMapper.selectLatestVisitByPerson("400001")).thenReturn(v);
+  }
+
+  @Test
+  void 정규인원의_허가기간은_사람에게_붙은_출입기간이다() {
+    TbPerson p = person("PT01", null, null);
+    p.setAccessStartDt("2026-01-01T09:00:00");
+    p.setAccessEndDt("2037-12-31T23:59:00");
+
+    assertEquals("2026-01-01 09:00:00 ~ 2037-12-31 23:59:00", service.enrich(EVENT).getPeriod());
+    verify(visitMapper, never()).selectLatestVisitByPerson(anyString());
+  }
+
+  @Test
+  void 방문객의_허가기간은_방문의_작업기간이다() {
+    person("PT02", null, null);
+    visit("2026-08-04T10:31:00", "2026-08-04T18:00:00");
+
+    // 정규와 같은 형식이다 — 나란히 볼 때 형식이 갈리면 같은 뜻인지 매번 되짚어야 한다
+    assertEquals("2026-08-04 10:31:00 ~ 2026-08-04 18:00:00", service.enrich(EVENT).getPeriod());
+  }
+
+  @Test
+  void 초까지_보여_준다() {
+    // 출입 판정은 초 단위로 일어난다. 분까지만 쓰면 경계에 걸린 사람이 왜 막혔는지 답이 안 나온다
+    person("PT02", null, null);
+    visit("2026-08-04T10:31:07", "2026-08-04T18:00:59");
+
+    assertEquals("2026-08-04 10:31:07 ~ 2026-08-04 18:00:59", service.enrich(EVENT).getPeriod());
+  }
+
+  @Test
+  void 한쪽만_비어도_있는_쪽은_보인다() {
+    // 기간이 반쯤 비었다는 사실 자체가 현장에서 확인할 거리다 — 통째로 감추지 않는다
+    person("PT02", null, null);
+    visit("2026-08-04T10:31:00", null);
+
+    assertEquals("2026-08-04 10:31:00 ~ ?", service.enrich(EVENT).getPeriod());
+  }
+
+  @Test
+  void 기간이_아예_없으면_비운다() {
+    person("PT01", null, null); // access_start_dt·access_end_dt 둘 다 null
+
+    assertNull(service.enrich(EVENT).getPeriod());
+  }
+
+  @Test
+  void 방문_이력이_없는_방문객은_기간이_비어_있다() {
+    person("PT02", null, null);
+    when(visitMapper.selectLatestVisitByPerson("400001")).thenReturn(null);
+
+    assertNull(service.enrich(EVENT).getPeriod());
   }
 
   // ── 소속 출처 ────────────────────────────────────────────────

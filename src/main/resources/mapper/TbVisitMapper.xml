@@ -303,6 +303,20 @@
     ORDER BY rootg.ac_group_name
   </select>
 
+  <!-- 실시간 이벤트 화면의 허가기간 — 방문객(임시·장기·상주 등)은 작업기간이 허가기간이다.
+       위 selectAcGroupNamesByPerson 과 반드시 같은 방문(가장 최근)을 봐야 한다.
+       기준이 갈리면 화면에서 구역과 기간이 서로 다른 방문의 값으로 섞여 보인다. -->
+  <select id="selectLatestVisitByPerson" resultType="TbVisit">
+    SELECT TOP 1
+      v.visit_no,
+      CONVERT(varchar(19), v.work_start_dt, 126) AS work_start_dt,
+      CONVERT(varchar(19), v.work_end_dt, 126)   AS work_end_dt
+    FROM tb_visit_person vp
+    JOIN tb_visit v ON v.visit_no = vp.visit_no
+    WHERE vp.person_id = #{personId}
+    ORDER BY vp.visit_no DESC
+  </select>
+
   <delete id="deleteAcGroups">DELETE FROM tb_visit_ac_group WHERE visit_no = #{visitNo}</delete>
   <insert id="insertAcGroups">
     INSERT INTO tb_visit_ac_group (visit_no, ac_group_id) VALUES
