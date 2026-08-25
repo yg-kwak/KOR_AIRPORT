@@ -12,18 +12,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import AirPort.TestKeys;
-import AirPort.adapter.biostar.BiostarAdapter;
 import AirPort.adapter.biostar.BiostarAuthEvent;
 import AirPort.adapter.biostar.BiostarEventAdapter;
-import AirPort.adapter.biostar.BiostarEventSocket;
-import AirPort.mapper.TbCompanyMapper;
 import AirPort.mapper.TbPersonAcGroupMapper;
 import AirPort.mapper.TbPersonMapper;
 import AirPort.mapper.TbPersonPhotoMapper;
 import AirPort.mapper.TbSystemMapper;
 import AirPort.mapper.TbVisitMapper;
 import AirPort.model.AuthEventResult;
-import AirPort.model.TbCompany;
 import AirPort.model.TbPerson;
 import AirPort.model.TbVisit;
 import AirPort.security.ARIAUtil;
@@ -48,27 +44,12 @@ class MonitorEnrichTest {
   private final TbPersonMapper personMapper = mock(TbPersonMapper.class);
   private final TbPersonPhotoMapper photoMapper = mock(TbPersonPhotoMapper.class);
   private final TbPersonAcGroupMapper acGroupMapper = mock(TbPersonAcGroupMapper.class);
-  private final TbCompanyMapper companyMapper = mock(TbCompanyMapper.class);
   private final TbVisitMapper visitMapper = mock(TbVisitMapper.class);
-  private final BiostarAdapter biostarAdapter = mock(BiostarAdapter.class);
   private final BiostarEventAdapter eventAdapter = mock(BiostarEventAdapter.class);
-  private final BiostarEventSocket eventSocket = mock(BiostarEventSocket.class);
-  private final MenuAuthService menuAuthService = mock(MenuAuthService.class);
-  private final AuditService auditService = mock(AuditService.class);
 
-  private final MonitorService service =
-      new MonitorService(
-          systemMapper,
-          personMapper,
-          photoMapper,
-          acGroupMapper,
-          companyMapper,
-          visitMapper,
-          biostarAdapter,
-          eventAdapter,
-          eventSocket,
-          menuAuthService,
-          auditService);
+  private final MonitorEnrichService service =
+      new MonitorEnrichService(
+          systemMapper, personMapper, photoMapper, acGroupMapper, visitMapper, eventAdapter);
 
   private static final BiostarAuthEvent EVENT =
       new BiostarAuthEvent(
@@ -88,15 +69,13 @@ class MonitorEnrichTest {
     p.setPersonType(type);
     p.setAffiliation(affiliation);
     p.setCompanyCode(companyCode);
-    when(personMapper.selectById("400001")).thenReturn(p);
-    when(personMapper.selectAccessPeriod("400001")).thenReturn(p); // 허가기간은 초까지 따로 읽는다
+    when(personMapper.selectForMonitor("400001")).thenReturn(p);
     return p;
   }
 
-  private void company(String code, String name) {
-    TbCompany c = new TbCompany();
-    c.setCompanyName(name);
-    when(companyMapper.selectById(code)).thenReturn(c);
+  /** 기관명은 화면 전용 조회가 조인으로 함께 준다 — 따로 묻지 않는다. */
+  private void company(TbPerson person, String name) {
+    person.setCompanyName(name);
   }
 
   // ── 사진 없는 칸에 세울 그림 ───────────────────────────────
@@ -119,7 +98,7 @@ class MonitorEnrichTest {
 
   @Test
   void 우리_DB_에_없는_사용자는_사람_모양으로_표시하지_않는다() {
-    when(personMapper.selectById("400001")).thenReturn(null);
+    when(personMapper.selectForMonitor("400001")).thenReturn(null);
 
     assertFalse(service.enrich(EVENT).isFaceUser());
   }
@@ -128,8 +107,7 @@ class MonitorEnrichTest {
 
   @Test
   void 정규인원은_사람에게_붙은_출입그룹을_본다() {
-    person("PT01", null, "C001");
-    company("C001", "한국공항공사 청주지사");
+    company(person("PT01", null, "C001"), "한국공항공사 청주지사");
     when(acGroupMapper.selectAcGroupNames("400001"))
         .thenReturn(List.of("인원구역1", "인원구역2", "인원구역3", "인원구역4", "인원구역5"));
 
@@ -157,19 +135,9 @@ class MonitorEnrichTest {
     for (String type : new String[] {"PT03", "PT04", "PT05", "PT06"}) {
       TbVisitMapper visits = mock(TbVisitMapper.class);
       when(visits.selectAcGroupNamesByPerson("400001")).thenReturn(List.of("인원구역5"));
-      MonitorService s =
-          new MonitorService(
-              systemMapper,
-              personMapper,
-              photoMapper,
-              acGroupMapper,
-              companyMapper,
-              visits,
-              biostarAdapter,
-              eventAdapter,
-              eventSocket,
-              menuAuthService,
-              auditService);
+      MonitorEnrichService s =
+          new MonitorEnrichService(
+              systemMapper, personMapper, photoMapper, acGroupMapper, visits, eventAdapter);
       person(type, null, null);
 
       assertEquals("5", s.enrich(EVENT).getAreas(), type);
@@ -191,6 +159,8 @@ class MonitorEnrichTest {
     TbPerson p = person("PT01", null, null);
     p.setAccessStartDt("2026-01-01T09:00:00");
     p.setAccessEndDt("2037-12-31T23:59:00");
+    // 인원 조회 한 번이 성명·소속·출입기간을 함께 준다 — 초 때문에 tb_person 을 다시 읽지 않는다
+    verify(personMapper, never()).selectById(anyString());
 
     assertEquals("2026-01-01 09:00:00 ~ 2037-12-31 23:59:00", service.enrich(EVENT).getPeriod());
     verify(visitMapper, never()).selectLatestVisitByPerson(anyString());
@@ -243,16 +213,14 @@ class MonitorEnrichTest {
   @Test
   void 소속은_자유입력한_값을_먼저_쓴다() {
     // 방문객은 기관에 매이지 않고 소속을 직접 적는다 — 그 값이 정확하다
-    person("PT02", "㈜대한기술", "C001");
-    company("C001", "한국공항공사 청주지사");
+    company(person("PT02", "㈜대한기술", "C001"), "한국공항공사 청주지사");
 
     assertEquals("㈜대한기술", service.enrich(EVENT).getCompanyName());
   }
 
   @Test
   void 자유입력이_없으면_기관명으로_물러선다() {
-    person("PT01", null, "C001");
-    company("C001", "한국공항공사 청주지사");
+    company(person("PT01", null, "C001"), "한국공항공사 청주지사");
 
     assertEquals("한국공항공사 청주지사", service.enrich(EVENT).getCompanyName());
   }
@@ -269,7 +237,7 @@ class MonitorEnrichTest {
   @Test
   void 등록되지_않은_사람도_화면에는_올린다() {
     // 장비에 있고 우리 DB 에 없는 사람 — 누가 지나갔는지가 정보다. DB 를 더 뒤지지 않는다
-    when(personMapper.selectById("400001")).thenReturn(null);
+    when(personMapper.selectForMonitor("400001")).thenReturn(null);
 
     AuthEventResult row = service.enrich(EVENT);
 

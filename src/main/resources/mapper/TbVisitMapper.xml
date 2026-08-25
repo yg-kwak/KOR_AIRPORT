@@ -291,30 +291,36 @@
   </select>
   <!-- 실시간 이벤트 허가구역(방문객) — 여러 방문에 이름이 올라 있을 수 있어 가장 최근 방문 하나만 본다.
        지금 인증한 사람이라면 그 방문이 진행중인 방문이다. -->
+  <!-- 실시간 이벤트 화면이 보는 "그 사람의 방문" — 가장 최근 방문.
+       허가구역(selectAcGroupNamesByPerson)과 허가기간(selectLatestVisitByPerson)은
+       **반드시 같은 방문**에서 나와야 한다. 기준이 갈리면 화면에서 구역과 기간이
+       서로 다른 방문의 값으로 섞여 보이는데, 둘 다 그럴듯한 값이라 눈으로는 알아채기 어렵다.
+       그래서 기준을 이 조각 하나에만 두고 두 쿼리가 함께 include 한다.
+       MonitorPeriodRuleTest 가 두 쿼리 모두 이 조각을 쓰는지 지킨다. -->
+  <sql id="latestVisitOfPerson">
+    (SELECT MAX(visit_no) FROM tb_visit_person WHERE person_id = #{personId})
+  </sql>
+
   <select id="selectAcGroupNamesByPerson" resultType="string">
     SELECT DISTINCT rootg.ac_group_name
     FROM tb_visit_person vp
     JOIN tb_visit_ac_group vag ON vag.visit_no = vp.visit_no
     JOIN tb_ac_group g   ON g.ac_group_id = vag.ac_group_id
     JOIN tb_ac_group rootg ON rootg.ar_code = g.ar_code AND rootg.parent_ac_group_id IS NULL
-    WHERE vp.person_id = #{personId}
-      AND vp.visit_no = (SELECT MAX(visit_no) FROM tb_visit_person WHERE person_id = #{personId})
+    WHERE vp.visit_no = <include refid="latestVisitOfPerson"/>
       AND rootg.ac_group_name IS NOT NULL
     ORDER BY rootg.ac_group_name
   </select>
 
   <!-- 실시간 이벤트 화면의 허가기간 — 방문객(임시·장기·상주 등)은 작업기간이 허가기간이다.
-       위 selectAcGroupNamesByPerson 과 반드시 같은 방문(가장 최근)을 봐야 한다.
-       기준이 갈리면 화면에서 구역과 기간이 서로 다른 방문의 값으로 섞여 보인다. -->
+       방문 선택은 위 latestVisitOfPerson 조각이 원천이다(구역과 같은 방문을 본다). -->
   <select id="selectLatestVisitByPerson" resultType="TbVisit">
-    SELECT TOP 1
+    SELECT
       v.visit_no,
       CONVERT(varchar(19), v.work_start_dt, 126) AS work_start_dt,
       CONVERT(varchar(19), v.work_end_dt, 126)   AS work_end_dt
-    FROM tb_visit_person vp
-    JOIN tb_visit v ON v.visit_no = vp.visit_no
-    WHERE vp.person_id = #{personId}
-    ORDER BY vp.visit_no DESC
+    FROM tb_visit v
+    WHERE v.visit_no = <include refid="latestVisitOfPerson"/>
   </select>
 
   <delete id="deleteAcGroups">DELETE FROM tb_visit_ac_group WHERE visit_no = #{visitNo}</delete>

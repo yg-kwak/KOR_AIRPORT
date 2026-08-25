@@ -136,13 +136,20 @@
     WHERE p.person_id = #{personId}
   </select>
 
-  <!-- 실시간 이벤트 화면의 허가기간 — 초까지 보여 준다.
-       listColumns 는 varchar(16)(분까지)이다. 등록·수정 화면의 datetime-local 입력이 그 형식만 받으므로
-       그대로 두고, 초가 필요한 이 화면만 따로 읽는다. -->
-  <select id="selectAccessPeriod" resultType="TbPerson">
-    SELECT CONVERT(varchar(19), access_start_dt, 126) AS access_start_dt,
-           CONVERT(varchar(19), access_end_dt, 126)   AS access_end_dt
-    FROM tb_person WHERE person_id = #{personId}
+  <!-- 실시간 이벤트 화면 전용 단건 조회 — 그 화면이 쓰는 값만 한 번에 읽는다.
+       인증 1건마다 도는 조회라 왕복을 줄이는 것이 그대로 체감된다(출근 시간에는 인증이 몰린다).
+       공용 selectById 를 쓰면 ① 출입기간이 분까지라 초를 위해 tb_person 을 다시 읽어야 하고
+       ② 기관명을 또 한 번 조회해야 해서 인증 1건에 질의가 3회가 된다.
+       listColumns 의 정밀도를 올려 해결하지 않는 이유: 등록·수정 화면의 datetime-local 입력이
+       분까지만 받으므로 그쪽이 조용히 빈칸이 된다(conventions §6). -->
+  <select id="selectForMonitor" resultType="TbPerson">
+    SELECT p.person_id, p.person_name, p.person_type, p.affiliation, p.company_code,
+           CONVERT(varchar(19), p.access_start_dt, 126) AS access_start_dt,
+           CONVERT(varchar(19), p.access_end_dt, 126)   AS access_end_dt,
+           co.company_name AS company_name
+    FROM tb_person p
+    LEFT JOIN tb_company co ON co.company_code = p.company_code
+    WHERE p.person_id = #{personId}
   </select>
 
   <insert id="insert" parameterType="TbPerson">

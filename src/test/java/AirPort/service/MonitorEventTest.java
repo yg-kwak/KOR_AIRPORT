@@ -68,27 +68,27 @@ class MonitorEventTest {
 
   @Test
   void 허가구역은_번호만_이어_붙인다() {
-    assertEquals("125", MonitorService.areaNos(List.of("인원구역1", "인원구역2", "인원구역5")));
+    assertEquals("125", MonitorEnrichService.areaNos(List.of("인원구역1", "인원구역2", "인원구역5")));
   }
 
   @Test
   void 번호가_없는_구역명은_그대로_남긴다() {
     // 조용히 사라지면 어느 구역이 빠졌는지 알 수 없다
-    assertEquals("1게이트", MonitorService.areaNos(List.of("인원구역1", "게이트")));
+    assertEquals("1게이트", MonitorEnrichService.areaNos(List.of("인원구역1", "게이트")));
   }
 
   @Test
   void 구역이_없으면_빈_문자열() {
-    assertEquals("", MonitorService.areaNos(List.of()));
+    assertEquals("", MonitorEnrichService.areaNos(List.of()));
   }
 
   @Test
   void 이벤트_시각은_시분초만_남긴다() {
-    assertEquals("01:38:01", MonitorService.time("2026-08-11T01:38:01.00Z"));
+    assertEquals("01:38:01", MonitorEnrichService.time("2026-08-11T01:38:01.00Z"));
   }
 
   @Test
   void 형식이_다른_시각은_원문을_남긴다() {
-    assertEquals("어제", MonitorService.time("어제"));
+    assertEquals("어제", MonitorEnrichService.time("어제"));
   }
 }

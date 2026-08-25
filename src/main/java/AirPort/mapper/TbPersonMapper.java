@@ -22,8 +22,12 @@ public interface TbPersonMapper {
 
   TbPerson selectById(@Param("personId") String personId);
 
-  /** 실시간 이벤트 화면의 허가기간 — 출입기간을 초까지 읽는다. 목록·수정용 조회는 분까지다. */
-  TbPerson selectAccessPeriod(@Param("personId") String personId);
+  /**
+   * 실시간 이벤트 화면 전용 단건 조회 — 성명·소속·기관명·출입기간(초까지)을 한 번에 읽는다.
+   *
+   * <p>인증 1건마다 도는 조회라 공용 {@code selectById} 를 쓰면 초와 기관명 때문에 질의가 3회가 된다.
+   */
+  TbPerson selectForMonitor(@Param("personId") String personId);
 
   /**
    * 주어진 인원ID 중 <b>살아 있는(del_yn='N')</b> 것만 — 존재 여부만 필요할 때.

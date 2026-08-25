@@ -170,7 +170,8 @@ DOMContentLoaded → bind()  → load()
 - **페이징**은 MSSQL `OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY` (offset 계산은 `PageParam.getOffset()`).
 - null 기본값은 `ISNULL(#{x}, '기본')`. (jdbcTypeForNull=VARCHAR 설정 전제 — `mybatis-config`)
 - **암호화(ARIA) 컬럼 검색**: 성명 등 ARIA 컬럼은 결정적(ECB)이라 **부분(LIKE)·정렬 불가, 완전일치만** 가능. 서비스가 `keyword` 를 `ariaEncrypt` 해 `PageParam.keywordEnc` 로 넣고, mapper 는 `= #{keywordEnc}` 로 비교(`<if test="keywordEnc != null ...">` 가드). 카드번호·차량번호 등 평문은 LIKE.
-- **날짜 정밀도가 화면마다 다르면 조회를 나눈다.** 등록·수정 화면은 `datetime-local` 이라 `CONVERT(varchar(16), …, 126)`(분까지)여야 값이 채워지고, 보여주기만 하는 화면은 초가 필요할 수 있다. 공유 `listColumns` 의 정밀도를 올리면 **입력 화면이 조용히 빈칸이 된다** — 올리지 말고 전용 select 를 따로 둔다. 예: `TbPersonMapper.selectAccessPeriod`(실시간 이벤트 허가기간, `varchar(19)`).
+- **인증·이벤트처럼 건마다 도는 화면은 전용 단건 조회를 둔다.** 공용 `selectById`(목록용 컬럼·조인 전부)를 쓰면 모자란 값 때문에 같은 행을 다시 읽거나 연관 표를 또 묻게 되어 **1건에 질의가 여러 번** 나간다. 그 화면이 쓰는 값만 한 번에 읽는 `selectFor{화면}` 을 둔다. 예: `TbPersonMapper.selectForMonitor`(성명·소속·기관명·출입기간 1회).
+- **날짜 정밀도가 화면마다 다르면 조회를 나눈다.** 등록·수정 화면은 `datetime-local` 이라 `CONVERT(varchar(16), …, 126)`(분까지)여야 값이 채워지고, 보여주기만 하는 화면은 초가 필요할 수 있다. 공유 `listColumns` 의 정밀도를 올리면 **입력 화면이 조용히 빈칸이 된다** — 올리지 말고 전용 select 를 따로 둔다. 예: `TbPersonMapper.selectForMonitor`(실시간 이벤트, `varchar(19)`).
 - **연관 테이블 검색은 `EXISTS` 상관 서브쿼리**로(JOIN 중복행 방지). 예: 방문 목록에서 방문객/인솔자(tb_visit_person·tb_visit_manager→tb_person)·차량(tb_car)·카드(tb_card) 검색.
 
 **검색 파라미터 모델**: 공통 `PageParam`(page/size/keyword/searchType/sort/dir) 을 상속한 `{도메인}SearchParam` 에 도메인 필터(useYn 등)를 추가한다.
