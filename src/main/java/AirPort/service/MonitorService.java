@@ -178,7 +178,7 @@ public class MonitorService {
    * 감사추적이 이 줄로 덮여 정작 사람이 한 일을 못 찾는다.
    */
   private void auditIfNew(TbLoginUser actor, Integer menuId, String deviceId) {
-    String key = (actor == null ? "?" : actor.getUserId()) + " " + deviceId;
+    String key = (actor == null ? "?" : actor.getUserId()) + "\u0000" + deviceId;
     long now = System.currentTimeMillis();
     Long last = auditedAt.get(key);
     if (last != null && now - last < AUDIT_QUIET_MINUTES * 60_000L) {
