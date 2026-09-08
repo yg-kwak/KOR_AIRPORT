@@ -299,6 +299,9 @@ label.btn { display: inline-flex; align-items: center; justify-content: center; 
   border-radius: var(--radius-sm); font-size: 14px; outline: none;
   background: var(--color-white); color: var(--color-black);
 }
+/* 여러 줄 입력 — .input 의 고정 높이(36px)에 눌리면 rows 를 아무리 키워도 한 줄로 나온다.
+   높이는 rows 가 정하게 두고, 세로만 사용자가 늘릴 수 있게 한다(가로가 늘면 폼 격자가 틀어진다). */
+textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vertical; }
 .input:focus { border-color: var(--color-primary-default); box-shadow: 0 0 0 3px var(--nt-focus-ring); }
 /* 수정 불가(readonly) 항목은 색을 다르게 — 배경 회색조 + 보조 텍스트 */
 .input[readonly] {

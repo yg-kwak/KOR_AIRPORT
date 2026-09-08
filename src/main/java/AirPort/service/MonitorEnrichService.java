@@ -2,6 +2,7 @@ package AirPort.service;
 
 import AirPort.adapter.biostar.BiostarAuthEvent;
 import AirPort.adapter.biostar.BiostarEventAdapter;
+import AirPort.common.Affiliations;
 import AirPort.mapper.TbPersonAcGroupMapper;
 import AirPort.mapper.TbPersonMapper;
 import AirPort.mapper.TbPersonPhotoMapper;
@@ -79,7 +80,7 @@ public class MonitorEnrichService {
         (event.userId() == null) ? null : personMapper.selectForMonitor(event.userId());
     if (person != null) {
       row.setPersonName(decrypt(person.getPersonName()));
-      row.setCompanyName(affiliationOf(person));
+      row.setCompanyName(Affiliations.of(person)); // 기관명은 위 조회가 조인으로 함께 받아 온다
       row.setAreas(areaNos(acGroupNames(person)));
       row.setPeriod(period(person));
       row.setRegisteredPhoto(photoMapper.selectPhoto(event.userId()));
@@ -103,17 +104,6 @@ public class MonitorEnrichService {
         row.getAuthPhoto() == null ? "없음" : row.getAuthPhoto().length() + "자",
         row.getRegisteredPhoto() == null ? "없음" : row.getRegisteredPhoto().length() + "자");
     return row;
-  }
-
-  /**
-   * 소속 — 방문객은 자유입력한 {@code affiliation}, 정규인원은 기관명.
-   *
-   * <p>방문객은 기관(`tb_company`)에 매이지 않고 소속을 직접 적는다. 그 값이 있으면 그것이 정확하다. 비어 있을 때만 기관명으로 물러선다. 기관명은 위 조회가
-   * 조인으로 함께 받아 온다 — 따로 묻지 않는다.
-   */
-  private String affiliationOf(TbPerson person) {
-    String affiliation = person.getAffiliation();
-    return (affiliation != null && !affiliation.isBlank()) ? affiliation : person.getCompanyName();
   }
 
   /**

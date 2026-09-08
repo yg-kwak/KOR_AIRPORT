@@ -14,7 +14,7 @@
 
   // 차량 패널 입력 필드(= TbCar 속성명). *Name 은 표시용
   const PANEL_FIELDS = ['carId', 'carNo', 'carName', 'carType', 'carTypeName',
-    'carManagerId', 'carManagerName'];
+    'affiliation', 'carManagerId', 'carManagerName'];
   let acCodeList = []; // tb_common(CAR) 출입구역 코드
 
   // ---- 기관 목록 ----
@@ -172,6 +172,7 @@
       carNo: $('carNo').value.trim() || null,
       carName: $('carName').value.trim() || null,
       carType: $('carType').value || null,
+      affiliation: $('affiliation').value.trim() || null,
       carManagerId: $('carManagerId').value || null,
       acCodes: selectedAcCodes(),
     };

@@ -166,6 +166,7 @@ public class CompanyCarService {
     row.setCarNo(form.getCarNo());
     row.setCarName(form.getCarName());
     row.setCarType(form.getCarType());
+    row.setAffiliation(blankToNull(form.getAffiliation()));
     row.setCarManagerId(blankToNull(form.getCarManagerId()));
     return row;
   }

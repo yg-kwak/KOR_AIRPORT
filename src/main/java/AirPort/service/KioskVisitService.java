@@ -71,7 +71,6 @@ public class KioskVisitService {
     List<VisitCarForm> cars = nonBlankCars(form);
     req(form.getWorkStartDt(), "작업기간 시작");
     req(form.getWorkEndDt(), "작업기간 종료");
-    req(form.getCompanyName(), "업체명");
     req(form.getWorkPurpose(), "작업목적");
     bad(form.managerIds().isEmpty(), "인솔자를 선택하세요.");
     // 연락처 필수 — 관리자 화면과 같은 규칙을 쓴다(VisitManagerForm 에 모아 둠)

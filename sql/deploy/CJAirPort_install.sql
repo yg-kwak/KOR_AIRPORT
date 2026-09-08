@@ -180,6 +180,29 @@ END
 GO
 
 
+/* 제재인원 (보안관리 → 제재인원관리) — 성명+생년월일로 대조해 출입 등록을 막는다.
+   둘 다 ARIA 암호문이고 결정적이라 완전일치 비교만 된다(부분검색·정렬 불가) */
+IF OBJECT_ID('dbo.tb_blacklist', 'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.tb_blacklist (
+    blacklist_id int IDENTITY(1,1) NOT NULL,             -- 제재ID (PK)
+    person_name  nvarchar(255) NOT NULL,                 -- 성명 (ARIA 암호화)
+    birth_date   nvarchar(255) NOT NULL,                 -- 생년월일 YYYY-MM-DD (ARIA 암호화)
+    affiliation  nvarchar(100) NULL,                     -- 소속 (자유입력)
+    remark       nvarchar(1000) NULL,                    -- 비고 (제재 사유 등)
+    ban_start_dt datetime2(0)  NULL,                     -- 정지기간 시작 (비면 즉시부터)
+    ban_end_dt   datetime2(0)  NULL,                     -- 정지기간 종료 (비면 무기한)
+    del_yn       nchar(1)      NOT NULL DEFAULT 'N',
+    reg_dt       datetime2(0)  NOT NULL DEFAULT getdate(), -- 생성일자
+    mod_dt       datetime2(0)  NOT NULL DEFAULT getdate(),
+    CONSTRAINT PK_tb_blacklist PRIMARY KEY (blacklist_id),
+    CONSTRAINT CHK_tb_blacklist_del_yn CHECK (del_yn IN ('Y','N'))
+  );
+  CREATE INDEX IX_tb_blacklist_person ON dbo.tb_blacklist (person_name, birth_date)
+    INCLUDE (ban_start_dt, ban_end_dt, del_yn);
+END
+GO
+
 /* 차량 (1:1 — 차량마다 관리자 1명. FK 미강제: 기존 테이블과 동일하게 논리적 관계만 둔다) */
 IF OBJECT_ID('dbo.tb_car', 'U') IS NULL
 BEGIN
@@ -190,6 +213,7 @@ BEGIN
     car_type       nvarchar(30)  NULL,                   -- 차종
     car_manager_id nvarchar(30)  NULL,                   -- 차량관리자 (→ tb_person.person_id, 소속 기관의 정규인원. FK 미강제)
     company_code   nvarchar(30)  NULL,                   -- 소속 기관 (→ tb_company.company_code, FK 미강제). 기관차량등록에서 채운다
+    affiliation    nvarchar(100) NULL,                   -- 차량소속 (자유입력). company_code 와 다르다 — 그쪽은 기관 코드이고 이쪽은 신청서에 찍히는 소속 문구다
     del_yn         nchar(1)      NOT NULL DEFAULT 'N',   -- 삭제여부(소프트 삭제): 삭제 시 'Y', 조회는 'N'
     reg_dt         datetime2(0)  NOT NULL DEFAULT getdate(),
     mod_dt         datetime2(0)  NOT NULL DEFAULT getdate(),
@@ -197,6 +221,12 @@ BEGIN
     CONSTRAINT CHK_tb_car_del_yn CHECK (del_yn IN ('Y','N'))
   );
 END
+GO
+
+/* 이미 tb_car 가 있는 DB 로 이 스크립트를 돌리는 경우 — 컬럼만 채운다(재실행 안전) */
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+               WHERE TABLE_NAME = 'tb_car' AND COLUMN_NAME = 'affiliation')
+  ALTER TABLE dbo.tb_car ADD affiliation nvarchar(100) NULL;
 GO
 
 

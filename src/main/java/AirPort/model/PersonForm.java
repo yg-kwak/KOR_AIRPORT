@@ -32,6 +32,13 @@ public class PersonForm {
   private String remark;
   private String useYn;
 
+  /**
+   * 저장 요청 전용 — 인원상태를 [정지] 로 바꾸면서 제재인원에도 올릴지. 화면이 확인을 받아 true 로 보낸다.
+   *
+   * <p>저장 컬럼이 아니다. 확인을 받지 않았으면 상태만 바뀌고 제재인원에는 오르지 않는다.
+   */
+  private boolean addToBlacklist;
+
   // ── 증빙문서 첨부(BASE64) — null/빈 값이면 기존 파일 유지, 파일명이 비면 삭제 (tb_person_file) ──
   private String idCheckFileData;
   private String approveFileData;

@@ -156,6 +156,25 @@ PK: `ac_group_id` (IDENTITY)
 | biostar_ac_name | nvarchar(50) | | BiostarX 출입그룹명 | |
 | reg_dt / mod_dt | datetime2(0) | | 생성/수정일자 | |
 
+### tb_blacklist — 제재인원
+PK: `blacklist_id` (IDENTITY). 출입을 막을 사람의 명단. **성명+생년월일 쌍으로 대조**해 임시·장기·정규 등록을 차단한다.
+**삭제는 물리 DELETE 금지 — `del_yn='Y'` 소프트 삭제**로 제재 이력을 보존한다.
+
+| 컬럼 | 타입 | PK | Enc | 설명 | 비고 |
+|------|------|----|-----|------|------|
+| blacklist_id | int | Y | | 제재ID | IDENTITY(1,1) |
+| person_name | nvarchar(255) | | Y | 성명 | ARIA. 결정적이라 완전일치 비교만 가능(부분검색·정렬 불가) |
+| birth_date | nvarchar(255) | | Y | 생년월일 | ARIA. 평문은 `YYYY-MM-DD`(`BirthDates` 로 정규화) |
+| affiliation | nvarchar(100) | | | 소속 | 자유입력. 목록 검색은 이 값으로 한다(암호화 컬럼은 못 훑는다) |
+| remark | nvarchar(1000) | | | 비고 | 제재 사유 등 |
+| ban_start_dt | datetime2(0) | | | 정지기간 시작 | 비면 즉시부터 |
+| ban_end_dt | datetime2(0) | | | 정지기간 종료 | 비면 무기한 |
+| del_yn | nchar(1) | | | 삭제여부 | 기본 'N', CHK Y/N. 삭제 시 'Y' (소프트 삭제) |
+| reg_dt / mod_dt | datetime2(0) | | | 생성일자/수정일자 | 기본 getdate() |
+
+> 인덱스 `IX_tb_blacklist_person (person_name, birth_date)` — 대조는 **등록할 때마다** 도는 조회다.
+> 정지기간이 지난 행은 남아 있어도 대조에 걸리지 않는다(기간 밖이면 통과).
+
 ### tb_car — 차량
 PK: `car_id` (IDENTITY). 차량 1대에 관리자 1명(1:1). **삭제는 물리 DELETE 금지 — `del_yn='Y'` 소프트 삭제**로 이력/조인을 보존한다.
 
@@ -167,6 +186,7 @@ PK: `car_id` (IDENTITY). 차량 1대에 관리자 1명(1:1). **삭제는 물리 
 | car_type | nvarchar(30) | | | 차종 | `tb_common`(cmm_id='CT').code_id     |
 | car_manager_id | nvarchar(30) | | | 차량관리자 | → `tb_person.person_id` (소속 기관의 정규인원). 기관차량등록에서 지정 |
 | company_code | nvarchar(30) | | | 소속 기관 | → `tb_company.company_code`. 기관차량등록(`/company/companyCar`)에서 채운다 |
+| affiliation | nvarchar(100) | | | 차량소속 | **자유입력.** `company_code`(기관 코드)와 다르다 — 신청서 차량표의 [출입자소속] 칸에 그대로 찍힌다. 기관차량등록·방문 차량 탭 양쪽에서 입력 |
 | del_yn | nchar(1) | | | 삭제여부 | 기본 'N', CHK Y/N. 삭제 시 'Y' (소프트 삭제)   |
 | reg_dt / mod_dt | datetime2(0) | | | 입력/수정일자 | 기본 getdate()                         |
 

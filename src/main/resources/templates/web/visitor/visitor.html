@@ -124,10 +124,6 @@
                    placeholder="신청" autocomplete="off"/>
           </div>
           <div class="form-group">
-            <label>업체명 <span class="req">*</span></label>
-            <input type="text" id="companyName" class="input" maxlength="100" autocomplete="off"/>
-          </div>
-          <div class="form-group">
             <label>업체구분</label>
             <input type="text" id="companyType" class="input" maxlength="100" autocomplete="off"/>
           </div>
@@ -184,11 +180,11 @@
       <!-- 탭3: 방문객 -->
       <div class="tab-panel" id="tab-vis">
         <div class="grid-toolbar" style="padding:0 0 8px">
-          <span class="form-hint">방문객 성명·생년월일·소속과 카드(선택)를 입력합니다.</span>
+          <span class="form-hint">방문객 성명·생년월일·소속은 필수입니다. 생년월일은 1990-01-01 형식으로 입력합니다.</span>
           <div class="grid-actions"><button type="button" class="btn btn-sm" id="btnAddVis">방문객 추가</button></div>
         </div>
         <table class="grid">
-          <thead><tr><th class="w-100">인원ID</th><th class="w-140">성명 *</th><th class="w-100">생년월일</th><th>소속</th>
+          <thead><tr><th class="w-100">인원ID</th><th class="w-140">성명 *</th><th class="w-120">생년월일 *</th><th>소속 *</th>
             <th class="w-200">카드</th><th class="w-160">관리</th></tr></thead>
           <tbody id="visBody"><tr><td colspan="6" class="empty">방문객이 없습니다.</td></tr></tbody>
         </table>
@@ -197,13 +193,13 @@
       <!-- 탭4: 차량 -->
       <div class="tab-panel" id="tab-car">
         <div class="grid-toolbar" style="padding:0 0 8px">
-          <span class="form-hint">차량은 선택입니다. 차량번호·명칭·차종과 카드(선택)를 입력합니다.</span>
+          <span class="form-hint">차량은 선택입니다. 차량소속은 신청서 차량표의 [출입자소속] 칸에 그대로 찍힙니다.</span>
           <div class="grid-actions"><button type="button" class="btn btn-sm" id="btnAddCar">차량 추가</button></div>
         </div>
         <table class="grid">
-          <thead><tr><th class="w-160">차량번호</th><th>차량명칭</th><th class="w-120">차종</th>
+          <thead><tr><th class="w-160">차량번호</th><th>차량명칭</th><th class="w-120">차종</th><th class="w-140">차량소속</th>
             <th class="w-200">카드</th><th class="w-80">관리</th></tr></thead>
-          <tbody id="carBody"><tr><td colspan="5" class="empty">차량이 없습니다.</td></tr></tbody>
+          <tbody id="carBody"><tr><td colspan="6" class="empty">차량이 없습니다.</td></tr></tbody>
         </table>
       </div>
     </div>

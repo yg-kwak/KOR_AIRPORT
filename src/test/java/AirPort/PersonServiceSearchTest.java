@@ -43,6 +43,7 @@ class PersonServiceSearchTest {
         null,
         audit,
         null,
+        null,
         null);
   }
 

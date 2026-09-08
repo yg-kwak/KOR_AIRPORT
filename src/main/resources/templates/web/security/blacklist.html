@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head}"></head>
+<body>
+<div th:replace="~{fragments/main :: header}"></div>
+<div class="layout-container">
+  <div th:replace="~{fragments/sidebar :: sidebar(${menus})}"></div>
+  <main class="layout-content">
+    <h2>제재인원관리</h2>
+    <p class="form-hint">여기에 오른 사람은 <b>성명·생년월일</b>이 같으면 임시·장기·정규 등록이 막힙니다. 정지기간이 지나면 자동으로 풀립니다.</p>
+
+    <!-- 검색 -->
+    <section class="search-section">
+      <div class="search-field">
+        <label>상태</label>
+        <select id="banStateFilter" class="input w-120">
+          <option value="">전체</option>
+          <option value="active">정지 중</option>
+          <option value="released">해제</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>검색어</label>
+        <div class="search-keyword">
+          <select id="searchType" class="input w-120">
+            <option value="all">전체</option>
+            <option value="personName">성명(완전일치)</option>
+            <option value="affiliation">소속</option>
+          </select>
+          <input type="text" id="keyword" class="input w-300" placeholder="검색어를 입력하세요" autocomplete="off"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnSearch">검색</button>
+      <button class="btn" id="btnReset">초기화</button>
+    </section>
+
+    <!-- 목록 -->
+    <section class="content-card">
+      <div class="grid-toolbar">
+        <span class="grid-total" id="totalInfo"></span>
+        <div class="grid-actions">
+          <button class="btn" id="btnNew" th:if="${perm.canCreate}">등록</button>
+          <select id="pageSize" class="input">
+            <option value="30">30개씩 보기</option>
+            <option value="50">50개씩 보기</option>
+            <option value="100">100개씩 보기</option>
+            <option value="200">200개씩 보기</option>
+          </select>
+        </div>
+      </div>
+      <table class="grid">
+        <thead>
+        <tr>
+          <th class="w-120">성명</th>
+          <th class="w-120">생년월일</th>
+          <th class="sortable" data-sort="affiliation">소속<span class="sort-ind"></span></th>
+          <th class="w-120 sortable" data-sort="banStartDt">정지 시작<span class="sort-ind"></span></th>
+          <th class="w-120 sortable" data-sort="banEndDt">정지 종료<span class="sort-ind"></span></th>
+          <th class="w-100">상태</th>
+          <th>비고</th>
+          <th class="w-120 sortable" data-sort="regDt">생성일자<span class="sort-ind"></span></th>
+          <th class="w-120">관리</th>
+        </tr>
+        </thead>
+        <tbody id="gridBody">
+        <tr><td colspan="9" class="empty">조회 결과가 없습니다.</td></tr>
+        </tbody>
+      </table>
+      <div class="paging" id="paging"></div>
+    </section>
+  </main>
+</div>
+
+<!-- 등록/수정 모달 -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">제재인원 등록</h2>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="editForm">
+        <input type="hidden" id="blacklistId"/>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>성명 <span class="req">*</span></label>
+            <input type="text" id="personName" class="input" maxlength="100" autocomplete="off"/>
+          </div>
+          <div class="form-group">
+            <label>생년월일 <span class="req">*</span></label>
+            <input type="text" id="birthDate" class="input" placeholder="예: 1990-01-01"
+                   maxlength="10" inputmode="numeric" autocomplete="off"/>
+          </div>
+          <div class="form-group">
+            <label>소속</label>
+            <input type="text" id="affiliation" class="input" maxlength="100" autocomplete="off"/>
+          </div>
+          <div class="form-group"></div>
+          <div class="form-group">
+            <label>정지기간 시작</label>
+            <input type="date" id="banStartDt" class="input"/>
+          </div>
+          <div class="form-group">
+            <label>정지기간 종료 <span class="form-hint">(비우면 무기한)</span></label>
+            <input type="date" id="banEndDt" class="input"/>
+          </div>
+          <div class="form-group full">
+            <label>비고</label>
+            <textarea id="remark" class="input" rows="6" maxlength="1000"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="modalCancel">취소</button>
+      <button class="btn btn-primary" id="btnSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 공통 확인 모달 (제목/내용은 JS 로 주입) -->
+<div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
+
+<!-- 메뉴 권한 → JS 전달 (행 버튼 노출 제어. 서버가 2차로 강제) -->
+<script th:inline="javascript">
+  window.PAGE_PERM = {
+    canCreate: [[${perm.canCreate}]],
+    canDelete: [[${perm.canDelete}]]
+  };
+</script>
+<script src="/js/web/security/blacklist.js" defer></script>
+</body>
+</html>

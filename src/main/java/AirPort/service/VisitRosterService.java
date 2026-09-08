@@ -40,6 +40,7 @@ public class VisitRosterService {
   private final VisitBiostarService visitBiostar;
   private final ParkingPassService parkingPass;
   private final AuditService auditService;
+  private final BlacklistService blacklistService;
 
   public VisitRosterService(
       TbVisitMapper visitMapper,
@@ -51,7 +52,8 @@ public class VisitRosterService {
       CardIssueService cardIssue,
       VisitBiostarService visitBiostar,
       ParkingPassService parkingPass,
-      AuditService auditService) {
+      AuditService auditService,
+      BlacklistService blacklistService) {
     this.visitMapper = visitMapper;
     this.personMapper = personMapper;
     this.carMapper = carMapper;
@@ -62,6 +64,7 @@ public class VisitRosterService {
     this.visitBiostar = visitBiostar;
     this.parkingPass = parkingPass;
     this.auditService = auditService;
+    this.blacklistService = blacklistService;
   }
 
   /**
@@ -232,15 +235,24 @@ public class VisitRosterService {
     return second == null ? first : first + "\n" + second;
   }
 
-  /** 방문객 tb_person 저장 — personId 있으면 갱신(기존 인원 유지), 없으면 IS 채번 신규. (키오스크 재사용) */
+  /**
+   * 방문객 tb_person 저장 — personId 있으면 갱신(기존 인원 유지), 없으면 IS 채번 신규. (키오스크 재사용)
+   *
+   * <p>성명·생년월일·소속은 <b>필수</b>다. 신청서에 그대로 찍히는 칸이고, 동명이인을 가려내는 것도 이 셋뿐이다. 관리자 화면과 키오스크가 모두 이 길목을 지나므로
+   * 규칙이 한 곳에만 있다.
+   */
   public String upsertVisitor(VisitorForm vf, VisitForm form) {
     VisitService.require(vf.getPersonName(), "방문객 성명");
+    VisitService.require(vf.getAffiliation(), "방문객 소속");
+    String birthDate = AirPort.common.BirthDates.require(vf.getBirthDate(), "방문객 생년월일");
+    // 제재인원이면 여기서 막는다 — 관리자 화면과 키오스크가 모두 이 길목을 지난다
+    blacklistService.requireNotBanned(vf.getPersonName(), birthDate);
     boolean isNew = vf.getPersonId() == null || vf.getPersonId().isBlank();
     TbPerson p = new TbPerson();
     p.setPersonId(
         isNew ? personMapper.selectNextVisitorId(idPrefix(form.getVisitType())) : vf.getPersonId());
     p.setPersonName(ARIAUtil.ariaEncrypt(vf.getPersonName()));
-    p.setBirthDate(VisitService.encryptOrNull(vf.getBirthDate()));
+    p.setBirthDate(VisitService.encryptOrNull(birthDate));
     p.setAffiliation(vf.getAffiliation());
     p.setPersonType(form.getVisitType());
     p.setStatusCode("01");
@@ -283,6 +295,7 @@ public class VisitRosterService {
     c.setCarNo(cf.getCarNo());
     c.setCarName(cf.getCarName());
     c.setCarType(cf.getCarType());
+    c.setAffiliation(cf.getAffiliation());
     carMapper.insert(c);
     return c.getCarId();
   }

@@ -9,7 +9,7 @@
 
   let managers = []; // [{personId, personName, phone}]
   let visitors = []; // [{personName, birthDate, affiliation}]
-  let cars = []; // [{carNo, carName, carType}]
+  let cars = []; // [{carNo, carName, carType, affiliation}]
   let carCodes = []; // tb_common(CAR) 차량구역
   let carTypes = []; // tb_common(CT) 차종
   const pad2 = (n) => String(n).padStart(2, '0');
@@ -33,8 +33,9 @@
     $('mgrResult').innerHTML = rows.length
       ? rows.map((p) => `<tr class="row-click mgr-pick" data-id="${esc(p.personId)}" data-name="${esc(p.personName)}">
           <td><button type="button" class="btn btn-sm">선택</button></td>
-          <td>${esc(p.personId)}</td><td style="text-align:left">${esc(p.personName)}</td></tr>`).join('')
-      : '<tr><td colspan="3" class="empty">검색 결과가 없습니다.</td></tr>';
+          <td>${esc(p.personId)}</td><td style="text-align:left">${esc(p.personName)}</td>
+          <td style="text-align:left">${esc(p.affiliation || '-')}</td></tr>`).join('')
+      : '<tr><td colspan="4" class="empty">검색 결과가 없습니다.</td></tr>';
   }
   function mgrRender() {
     // 연락처는 방문마다 손으로 적는다 — 정규인원 정보에서 당겨오지 않는다
@@ -50,7 +51,7 @@
     $('visBody').innerHTML = visitors.length
       ? visitors.map((v, i) => `<tr>
           <td><input class="input" data-f="personName" data-i="${i}" value="${esc(v.personName)}"/></td>
-          <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="1990-01-01" value="${esc(v.birthDate)}"/></td>
+          <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="1990-01-01" maxlength="10" inputmode="numeric" value="${esc(v.birthDate)}"/></td>
           <td><input class="input" data-f="affiliation" data-i="${i}" value="${esc(v.affiliation)}"/></td>
           <td><button type="button" class="btn btn-sm btn-danger" data-act="vis-del" data-idx="${i}">제거</button></td></tr>`).join('')
       : '<tr><td colspan="4" class="empty">방문객이 없습니다.</td></tr>';
@@ -77,6 +78,7 @@
           <td><input class="input" data-f="carNo" data-i="${i}" value="${esc(c.carNo)}"/></td>
           <td><input class="input" data-f="carName" data-i="${i}" value="${esc(c.carName)}"/></td>
           <td><select class="input" data-f="carType" data-i="${i}">${carTypeOptions(c.carType)}</select></td>
+          <td><input class="input" data-f="affiliation" data-i="${i}" maxlength="100" value="${esc(c.affiliation)}"/></td>
           <td><button type="button" class="btn btn-sm btn-danger" data-act="car-del" data-idx="${i}">제거</button></td></tr>`).join('')
       : '<tr><td colspan="4" class="empty">차량이 없습니다.</td></tr>';
   }
@@ -90,30 +92,30 @@
     const payload = {
       workStartDt: $('workStartDt').value || null,
       workEndDt: $('workEndDt').value || null,
-      companyName: $('companyName').value.trim() || null,
       workPurpose: $('workPurpose').value.trim() || null,
       managers: managers.map((m) => ({ personId: m.personId, phone: (m.phone || '').trim() })),
       acGroupIds: acGroupTree.get(AC_TREE),
       carAcCodes,
       visitors: visitors.map((v) => ({
         personName: (v.personName || '').trim() || null,
-        birthDate: (v.birthDate || '').trim() || null,
+        birthDate: birthDate.normalize(v.birthDate) || null,
         affiliation: (v.affiliation || '').trim() || null,
       })),
       cars: cars.filter((c) => (c.carNo || '').trim()).map((c) => ({
         carNo: (c.carNo || '').trim(), carName: (c.carName || '').trim() || null, carType: c.carType || null,
+        affiliation: (c.affiliation || '').trim() || null,
       })),
     };
     if (!payload.workStartDt) { toast.warning('작업기간 시작을 입력하세요.'); return; }
     if (!payload.workEndDt) { toast.warning('작업기간 종료를 입력하세요.'); return; }
-    if (!payload.companyName) { toast.warning('업체명을 입력하세요.'); return; }
     if (!payload.workPurpose) { toast.warning('작업목적을 입력하세요.'); return; }
     if (!payload.managers.length) { toast.warning('인솔자를 선택하세요.'); return; }
     if (payload.managers.some((m) => !m.phone)) { toast.warning('인솔자 연락처를 입력하세요.'); return; }
     if (!payload.acGroupIds.length) { toast.warning('방문구역을 선택하세요.'); return; }
-    if (!payload.visitors.length || payload.visitors.some((v) => !v.personName)) {
-      toast.warning('방문객 성명을 입력하세요.'); return;
+    if (!payload.visitors.length || payload.visitors.some((v) => !v.personName || !v.birthDate || !v.affiliation)) {
+      toast.warning('방문객 성명·생년월일·소속은 필수입니다.'); return;
     }
+    if (payload.visitors.some((v) => !birthDate.isValid(v.birthDate))) { toast.warning('방문객 ' + birthDate.HINT); return; }
     if (payload.carAcCodes.length && !payload.cars.length) {
       toast.warning('차량구역을 선택하면 차량정보를 입력하세요.'); return;
     }
@@ -123,7 +125,7 @@
 
   function reset() {
     managers = []; visitors = []; cars = [];
-    ['workStartDt', 'workEndDt', 'companyName', 'workPurpose'].forEach((id) => { $(id).value = ''; });
+    ['workStartDt', 'workEndDt', 'workPurpose'].forEach((id) => { $(id).value = ''; });
     $('mgrKeyword').value = '';
     $('mgrResultWrap').style.display = 'none';
     $('mgrResult').innerHTML = '';
@@ -165,11 +167,12 @@
       const ph = e.target.closest('input[data-act="mgr-phone"]');
       if (ph && managers[ph.dataset.idx]) managers[ph.dataset.idx].phone = ph.value;
     });
+    birthDate.bindWithin($('visBody'), 'input[data-f="birthDate"]');
     $('btnAddVis').addEventListener('click', () => { collectVis(); visitors.push({ personName: '', birthDate: '', affiliation: '' }); visRender(); });
     $('visBody').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-act="vis-del"]'); if (b) { collectVis(); visitors.splice(b.dataset.idx, 1); visRender(); }
     });
-    $('btnAddCar').addEventListener('click', () => { collectCars(); cars.push({ carNo: '', carName: '', carType: '' }); carRender(); });
+    $('btnAddCar').addEventListener('click', () => { collectCars(); cars.push({ carNo: '', carName: '', carType: '', affiliation: '' }); carRender(); });
     $('carBody').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-act="car-del"]'); if (b) { collectCars(); cars.splice(b.dataset.idx, 1); carRender(); }
     });

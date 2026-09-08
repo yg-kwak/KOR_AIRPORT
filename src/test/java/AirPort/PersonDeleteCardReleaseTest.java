@@ -14,6 +14,7 @@ import AirPort.mapper.TbPersonAcGroupMapper;
 import AirPort.mapper.TbPersonMapper;
 import AirPort.model.TbPerson;
 import AirPort.service.AuditService;
+import AirPort.service.BlacklistService;
 import AirPort.service.CardService;
 import AirPort.service.MenuAuthService;
 import AirPort.service.PersonBiostarService;
@@ -51,6 +52,7 @@ class PersonDeleteCardReleaseTest {
         null,
         cardService,
         auditService,
+        mock(BlacklistService.class),
         menuAuthService,
         null);
   }

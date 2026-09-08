@@ -1,6 +1,7 @@
 package AirPort.service;
 
 import AirPort.adapter.biostar.BiostarUserRequest;
+import AirPort.common.Affiliations;
 import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
@@ -12,8 +13,6 @@ import AirPort.model.PersonSearchParam;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbPerson;
 import AirPort.security.ARIAUtil;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
@@ -31,6 +30,9 @@ public class PersonService {
   /** 정규 발급유형 — 이 화면이 다루는 인원 구분. tb_common(cmm_id='PT') */
   private static final String PERSON_TYPE_REGULAR = "PT01";
 
+  /** 인원상태 [정지] — tb_common(cmm_id='PS').code_id. 제재인원 연동이 이 값 하나로 갈린다. */
+  public static final String PERSON_STATUS_SUSPENDED = "02";
+
   private static final String UT = "UT";
 
   private final TbPersonMapper personMapper;
@@ -40,6 +42,7 @@ public class PersonService {
   private final PersonFileService personFileService;
   private final CardService cardService;
   private final AuditService auditService;
+  private final BlacklistService blacklistService;
   private final MenuAuthService menuAuthService;
   private final CodeValidationService codeValidator;
 
@@ -57,6 +60,7 @@ public class PersonService {
       PersonFileService personFileService,
       CardService cardService,
       AuditService auditService,
+      BlacklistService blacklistService,
       MenuAuthService menuAuthService,
       CodeValidationService codeValidator) {
     // 상한이 장비 상한을 넘으면 BiostarX 등록이 실패한다 — 더 작은 쪽을 쓴다
@@ -74,6 +78,7 @@ public class PersonService {
     this.personFileService = personFileService;
     this.cardService = cardService;
     this.auditService = auditService;
+    this.blacklistService = blacklistService;
     this.menuAuthService = menuAuthService;
     this.codeValidator = codeValidator;
   }
@@ -113,6 +118,8 @@ public class PersonService {
   public String create(PersonForm form, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireCreate(actor, menuId);
     validate(form);
+    // 제재인원은 신규 등록을 막는다. 수정은 막지 않는다 — 막으면 상태를 되돌릴 길이 없어진다
+    blacklistService.requireNotBanned(form.getPersonName(), form.getBirthDate());
     // 삭제된 인원ID 는 다시 쓸 수 있다. 소프트 삭제라 행이 남아 person_id(PK) 로 INSERT 가 안 되므로
     // 남은 행을 되살린다. 삭제 때 BiostarX 사용자도 지웠으므로(deleteOne) 같은 ID 를 재사용해도 충돌하지 않는다.
     TbPerson dead = personMapper.selectById(form.getPersonId());
@@ -146,7 +153,7 @@ public class PersonService {
           ErrorCode.INVALID_INPUT, "BiostarX 동기화 실패로 등록이 취소되었습니다. 사유: " + fail);
     }
     auditService.log(actor, AuditService.CREATE, menuId, "정규인원 등록: " + form.getPersonId());
-    return null;
+    return blacklistNotice(form, null, actor, menuId);
   }
 
   /** 출입종료일 상한 — 화면(입력 max·기본값)과 서버 검증이 같은 값을 쓰도록 내려준다. */
@@ -180,6 +187,7 @@ public class PersonService {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
     validate(form, existing); // 코드 검증은 저장된 값 대비(안 바꾼 항목은 통과)
+    String prevStatus = existing.getStatusCode(); // 정지 전환 판정용 — decrypt 전에 읽어 둔다
     // 변경 전 상태(BiostarX 비교용) — 복호화된 값·기존 얼굴·기존 출입그룹
     decrypt(existing);
     BiostarUserRequest before =
@@ -206,6 +214,46 @@ public class PersonService {
           ErrorCode.INVALID_INPUT, "BiostarX 동기화 실패로 수정이 취소되었습니다. 사유: " + fail);
     }
     auditService.log(actor, AuditService.UPDATE, menuId, "정규인원 수정: " + form.getPersonId());
+    return blacklistNotice(form, prevStatus, actor, menuId);
+  }
+
+  /**
+   * 인원상태와 제재인원 명단을 잇는다 — 저장이 끝난 뒤 <b>안내 문구</b>를 돌려준다(저장 자체는 막지 않는다).
+   *
+   * <ul>
+   *   <li>[정지] 로 바뀜 + 화면에서 확인함 → 제재인원에 올린다
+   *   <li>[정지] 에서 다른 값으로 바뀜 → 아직 제재인원에 남아 있으면 알려 준다. 여기서 자동으로 풀지 않는다 — 제재 해제는 보안 담당의 판단이고, 인원 상태를
+   *       되돌린다고 제재까지 풀리면 우회 통로가 된다.
+   * </ul>
+   *
+   * @param prevStatus 수정 전 상태(신규 등록이면 null)
+   */
+  /**
+   * 제재인원에 남길 소속 — 정규인원은 기관이 곧 소속이다.
+   *
+   * <p>폼에는 기관 <b>코드</b>만 오므로 저장된 행에서 기관명을 읽는다(목록 조회가 조인으로 함께 준다). 자유입력 소속이 있으면 그쪽이 정확하다 — 판정은 실시간
+   * 이벤트·키오스크와 같은 규칙을 쓴다({@link Affiliations}).
+   */
+  private String affiliationOf(PersonForm form) {
+    TbPerson saved = personMapper.selectById(form.getPersonId());
+    return saved == null ? null : Affiliations.of(saved);
+  }
+
+  private String blacklistNotice(
+      PersonForm form, String prevStatus, TbLoginUser actor, Integer menuId) {
+    boolean nowSuspended = PERSON_STATUS_SUSPENDED.equals(form.getStatusCode());
+    boolean wasSuspended = PERSON_STATUS_SUSPENDED.equals(prevStatus);
+    if (nowSuspended && !wasSuspended && form.isAddToBlacklist()) {
+      boolean added =
+          blacklistService.addFromPerson(
+              form.getPersonName(), form.getBirthDate(), affiliationOf(form), actor, menuId);
+      return added ? "제재인원에 추가했습니다." : "이미 제재인원으로 등록되어 있습니다.";
+    }
+    if (wasSuspended && !nowSuspended) {
+      return blacklistService.findActiveBan(form.getPersonName(), form.getBirthDate()) == null
+          ? null
+          : "이 인원은 제재인원으로 등록되어 있습니다. 출입 등록은 계속 막히며, 해제는 [보안관리 → 제재인원관리] 에서 합니다.";
+    }
     return null;
   }
 
@@ -383,11 +431,9 @@ public class PersonService {
     if (!PERSON_ID_ALLOWED.matcher(form.getPersonId()).matches()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "인원ID 는 영문·숫자만 사용할 수 있습니다.");
     }
-    String birth = form.getBirthDate();
-    if (birth != null && !birth.isBlank() && !isIsoDate(birth)) {
-      throw new BusinessException(
-          ErrorCode.INVALID_INPUT, "생년월일은 YYYY-MM-DD 형식으로 입력하세요. 예: 1990-01-01");
-    }
+    // 생년월일은 필수이고 저장 형태는 YYYY-MM-DD 하나다 — 방문객과 같은 규칙을 쓴다(BirthDates).
+    // 폼 값을 정규화한 값으로 되돌려 놓아야 toRow 가 그 값을 암호화해 넣는다.
+    form.setBirthDate(AirPort.common.BirthDates.require(form.getBirthDate(), "생년월일"));
 
     // 날짜는 "YYYY-MM-DD" 형식이라 문자열 비교로 대소 판정이 가능하다
     // 상한만 막는다 — 기본값(계약 기간)을 넘기는 것은 정상이다(계약은 연장된다)
@@ -409,16 +455,6 @@ public class PersonService {
     String title = personBiostar.codeName(UT, form.getTitleCode());
     if (title != null && !title.isBlank() && !TITLE_ALLOWED.matcher(title).matches()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "직위에 특수문자를 사용할 수 없습니다: " + title);
-    }
-  }
-
-  /** "YYYY-MM-DD" 형식이면서 실제로 존재하는 날짜인지(2월 30일 같은 값 차단). */
-  private static boolean isIsoDate(String value) {
-    try {
-      LocalDate.parse(value); // ISO_LOCAL_DATE = 화면 안내(1990-01-01)와 같은 형식
-      return true;
-    } catch (DateTimeParseException e) {
-      return false;
     }
   }
 

@@ -19,6 +19,7 @@ import AirPort.mapper.TbVisitMapper;
 import AirPort.model.VisitForm;
 import AirPort.model.VisitorForm;
 import AirPort.service.AuditService;
+import AirPort.service.BlacklistService;
 import AirPort.service.CardService;
 import AirPort.service.VisitBiostarService;
 import AirPort.service.VisitRosterService;
@@ -63,7 +64,8 @@ class VisitRosterRemoveTest {
         cardIssue,
         visitBiostar,
         parkingPass,
-        auditService);
+        auditService,
+        mock(BlacklistService.class));
   }
 
   /** 방문객 2명(P1 유지, P2 제거)인 폼. */
@@ -77,6 +79,8 @@ class VisitRosterRemoveTest {
                   VisitorForm v = new VisitorForm();
                   v.setPersonId(id);
                   v.setPersonName("방문객" + id);
+                  v.setBirthDate("1990-01-01");
+                  v.setAffiliation("㈜대한기술");
                   return v;
                 })
             .toList());
@@ -259,6 +263,8 @@ class VisitRosterRemoveTest {
     form.setVisitType("PT03");
     VisitorForm v = new VisitorForm();
     v.setPersonName("장기방문객");
+    v.setBirthDate("1990-01-01");
+    v.setAffiliation("㈜대한기술");
     form.setVisitors(List.of(v));
 
     assertEquals("LT000001", service().upsertVisitor(v, form));
@@ -273,6 +279,8 @@ class VisitRosterRemoveTest {
     form.setVisitType("PT09");
     VisitorForm v = new VisitorForm();
     v.setPersonName("신규유형");
+    v.setBirthDate("1990-01-01");
+    v.setAffiliation("㈜대한기술");
     form.setVisitors(List.of(v));
 
     assertEquals("IS000045", service().upsertVisitor(v, form));

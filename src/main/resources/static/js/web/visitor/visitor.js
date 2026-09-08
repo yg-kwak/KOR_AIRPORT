@@ -124,7 +124,7 @@
       ? visitors.map((v, i) => `<tr>
           <td>${v.biostarUserId ? esc(v.biostarUserId) : badge.none('등록 전')}</td>
           <td><input class="input" data-f="personName" data-i="${i}" value="${esc(v.personName)}"/></td>
-          <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="1990-01-01" value="${esc(v.birthDate)}"/></td>
+          <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="1990-01-01" maxlength="10" inputmode="numeric" value="${esc(v.birthDate)}"/></td>
           <td><input class="input" data-f="affiliation" data-i="${i}" value="${esc(v.affiliation)}"/></td>
           <td>${cardCell(v, i, 'vis')}</td>
           <td>${visActions(v, i)}</td></tr>`).join('')
@@ -142,7 +142,7 @@
   }
 
   // ---- 차량 ----
-  let cars = []; // [{carId?, carNo, carName, carType, cardId}]
+  let cars = []; // [{carId?, carNo, carName, carType, affiliation, cardId}]
   function carTypeOptions(sel) {
     return '<option value="">선택</option>' + carTypes.map((c) => `<option value="${c.codeId}"${c.codeId === sel ? ' selected' : ''}>${esc(c.codeName)}</option>`).join('');
   }
@@ -152,6 +152,7 @@
           <td><input class="input" data-f="carNo" data-i="${i}" value="${esc(c.carNo)}"/></td>
           <td><input class="input" data-f="carName" data-i="${i}" value="${esc(c.carName)}"/></td>
           <td><select class="input" data-f="carType" data-i="${i}">${carTypeOptions(c.carType)}</select></td>
+          <td><input class="input" data-f="affiliation" data-i="${i}" maxlength="100" value="${esc(c.affiliation)}"/></td>
           <td>${cardCell(c, i, 'car')}</td>
           <td><button class="btn btn-sm btn-danger" data-act="car-del" data-idx="${i}">제거</button></td></tr>`).join('')
       : '<tr><td colspan="5" class="empty">차량이 없습니다.</td></tr>';
@@ -161,7 +162,7 @@
   async function openModal(mode, visitNo) {
     editMode = mode;
     $('modalTitle').textContent = mode === 'create' ? '방문 등록' : '방문 수정';
-    ['visitNo', 'visitType', 'visitTypeName', 'statusCode', 'statusName', 'companyName', 'companyType',
+    ['visitNo', 'visitType', 'visitTypeName', 'statusCode', 'statusName', 'companyType',
       'workStartDt', 'workEndDt', 'permitDt', 'receiver', 'returner', 'workPurpose', 'remark']
       .forEach((id) => { const el = $(id); if (el) el.value = ''; });
     managers = []; visitors = []; cars = [];
@@ -185,7 +186,7 @@
     const v = d.visit;
     $('visitNo').value = v.visitNo;
     [['visitType', v.visitType], ['visitTypeName', v.visitTypeName], ['statusCode', v.statusCode],
-      ['statusName', v.statusName], ['companyName', v.companyName], ['companyType', v.companyType],
+      ['statusName', v.statusName], ['companyType', v.companyType],
       ['workStartDt', v.workStartDt], ['workEndDt', v.workEndDt], ['permitDt', v.permitDt],
       ['receiver', v.receiver], ['returner', v.returner], ['workPurpose', v.workPurpose], ['remark', v.remark]]
       .forEach(([id, val]) => { const el = $(id); if (el) el.value = val != null ? val : ''; });
@@ -217,7 +218,7 @@
     const payload = {
       visitNo: $('visitNo').value ? Number($('visitNo').value) : null,
       visitType: $('visitType').value || null, statusCode: $('statusCode').value || null,
-      companyName: $('companyName').value.trim() || null, companyType: $('companyType').value.trim() || null,
+      companyType: $('companyType').value.trim() || null,
       workStartDt: $('workStartDt').value || null, workEndDt: $('workEndDt').value || null,
       permitDt: $('permitDt').value || null, receiver: $('receiver').value.trim() || null,
       returner: $('returner').value.trim() || null, workPurpose: $('workPurpose').value.trim() || null,
@@ -226,15 +227,16 @@
       acGroupIds: acGroupTree.get(AC_TREE),
       carAcCodes: carAcSelected(),
       visitors: visitors.map((v) => ({ personId: v.personId || null, personName: (v.personName || '').trim() || null,
-        birthDate: (v.birthDate || '').trim() || null, affiliation: (v.affiliation || '').trim() || null,
+        birthDate: birthDate.normalize(v.birthDate) || null, affiliation: (v.affiliation || '').trim() || null,
         cardId: v.cardId ? Number(v.cardId) : null })),
       cars: cars.map((c) => ({ carId: c.carId || null, carNo: (c.carNo || '').trim() || null,
         carName: (c.carName || '').trim() || null, carType: c.carType || null,
+        affiliation: (c.affiliation || '').trim() || null,
         cardId: c.cardId ? Number(c.cardId) : null })),
     };
     if (!payload.visitType) { toast.warning('방문유형을 선택하세요.'); return; }
-    if (!payload.companyName) { toast.warning('업체명은 필수입니다.'); return; }
-    if (payload.visitors.some((v) => !v.personName)) { toast.warning('방문객 성명은 필수입니다.'); return; }
+    if (payload.visitors.some((v) => !v.personName || !v.birthDate || !v.affiliation)) { toast.warning('방문객 성명·생년월일·소속은 필수입니다.'); return; }
+    if (payload.visitors.some((v) => !birthDate.isValid(v.birthDate))) { toast.warning('방문객 ' + birthDate.HINT); return; }
     // 차량은 선택이지만, 행을 추가했으면 차량번호는 필수
     if (payload.cars.some((c) => !c.carNo)) { toast.warning('차량번호는 필수입니다.'); return; }
     const hasVis = payload.visitors.length > 0, hasCar = payload.cars.length > 0;
@@ -354,12 +356,13 @@
       if (ph && managers[ph.dataset.idx]) managers[ph.dataset.idx].phone = ph.value;
     });
     $('btnAddVis').addEventListener('click', () => { collectRows(); visitors.push({ personName: '', birthDate: '', affiliation: '', cardId: null, cardLabel: '' }); visRender(); });
+    birthDate.bindWithin($('visBody'), 'input[data-f="birthDate"]'); // 입력 보정 — 표는 다시 그려지므로 위임
     $('visBody').addEventListener('click', (e) => {
       const out = e.target.closest('button[data-act="vis-out"]'); if (out) { checkoutVisitor(Number(out.dataset.idx)); return; }
       const del = e.target.closest('button[data-act="vis-del"]'); if (del) { collectRows(); visitors.splice(del.dataset.idx, 1); visRender(); return; }
       const card = e.target.closest('button[data-act="vis-card"]'); if (card) openCardPicker('vis', Number(card.dataset.idx));
     });
-    $('btnAddCar').addEventListener('click', () => { collectRows(); cars.push({ carNo: '', carName: '', carType: '', cardId: null, cardLabel: '' }); carRender(); });
+    $('btnAddCar').addEventListener('click', () => { collectRows(); cars.push({ carNo: '', carName: '', carType: '', affiliation: '', cardId: null, cardLabel: '' }); carRender(); });
     $('carBody').addEventListener('click', (e) => {
       const del = e.target.closest('button[data-act="car-del"]'); if (del) { collectRows(); cars.splice(del.dataset.idx, 1); carRender(); return; }
       const card = e.target.closest('button[data-act="car-card"]'); if (card) openCardPicker('car', Number(card.dataset.idx));

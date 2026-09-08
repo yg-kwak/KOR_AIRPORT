@@ -38,7 +38,8 @@
 
 - **대상 컬럼의 단일 출처는 `database.md` 의 `Enc=Y`** 컬럼. 현재 대상:
   `tb_login_user.user_name` · `tb_login_user.password` · `tb_system.biostar_pw` ·
-  `tb_company.ceo_name` · `tb_person.person_name` · `tb_person.birth_date` · `tb_person.person_phone`.
+  `tb_company.ceo_name` · `tb_person.person_name` · `tb_person.birth_date` · `tb_person.person_phone` ·
+  `tb_visit_manager.manager_phone` · `tb_blacklist.person_name` · `tb_blacklist.birth_date`.
   (목록이 늘면 여기와 `database.md` 를 함께 갱신 — 판정 기준은 항상 `database.md` 의 `Enc` 열)
 - 저장/조회 표준 패턴:
   ```java

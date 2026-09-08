@@ -17,6 +17,7 @@ public class CarForm {
   private String carNo;
   private String carName;
   private String carType;
+  private String affiliation; // 차량소속(자유입력)
   private String carManagerId;
   private List<String> acCodes;
 }

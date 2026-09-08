@@ -24,7 +24,6 @@
   const DEFAULT_ACCESS_END_DT = window.DEFAULT_ACCESS_END_DT || MAX_ACCESS_END_DT; // 등록 기본값 — 계약 기간(넘겨도 저장됨)
   const TITLE_ALLOWED = /^[0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/; // 직위: 특수문자 금지
   const PERSON_ID_ALLOWED = /^[0-9A-Za-z]+$/; // 인원ID: 영문·숫자만(BiostarX 사용자ID 와 같은 키)
-  const BIRTH_DATE_FORMAT = /^\d{4}-\d{2}-\d{2}$/; // 생년월일: placeholder 와 같은 YYYY-MM-DD
 
   // 서버로 그대로 전송하는 입력 필드(= PersonForm 속성명). 첨부문서는 fileField, 얼굴은 face 가 따로 담당.
   const FORM_FIELDS = ['personId', 'personName', 'birthDate', 'personPhone', 'companyCode', 'titleCode',
@@ -33,21 +32,6 @@
   const VIEW_FIELDS = ['companyName', 'titleName', 'statusName', 'regDt']; // 화면 표시 전용(미전송)
 
   let face = { photo: null, image: null, t9: null, t5: null }; // photo=원본 사진 / image=정규화 얼굴(인증용)
-
-  // 생년월일 입력 보정 — 숫자만 남기고 YYYY-MM-DD 로 하이픈을 자동 삽입(붙여넣기 포함)
-  function maskBirthDate(value) {
-    const d = String(value).replace(/\D/g, '').slice(0, 8);
-    if (d.length <= 4) return d;
-    if (d.length <= 6) return `${d.slice(0, 4)}-${d.slice(4)}`;
-    return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}`;
-  }
-
-  // 존재하는 날짜인지(2월 30일 등 차단). 서버 검증과 같은 기준.
-  function isRealDate(value) {
-    const [y, m, day] = value.split('-').map(Number);
-    const dt = new Date(y, m - 1, day);
-    return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === day;
-  }
 
   // 현재 일시를 datetime-local 형식("YYYY-MM-DDTHH:mm")으로 (로컬 시간 기준)
   function nowLocal() {
@@ -202,9 +186,12 @@
 
   // ---- 등록/수정 모달 ----
   let editMode = 'create';
+  let prevStatus = null; // 모달을 열 때의 상태 — '정지로 바뀌는 순간'만 묻기 위해 들고 있는다
+  const SUSPENDED = window.PAGE_SUSPENDED_STATUS || ''; // 인원상태 [정지] (서버 주입)
 
   async function openModal(mode, row) {
     editMode = mode;
+    prevStatus = row ? row.statusCode : null;
     $('modalTitle').textContent = mode === 'create' ? '정규인원 등록' : '정규인원 수정';
     [...FORM_FIELDS, ...VIEW_FIELDS].forEach((id) => { $(id).value = ''; });
     fileField.set('idCheckFile', null, null);
@@ -281,13 +268,13 @@
     payload.approveFileData = approve.data;
 
     const required = [
-      [payload.personId, '인원ID'], [payload.personName, '성명'],
+      [payload.personId, '인원ID'], [payload.personName, '성명'], [payload.birthDate, '생년월일'],
       [payload.companyCode, '기관'], [payload.statusCode, '상태'],
       [payload.accessStartDt, '출입시작일'], [payload.accessEndDt, '출입종료일'],
     ].find(([v]) => !v);
     if (required) { toast.warning(`${required[1]}은(는) 필수입니다.`); return; }
     if (!PERSON_ID_ALLOWED.test(payload.personId)) { toast.warning('인원ID 는 영문·숫자만 사용할 수 있습니다.'); return; }
-    if (payload.birthDate && (!BIRTH_DATE_FORMAT.test(payload.birthDate) || !isRealDate(payload.birthDate))) { toast.warning('생년월일은 YYYY-MM-DD 형식으로 입력하세요. 예: 1990-01-01'); return; }
+    if (!birthDate.isValid(payload.birthDate)) { toast.warning(birthDate.HINT); return; }
     if (payload.accessEndDt > MAX_ACCESS_END_DT) { toast.warning(`출입종료일은 ${MAX_ACCESS_END_DT.replace('T', ' ')} 까지만 지정할 수 있습니다. BiostarX 가 받을 수 있는 마지막 날짜입니다.`); return; }
     if (payload.accessStartDt > payload.accessEndDt) { toast.warning('출입시작일은 출입종료일보다 늦을 수 없습니다.'); return; }
     const titleName = $('titleName').value.trim();
@@ -301,6 +288,16 @@
       const ok = await confirmModal.open({ title: '얼굴 정보 삭제', confirmText: '삭제하고 저장',
         message: `'${st}' 상태로 저장하면 등록된 얼굴 정보가 삭제됩니다. BiostarX 장비의 얼굴도 함께 지워지며 되돌릴 수 없습니다.` });
       if (!ok) return;
+    }
+    // 상태를 [정지] 로 바꾸는 순간에만 묻는다 — 이미 정지였던 사람을 다시 저장할 때는 묻지 않는다.
+    // 확인을 받지 않으면 상태만 바뀌고 제재인원에는 오르지 않는다(서버가 이 값으로 갈린다).
+    if (SUSPENDED && payload.statusCode === SUSPENDED && prevStatus !== SUSPENDED) {
+      payload.addToBlacklist = await confirmModal.open({
+        title: '제재인원 추가',
+        confirmText: '추가',
+        message: `'${payload.personName}' 님을 제재인원에 추가하겠습니까?
+추가하면 임시·장기·정규 등록이 막힙니다(정지기간은 제재인원관리에서 지정).`,
+      });
     }
     // 서버 메시지(연동 경고 포함) 자동 토스트. 수정은 변경분만 BiostarX 로 전송된다.
     if (editMode === 'create') await api.post(BASE, payload);
@@ -372,7 +369,7 @@
     $('personId').addEventListener('input', (e) => {
       e.target.value = e.target.value.replace(/[^0-9A-Za-z]/g, '');
     });
-    $('birthDate').addEventListener('input', (e) => { e.target.value = maskBirthDate(e.target.value); });
+    birthDate.bindInput($('birthDate')); // 입력 보정은 공용 규칙(core/birth-date.js)
 
     $('faceFile').addEventListener('change', onFaceFile);
     $('btnCapture').addEventListener('click', onCapture);

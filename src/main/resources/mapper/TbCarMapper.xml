@@ -34,7 +34,7 @@
 
   <!-- 차종명은 tb_common(CT) 조인으로 표시 -->
   <sql id="listColumns">
-    c.car_id, c.car_no, c.car_name, c.car_type, c.car_manager_id,
+    c.car_id, c.car_no, c.car_name, c.car_type, c.car_manager_id, c.affiliation,
     c.del_yn, c.reg_dt, c.mod_dt, ct.code_name AS car_type_name
   </sql>
 
@@ -77,8 +77,8 @@
   </select>
 
   <insert id="insert" parameterType="TbCar" useGeneratedKeys="true" keyProperty="carId">
-    INSERT INTO tb_car (car_no, car_name, car_type, car_manager_id, company_code)
-    VALUES (#{carNo}, #{carName}, #{carType}, #{carManagerId}, #{companyCode})
+    INSERT INTO tb_car (car_no, car_name, car_type, car_manager_id, company_code, affiliation)
+    VALUES (#{carNo}, #{carName}, #{carType}, #{carManagerId}, #{companyCode}, #{affiliation})
   </insert>
 
   <!-- 기관차량등록 수정 — 소속 기관 포함. 차량등록관리의 update 는 기관을 건드리지 않는다 -->
@@ -88,13 +88,14 @@
         car_name = #{carName},
         car_type = #{carType},
         company_code = #{companyCode},
+        affiliation = #{affiliation},
         mod_dt = getdate()
     WHERE car_id = #{carId}
   </update>
 
   <!-- ── 기관차량등록(/company/car) — 기관의 차량 목록 ── -->
   <select id="selectByCompany" resultType="TbCar">
-    SELECT c.car_id, c.car_no, c.car_name, c.car_type, c.company_code,
+    SELECT c.car_id, c.car_no, c.car_name, c.car_type, c.company_code, c.affiliation,
            c.del_yn, c.reg_dt, c.mod_dt,
            c.car_manager_id,
            ct.code_name AS car_type_name, co.company_name AS company_name,
@@ -142,6 +143,7 @@
         car_name = #{carName},
         car_type = #{carType},
         car_manager_id = #{carManagerId},
+        affiliation = #{affiliation},
         mod_dt = getdate()
     WHERE car_id = #{carId}
   </update>

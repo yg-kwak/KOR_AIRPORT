@@ -106,6 +106,9 @@ public class PersonController {
     // 어떤 상태가 비활성인지는 공통코드(PS.code_tag)가 원천 — 화면에 박지 않고 내려준다
     model.addAttribute(
         "disabledStatusCodes", personService.disabledStatusCodes(actor(session), menuId()));
+    // 제재인원 연동은 [정지] 하나로 갈린다 — 코드값을 화면에 박지 않는다
+    model.addAttribute(
+        "suspendedStatusCode", AirPort.service.PersonService.PERSON_STATUS_SUSPENDED);
     return "web/person/person";
   }
 
@@ -192,7 +195,7 @@ public class PersonController {
   @ResponseBody
   public ApiResponse<Void> create(@RequestBody PersonForm form, HttpSession session) {
     return ApiResponse.okMessage(
-        withWarning("등록되었습니다.", personService.create(form, actor(session), menuId())));
+        withNotice("등록되었습니다.", personService.create(form, actor(session), menuId())));
   }
 
   /** 수정 (AJAX) — 변경분만 BiostarX 로 동기화 */
@@ -200,7 +203,7 @@ public class PersonController {
   @ResponseBody
   public ApiResponse<Void> update(@RequestBody PersonForm form, HttpSession session) {
     return ApiResponse.okMessage(
-        withWarning("수정되었습니다.", personService.update(form, actor(session), menuId())));
+        withNotice("수정되었습니다.", personService.update(form, actor(session), menuId())));
   }
 
   /** 인원의 카드 목록 (AJAX) — 수정 모달의 카드정보 탭 */
@@ -310,6 +313,11 @@ public class PersonController {
   public ApiResponse<Void> delete(@RequestParam String personId, HttpSession session) {
     return ApiResponse.okMessage(
         withWarning("삭제되었습니다.", personService.delete(personId, actor(session), menuId())));
+  }
+
+  /** 등록·수정의 안내(제재인원 연동) — 이미 사람이 읽을 문장이라 그대로 잇는다. */
+  private static String withNotice(String message, String notice) {
+    return notice == null ? message : message + " " + notice;
   }
 
   private static String withWarning(String message, String warn) {

@@ -101,8 +101,13 @@ public class VisitPermitService {
       PermitForm.Car x = new PermitForm.Car();
       x.setCarNo(c.getCarNo());
       x.setCarTypeName(codeName("CT", c.getCarType()));
-      // 차량표의 '출입자소속' — 방문(그룹)의 업체명이다. 차량마다 다른 값이 아니다.
-      x.setAffiliation(v.getCompanyName());
+      // 차량표의 '출입자소속' — 차량마다 따로 적는 소속이다.
+      // 예전에는 방문(그룹)의 업체명을 썼는데, 등록 화면에서 업체명을 더 이상 받지 않는다.
+      // 값이 없는 과거 방문은 그때 쓰던 업체명으로 물러선다 — 이미 인쇄된 신청서와 어긋나지 않게.
+      x.setAffiliation(
+          (c.getAffiliation() == null || c.getAffiliation().isBlank())
+              ? v.getCompanyName()
+              : c.getAffiliation());
       List<TbCard> cards = cardMapper.selectByCar(carId);
       x.setCardName(cards.isEmpty() ? null : cards.get(0).getCardName());
       f.getCars().add(x);

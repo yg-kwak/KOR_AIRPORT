@@ -17,6 +17,7 @@ public class TbCar {
   private String carType; // tb_common(CT) code_id
   private String carManagerId; // → tb_person.person_id (소속 기관의 정규인원, 기관차량등록에서 지정)
   private String companyCode; // → tb_company.company_code (기관차량등록)
+  private String affiliation; // 차량소속(자유입력) — 신청서 차량표의 출입자소속에 그대로 찍힌다
   private String delYn;
   private LocalDateTime regDt;
   private LocalDateTime modDt;

@@ -14,6 +14,7 @@ import AirPort.mapper.TbPersonMapper;
 import AirPort.model.PersonForm;
 import AirPort.model.TbPerson;
 import AirPort.service.AuditService;
+import AirPort.service.BlacklistService;
 import AirPort.service.CardService;
 import AirPort.service.CodeValidationService;
 import AirPort.service.MenuAuthService;
@@ -57,6 +58,7 @@ class PersonReviveTest {
         personFileService,
         cardService,
         auditService,
+        mock(BlacklistService.class),
         menuAuthService,
         codeValidator);
   }
@@ -65,6 +67,7 @@ class PersonReviveTest {
     PersonForm f = new PersonForm();
     f.setPersonId("30006");
     f.setPersonName("홍길동");
+    f.setBirthDate("1990-01-01"); // 생년월일 필수
     f.setCompanyCode("C001");
     f.setStatusCode("PS01");
     f.setAccessStartDt("2026-08-01");

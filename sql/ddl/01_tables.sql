@@ -109,6 +109,7 @@ CREATE TABLE dbo.tb_car (
   car_type       nvarchar(30)  NULL,                   -- 차종
   car_manager_id nvarchar(30)  NULL,                   -- 차량관리자 (→ tb_person.person_id, 소속 기관의 정규인원. FK 미강제)
   company_code   nvarchar(30)  NULL,                   -- 소속 기관 (→ tb_company.company_code, FK 미강제). 기관차량등록에서 채운다
+  affiliation    nvarchar(100) NULL,                   -- 차량소속 (자유입력). company_code 와 다르다 — 그쪽은 기관 코드이고 이쪽은 신청서에 찍히는 소속 문구다
   del_yn         nchar(1)      NOT NULL DEFAULT 'N',   -- 삭제여부(소프트 삭제): 삭제 시 'Y', 조회는 'N'
   reg_dt         datetime2(0)  NOT NULL DEFAULT getdate(),
   mod_dt         datetime2(0)  NOT NULL DEFAULT getdate(),
@@ -146,6 +147,29 @@ CREATE TABLE dbo.tb_company (
   CONSTRAINT CHK_tb_company_use_yn CHECK (use_yn IN ('Y','N')),
   CONSTRAINT CHK_tb_company_del_yn CHECK (del_yn IN ('Y','N'))
 );
+
+/* 제재인원 (보안관리 → 제재인원관리) — 출입을 막을 사람의 명단.
+   성명+생년월일로 대조한다. 둘 다 ARIA 암호문이고 결정적(같은 평문 → 같은 암호문)이라
+   완전일치 비교가 되지만 부분검색·정렬은 되지 않는다 — 목록 검색은 소속으로 한다.
+   정지기간이 비면 무기한이다. 삭제=del_yn 소프트 삭제(제재 이력을 남긴다) */
+CREATE TABLE dbo.tb_blacklist (
+  blacklist_id int IDENTITY(1,1) NOT NULL,             -- 제재ID (PK)
+  person_name  nvarchar(255) NOT NULL,                 -- 성명 (ARIA 암호화)
+  birth_date   nvarchar(255) NOT NULL,                 -- 생년월일 YYYY-MM-DD (ARIA 암호화)
+  affiliation  nvarchar(100) NULL,                     -- 소속 (자유입력)
+  remark       nvarchar(1000) NULL,                    -- 비고 (제재 사유 등)
+  ban_start_dt datetime2(0)  NULL,                     -- 정지기간 시작 (비면 즉시부터)
+  ban_end_dt   datetime2(0)  NULL,                     -- 정지기간 종료 (비면 무기한)
+  del_yn       nchar(1)      NOT NULL DEFAULT 'N',     -- 삭제유무 (소프트 삭제: 삭제 시 'Y')
+  reg_dt       datetime2(0)  NOT NULL DEFAULT getdate(), -- 생성일자
+  mod_dt       datetime2(0)  NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_blacklist PRIMARY KEY (blacklist_id),
+  CONSTRAINT CHK_tb_blacklist_del_yn CHECK (del_yn IN ('Y','N'))
+);
+
+/* 대조는 늘 (성명, 생년월일) 쌍으로 들어온다 — 등록할 때마다 도는 조회라 인덱스를 둔다 */
+CREATE INDEX IX_tb_blacklist_person ON dbo.tb_blacklist (person_name, birth_date)
+  INCLUDE (ban_start_dt, ban_end_dt, del_yn);
 
 /* 인원 (출입 대상자) — tb_login_user(로그인 계정)와 다른 개체.
    성명·생년월일·연락처는 ARIA 암호문이라 부분검색·정렬 불가(검색은 인원ID/기관/직위 등으로) */

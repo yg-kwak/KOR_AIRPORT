@@ -102,7 +102,7 @@
               <input type="text" id="personName" class="input" autocomplete="none" data-lpignore="true"/>
             </div>
             <div class="form-group">
-              <label>생년월일</label>
+              <label>생년월일 <span class="req">*</span></label>
               <input type="text" id="birthDate" class="input" placeholder="예: 1990-01-01"
                      maxlength="10" inputmode="numeric" autocomplete="off"/>
             </div>
@@ -298,6 +298,8 @@
   window.DEFAULT_ACCESS_END_DT = [[${defaultAccessEndDt}]];
   // 저장하면 얼굴이 지워지는 상태들(tb_common PS 의 code_tag='true') — 화면에 박지 않는다
   window.PAGE_DISABLED_STATUS = [[${disabledStatusCodes}]];
+  // 인원상태 [정지] — 제재인원 연동이 이 값 하나로 갈린다(코드값을 화면에 박지 않는다)
+  window.PAGE_SUSPENDED_STATUS = [[${suspendedStatusCode}]];
 </script>
 <!-- 카드 브라우저 인쇄 영역(화면 숨김, @media print 에서만 노출) — 클라이언트 PC 프린터로 여백 없이 출력 -->
 <div id="cardPrintArea" aria-hidden="true"></div>

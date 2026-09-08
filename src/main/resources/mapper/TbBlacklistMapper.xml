@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="AirPort.mapper.TbBlacklistMapper">
+
+  <!-- 해제(소프트 삭제)된 행도 목록에 보인다 — 누가 언제 제재됐다 풀렸는지가 이 화면의 이력이다.
+       그래서 다른 화면과 달리 del_yn='N' 을 기본으로 걸지 않는다(상태 필터로 가른다).
+       성명·생년월일은 암호문이라 LIKE 가 되지 않는다 — 검색어는 소속·비고(평문)에 걸고,
+       성명은 서비스가 암호화해 넣은 keywordEnc 로 완전일치만 본다(tb_person 과 같은 선례). -->
+  <sql id="searchWhere">
+    <where>
+      <if test="keyword != null and keyword != ''">
+        <choose>
+          <when test="searchType == 'personName'">AND b.person_name = #{keywordEnc}</when>
+          <when test="searchType == 'affiliation'">AND b.affiliation LIKE '%' + #{keyword} + '%'</when>
+          <otherwise>
+            AND (b.affiliation LIKE '%' + #{keyword} + '%'
+                 OR b.remark LIKE '%' + #{keyword} + '%'
+                 <if test="keywordEnc != null and keywordEnc != ''">OR b.person_name = #{keywordEnc}</if>)
+          </otherwise>
+        </choose>
+      </if>
+      <!-- 지금 정지 중인 것만 — 기간이 비면 무기한이므로 NULL 은 열린 쪽으로 본다 -->
+      <if test="banState == 'active'">
+        AND b.del_yn = 'N'
+        AND (b.ban_start_dt IS NULL OR b.ban_start_dt &lt;= getdate())
+        AND (b.ban_end_dt IS NULL OR b.ban_end_dt &gt;= CAST(CAST(getdate() AS date) AS datetime2))
+      </if>
+      <if test="banState == 'released'">
+        AND b.del_yn = 'Y'
+      </if>
+    </where>
+  </sql>
+
+  <!-- 정렬: 화이트리스트만(SQL 인젝션 방지). 성명·생년월일은 암호문이라 정렬 대상이 아니다 -->
+  <sql id="orderBy">
+    ORDER BY
+    <choose>
+      <when test="sort == 'affiliation'">b.affiliation <if test="desc">DESC</if>, b.blacklist_id</when>
+      <when test="sort == 'banStartDt'">b.ban_start_dt <if test="desc">DESC</if>, b.blacklist_id</when>
+      <when test="sort == 'banEndDt'">b.ban_end_dt <if test="desc">DESC</if>, b.blacklist_id</when>
+      <when test="sort == 'regDt'">b.reg_dt <if test="desc">DESC</if>, b.blacklist_id</when>
+      <otherwise>b.blacklist_id <if test="desc">DESC</if></otherwise>
+    </choose>
+  </sql>
+
+  <!-- 성명·생년월일은 암호문 그대로 내려 서비스에서 복호화한다.
+       기간은 화면이 date 입력이라 varchar(10) 으로 맞춘다(YYYY-MM-DD) -->
+  <sql id="listColumns">
+    b.blacklist_id, b.person_name, b.birth_date, b.affiliation, b.remark,
+    CONVERT(varchar(10), b.ban_start_dt, 23) AS ban_start_dt,
+    CONVERT(varchar(10), b.ban_end_dt, 23)   AS ban_end_dt,
+    b.del_yn, b.reg_dt, b.mod_dt
+  </sql>
+
+  <select id="selectList" parameterType="AirPort.model.BlacklistSearchParam" resultType="TbBlacklist">
+    SELECT <include refid="listColumns"/>
+    FROM tb_blacklist b
+    <include refid="searchWhere"/>
+    <include refid="orderBy"/>
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+
+  <select id="selectCount" parameterType="AirPort.model.BlacklistSearchParam" resultType="int">
+    SELECT COUNT(*) FROM tb_blacklist b
+    <include refid="searchWhere"/>
+  </select>
+
+  <select id="selectById" resultType="TbBlacklist">
+    SELECT <include refid="listColumns"/>
+    FROM tb_blacklist b
+    WHERE b.blacklist_id = #{blacklistId} AND b.del_yn = 'N'
+  </select>
+
+  <!-- 등록할 때마다 도는 대조 — 지금 유효한 제재만 본다.
+       기간이 비면 열린 쪽으로 본다(시작 없음=즉시부터, 종료 없음=무기한).
+       종료일은 그날 하루를 포함해야 하므로 날짜로 잘라 비교한다. -->
+  <select id="selectActiveBan" resultType="TbBlacklist">
+    SELECT TOP 1 <include refid="listColumns"/>
+    FROM tb_blacklist b
+    WHERE b.del_yn = 'N'
+      AND b.person_name = #{personNameEnc}
+      AND b.birth_date  = #{birthDateEnc}
+      AND (b.ban_start_dt IS NULL OR b.ban_start_dt &lt;= getdate())
+      AND (b.ban_end_dt IS NULL OR b.ban_end_dt &gt;= CAST(CAST(getdate() AS date) AS datetime2))
+    ORDER BY b.blacklist_id DESC
+  </select>
+
+  <select id="selectByPerson" resultType="TbBlacklist">
+    SELECT TOP 1 <include refid="listColumns"/>
+    FROM tb_blacklist b
+    WHERE b.del_yn = 'N'
+      AND b.person_name = #{personNameEnc}
+      AND b.birth_date  = #{birthDateEnc}
+      <if test="exceptId != null">AND b.blacklist_id &lt;&gt; #{exceptId}</if>
+    ORDER BY b.blacklist_id DESC
+  </select>
+
+  <insert id="insert" parameterType="TbBlacklist" useGeneratedKeys="true" keyProperty="blacklistId">
+    INSERT INTO tb_blacklist (person_name, birth_date, affiliation, remark, ban_start_dt, ban_end_dt)
+    VALUES (#{personName}, #{birthDate}, #{affiliation}, #{remark}, #{banStartDt}, #{banEndDt})
+  </insert>
+
+  <update id="update" parameterType="TbBlacklist">
+    UPDATE tb_blacklist
+    SET person_name  = #{personName},
+        birth_date   = #{birthDate},
+        affiliation  = #{affiliation},
+        remark       = #{remark},
+        ban_start_dt = #{banStartDt},
+        ban_end_dt   = #{banEndDt},
+        mod_dt       = getdate()
+    WHERE blacklist_id = #{blacklistId}
+  </update>
+
+  <!-- 소프트 삭제(=제재 해제) — 물리 DELETE 금지(제재 이력 보존).
+       종료일을 함께 닫는다. 무기한이거나 아직 기간이 남아 있으면 <b>해제한 날</b>이 실제 종료일이다.
+       이미 지난 종료일은 건드리지 않는다 — 오늘로 밀면 실제보다 길게 제재한 것처럼 남는다. -->
+  <update id="softDelete">
+    UPDATE tb_blacklist
+    SET del_yn = 'Y',
+        ban_end_dt = CASE
+          WHEN ban_end_dt IS NULL OR ban_end_dt &gt; CAST(CAST(getdate() AS date) AS datetime2)
+            THEN CAST(CAST(getdate() AS date) AS datetime2)
+          ELSE ban_end_dt END,
+        mod_dt = getdate()
+    WHERE blacklist_id = #{blacklistId}
+  </update>
+</mapper>

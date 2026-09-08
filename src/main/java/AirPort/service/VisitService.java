@@ -121,7 +121,12 @@ public class VisitService {
     return searchManagersPublic(keyword);
   }
 
-  /** 인솔자 후보(무인증 키오스크 겸용) — 빈 검색어=결과 없음, ID 부분일치·성명 완전일치만(명단 훑기 방지), 최대 50건. */
+  /**
+   * 인솔자 후보(무인증 키오스크 겸용) — 빈 검색어=결과 없음, ID 부분일치·성명 완전일치만(명단 훑기 방지), 최대 50건.
+   *
+   * <p>소속을 함께 내려 준다. 성명 완전일치로 찾으므로 <b>동명이인이 나란히 나오는 일이 흔하고</b>, 그때 누구를 고를지 가릴 단서가 소속뿐이다. 화면 표기 전용이라
+   * 방문에 저장하지는 않는다.
+   */
   public List<TbPerson> searchManagersPublic(String keyword) {
     String kw = keyword == null ? "" : keyword.trim();
     List<TbPerson> rows = new ArrayList<>();
@@ -129,7 +134,11 @@ public class VisitService {
     for (TbPerson p : personMapper.selectRegular()) {
       p.setPersonName(decrypt(p.getPersonName()));
       boolean hit = p.getPersonId().contains(kw) || kw.equals(p.getPersonName());
-      if (hit && rows.size() < 50) rows.add(p);
+      if (hit && rows.size() < 50) {
+        // 자유입력 소속 우선, 없으면 기관명 — 실시간 이벤트 화면과 같은 규칙(Affiliations)
+        p.setAffiliation(AirPort.common.Affiliations.of(p));
+        rows.add(p);
+      }
     }
     return rows;
   }
@@ -184,6 +193,7 @@ public class VisitService {
         f.setCarNo(c.getCarNo());
         f.setCarName(c.getCarName());
         f.setCarType(c.getCarType());
+        f.setAffiliation(c.getAffiliation());
         List<TbCard> cc = cardMapper.selectByCar(carId);
         if (!cc.isEmpty()) {
           f.setCardId(cc.get(0).getCardId());
@@ -400,7 +410,6 @@ public class VisitService {
 
   private void validate(VisitForm form) {
     require(form.getVisitType(), "방문유형");
-    require(form.getCompanyName(), "업체명");
     boolean hasVisitors = form.getVisitors() != null && !form.getVisitors().isEmpty();
     boolean hasCars =
         form.getCars() != null

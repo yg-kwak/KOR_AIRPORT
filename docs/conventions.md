@@ -213,6 +213,17 @@ DOMContentLoaded → bind()  → load()
 ## 관련 문서
 [architecture.md](architecture.md) · [backend.md](backend.md) · [frontend.md](frontend.md) · [database.md](database.md) · [security.md](security.md) · [design.md](design.md)
 
+### 암호화 컬럼으로 사람을 대조할 때는 **암호문끼리** 비교한다
+ARIA 는 결정적(같은 평문 → 같은 암호문)이라 완전일치 비교가 된다. 평문으로 조회하면 아무것도 못 찾고 **조용히 통과**한다 — 차단이 통째로 무력화되는데 화면에는 아무 표시가 없다.
+제재인원 대조가 그 예다(`BlacklistService.requireNotBanned` — 성명·생년월일 둘 다 암호화해 넘긴다). 부분검색·정렬은 여전히 불가하므로 목록 검색은 평문 컬럼으로 한다.
+
+### 생년월일은 `BirthDates` 로만 받는다
+받는 화면이 셋(정규인원·임시/장기 방문객·키오스크 방문객)이고 컬럼이 **ARIA 암호문**이라, 한 번 섞여 들어가면 나중에 SQL 로 정리할 수 없다.
+서버는 `AirPort.common.BirthDates.require/normalize`, 화면은 `js/core/birth-date.js` 를 쓴다 — 구분자 변형(`19900101`·`1990.01.01`·`1990/01/01`)은 받아서 `YYYY-MM-DD` 로 고쳐 넣고, 달력에 없는 날짜는 거절한다.
+
+### 사람의 '소속' 표기는 `Affiliations.of` 로 정한다
+자유입력 `affiliation` 우선, 비어 있으면 기관명. 쓰는 화면이 둘(실시간 이벤트 [출입자 정보], 키오스크 인솔자 검색)이라 각자 적으면 같은 사람이 화면마다 다른 소속으로 보인다.
+
 ### 입력 문자열은 들어오는 문에서 trim 한다
 요청 JSON 의 모든 `String` 은 `AirPort/config/JsonConfig` 의 역직렬화기가 `trim()` 해서 받는다.
 ARIA 복호화(`ARIAUtil.ariaDecrypt`)가 블록 패딩을 벗기며 trim 하기 때문에, 그렇게 하지 않으면

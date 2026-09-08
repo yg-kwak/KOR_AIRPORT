@@ -10,6 +10,7 @@ import AirPort.common.exception.BusinessException;
 import AirPort.mapper.TbPersonMapper;
 import AirPort.model.PersonForm;
 import AirPort.service.AuditService;
+import AirPort.service.BlacklistService;
 import AirPort.service.CodeValidationService;
 import AirPort.service.MenuAuthService;
 import AirPort.service.PersonService;
@@ -50,6 +51,7 @@ class PersonAccessPeriodTest {
         null,
         null,
         mock(AuditService.class),
+        mock(BlacklistService.class),
         mock(MenuAuthService.class),
         mock(CodeValidationService.class));
   }
@@ -58,6 +60,7 @@ class PersonAccessPeriodTest {
     PersonForm f = new PersonForm();
     f.setPersonId("30010");
     f.setPersonName("홍길동");
+    f.setBirthDate("1990-01-01"); // 생년월일 필수
     f.setCompanyCode("C001");
     f.setStatusCode("PS01");
     f.setAccessStartDt("2026-08-01");

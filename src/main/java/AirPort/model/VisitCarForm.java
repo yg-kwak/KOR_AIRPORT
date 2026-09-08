@@ -10,6 +10,7 @@ public class VisitCarForm {
   private String carNo;
   private String carName;
   private String carType; // → tb_common(CT)
+  private String affiliation; // 차량소속(자유입력) — 신청서 차량표의 출입자소속
   private Integer cardId; // 선택한 카드(tb_card.card_id), 없으면 null
   private String cardLabel; // 표시용 카드번호(응답 전용) — 저장 시 무시
 }
