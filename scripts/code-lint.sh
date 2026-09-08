@@ -120,4 +120,20 @@ done < <(find src/main/resources/mapper sql -type f \( -name "*.xml" -o -name "*
       }')
 [ "$VER_FAIL" -eq 0 ] && echo "  ✅ 2016 미지원 함수 없음"
 
+echo "== [8] MyBatis <if test> 에서 한 글자 비교 금지 (OGNL 이 char 로 본다) =="
+# 작은따옴표 한 글자를 OGNL 이 char 로 보고 문자열과 숫자를 비교해 NumberFormatException → 500 이 난다.
+# 여러 글자는 String 이라 멀쩡해서 더 헷갈리고, 그 조건을 실제로 쓸 때만 터지므로 화면을 눌러 보지 않으면 통과한다.
+# (정규인원 얼굴/카드 필터에서 실제로 겪었다. 안전한 형태는 conventions.md §6 참고)
+OGNL_FAIL=0
+SQ="'"   # 작은따옴표 한 글자 — 패턴에 그대로 넣으면 셸 인용이 꼬인다
+DQ='"'   # 안내 문구에 쓸 큰따옴표
+PAT1="test=\"[^\"]*[!=]=[[:space:]]*${SQ}[^${SQ}]${SQ}"
+PAT2="test=\"[^\"]*${SQ}[^${SQ}]${SQ}[[:space:]]*[!=]="
+while IFS=: read -r file line frag; do
+  echo "  ❌ $file:$line — <if test> 안의 한 글자 비교. OGNL 이 char 로 봐 500 이 납니다: $frag"
+  echo "     → 큰따옴표 String 비교(예: ${DQ}Y${DQ}.equals(field))로 쓰거나, 존재만 보고 값 비교는 SQL 로 넘기세요. (conventions.md §6)"
+  FAIL=1; OGNL_FAIL=1
+done < <(grep -rnoE "$PAT1|$PAT2" src/main/resources/mapper 2>/dev/null)
+[ "$OGNL_FAIL" -eq 0 ] && echo "  ✅ 한 글자 비교 없음"
+
 exit $FAIL

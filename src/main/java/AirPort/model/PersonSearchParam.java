@@ -8,6 +8,8 @@ public class PersonSearchParam extends PageParam {
   private String personType; // 발급유형 고정 필터(정규인원등록 = PT01). 서비스가 설정
   private String companyCode; // 기관 필터
   private String statusCode; // 상태 필터
+  private String faceYn; // 얼굴등록 필터 "" (전체) | "Y" | "N"
+  private String cardYn; // 카드등록 필터 "" (전체) | "Y" | "N"
 
   public String getPersonType() {
     return personType;
@@ -31,5 +33,21 @@ public class PersonSearchParam extends PageParam {
 
   public void setStatusCode(String statusCode) {
     this.statusCode = statusCode;
+  }
+
+  public String getFaceYn() {
+    return faceYn;
+  }
+
+  public void setFaceYn(String faceYn) {
+    this.faceYn = faceYn;
+  }
+
+  public String getCardYn() {
+    return cardYn;
+  }
+
+  public void setCardYn(String cardYn) {
+    this.cardYn = cardYn;
   }
 }

@@ -172,6 +172,8 @@ DOMContentLoaded → bind()  → load()
 - **암호화(ARIA) 컬럼 검색**: 성명 등 ARIA 컬럼은 결정적(ECB)이라 **부분(LIKE)·정렬 불가, 완전일치만** 가능. 서비스가 `keyword` 를 `ariaEncrypt` 해 `PageParam.keywordEnc` 로 넣고, mapper 는 `= #{keywordEnc}` 로 비교(`<if test="keywordEnc != null ...">` 가드). 카드번호·차량번호 등 평문은 LIKE.
 - **인증·이벤트처럼 건마다 도는 화면은 전용 단건 조회를 둔다.** 공용 `selectById`(목록용 컬럼·조인 전부)를 쓰면 모자란 값 때문에 같은 행을 다시 읽거나 연관 표를 또 묻게 되어 **1건에 질의가 여러 번** 나간다. 그 화면이 쓰는 값만 한 번에 읽는 `selectFor{화면}` 을 둔다. 예: `TbPersonMapper.selectForMonitor`(성명·소속·기관명·출입기간 1회).
 - **날짜 정밀도가 화면마다 다르면 조회를 나눈다.** 등록·수정 화면은 `datetime-local` 이라 `CONVERT(varchar(16), …, 126)`(분까지)여야 값이 채워지고, 보여주기만 하는 화면은 초가 필요할 수 있다. 공유 `listColumns` 의 정밀도를 올리면 **입력 화면이 조용히 빈칸이 된다** — 올리지 말고 전용 select 를 따로 둔다. 예: `TbPersonMapper.selectForMonitor`(실시간 이벤트, `varchar(19)`).
+- ⚠️ **`<if test>` 에서 한 글자 값을 작은따옴표로 비교하지 않는다.** OGNL 은 작은따옴표 한 글자(`'Y'`)를 **char** 로 보고 문자열과 숫자 비교를 시도해 `NumberFormatException` → **500** 이 난다. 여러 글자(`'personId'`)는 String 이라 멀쩡해서 더 헷갈리고, **그 조건을 실제로 쓸 때만** 터진다(화면을 눌러 보지 않으면 통과한다). **큰따옴표 String 비교**를 쓴다 — `<if test='"Y".equals(faceYn)'>`. `code-lint` [8] 이 강제한다.
+- **존재 여부 필터는 `EXISTS`/`NOT EXISTS` 로 갈라 쓴다.** `CASE WHEN EXISTS(...) THEN 'Y' ELSE 'N' END = #{param}` 은 행마다 계산해 전건 스캔이 된다. 갈라 두면 준(semi)조인이 되어 대상 표의 인덱스를 탄다. 예: 정규인원 얼굴등록·카드 필터.
 - **연관 테이블 검색은 `EXISTS` 상관 서브쿼리**로(JOIN 중복행 방지). 예: 방문 목록에서 방문객/인솔자(tb_visit_person·tb_visit_manager→tb_person)·차량(tb_car)·카드(tb_card) 검색.
 
 **검색 파라미터 모델**: 공통 `PageParam`(page/size/keyword/searchType/sort/dir) 을 상속한 `{도메인}SearchParam` 에 도메인 필터(useYn 등)를 추가한다.

@@ -34,13 +34,13 @@ public class VisitService {
   // 방문 상태(tb_common VS) — 신청(삭제 가능) / 입실중(전원 카드 시 자동 승격) / 퇴실완료(되돌림 없음)
   static final String DEFAULT_STATUS = "VS01";
   private static final String STATUS_ENTERED = "VS03";
-  private static final String STATUS_LEFT = "VS04";
+  static final String STATUS_LEFT = "VS04";
 
   /** 작업기간이 끝났는데 카드를 반납하지 않은 상태 — 입실 중과 같이 다루되(카드 보유) 회수가 밀렸다는 표시. */
   private static final String STATUS_UNRETURNED = "VS05";
 
   /** 카드를 들고 있는 상태 — 퇴실로만 벗어난다. */
-  private static boolean holding(String status) {
+  static boolean holding(String status) {
     return STATUS_ENTERED.equals(status) || STATUS_UNRETURNED.equals(status);
   }
 
@@ -299,98 +299,6 @@ public class VisitService {
     return warn;
   }
 
-  /**
-   * 방문객 개별 퇴실 — 카드를 발급받은 방문객은 행에서 뺄 수 없으므로 이 방식으로 내보낸다.
-   *
-   * <p>방문 전체 퇴실과 같은 순서다: <b>BiostarX 비활성화가 성공해야</b> DB 카드를 회수한다(실패한 채 회수하면 장비에서는 계속 열리는데 카드는 재대여돼
-   * 이중 사용이 된다). 퇴실 기록이 남으면 그 방문객에게는 다시 카드를 줄 수 없다.
-   *
-   * @return 항상 null(성공) — 실패는 예외
-   */
-  @Transactional
-  public String checkoutVisitor(int visitNo, String personId, TbLoginUser actor, Integer menuId) {
-    menuAuthService.requireCreate(actor, menuId);
-    TbVisit v = visitMapper.selectById(visitNo);
-    if (v == null || "Y".equals(v.getDelYn())) {
-      throw new BusinessException(ErrorCode.NOT_FOUND);
-    }
-    if (!visitMapper.selectPersonIds(visitNo).contains(personId)) {
-      throw new BusinessException(ErrorCode.NOT_FOUND, "이 방문의 방문객이 아닙니다.");
-    }
-    if (!holding(v.getStatusCode())) {
-      // 신청 상태에서는 방문객을 그냥 빼면 된다 — 퇴실은 입실(카드 발급·동기화 완료) 이후의 절차다.
-      // 미반납은 카드를 아직 들고 있는 상태이므로 퇴실로 돌려받을 수 있어야 한다.
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "입실 중이거나 미반납인 방문의 방문객만 퇴실할 수 있습니다.");
-    }
-    if (visitMapper.selectVisitorCheckout(visitNo, personId) != null) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "이미 퇴실한 방문객입니다.");
-    }
-    String warn = visitBiostar.disableVisitors(List.of(personId));
-    if (warn != null) {
-      auditService.logAlways(
-          actor,
-          AuditService.UPDATE,
-          menuId,
-          "방문객 퇴실 실패(" + visitNo + "/" + personId + "): " + warn);
-      throw new BusinessException(
-          ErrorCode.INVALID_INPUT, "BiostarX 비활성화 실패로 퇴실이 취소되었습니다. 사유: " + warn + " — 다시 시도하세요.");
-    }
-    cardMapper.releaseByPerson(personId); // 카드 회수(다른 사람이 재사용 가능)
-    visitMapper.updateVisitorCheckout(visitNo, personId);
-    auditService.log(actor, AuditService.UPDATE, menuId, "방문객 퇴실: " + visitNo + "/" + personId);
-    // 마지막 한 명까지 나가면 방문도 끝난 것이다 — 한 명씩 내보낸 뒤 [퇴실]을 또 눌러야 끝나면
-    // 잊기 쉽고, 그동안 방문은 입실 중(기간이 지났으면 미반납)으로 남는다.
-    closeIfEmpty(visitNo, actor, menuId);
-    return null;
-  }
-
-  /** 남은 방문객이 없으면 방문을 퇴실 완료로 마감한다 — 차량 카드 회수까지 방문 퇴실과 같게 처리한다. */
-  private void closeIfEmpty(int visitNo, TbLoginUser actor, Integer menuId) {
-    if (visitMapper.countStayingVisitors(visitNo) > 0) {
-      return;
-    }
-    for (Integer carId : visitMapper.selectCarIds(visitNo)) {
-      cardMapper.releaseByCar(carId); // 사람이 다 나갔으면 방문 차량 카드도 놔 준다
-    }
-    visitMapper.updateStatus(visitNo, STATUS_LEFT);
-    visitMapper.markCheckedOut(visitNo); // 정기 파기(1년)의 기준 시각
-    auditService.log(actor, AuditService.UPDATE, menuId, "방문 퇴실(마지막 방문객 퇴실로 자동): " + visitNo);
-  }
-
-  /** 퇴실(입실중→퇴실완료) — BiostarX 사용자 비활성화 + 카드 제거, DB 카드 회수(재대여 가능). */
-  @Transactional
-  public String checkout(int visitNo, TbLoginUser actor, Integer menuId) {
-    menuAuthService.requireCreate(actor, menuId);
-    TbVisit v = visitMapper.selectById(visitNo);
-    if (v == null || "Y".equals(v.getDelYn())) {
-      throw new BusinessException(ErrorCode.NOT_FOUND);
-    }
-    if (!holding(v.getStatusCode())) {
-      throw new BusinessException(ErrorCode.INVALID_INPUT, "입실 중이거나 미반납인 방문만 퇴실할 수 있습니다.");
-    }
-    List<String> personIds = visitMapper.selectPersonIds(visitNo);
-    // 장비 비활성화(사용자 disable + 카드 제거)가 성공해야 퇴실 커밋 — 실패한 채 DB 만 회수하면
-    // 장비에서 계속 출입 가능 + 카드 재대여로 이중 사용이 되므로 롤백하고 재시도를 유도한다
-    String warn = visitBiostar.disableVisitors(personIds);
-    if (warn != null) {
-      auditService.logAlways(
-          actor, AuditService.UPDATE, menuId, "방문 퇴실 실패(" + visitNo + "): " + warn);
-      throw new BusinessException(
-          ErrorCode.INVALID_INPUT, "BiostarX 비활성화 실패로 퇴실이 취소되었습니다. 사유: " + warn + " — 다시 시도하세요.");
-    }
-    for (String pid : personIds) {
-      cardMapper.releaseByPerson(pid); // 카드 재대여 가능하도록 DB 회수
-      visitMapper.updateVisitorCheckout(visitNo, pid); // 개별 퇴실과 같은 표시(이미 퇴실이면 시각 유지)
-    }
-    for (Integer carId : visitMapper.selectCarIds(visitNo)) {
-      cardMapper.releaseByCar(carId);
-    }
-    visitMapper.updateStatus(visitNo, STATUS_LEFT); // VS04 퇴실 완료
-    visitMapper.markCheckedOut(visitNo); // 정기 파기(1년)의 기준 시각
-    auditService.log(actor, AuditService.UPDATE, menuId, "방문 퇴실: " + visitNo);
-    return warn;
-  }
-
   TbVisit toRow(VisitForm form) {
     TbVisit r = new TbVisit();
     r.setVisitNo(form.getVisitNo());
@@ -410,6 +318,11 @@ public class VisitService {
 
   private void validate(VisitForm form) {
     require(form.getVisitType(), "방문유형");
+    // 키오스크와 같은 필수값을 쓴다 — 같은 방문인데 접수 창구에 따라 빈 칸이 갈리면 안 된다.
+    // 작업기간은 방문객의 BiostarX 유효기간이 되므로 비면 상시 유효로 물러선다(문이 계속 열린다).
+    require(form.getWorkStartDt(), "작업기간 시작");
+    require(form.getWorkEndDt(), "작업기간 종료");
+    require(form.getWorkPurpose(), "작업목적");
     boolean hasVisitors = form.getVisitors() != null && !form.getVisitors().isEmpty();
     boolean hasCars =
         form.getCars() != null

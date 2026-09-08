@@ -17,6 +17,28 @@
                data-target="companyFilter" placeholder="전체 (클릭하여 선택)" autocomplete="off"/>
       </div>
       <div class="search-field">
+        <label>상태</label>
+        <input type="hidden" id="statusFilter"/>
+        <input type="text" id="statusFilterName" class="input w-160 picker-field" readonly
+               data-target="statusFilter" placeholder="전체 (클릭하여 선택)" autocomplete="off"/>
+      </div>
+      <div class="search-field">
+        <label>얼굴등록</label>
+        <select id="faceYnFilter" class="input w-100">
+          <option value="">전체</option>
+          <option value="Y">등록</option>
+          <option value="N">미등록</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>카드</label>
+        <select id="cardYnFilter" class="input w-100">
+          <option value="">전체</option>
+          <option value="Y">발급</option>
+          <option value="N">미발급</option>
+        </select>
+      </div>
+      <div class="search-field">
         <label>검색어</label>
         <div class="search-keyword">
           <select id="searchType" class="input w-120">
@@ -60,9 +82,9 @@
           <th class="w-100">직위</th>
           <th class="w-120">생년월일</th>
           <th class="w-300 sortable" data-sort="accessEndDt">출입기간<span class="sort-ind"></span></th>
-          <th class="w-100">상태</th>
-          <th class="w-100">얼굴등록</th>
-          <th class="w-100">카드</th>
+          <th class="w-100 sortable" data-sort="statusCode">상태<span class="sort-ind"></span></th>
+          <th class="w-100 sortable" data-sort="faceYn">얼굴등록<span class="sort-ind"></span></th>
+          <th class="w-100 sortable" data-sort="cardCount">카드<span class="sort-ind"></span></th>
         </tr>
         </thead>
         <tbody id="gridBody">

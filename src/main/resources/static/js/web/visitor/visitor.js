@@ -234,7 +234,8 @@
         affiliation: (c.affiliation || '').trim() || null,
         cardId: c.cardId ? Number(c.cardId) : null })),
     };
-    if (!payload.visitType) { toast.warning('방문유형을 선택하세요.'); return; }
+    if (!payload.visitType || !payload.workStartDt || !payload.workEndDt || !payload.workPurpose) { toast.warning('방문유형·작업기간·작업목적은 필수입니다.'); return; }
+    if (payload.workStartDt > payload.workEndDt) { toast.warning('작업기간 시작은 종료보다 늦을 수 없습니다.'); return; }
     if (payload.visitors.some((v) => !v.personName || !v.birthDate || !v.affiliation)) { toast.warning('방문객 성명·생년월일·소속은 필수입니다.'); return; }
     if (payload.visitors.some((v) => !birthDate.isValid(v.birthDate))) { toast.warning('방문객 ' + birthDate.HINT); return; }
     // 차량은 선택이지만, 행을 추가했으면 차량번호는 필수

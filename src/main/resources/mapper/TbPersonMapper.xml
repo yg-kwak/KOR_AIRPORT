@@ -33,6 +33,23 @@
       <if test="statusCode != null and statusCode != ''">
         AND p.status_code = #{statusCode}
       </if>
+      <!-- 얼굴·카드는 목록 컬럼(face_yn·card_count)과 <b>같은 판정</b>으로 거른다 — 보이는 값과 필터가 갈리면 안 된다.
+           CASE 식을 조건에 두면 행마다 계산해 전건 스캔이 된다. EXISTS/NOT EXISTS 로 갈라 두면
+           준(semi)조인이 되어 tb_person_photo·tb_card 의 person_id 인덱스를 탄다.
+           ⚠️ test 에서 한 글자를 작은따옴표로 비교하지 않는다 — OGNL 이 char 로 보고 숫자 비교를 시도해
+              500 이 난다(그 필터를 실제로 쓸 때만 터진다). 큰따옴표 String 비교를 쓴다. code-lint [8] 이 강제한다. -->
+      <if test='"Y".equals(faceYn)'>
+        AND EXISTS (SELECT 1 FROM tb_person_photo ph WHERE ph.person_id = p.person_id)
+      </if>
+      <if test='"N".equals(faceYn)'>
+        AND NOT EXISTS (SELECT 1 FROM tb_person_photo ph WHERE ph.person_id = p.person_id)
+      </if>
+      <if test='"Y".equals(cardYn)'>
+        AND EXISTS (SELECT 1 FROM tb_card cd WHERE cd.person_id = p.person_id AND cd.del_yn = 'N')
+      </if>
+      <if test='"N".equals(cardYn)'>
+        AND NOT EXISTS (SELECT 1 FROM tb_card cd WHERE cd.person_id = p.person_id AND cd.del_yn = 'N')
+      </if>
     </where>
   </sql>
 
@@ -44,6 +61,15 @@
       <when test="sort == 'companyName'">co.company_name <if test="desc">DESC</if>, p.person_id</when>
       <when test="sort == 'statusCode'">ps.code_name <if test="desc">DESC</if>, p.person_id</when>
       <when test="sort == 'accessEndDt'">p.access_end_dt <if test="desc">DESC</if>, p.person_id</when>
+      <!-- 얼굴·카드는 목록에 보이는 값(face_yn·card_count)과 같은 식으로 정렬한다 -->
+      <when test="sort == 'faceYn'">
+        CASE WHEN EXISTS (SELECT 1 FROM tb_person_photo ph WHERE ph.person_id = p.person_id)
+             THEN 1 ELSE 0 END <if test="desc">DESC</if>, p.person_id
+      </when>
+      <when test="sort == 'cardCount'">
+        (SELECT COUNT(*) FROM tb_card cd WHERE cd.person_id = p.person_id AND cd.del_yn = 'N')
+        <if test="desc">DESC</if>, p.person_id
+      </when>
       <when test="sort == 'regDt'">p.reg_dt <if test="desc">DESC</if>, p.person_id</when>
       <otherwise>p.person_id <if test="desc">DESC</if></otherwise>
     </choose>

@@ -104,7 +104,8 @@
     </div>
     <div class="modal-body">
       <div class="search-keyword" style="margin-bottom:10px">
-        <input type="text" id="cardPickerKeyword" class="input"
+        <!-- 모달(wide)의 남는 폭을 쓴다 — 고정 폭이면 안내 문구가 잘린다(방문 카드 팝업과 같은 방식) -->
+        <input type="text" id="cardPickerKeyword" class="input" style="flex:1"
                placeholder="카드번호 또는 카드명칭으로 검색" autocomplete="off"/>
       </div>
       <p class="form-hint" id="cardPickerInfo">인원에 할당되지 않은(회수된) 카드만 보입니다.</p>

@@ -14,6 +14,7 @@ import AirPort.model.VisitSearchParam;
 import AirPort.service.CardService;
 import AirPort.service.MenuAuthService;
 import AirPort.service.MenuService;
+import AirPort.service.VisitCheckoutService;
 import AirPort.service.VisitService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -43,6 +44,7 @@ public class LongTermController {
   private static final String AREA_TYPE = "PT03"; // 구역범위 대표(장기, code_remark='Y' → 세부트리)
 
   private final VisitService visitService;
+  private final VisitCheckoutService checkoutService;
   private final CardService cardService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
@@ -50,11 +52,13 @@ public class LongTermController {
 
   public LongTermController(
       VisitService visitService,
+      VisitCheckoutService checkoutService,
       CardService cardService,
       MenuService menuService,
       MenuAuthService menuAuthService,
       CurrentMenu currentMenu) {
     this.visitService = visitService;
+    this.checkoutService = checkoutService;
     this.cardService = cardService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
@@ -159,7 +163,8 @@ public class LongTermController {
   @ResponseBody
   public ApiResponse<Void> checkout(@RequestParam int visitNo, HttpSession session) {
     return ApiResponse.okMessage(
-        withSyncFailure("퇴실 처리되었습니다.", visitService.checkout(visitNo, actor(session), menuId())));
+        withSyncFailure(
+            "퇴실 처리되었습니다.", checkoutService.checkout(visitNo, actor(session), menuId())));
   }
 
   /** 방문객 개별 퇴실 (AJAX) — 카드 발급된 방문객은 제거 대신 이 방식으로 내보낸다. */
@@ -167,7 +172,7 @@ public class LongTermController {
   @ResponseBody
   public ApiResponse<Void> checkoutVisitor(
       @RequestParam int visitNo, @RequestParam String personId, HttpSession session) {
-    visitService.checkoutVisitor(visitNo, personId, actor(session), menuId());
+    checkoutService.checkoutVisitor(visitNo, personId, actor(session), menuId());
     return ApiResponse.okMessage("퇴실 처리되었습니다.");
   }
 

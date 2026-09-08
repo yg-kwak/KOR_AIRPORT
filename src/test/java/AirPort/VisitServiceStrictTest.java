@@ -25,6 +25,7 @@ import AirPort.service.AcGroupService;
 import AirPort.service.AuditService;
 import AirPort.service.MenuAuthService;
 import AirPort.service.VisitBiostarService;
+import AirPort.service.VisitCheckoutService;
 import AirPort.service.VisitRosterService;
 import AirPort.service.VisitService;
 import java.util.List;
@@ -61,6 +62,12 @@ class VisitServiceStrictTest {
         auditService);
   }
 
+  /** 퇴실은 {@link VisitCheckoutService} 로 떨어져 나갔다 — 같은 목을 그대로 쓴다. */
+  private VisitCheckoutService checkoutService() {
+    return new VisitCheckoutService(
+        visitMapper, cardMapper, visitBiostar, menuAuthService, auditService);
+  }
+
   private static TbVisit visit(String status) {
     TbVisit v = new TbVisit();
     v.setVisitNo(28);
@@ -77,11 +84,29 @@ class VisitServiceStrictTest {
     when(visitBiostar.disableVisitors(any())).thenReturn("IS000001(연결 실패)"); // 장비 실패
 
     BusinessException ex =
-        assertThrows(BusinessException.class, () -> service().checkout(28, null, 101));
+        assertThrows(BusinessException.class, () -> checkoutService().checkout(28, null, 101));
     assertTrue(ex.getMessage().contains("퇴실이 취소"));
     verify(cardMapper, never()).releaseByPerson(anyString()); // DB 카드 회수 없음(이중 사용 방지)
     verify(visitMapper, never()).updateStatus(anyInt(), anyString());
     verify(auditService).logAlways(any(), any(), any(), any()); // 실패도 감사에 남긴다
+  }
+
+  @Test
+  void 작업기간과_작업목적은_필수다() {
+    // 키오스크는 처음부터 필수였다. 같은 방문인데 접수 창구에 따라 빈 칸이 갈리면 안 되고,
+    // 작업기간은 방문객의 BiostarX 유효기간이 되므로 비면 상시 유효로 물러선다(문이 계속 열린다)
+    for (String missing : new String[] {"start", "end", "purpose"}) {
+      VisitForm form = new VisitForm();
+      form.setVisitType("PT02");
+      form.setWorkStartDt("start".equals(missing) ? null : "2026-09-08T09:00");
+      form.setWorkEndDt("end".equals(missing) ? null : "2026-09-08T18:00");
+      form.setWorkPurpose("purpose".equals(missing) ? null : "검증");
+
+      BusinessException ex =
+          assertThrows(BusinessException.class, () -> service().create(form, null, 101));
+      assertTrue(ex.getMessage().contains("필수입니다"), missing + " → " + ex.getMessage());
+      verify(visitMapper, never()).insert(any());
+    }
   }
 
   @Test
@@ -92,6 +117,9 @@ class VisitServiceStrictTest {
     VisitForm form = new VisitForm();
     form.setVisitNo(28);
     form.setVisitType("PT02");
+    form.setWorkStartDt("2026-09-08T09:00"); // 작업기간·작업목적은 필수(키오스크와 같은 규칙)
+    form.setWorkEndDt("2026-09-08T18:00");
+    form.setWorkPurpose("검증");
     form.setCompanyName("TEST");
     form.setManagers(List.of(manager("400001", "010-1234-5678")));
     VisitorForm vf = new VisitorForm();
@@ -118,6 +146,9 @@ class VisitServiceStrictTest {
     VisitForm form = new VisitForm();
     form.setVisitNo(28);
     form.setVisitType("PT02");
+    form.setWorkStartDt("2026-09-08T09:00"); // 작업기간·작업목적은 필수(키오스크와 같은 규칙)
+    form.setWorkEndDt("2026-09-08T18:00");
+    form.setWorkPurpose("검증");
     form.setCompanyName("한빛설비");
     form.setWorkStartDt("2026-07-30T09:00");
     form.setWorkEndDt("2026-07-30T18:00");
@@ -143,7 +174,8 @@ class VisitServiceStrictTest {
 
     BusinessException ex =
         assertThrows(
-            BusinessException.class, () -> service().checkoutVisitor(28, "IS000001", null, 101));
+            BusinessException.class,
+            () -> checkoutService().checkoutVisitor(28, "IS000001", null, 101));
     assertTrue(ex.getMessage().contains("퇴실할 수 있습니다"), ex.getMessage());
     verify(visitBiostar, never()).disableVisitors(any()); // 장비 호출 전에 막는다
   }
@@ -154,7 +186,7 @@ class VisitServiceStrictTest {
     when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001", "IS000002"));
     when(visitBiostar.disableVisitors(any())).thenReturn(null);
 
-    service().checkout(28, null, 101);
+    checkoutService().checkout(28, null, 101);
 
     verify(visitMapper).updateVisitorCheckout(28, "IS000001"); // 개별 퇴실과 같은 표시가 되도록
     verify(visitMapper).updateVisitorCheckout(28, "IS000002");
@@ -167,7 +199,7 @@ class VisitServiceStrictTest {
     when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001"));
     when(visitBiostar.disableVisitors(any())).thenReturn(null);
 
-    service().checkout(28, null, 101);
+    checkoutService().checkout(28, null, 101);
 
     verify(visitMapper).updateStatus(28, "VS04");
   }
@@ -178,7 +210,7 @@ class VisitServiceStrictTest {
     when(visitMapper.selectPersonIds(28)).thenReturn(List.of("IS000001"));
     when(visitBiostar.disableVisitors(any())).thenReturn(null);
 
-    service().checkoutVisitor(28, "IS000001", null, 101);
+    checkoutService().checkoutVisitor(28, "IS000001", null, 101);
 
     verify(visitMapper).updateVisitorCheckout(28, "IS000001");
   }
@@ -191,7 +223,7 @@ class VisitServiceStrictTest {
     when(visitMapper.countStayingVisitors(28)).thenReturn(0); // 이 사람이 마지막
     when(visitMapper.selectCarIds(28)).thenReturn(List.of(7));
 
-    service().checkoutVisitor(28, "IS000001", null, 101);
+    checkoutService().checkoutVisitor(28, "IS000001", null, 101);
 
     verify(visitMapper).updateStatus(28, "VS04");
     verify(cardMapper).releaseByCar(7); // 사람이 다 나갔으면 차량 카드도 회수
@@ -204,7 +236,7 @@ class VisitServiceStrictTest {
     when(visitBiostar.disableVisitors(any())).thenReturn(null);
     when(visitMapper.countStayingVisitors(28)).thenReturn(1); // 아직 한 명 남음
 
-    service().checkoutVisitor(28, "IS000001", null, 101);
+    checkoutService().checkoutVisitor(28, "IS000001", null, 101);
 
     verify(visitMapper, never()).updateStatus(anyInt(), anyString());
     verify(cardMapper, never()).releaseByCar(anyInt());
@@ -220,6 +252,9 @@ class VisitServiceStrictTest {
     VisitForm form = new VisitForm();
     form.setVisitNo(28);
     form.setVisitType("PT02");
+    form.setWorkStartDt("2026-09-08T09:00"); // 작업기간·작업목적은 필수(키오스크와 같은 규칙)
+    form.setWorkEndDt("2026-09-08T18:00");
+    form.setWorkPurpose("검증");
     form.setCompanyName("한빛설비");
     form.setWorkStartDt("2026-07-30T09:00");
     form.setWorkEndDt("2026-07-30T18:00"); // 이미 지난 기간

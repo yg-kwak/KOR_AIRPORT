@@ -5,9 +5,9 @@
   const BASE = '/person/person';
   const AC_TREE = 'acTree'; // 공용 출입권한 트리 컨테이너 id
   const CARD_LIST = 'cardList'; // 공용 카드 목록 컨테이너 id
-  const state = {
-    page: 1, size: 30, keyword: '', searchType: 'all', companyCode: '', sort: 'personId', dir: 'asc',
-  };
+  const INIT = { page: 1, size: 30, keyword: '', searchType: 'all', companyCode: '',
+    statusCode: '', faceYn: '', cardYn: '', sort: 'personId', dir: 'asc' };
+  const state = { ...INIT };
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
@@ -45,8 +45,8 @@
     const q =
       `?page=${state.page}&size=${state.size}` +
       `&keyword=${encodeURIComponent(state.keyword)}&searchType=${state.searchType}` +
-      `&companyCode=${encodeURIComponent(state.companyCode)}` +
-      `&sort=${state.sort}&dir=${state.dir}`;
+      `&companyCode=${encodeURIComponent(state.companyCode)}&statusCode=${state.statusCode}` +
+      `&faceYn=${state.faceYn}&cardYn=${state.cardYn}&sort=${state.sort}&dir=${state.dir}`;
     const data = await api.get(BASE + '/list' + q);
     renderRows(data.content);
     renderPaging(data.page, data.totalPages);
@@ -99,22 +99,18 @@
   }
 
   function search() {
-    state.keyword = $('keyword').value.trim();
-    state.searchType = $('searchType').value;
-    state.companyCode = $('companyFilter').value;
-    state.page = 1;
+    Object.assign(state, { page: 1, keyword: $('keyword').value.trim(), searchType: $('searchType').value,
+      companyCode: $('companyFilter').value, statusCode: $('statusFilter').value,
+      faceYn: $('faceYnFilter').value, cardYn: $('cardYnFilter').value });
     load();
   }
 
   function reset() {
     $('searchType').value = 'all';
-    $('keyword').value = '';
-    $('companyFilter').value = '';
-    $('companyFilterName').value = '';
     $('pageSize').value = '30';
-    Object.assign(state, {
-      page: 1, size: 30, keyword: '', searchType: 'all', companyCode: '', sort: 'personId', dir: 'asc',
-    });
+    ['keyword', 'companyFilter', 'companyFilterName', 'statusFilter', 'statusFilterName',
+      'faceYnFilter', 'cardYnFilter'].forEach((id) => { $(id).value = ''; });
+    Object.assign(state, INIT);
     load();
   }
 
@@ -360,6 +356,12 @@
       const sel = await codePicker.open({ cmmId: 'UT', cmmName: '직위' });
       if (sel) { $('titleCode').value = sel.codeId; $('titleName').value = sel.codeName; }
     });
+    // 검색조건 상태·얼굴·카드 — 고르면 즉시 재조회(기관 필터와 같다)
+    $('statusFilterName').addEventListener('click', async () => {
+      const sel = await codePicker.open({ cmmId: 'PS', cmmName: '상태' });
+      if (sel) { $('statusFilter').value = sel.codeId; $('statusFilterName').value = sel.codeName; search(); }
+    });
+    ['faceYnFilter', 'cardYnFilter'].forEach((id) => $(id).addEventListener('change', search));
     $('statusName').addEventListener('click', async () => {
       const sel = await codePicker.open({ cmmId: 'PS', cmmName: '상태' });
       if (sel) { $('statusCode').value = sel.codeId; $('statusName').value = sel.codeName; }
