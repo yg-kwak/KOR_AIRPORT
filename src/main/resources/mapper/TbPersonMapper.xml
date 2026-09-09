@@ -114,12 +114,19 @@
   </select>
 
   <!-- 정규인원(PT01) — 인솔자 선택 팝업. 성명 암호문이라 인원ID LIKE -->
+  <!-- 인솔자 후보(임시·장기·키오스크 공용).
+       비활성 상태(정지·퇴사·회수·분실)는 뺀다 — 출입이 막힌 사람을 인솔자로 세울 수 없다.
+       판정은 화면에 코드를 박지 않고 공통코드가 원천이다: tb_common(PS).code_tag='true' 가 비활성이며,
+       현장에서 상태를 더 만들어도 태그만 맞추면 여기서 자동으로 걸린다(PersonBiostarService 와 같은 기준).
+       상태가 비었거나 코드표에 없는 값이면 통과시킨다 — 후보에서 조용히 사라지는 편이 더 나쁘다. -->
   <select id="selectRegular" resultType="TbPerson">
     <!-- 성명은 ARIA 암호문이라 SQL 검색 불가 → 후보 전체 반환, 서비스에서 복호화 후 ID·성명 필터 -->
     SELECT p.person_id, p.person_name, p.company_code, p.affiliation, co.company_name
     FROM tb_person p
     LEFT JOIN tb_company co ON co.company_code = p.company_code
     WHERE p.del_yn = 'N' AND p.person_type = 'PT01'
+      AND NOT EXISTS (SELECT 1 FROM tb_common c
+                       WHERE c.cmm_id = 'PS' AND c.code_id = p.status_code AND c.code_tag = 'true')
     ORDER BY p.person_id
   </select>
 
