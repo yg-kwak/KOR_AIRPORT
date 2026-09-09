@@ -34,12 +34,12 @@
     const data = await api.get(BASE + '/list' + q);
     const body = $('gridBody');
     if (!data.content || !data.content.length) {
-      body.innerHTML = '<tr><td colspan="8" class="empty">조회 결과가 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" class="empty">조회 결과가 없습니다.</td></tr>';
     } else {
       body.innerHTML = data.content.map((r) => {
         const period = [fmtDt(r.workStartDt), fmtDt(r.workEndDt)].filter(Boolean).join(' ~ ');
         return `<tr class="row-click" data-no="${r.visitNo}">
-          <td>${r.visitNo}</td><td>${esc(r.visitTypeName)}</td><td>${esc(r.companyName)}</td>
+          <td>${r.visitNo}</td><td>${esc(r.visitTypeName)}</td>
           <td>${esc(period)}</td><td>${r.personCount || 0}</td><td>${r.carCount || 0}</td>
           <td>${badge.visitStatus(r.statusCode, r.statusName)}</td>
           <td>${HOLDING.includes(r.statusCode) && PERM.canCreate ? `<button class="btn btn-sm" data-act="checkout" data-id="${r.visitNo}">퇴실</button>` : '-'}</td>

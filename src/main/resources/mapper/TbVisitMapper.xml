@@ -26,18 +26,18 @@
       <if test="endDate != null and endDate != ''">
         AND v.work_start_dt &lt; DATEADD(DAY, 1, CAST(#{endDate} AS datetime2))
       </if>
-      <!-- 검색어: searchType 로 대상 선택. 업체명·차량번호·카드번호는 부분(LIKE), 방문객·인솔자 성명은 ARIA 암호문이라 완전일치(=keywordEnc) -->
+      <!-- 검색어: searchType 로 대상 선택. 차량번호·카드번호는 부분(LIKE), 방문객·인솔자 성명은 ARIA 암호문이라 완전일치(=keywordEnc)
+           업체명은 등록에서 더 이상 받지 않으므로 검색 대상이 아니다 — 목록에도 없는 값으로 결과가 걸리면 왜 나왔는지 알 수 없다.
+           컬럼(cols)은 남긴다: 신청서 차량표와 주차 연동이 과거 방문의 업체명을 물러설 값으로 읽는다. -->
       <if test="keyword != null and keyword != ''">
         <choose>
-          <when test="searchType == 'companyName'">AND v.company_name LIKE '%' + #{keyword} + '%'</when>
           <when test="searchType == 'carNo'">AND <include refid="exCar"/></when>
           <when test="searchType == 'cardNo'">AND (<include refid="exPersonCard"/> OR <include refid="exCarCard"/>)</when>
           <when test="searchType == 'visitorName'">AND <include refid="exVisitorName"/></when>
           <when test="searchType == 'managerName'">AND <include refid="exManagerName"/></when>
           <otherwise>
             AND (
-              v.company_name LIKE '%' + #{keyword} + '%'
-              OR v.work_purpose LIKE '%' + #{keyword} + '%'
+              v.work_purpose LIKE '%' + #{keyword} + '%'
               OR <include refid="exCar"/>
               OR <include refid="exPersonCard"/>
               OR <include refid="exCarCard"/>
@@ -78,7 +78,6 @@
     <choose>
       <!-- 번호는 화면 헤더(data-sort="visitNo")가 쓰는 키 — 빠지면 otherwise 의 고정 DESC 로 떨어져 오름차순이 먹지 않는다 -->
       <when test="sort == 'visitNo'">v.visit_no <if test="desc">DESC</if></when>
-      <when test="sort == 'companyName'">v.company_name <if test="desc">DESC</if>, v.visit_no</when>
       <when test="sort == 'workStartDt'">v.work_start_dt <if test="desc">DESC</if>, v.visit_no</when>
       <when test="sort == 'regDt'">v.reg_dt <if test="desc">DESC</if>, v.visit_no</when>
       <otherwise>v.visit_no DESC</otherwise>
@@ -132,11 +131,14 @@
        #{companyType}, #{companyName}, #{receiver}, #{returner}, #{evidenceFile}, #{remark})
   </insert>
 
+  <!-- company_name 은 건드리지 않는다 — 등록 화면에서 더 이상 받지 않으므로 폼 값이 늘 비어 있고,
+       그대로 덮어쓰면 과거 방문에 남아 있던 업체명이 수정 한 번에 지워진다.
+       신청서 차량표와 주차 연동이 그 값을 물러설 값으로 읽는다(VisitPermitService·ParkingPassService). -->
   <update id="update" parameterType="TbVisit">
     UPDATE tb_visit
     SET visit_type = #{visitType}, status_code = #{statusCode}, work_purpose = #{workPurpose},
         permit_dt = #{permitDt}, work_start_dt = #{workStartDt}, work_end_dt = #{workEndDt},
-        company_type = #{companyType}, company_name = #{companyName},
+        company_type = #{companyType},
         receiver = #{receiver}, returner = #{returner}, remark = #{remark}, mod_dt = getdate()
     WHERE visit_no = #{visitNo}
   </update>
