@@ -1,5 +1,6 @@
 package AirPort.service;
 
+import AirPort.common.AccessAreas;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbAcGroupMapper;
@@ -18,8 +19,6 @@ import AirPort.model.TbVisit;
 import AirPort.security.ARIAUtil;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 
 /**
@@ -31,9 +30,6 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class VisitPermitService {
-
-  /** 구역명에서 번호만 뽑는다 — "인원구역3" → 3, "차량구역1" → 1. */
-  private static final Pattern AREA_NO = Pattern.compile("(\\d+)");
 
   private final TbVisitMapper visitMapper;
   private final TbPersonMapper personMapper;
@@ -78,8 +74,8 @@ public class VisitPermitService {
     // 구역이 하나도 없는 방문도 신청서는 나와야 한다.
     // 빈 목록을 그대로 넘기면 mapper 가 IN () 을 만들어 SQL 이 깨진다.
     List<Integer> acIds = visitMapper.selectAcGroupIds(visitNo);
-    f.setPersonAreas(acIds.isEmpty() ? "" : areaNos(acGroupMapper.selectNamesByIds(acIds)));
-    f.setCarAreas(areaNos(carAreaNames(visitMapper.selectCarAcCodes(visitNo))));
+    f.setPersonAreas(acIds.isEmpty() ? "" : AccessAreas.csv(acGroupMapper.selectNamesByIds(acIds)));
+    f.setCarAreas(AccessAreas.csv(carAreaNames(visitMapper.selectCarAcCodes(visitNo))));
 
     for (String pid : visitMapper.selectPersonIds(visitNo)) {
       TbPerson p = personMapper.selectById(pid);
@@ -162,23 +158,6 @@ public class VisitPermitService {
       names.add(name == null ? code : name);
     }
     return names;
-  }
-
-  /**
-   * 구역명 목록 → 번호만 콤마로 이어 붙인다. 예: [인원구역5, 인원구역6] → "5,6"
-   *
-   * <p>번호가 없는 이름은 그대로 남긴다 — 조용히 사라지면 어느 구역이 빠졌는지 알 수 없다.
-   */
-  private static String areaNos(List<String> names) {
-    StringBuilder sb = new StringBuilder();
-    for (String name : names) {
-      if (name == null || name.isBlank()) {
-        continue;
-      }
-      Matcher m = AREA_NO.matcher(name);
-      sb.append(sb.length() == 0 ? "" : ",").append(m.find() ? m.group(1) : name.trim());
-    }
-    return sb.toString();
   }
 
   private String codeName(String cmmId, String codeId) {

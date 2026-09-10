@@ -42,6 +42,9 @@ public class MonitorService {
   /** SSE 연결 유지 신호 간격보다 길게 잡은 무제한 타임아웃 — 화면을 켜 두는 용도라 서버가 먼저 끊지 않는다. */
   private static final long NO_TIMEOUT = 0L;
 
+  /** 소켓 구독 채널 — 장비 연결은 하나지만 보는 쪽이 여럿이다(카드 태깅도 같은 소켓을 쓴다). */
+  private static final String CHANNEL = "monitor";
+
   private final TbSystemMapper systemMapper;
   private final MonitorEnrichService enricher;
   private final BiostarAdapter biostarAdapter;
@@ -135,7 +138,12 @@ public class MonitorService {
     synchronized (viewerLock) {
       viewers.put(emitter, deviceId);
       eventSocket.start(
-          cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), this::onEvent, this::pushStatus);
+          cfg.getBiostarIp(),
+          cfg.getBiostarId(),
+          pw(cfg),
+          CHANNEL,
+          this::onEvent,
+          this::pushStatus);
     }
     send(emitter, "status", statusPayload());
     return emitter;
@@ -239,9 +247,8 @@ public class MonitorService {
    */
   @Scheduled(fixedDelay = 3 * 60_000)
   public void watchdog() {
-    if (viewers.isEmpty()) {
-      return; // 보는 사람이 없으면 소켓도 없다
-    }
+    // 이 화면에 보는 사람이 없어도 확인한다 — 소켓은 방문객 카드 태깅이 붙들고 있을 수 있고,
+    // 그때 세션이 죽으면 아무도 눈치채지 못한다. 소켓이 안 돌고 있으면 verify() 가 스스로 돌아온다
     try {
       eventSocket.verify();
     } catch (Exception e) {
@@ -275,7 +282,7 @@ public class MonitorService {
   private void release(SseEmitter emitter) {
     synchronized (viewerLock) {
       if (viewers.remove(emitter) != null && viewers.isEmpty()) {
-        eventSocket.stop();
+        eventSocket.stop(CHANNEL);
       }
     }
   }

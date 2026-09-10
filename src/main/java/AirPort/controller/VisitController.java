@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * 임시인원등록(방문) — 그룹/인솔자/방문객/차량 탭 CRUD. (docs/backend.md)
@@ -39,10 +40,15 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequestMapping("/visitor/visitor")
 public class VisitController {
 
+  /** 이 화면은 임시 방문만 다룬다(tb_common PT) — 방문유형은 화면 값이 아니라 서버가 정한다. */
+  private static final String VISIT_TYPE = "PT02";
+
   private final VisitService visitService;
   private final VisitCheckoutService checkoutService;
   private final AirPort.service.VisitPermitService permitService;
   private final CardService cardService;
+  private final AirPort.service.VisitCardService visitCardService;
+  private final AirPort.service.CardTagService cardTagService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
   private final CurrentMenu currentMenu;
@@ -52,6 +58,8 @@ public class VisitController {
       VisitCheckoutService checkoutService,
       AirPort.service.VisitPermitService permitService,
       CardService cardService,
+      AirPort.service.VisitCardService visitCardService,
+      AirPort.service.CardTagService cardTagService,
       MenuService menuService,
       MenuAuthService menuAuthService,
       CurrentMenu currentMenu) {
@@ -59,6 +67,8 @@ public class VisitController {
     this.checkoutService = checkoutService;
     this.permitService = permitService;
     this.cardService = cardService;
+    this.visitCardService = visitCardService;
+    this.cardTagService = cardTagService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
     this.currentMenu = currentMenu;
@@ -80,7 +90,7 @@ public class VisitController {
     model.addAttribute("screenTitle", "임시인원등록");
     model.addAttribute("base", "/visitor/visitor");
     model.addAttribute("codeTag", "PTD02");
-    model.addAttribute("fixedVisitType", "PT02"); // 임시 고정
+    model.addAttribute("fixedVisitType", VISIT_TYPE); // 임시 고정
     model.addAttribute("fixedVisitTypeName", "임시");
     model.addAttribute("visitTypes", java.util.List.of());
     return "web/visitor/visitor";
@@ -114,17 +124,24 @@ public class VisitController {
   @GetMapping("/acGroups")
   @ResponseBody
   public ApiResponse<List<AirPort.model.TbAcGroup>> acGroups(HttpSession session) {
-    return ApiResponse.ok(visitService.acGroupTree("PT02", actor(session), menuId()));
+    return ApiResponse.ok(visitService.acGroupTree(VISIT_TYPE, actor(session), menuId()));
   }
 
-  /** 미할당 방문객(인원) 카드 (AJAX) — 검색 지원 */
+  /**
+   * 미할당 방문객(인원) 카드 (AJAX) — 고른 <b>출입그룹에 맞는 카드만</b>({@code 임시234-0001}·{@code 대여-0001}).
+   *
+   * <p>출입그룹을 아직 고르지 않았으면 빈 목록이다. 전체를 보여 주면 구역이 맞지 않는 카드를 고르게 되고, 그 사실은 문 앞에서야 드러난다.
+   *
+   * <p>방문유형은 받지 않는다 — 실물 카드는 임시·상주·대여 3종뿐이고 어느 방문에서나 같은 카드를 쓴다.
+   */
   @GetMapping("/cards/unassigned")
   @ResponseBody
   public ApiResponse<List<TbCard>> unassignedCards(
-      @RequestParam(required = false) String keyword, HttpSession session) {
+      @RequestParam(required = false) String keyword,
+      @RequestParam(required = false) List<Integer> acGroupIds,
+      HttpSession session) {
     return ApiResponse.ok(
-        cardService.listUnassigned(
-            keyword, CardService.CARD_TYPE_PERSON, actor(session), menuId()));
+        visitCardService.candidates(acGroupIds, keyword, actor(session), menuId()));
   }
 
   /** 미할당 차량 카드 (AJAX) — 검색 지원(스캔 없음) */
@@ -136,11 +153,23 @@ public class VisitController {
         cardService.listUnassigned(keyword, CardService.CARD_TYPE_CAR, actor(session), menuId()));
   }
 
-  /** 카드 스캔 (AJAX) — 방문객 카드용(리더로 카드번호 읽기). 차량 카드는 스캔 미지원. */
+  /** 카드 스캔 (AJAX) — 방문객 카드용. 읽은 카드가 이 방문의 구역에 맞지 않으면 어떤 카드여야 하는지 알린다. */
   @PostMapping("/card/scan")
   @ResponseBody
-  public ApiResponse<AirPort.adapter.biostar.BiostarCard> scanCard(HttpSession session) {
-    return ApiResponse.ok(cardService.scan(actor(session), menuId()));
+  public ApiResponse<AirPort.adapter.biostar.BiostarCard> scanCard(
+      @RequestParam(required = false) List<Integer> acGroupIds, HttpSession session) {
+    return ApiResponse.ok(visitCardService.scan(acGroupIds, actor(session), menuId()));
+  }
+
+  /**
+   * 방문객 카드 태깅 스트림 (SSE) — 내 리더에 카드를 대면 카드번호가 내려온다.
+   *
+   * <p>[SCAN] 은 한 장에 버튼 한 번이지만, 이 스트림을 켜 두면 <b>대는 대로</b> 방문객이 위에서부터 채워진다. 어느 방문객에게 넣을지와 구역이 맞는지는
+   * 화면이 판정한다 — 지금 고른 출입그룹 기준이어야 한다.
+   */
+  @GetMapping("/card/tag/stream")
+  public SseEmitter cardTagStream(HttpSession session) {
+    return cardTagService.subscribe(actor(session), menuId());
   }
 
   /** 인솔자 후보 (AJAX) — 정규인원(PT01) 검색 */

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -52,6 +53,8 @@ class VisitRosterRemoveTest {
   private final AirPort.service.ParkingPassService parkingPass =
       mock(AirPort.service.ParkingPassService.class);
   private final AuditService auditService = mock(AuditService.class);
+  private final AirPort.service.VisitCardService visitCard =
+      mock(AirPort.service.VisitCardService.class);
 
   private VisitRosterService service() {
     return new VisitRosterService(
@@ -62,6 +65,7 @@ class VisitRosterRemoveTest {
         commonMapper,
         cardService,
         cardIssue,
+        visitCard,
         visitBiostar,
         parkingPass,
         auditService,
@@ -138,6 +142,24 @@ class VisitRosterRemoveTest {
     service().saveChildren(9110, formKeeping("P1"), null, 101); // 카드 없이 저장
 
     verify(visitMapper).insertPerson(9110, "P1", "2026-07-30 14:00:00"); // 퇴실일시 그대로 복원
+  }
+
+  @Test
+  void 새로_주는_카드만_구역_규칙을_묻는다() {
+    // 규칙이 생기기 전에 발급된 카드까지 되돌아가 막으면, 카드 한 장 건드리지 않는 수정조차 저장되지 않는다.
+    // 그래서 이미 들고 있던 카드는 그대로 두고, 새로 주는 카드만 이름 규칙을 본다
+    when(visitMapper.selectPersonIds(9110)).thenReturn(List.of("P1", "P2"));
+    when(visitBiostar.deleteVisitors(anyString(), any())).thenReturn(null);
+    when(cardIssue.heldCardIds("P1")).thenReturn(java.util.Set.of(77)); // P1 은 이미 77 을 들고 있다
+
+    VisitForm form = formKeeping("P1", "P2");
+    form.getVisitors().get(0).setCardId(77); // 그대로 둔다
+    form.getVisitors().get(1).setCardId(78); // 새로 준다
+
+    service().saveChildren(9110, form, null, 101);
+
+    verify(visitCard, never()).requireUsable(eq(77), any(), anyString());
+    verify(visitCard).requireUsable(eq(78), any(), anyString());
   }
 
   @Test

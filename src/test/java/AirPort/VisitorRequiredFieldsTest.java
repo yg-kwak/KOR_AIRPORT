@@ -56,6 +56,7 @@ class VisitorRequiredFieldsTest {
           commonMapper,
           mock(CardService.class),
           mock(CardIssueService.class),
+          mock(AirPort.service.VisitCardService.class),
           mock(VisitBiostarService.class),
           mock(ParkingPassService.class),
           mock(AuditService.class),

@@ -5,6 +5,7 @@
      kind: 'vis'|'car',      // 방문객=검색+스캔 / 차량=검색만
      listUrl, scanUrl,       // 미할당 카드 조회 / 카드 스캔 endpoint
      exclude: [cardId, ...], // 이미 다른 행이 고른 카드(중복 발급 방지)
+     params: () => ({ ... }), // 조회·스캔에 함께 보낼 조건(방문유형·출입그룹). 배열이면 반복 파라미터
      onPick: (card) => {}    // 고른 카드(취소하면 호출되지 않는다)
    });  (docs/frontend.md) */
 window.visitCardPicker = (function () {
@@ -26,8 +27,20 @@ window.visitCardPicker = (function () {
   }
   function close() { $('vcpModal').classList.remove('open'); }
 
+  /* 조회·스캔에 함께 보낼 조건. 팝업이 열려 있는 동안에도 화면 값이 바뀔 수 있어 그때그때 읽는다 */
+  function query(base) {
+    const q = new URLSearchParams(base || {});
+    const more = (cfg.params && cfg.params()) || {};
+    Object.keys(more).forEach((k) => {
+      const v = more[k];
+      if (Array.isArray(v)) v.forEach((x) => q.append(k, x)); // acGroupIds=1&acGroupIds=2
+      else if (v != null && v !== '') q.set(k, v);
+    });
+    return '?' + q.toString();
+  }
+
   async function load() {
-    const all = (await api.get(cfg.listUrl + '?keyword=' + encodeURIComponent($('vcpKeyword').value.trim()))) || [];
+    const all = (await api.get(cfg.listUrl + query({ keyword: $('vcpKeyword').value.trim() }))) || [];
     const skip = new Set(cfg.exclude || []); // 이미 다른 행이 고른 카드는 숨긴다(서버도 중복을 거부)
     const rows = all.filter((c) => !skip.has(c.cardId));
     $('vcpBody').innerHTML = rows.length
@@ -36,12 +49,12 @@ window.visitCardPicker = (function () {
           <td>${esc(c.biostarCardValue)}</td>
           <td style="text-align:left">${esc(c.cardName)}</td>
           <td>${badge.cardStatus(c.cardStatus, c.cardStatusName)}</td></tr>`).join('')
-      : '<tr><td colspan="4" class="empty">미할당 카드가 없습니다.</td></tr>';
+      : '<tr><td colspan="4" class="empty">사용할 수 있는 카드가 없습니다.</td></tr>';
     $('vcpBody').dataset.rows = JSON.stringify(rows);
   }
 
   async function scan() {
-    const res = await api.post(cfg.scanUrl, {});
+    const res = await api.post(cfg.scanUrl + query(), {}); // 규칙에 맞지 않는 카드는 서버가 사유를 돌려준다
     if (!res || !res.success) { toast.warning((res && res.message) || '카드 스캔에 실패했습니다.'); return; }
     $('vcpKeyword').value = res.cardNo || '';
     await load();

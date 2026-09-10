@@ -194,7 +194,8 @@ public class PersonService {
         personBiostar.requestOf(
             existing,
             photoMapper.selectPhoto(form.getPersonId()),
-            acGroupMapper.selectBiostarAcIds(form.getPersonId()));
+            acGroupMapper.selectBiostarAcIds(form.getPersonId()),
+            acGroupMapper.selectAcGroupNames(form.getPersonId())); // 부서(허가구역) 비교 기준
 
     TbPerson row = toRow(form);
     personMapper.update(row);

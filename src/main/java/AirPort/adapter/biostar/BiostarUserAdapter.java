@@ -192,36 +192,7 @@ public class BiostarUserAdapter {
       return BiostarResult.fail("BiostarX IP가 설정되어 있지 않습니다. 설정관리에서 등록하세요.");
     }
     try {
-      ObjectNode user = objectMapper.createObjectNode();
-      putDelta(user, "name", before.name(), after.name());
-      putDelta(user, "phone", before.phone(), after.phone());
-      putDelta(user, "photo", before.photo(), after.photo());
-      putDelta(user, "disabled", before.disabled(), after.disabled());
-      putDelta(user, "start_datetime", before.startDatetime(), after.startDatetime());
-      putDelta(user, "expiry_datetime", before.expiryDatetime(), after.expiryDatetime());
-      putDelta(user, "user_title", before.userTitle(), after.userTitle());
-
-      if (!java.util.Objects.equals(before.userGroupId(), after.userGroupId())) {
-        user.putObject("user_group_id")
-            .put("id", after.userGroupId() == null ? "" : String.valueOf(after.userGroupId()));
-      }
-      if (!sameIds(before.accessGroupIds(), after.accessGroupIds())) {
-        ArrayNode ags = user.putArray("access_groups"); // 비면 [] (권한 전체 해제)
-        if (after.accessGroupIds() != null) {
-          after.accessGroupIds().forEach(id -> ags.addObject().put("id", id));
-        }
-      }
-      if (!sameCards(before.cards(), after.cards())) {
-        appendCards(user, after.cards()); // 비면 [] (카드 전체 회수)
-        if (!user.has("cards")) {
-          user.putArray("cards");
-        }
-      }
-      applyFaceDelta(user, before, after);
-      if (!java.util.Objects.equals(before.operationMode(), after.operationMode())) {
-        appendOperationMode(user, after); // 지정이 없어지면(null) 아예 보내지 않는다 — 장비 기본으로 되돌린다
-      }
-
+      ObjectNode user = deltaUser(before, after);
       if (user.isEmpty()) {
         return BiostarResult.ok(); // 변경 없음 → 호출 생략
       }
@@ -239,6 +210,49 @@ public class BiostarUserAdapter {
     } catch (Exception e) {
       return BiostarResult.fail(friendlyError(e, "사용자 수정"));
     }
+  }
+
+  /** PUT payload 의 User 노드 — <b>변경된 항목만</b> 담는다. 비어 있으면 보낼 것이 없다는 뜻이다. */
+  private ObjectNode deltaUser(BiostarUserRequest before, BiostarUserRequest after) {
+    ObjectNode user = objectMapper.createObjectNode();
+    putDelta(user, "name", before.name(), after.name());
+    putDelta(user, "phone", before.phone(), after.phone());
+    putDelta(user, "photo", before.photo(), after.photo());
+    putDelta(user, "disabled", before.disabled(), after.disabled());
+    putDelta(user, "start_datetime", before.startDatetime(), after.startDatetime());
+    putDelta(user, "expiry_datetime", before.expiryDatetime(), after.expiryDatetime());
+    putDelta(user, "user_title", before.userTitle(), after.userTitle());
+    // 출입그룹을 바꾸면 부서도 따라 바뀐다. 구역을 전부 뺐으면 ""(빈 값)으로 지운다 — putDelta 가 그렇게 보낸다
+    putDelta(user, "department", before.department(), after.department());
+
+    if (!java.util.Objects.equals(before.userGroupId(), after.userGroupId())) {
+      user.putObject("user_group_id")
+          .put("id", after.userGroupId() == null ? "" : String.valueOf(after.userGroupId()));
+    }
+    if (!sameIds(before.accessGroupIds(), after.accessGroupIds())) {
+      ArrayNode ags = user.putArray("access_groups"); // 비면 [] (권한 전체 해제)
+      if (after.accessGroupIds() != null) {
+        after.accessGroupIds().forEach(id -> ags.addObject().put("id", id));
+      }
+    }
+    if (!sameCards(before.cards(), after.cards())) {
+      appendCards(user, after.cards()); // 비면 [] (카드 전체 회수)
+      if (!user.has("cards")) {
+        user.putArray("cards");
+      }
+    }
+    applyFaceDelta(user, before, after);
+    if (!java.util.Objects.equals(before.operationMode(), after.operationMode())) {
+      appendOperationMode(user, after); // 지정이 없어지면(null) 아예 보내지 않는다 — 장비 기본으로 되돌린다
+    }
+    return user;
+  }
+
+  /** 테스트에서 델타 payload 를 통신 없이 직접 확인한다. */
+  String updatePayload(BiostarUserRequest before, BiostarUserRequest after) throws Exception {
+    ObjectNode root = objectMapper.createObjectNode();
+    root.set("User", deltaUser(before, after));
+    return objectMapper.writeValueAsString(root);
   }
 
   /** 얼굴 변경분 — 새로 등록/교체면 새 값, 있다가 지웠으면 빈 목록, 그대로면 미포함. */
@@ -359,6 +373,7 @@ public class BiostarUserAdapter {
     putIfPresent(user, "start_datetime", req.startDatetime());
     putIfPresent(user, "expiry_datetime", req.expiryDatetime());
     putIfPresent(user, "user_title", req.userTitle());
+    putIfPresent(user, "department", req.department()); // 허가구역 번호(예: "124")
 
     if (req.accessGroupIds() != null && !req.accessGroupIds().isEmpty()) {
       ArrayNode ags = user.putArray("access_groups");

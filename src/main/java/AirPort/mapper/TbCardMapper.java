@@ -32,6 +32,16 @@ public interface TbCardMapper {
   List<TbCard> selectUnassigned(
       @Param("keyword") String keyword, @Param("cardType") String cardType);
 
+  /**
+   * 임시·장기 방문 카드 후보 — 미할당 카드 중 <b>이 방문의 구역에 맞는 이름</b>만.
+   *
+   * @param areaKey 고른 출입그룹의 구역 번호(예: {@code "234"}) — 이름 규칙은 {@link AirPort.common.CardNames}
+   */
+  List<TbCard> selectUnassignedForVisit(
+      @Param("keyword") String keyword,
+      @Param("cardType") String cardType,
+      @Param("areaKey") String areaKey);
+
   /** 카드번호로 단건 조회 — 회수된 카드 재사용 / 중복 발급 차단용. */
   TbCard selectByCardNo(@Param("cardNo") String cardNo);
 

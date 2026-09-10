@@ -33,4 +33,16 @@ public class TbVisit {
   private String statusName;
   private Integer personCount;
   private Integer carCount;
+
+  /** 첫 인솔자(seq 최소)의 성명 — 조회 직후엔 ARIA 암호문, 서비스가 푼다. 여럿이어도 대표 한 명만 보여준다. */
+  private String managerName;
+
+  /**
+   * 첫 인솔자의 소속 — 조회 직후엔 {@code tb_person.affiliation} 원본, 서비스가 {@link AirPort.common.Affiliations}
+   * 규칙으로 확정한다.
+   */
+  private String managerAffiliation;
+
+  /** 첫 인솔자의 기관명 — 소속이 비었을 때 물러설 값. 화면에는 쓰지 않는다(위 필드로 합쳐진다). */
+  private String managerCompanyName;
 }

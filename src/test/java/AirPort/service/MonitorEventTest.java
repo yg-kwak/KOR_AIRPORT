@@ -67,19 +67,12 @@ class MonitorEventTest {
   }
 
   @Test
-  void 허가구역은_번호만_이어_붙인다() {
-    assertEquals("125", MonitorEnrichService.areaNos(List.of("인원구역1", "인원구역2", "인원구역5")));
-  }
-
-  @Test
-  void 번호가_없는_구역명은_그대로_남긴다() {
-    // 조용히 사라지면 어느 구역이 빠졌는지 알 수 없다
-    assertEquals("1게이트", MonitorEnrichService.areaNos(List.of("인원구역1", "게이트")));
-  }
-
-  @Test
-  void 구역이_없으면_빈_문자열() {
-    assertEquals("", MonitorEnrichService.areaNos(List.of()));
+  void 허가구역_표기는_공용_규칙을_쓴다() {
+    // 표기 규칙 자체는 AccessAreasTest 가 지킨다. 여기서는 이 화면이 그 규칙을 쓰는지만 본다 —
+    // 제 나름대로 이어 붙이기 시작하면 같은 사람의 구역이 신청서·카드·장비 부서와 갈린다
+    assertEquals("125", AirPort.common.AccessAreas.key(List.of("인원구역1", "인원구역2", "인원구역5")));
+    assertEquals("1게이트", AirPort.common.AccessAreas.key(List.of("인원구역1", "게이트")));
+    assertEquals("", AirPort.common.AccessAreas.key(List.of()));
   }
 
   @Test

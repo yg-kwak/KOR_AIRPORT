@@ -38,6 +38,7 @@
         <div class="search-keyword">
           <select id="searchType" class="input w-140">
             <option value="all">전체</option>
+            <option value="visitNo">작업번호</option>
             <option value="visitorName">방문객명(전체일치)</option>
             <option value="managerName">인솔자명(전체일치)</option>
             <option value="carNo">차량번호</option>
@@ -67,6 +68,10 @@
         <tr>
           <th class="w-100 sortable" data-sort="visitNo">번호<span class="sort-ind"></span></th>
           <th class="w-100">방문유형</th>
+          <!-- 인솔자가 여럿이면 첫 줄에 적은 사람만 — 그 방문의 대표다 -->
+          <th class="w-100">인솔자</th>
+          <th class="w-160">인솔자 소속</th>
+          <th>출입목적</th>
           <th class="w-260 sortable" data-sort="workStartDt">작업기간<span class="sort-ind"></span></th>
           <th class="w-80">방문객</th>
           <th class="w-80">차량</th>
@@ -75,7 +80,7 @@
         </tr>
         </thead>
         <tbody id="gridBody">
-        <tr><td colspan="7" class="empty">조회 결과가 없습니다.</td></tr>
+        <tr><td colspan="10" class="empty">조회 결과가 없습니다.</td></tr>
         </tbody>
       </table>
       <div class="paging" id="paging"></div>
@@ -170,9 +175,9 @@
           <div class="grid-actions"><button type="button" class="btn btn-sm" id="btnAddMgr">인솔자 추가</button></div>
         </div>
         <table class="grid">
-          <thead><tr><th class="w-160">인원ID</th><th>성명</th>
+          <thead><tr><th class="w-160">인원ID</th><th>성명</th><th>소속</th>
             <th class="w-200">연락처 <span class="req">*</span></th><th class="w-80">관리</th></tr></thead>
-          <tbody id="mgrBody"><tr><td colspan="4" class="empty">인솔자가 없습니다.</td></tr></tbody>
+          <tbody id="mgrBody"><tr><td colspan="5" class="empty">인솔자가 없습니다.</td></tr></tbody>
         </table>
       </div>
 
@@ -224,8 +229,9 @@
       </div>
       <div class="matrix-wrap">
         <table class="grid">
-          <thead><tr><th class="w-40"></th><th class="w-160">인원ID</th><th style="text-align:left">성명</th></tr></thead>
-          <tbody id="mgrPickBody"><tr><td colspan="3" class="empty">불러오는 중...</td></tr></tbody>
+          <thead><tr><th class="w-40"></th><th class="w-100">인원ID</th>
+            <th style="text-align:left">성명</th><th style="text-align:left">소속</th></tr></thead>
+          <tbody id="mgrPickBody"><tr><td colspan="4" class="empty">불러오는 중...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -247,6 +253,7 @@
   window.VISIT_CFG = { base: [[${base}]], fixedType: [[${fixedVisitType}]], fixedTypeName: [[${fixedVisitTypeName}]] };
 </script>
 <script src="/js/web/visitor/visitor-manager.js" defer></script>
+<script src="/js/web/visitor/visitor-card-tag.js" defer></script>
 <script src="/js/web/visitor/visitor.js" defer></script>
 <!-- 출입허가 신청서 인쇄 영역(화면 숨김, @media print 에서만 노출) -->
 <div id="permitPrintArea" aria-hidden="true"></div>

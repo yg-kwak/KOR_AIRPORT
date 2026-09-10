@@ -89,7 +89,9 @@ class VisitPermitTest {
   }
 
   @Test
-  void 출입구역은_번호만_뽑는다() {
+  void 출입구역은_번호만_뽑아_작은_번호부터_적는다() {
+    // 신청서는 사람이 읽고 결재하는 종이다 — DB 가 돌려준 순서대로 "1,3,2" 로 찍히면 옮겨 적다 틀린 것처럼 보인다.
+    // 표기 규칙은 실시간 이벤트·카드명칭·BiostarX 부서와 한 벌이다(AccessAreas)
     visitExists();
     when(visitMapper.selectAcGroupIds(17)).thenReturn(List.of(5, 6, 7));
     when(acGroupMapper.selectNamesByIds(any())).thenReturn(List.of("인원구역1", "인원구역3", "인원구역2 안쪽"));
@@ -99,7 +101,7 @@ class VisitPermitTest {
 
     PermitForm f = service().permit(17, null, 101);
 
-    assertEquals("1,3,2", f.getPersonAreas());
+    assertEquals("1,2,3", f.getPersonAreas());
     assertEquals("1,2", f.getCarAreas());
   }
 

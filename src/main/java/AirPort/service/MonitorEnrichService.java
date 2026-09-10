@@ -2,6 +2,7 @@ package AirPort.service;
 
 import AirPort.adapter.biostar.BiostarAuthEvent;
 import AirPort.adapter.biostar.BiostarEventAdapter;
+import AirPort.common.AccessAreas;
 import AirPort.common.Affiliations;
 import AirPort.mapper.TbPersonAcGroupMapper;
 import AirPort.mapper.TbPersonMapper;
@@ -14,8 +15,6 @@ import AirPort.model.TbSystem;
 import AirPort.model.TbVisit;
 import AirPort.security.ARIAUtil;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -35,9 +34,6 @@ public class MonitorEnrichService {
 
   /** 정규인원 — 허가구역·허가기간을 사람에게 직접 붙인다. 그 밖은 방문 단위로 잡힌다. */
   private static final String PERSON_TYPE_REGULAR = "PT01";
-
-  /** 구역명에서 번호만 — "인원구역3" → 3. (신청서 출력과 같은 규칙) */
-  private static final Pattern AREA_NO = Pattern.compile("(\\d+)");
 
   private final TbSystemMapper systemMapper;
   private final TbPersonMapper personMapper;
@@ -81,7 +77,7 @@ public class MonitorEnrichService {
     if (person != null) {
       row.setPersonName(decrypt(person.getPersonName()));
       row.setCompanyName(Affiliations.of(person)); // 기관명은 위 조회가 조인으로 함께 받아 온다
-      row.setAreas(areaNos(acGroupNames(person)));
+      row.setAreas(AccessAreas.key(acGroupNames(person)));
       row.setPeriod(period(person));
       row.setRegisteredPhoto(photoMapper.selectPhoto(event.userId()));
       // 사진 없는 칸에 사람 모양을 세울지 카드 모양을 세울지 — 정규인원만 얼굴이 있어야 정상이다
@@ -178,22 +174,5 @@ public class MonitorEnrichService {
       return datetime;
     }
     return datetime.substring(11, 19);
-  }
-
-  /**
-   * 출입그룹 이름 목록 → 구역 번호를 이어 붙인다. 예: [인원구역1, 인원구역2, 인원구역5] → "125"
-   *
-   * <p>번호가 없는 이름은 그대로 남긴다 — 조용히 사라지면 어느 구역이 빠졌는지 알 수 없다.
-   */
-  static String areaNos(List<String> names) {
-    StringBuilder sb = new StringBuilder();
-    for (String name : names) {
-      if (name == null || name.isBlank()) {
-        continue;
-      }
-      Matcher m = AREA_NO.matcher(name);
-      sb.append(m.find() ? m.group(1) : name.trim());
-    }
-    return sb.toString();
   }
 }

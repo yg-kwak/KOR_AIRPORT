@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * 장기출입등록(방문) — 임시인원등록과 동일 구성이나 방문유형을 PTD03 계열(장기·상주)에서 선택한다. (docs/backend.md)
@@ -46,6 +47,8 @@ public class LongTermController {
   private final VisitService visitService;
   private final VisitCheckoutService checkoutService;
   private final CardService cardService;
+  private final AirPort.service.VisitCardService visitCardService;
+  private final AirPort.service.CardTagService cardTagService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
   private final CurrentMenu currentMenu;
@@ -54,12 +57,16 @@ public class LongTermController {
       VisitService visitService,
       VisitCheckoutService checkoutService,
       CardService cardService,
+      AirPort.service.VisitCardService visitCardService,
+      AirPort.service.CardTagService cardTagService,
       MenuService menuService,
       MenuAuthService menuAuthService,
       CurrentMenu currentMenu) {
     this.visitService = visitService;
     this.checkoutService = checkoutService;
     this.cardService = cardService;
+    this.visitCardService = visitCardService;
+    this.cardTagService = cardTagService;
     this.menuService = menuService;
     this.menuAuthService = menuAuthService;
     this.currentMenu = currentMenu;
@@ -108,13 +115,19 @@ public class LongTermController {
     return ApiResponse.ok(visitService.acGroupTree(AREA_TYPE, actor(session), menuId()));
   }
 
+  /**
+   * 미할당 방문객(인원) 카드 — 고른 <b>출입그룹에 맞는 카드만</b>({@code 상주234-0001}·{@code 대여-0001}).
+   *
+   * <p>장기·상주는 실물 카드가 따로 없다 — 임시 화면과 같은 카드를 쓰므로 판정 기준도 같다(구역만 본다).
+   */
   @GetMapping("/cards/unassigned")
   @ResponseBody
   public ApiResponse<List<TbCard>> unassignedCards(
-      @RequestParam(required = false) String keyword, HttpSession session) {
+      @RequestParam(required = false) String keyword,
+      @RequestParam(required = false) List<Integer> acGroupIds,
+      HttpSession session) {
     return ApiResponse.ok(
-        cardService.listUnassigned(
-            keyword, CardService.CARD_TYPE_PERSON, actor(session), menuId()));
+        visitCardService.candidates(acGroupIds, keyword, actor(session), menuId()));
   }
 
   @GetMapping("/cards/unassigned/car")
@@ -125,10 +138,23 @@ public class LongTermController {
         cardService.listUnassigned(keyword, CardService.CARD_TYPE_CAR, actor(session), menuId()));
   }
 
+  /** 카드 스캔 — 읽은 카드가 이 방문의 구역에 맞지 않으면 어떤 카드여야 하는지 알린다. */
   @PostMapping("/card/scan")
   @ResponseBody
-  public ApiResponse<AirPort.adapter.biostar.BiostarCard> scanCard(HttpSession session) {
-    return ApiResponse.ok(cardService.scan(actor(session), menuId()));
+  public ApiResponse<AirPort.adapter.biostar.BiostarCard> scanCard(
+      @RequestParam(required = false) List<Integer> acGroupIds, HttpSession session) {
+    return ApiResponse.ok(visitCardService.scan(acGroupIds, actor(session), menuId()));
+  }
+
+  /**
+   * 방문객 카드 태깅 스트림 (SSE) — 내 리더에 카드를 대면 카드번호가 내려온다.
+   *
+   * <p>[SCAN] 은 한 장에 버튼 한 번이지만, 이 스트림을 켜 두면 <b>대는 대로</b> 방문객이 위에서부터 채워진다. 어느 방문객에게 넣을지와 구역이 맞는지는
+   * 화면이 판정한다 — 지금 고른 출입그룹 기준이어야 한다.
+   */
+  @GetMapping("/card/tag/stream")
+  public SseEmitter cardTagStream(HttpSession session) {
+    return cardTagService.subscribe(actor(session), menuId());
   }
 
   @GetMapping("/managers")

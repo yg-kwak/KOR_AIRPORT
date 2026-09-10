@@ -34,12 +34,14 @@
     const data = await api.get(BASE + '/list' + q);
     const body = $('gridBody');
     if (!data.content || !data.content.length) {
-      body.innerHTML = '<tr><td colspan="7" class="empty">조회 결과가 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="10" class="empty">조회 결과가 없습니다.</td></tr>';
     } else {
       body.innerHTML = data.content.map((r) => {
         const period = [fmtDt(r.workStartDt), fmtDt(r.workEndDt)].filter(Boolean).join(' ~ ');
         return `<tr class="row-click" data-no="${r.visitNo}">
           <td>${r.visitNo}</td><td>${esc(r.visitTypeName)}</td>
+          <td>${esc(r.managerName) || '-'}</td><td>${esc(r.managerAffiliation) || '-'}</td>
+          <td style="text-align:left">${esc(r.workPurpose) || '-'}</td>
           <td>${esc(period)}</td><td>${r.personCount || 0}</td><td>${r.carCount || 0}</td>
           <td>${badge.visitStatus(r.statusCode, r.statusName)}</td>
           <td>${HOLDING.includes(r.statusCode) && PERM.canCreate ? `<button class="btn btn-sm" data-act="checkout" data-id="${r.visitNo}">퇴실</button>` : '-'}</td>
@@ -47,7 +49,10 @@
       }).join('');
     }
     pager.render($('paging'), data.page, data.totalPages, (p) => { state.page = p; load(); });
-    $('totalInfo').textContent = `조회결과 ${data.total.toLocaleString()}`;
+    // 미반납 = 작업기간이 끝났는데 카드가 회수되지 않은 방문. 몇 건 밀렸는지 목록 위에 늘 보인다
+    const un = data.unreturned || 0, cnt = String(un).padStart(2, '0');
+    $('totalInfo').innerHTML = `조회결과 ${data.total.toLocaleString()}` +
+      ` - (미반납 ${un ? `<span class="unreturned">${cnt}</span>` : cnt} 건)`;
     renderSort();
   }
 
@@ -91,9 +96,12 @@
   }
   const carAcSelected = () => [...$('carAcBox').querySelectorAll('input:checked')].map((c) => c.value);
 
-  // 카드 셀 — 선택된 카드번호 표시 + 선택 버튼(팝업). kind=vis|car. 퇴실한 방문객은 재발급 불가라 버튼을 뺀다
+  /* 카드 셀 — 고른 카드 표시 + 선택 버튼(팝업). kind=vis|car. 퇴실한 방문객은 재발급 불가라 버튼을 뺀다.
+     방문객은 카드명칭(임시234-0001)을 보여준다 — 그 카드가 어느 구역용인지가 번호에는 안 드러난다.
+     회수 표시는 카드번호로 남긴다(마지막 카드 스냅샷이 번호라 명칭을 알 수 없다). */
   function cardCell(obj, i, kind) {
-    const label = obj.cardId ? esc(obj.cardLabel || obj.cardId) : badge.none(obj.lastCardNo ? `회수됨(${obj.lastCardNo})` : '카드 없음');
+    const picked = kind === 'car' ? obj.cardLabel : obj.cardName || obj.cardLabel;
+    const label = obj.cardId ? esc(picked || obj.cardId) : badge.none(obj.lastCardNo ? `회수됨(${obj.lastCardNo})` : '카드 없음');
     const btn = obj.checkoutDt ? ''
       : `<button type="button" class="btn btn-sm" data-act="${kind}-card" data-idx="${i}">선택</button>`;
     return `<div class="file-field-row">
@@ -104,17 +112,21 @@
   function showTab(name) {
     document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
     document.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p.id === 'tab-' + name));
+    // 방문객 탭에서만 리더를 듣는다 — 다른 탭에서 지나가며 찍힌 카드가 배정되면 안 된다
+    if (name === 'vis') visitCardTag.on(); else visitCardTag.off();
   }
 
-  // ---- 인솔자 ----
-  let managers = []; // [{personId, personName, phone}]
-  /* 연락처는 정규인원에서 당겨오지 않는다 — 같은 사람이라도 방문마다 연락 받을 번호가 다르다. */
-  function mgrRender() {
-    $('mgrBody').innerHTML = managers.length
-      ? managers.map((m, i) => `<tr><td>${esc(m.personId)}</td><td>${esc(m.personName)}</td>
-          <td><input type="text" class="input w-180" data-act="mgr-phone" data-idx="${i}" value="${esc(m.phone || '')}" placeholder="연락처" autocomplete="off"/></td>
-          <td><button class="btn btn-sm btn-danger" data-act="mgr-del" data-idx="${i}">제거</button></td></tr>`).join('')
-      : '<tr><td colspan="4" class="empty">인솔자가 없습니다.</td></tr>';
+  /** 태깅한 카드를 다음 빈 방문객에게 — 위에서부터 차례로. 자리가 없으면 false. */
+  function assignTaggedCard(card) {
+    collectRows();
+    if (visitors.some((v) => v.cardId === Number(card.cardId))) { toast.warning('이미 이 화면에서 선택한 카드입니다.'); return true; }
+    const row = visitors.find((v) => !v.cardId && !v.checkoutDt);
+    if (!row) return false;
+    row.cardId = Number(card.cardId);
+    row.cardLabel = card.biostarCardValue;
+    row.cardName = card.cardName;
+    visRender();
+    return true;
   }
 
   // ---- 방문객 ----
@@ -165,7 +177,7 @@
     ['visitNo', 'visitType', 'visitTypeName', 'statusCode', 'statusName', 'companyType',
       'workStartDt', 'workEndDt', 'permitDt', 'receiver', 'returner', 'workPurpose', 'remark']
       .forEach((id) => { const el = $(id); if (el) el.value = ''; });
-    managers = []; visitors = []; cars = [];
+    visitManagers.reset(); visitors = []; cars = [];
     if (VISIT_TYPE) { $('visitType').value = VISIT_TYPE.id; if ($('visitTypeName')) $('visitTypeName').value = VISIT_TYPE.name; } // 임시 고정
     if (mode === 'create') { // 작업기간 기본: 시작=오늘 현재시각, 종료=오늘 18:00
       $('workStartDt').value = todayAt(0, 0, true);
@@ -178,7 +190,7 @@
     await loadRefs();
     acGroupTree.set(AC_TREE, []);
     carAcRender([]);
-    mgrRender(); visRender(); carRender();
+    visRender(); carRender();
     $('editModal').classList.add('open');
     if (mode !== 'edit') return;
 
@@ -196,15 +208,14 @@
     if (v.statusCode === 'VS04') { $('editModal').querySelector('.visit-modal').classList.add('readonly'); $('modalTitle').textContent = '방문 상세 (퇴실완료 — 수정 불가)'; } // 읽기전용
     acGroupTree.set(AC_TREE, d.acGroupIds || []);
     carAcRender(d.carAcCodes || []);
-    managers = (d.managers || []).map((m) => ({ personId: m.personId, personName: m.personName || '', phone: m.phone || '' }));
-    mgrRender();
+    visitManagers.set(d.managers);
     // issuedCardId = 저장된 카드(서버 응답 기준). 화면에서 방금 고른 카드와 구분해 퇴실 버튼 노출을 판단한다
     visitors = (d.visitors || []).map((x) => ({ ...x, issuedCardId: x.cardId || null }));
     visRender();
     cars = (d.cars || []).map((x) => ({ ...x }));
     carRender();
   }
-  function closeModal() { $('editModal').classList.remove('open'); closeMgr(); }
+  function closeModal() { $('editModal').classList.remove('open'); visitManagers.close(); visitCardTag.off(); }
 
   function collectRows() {
     // 인라인 input 값을 모델에 반영
@@ -223,7 +234,7 @@
       permitDt: $('permitDt').value || null, receiver: $('receiver').value.trim() || null,
       returner: $('returner').value.trim() || null, workPurpose: $('workPurpose').value.trim() || null,
       remark: $('remark').value.trim() || null,
-      managers: managers.map((m) => ({ personId: m.personId, phone: (m.phone || '').trim() })),
+      managers: visitManagers.get(),
       acGroupIds: acGroupTree.get(AC_TREE),
       carAcCodes: carAcSelected(),
       visitors: visitors.map((v) => ({ personId: v.personId || null, personName: (v.personName || '').trim() || null,
@@ -271,32 +282,29 @@
     load();
   }
 
-  // ---- 인솔자 선택 팝업 — 구현은 visitor-manager.js (파일 크기 제한으로 분리) ----
-  function openMgr() {
-    visitManagerPicker.open(BASE + '/managers', (p) => {
-      if (managers.some((m) => m.personId === p.personId)) { toast.warning('이미 추가된 인솔자입니다.'); return; }
-      managers.push({ personId: p.personId, personName: p.personName, phone: '' });
-      mgrRender();
-    });
-  }
-  const closeMgr = () => visitManagerPicker.close();
-
   // ---- 카드 선택 팝업 — 구현은 공용 컴포넌트(core/components/card-picker-visit) ----
+  /* 방문객 카드는 이름이 곧 용도다 — 임시234-0001·상주234-0001 은 2·3·4 구역 전용, 대여-0001 은 구역이 없어 어디에나 쓴다.
+     방문유형은 보지 않는다(실물 카드는 3종뿐이고 어느 방문에서나 같은 카드를 쓴다) — 서버가 고른 출입그룹으로 후보를 좁힌다. */
+  const visCardParams = () => ({ acGroupIds: acGroupTree.get(AC_TREE) });
   function openCardPicker(kind, index) {
     collectRows();
     const rows = kind === 'car' ? cars : visitors;
     const row = rows[index];
     if (!row) return;
     if (kind === 'vis' && row.checkoutDt) { toast.warning('퇴실한 방문객에게는 카드를 발급할 수 없습니다.'); return; }
+    const p = visCardParams();
+    if (kind === 'vis' && !p.acGroupIds.length) { toast.warning('사용자 출입그룹을 먼저 선택하세요. 어느 구역 카드를 써야 할지 정해지지 않았습니다.'); return; }
     visitCardPicker.open({
       kind,
       listUrl: BASE + (kind === 'car' ? '/cards/unassigned/car' : '/cards/unassigned'),
       scanUrl: BASE + '/card/scan',
+      params: kind === 'vis' ? visCardParams : null, // 차량 카드는 구역 규칙이 없다
       // 이 화면에서 다른 행이 이미 고른 카드는 뺀다(편집 중인 행의 카드는 남긴다)
       exclude: [...visitors, ...cars].map((o) => o.cardId).filter((id) => id != null && id !== row.cardId),
       onPick: (card) => {
         row.cardId = card ? Number(card.cardId) : null;
         row.cardLabel = card ? card.biostarCardValue : '';
+        row.cardName = card ? card.cardName : '';
         (kind === 'car' ? carRender : visRender)();
       },
     });
@@ -344,19 +352,17 @@
     });
 
     document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+    // 카드를 고른 뒤 출입그룹을 바꾸면 그 카드가 새 구역과 맞지 않을 수 있다 — 되돌리지 않고 알리기만 한다
+    $(AC_TREE).addEventListener('change', () => {
+      collectRows();
+      if (!visitors.some((v) => v.cardId)) return;
+      confirmModal.open({ title: '출입그룹 변경', confirmText: '확인',
+        message: '이미 고른 방문객 카드가 있습니다. 출입그룹을 바꾸면 그 카드가 새 구역과 맞지 않을 수 있으니, 카드를 다시 선택하세요.' });
+    });
     // 방문유형·상태는 사용자가 변경 불가(고정/서버관리) — 모달 코드팝업 없음
 
-    // 인솔자/방문객/차량 목록 조작
-    $('btnAddMgr').addEventListener('click', openMgr);
-    $('mgrBody').addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-act="mgr-del"]'); if (b) { managers.splice(b.dataset.idx, 1); mgrRender(); }
-    });
-    // 연락처는 치는 대로 배열에 담는다 — 다시 그릴 때 사라지지 않게
-    $('mgrBody').addEventListener('input', (e) => {
-      const ph = e.target.closest('input[data-act="mgr-phone"]');
-      if (ph && managers[ph.dataset.idx]) managers[ph.dataset.idx].phone = ph.value;
-    });
-    $('btnAddVis').addEventListener('click', () => { collectRows(); visitors.push({ personName: '', birthDate: '', affiliation: '', cardId: null, cardLabel: '' }); visRender(); });
+    // 방문객/차량 목록 조작 (인솔자 탭은 visitor-manager.js 가 통째로 쥔다)
+    $('btnAddVis').addEventListener('click', () => { collectRows(); visitors.push({ personName: '', birthDate: '', affiliation: '', cardId: null, cardLabel: '', cardName: '' }); visRender(); });
     birthDate.bindWithin($('visBody'), 'input[data-f="birthDate"]'); // 입력 보정 — 표는 다시 그려지므로 위임
     $('visBody').addEventListener('click', (e) => {
       const out = e.target.closest('button[data-act="vis-out"]'); if (out) { checkoutVisitor(Number(out.dataset.idx)); return; }
@@ -368,18 +374,6 @@
       const del = e.target.closest('button[data-act="car-del"]'); if (del) { collectRows(); cars.splice(del.dataset.idx, 1); carRender(); return; }
       const card = e.target.closest('button[data-act="car-card"]'); if (card) openCardPicker('car', Number(card.dataset.idx));
     });
-
-    // 인솔자 팝업
-    $('mgrSearch').addEventListener('click', () => visitManagerPicker.load());
-    $('mgrKeyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') visitManagerPicker.load(); });
-    $('mgrPickBody').addEventListener('click', (e) => {
-      const row = e.target.closest('.mgr-row'); if (row) visitManagerPicker.select(Number(row.dataset.idx));
-    });
-    $('mgrOk').addEventListener('click', () => {
-      if (!visitManagerPicker.confirm()) toast.warning('인원을 선택하세요.');
-    });
-    $('mgrCancel').addEventListener('click', closeMgr);
-    $('mgrClose').addEventListener('click', closeMgr);
 
     if ($('btnSave')) $('btnSave').addEventListener('click', save);
     if ($('btnDelete')) $('btnDelete').addEventListener('click', () => remove($('visitNo').value));
@@ -395,6 +389,8 @@
   document.addEventListener('DOMContentLoaded', () => {
     bind();
     acGroupTree.init(AC_TREE, BASE + '/acGroups');
+    visitManagers.init(BASE + '/managers');
+    visitCardTag.init({ base: BASE, params: visCardParams, assign: assignTaggedCard });
     load();
   });
 })();

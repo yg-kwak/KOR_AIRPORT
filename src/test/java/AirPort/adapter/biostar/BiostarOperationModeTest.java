@@ -23,6 +23,11 @@ class BiostarOperationModeTest {
       new BiostarUserAdapter(mapper, mock(BiostarSession.class));
 
   private static BiostarUserRequest request(String userId, Integer operationMode) {
+    return request(userId, operationMode, null);
+  }
+
+  private static BiostarUserRequest request(
+      String userId, Integer operationMode, String department) {
     return new BiostarUserRequest(
         userId,
         "홍길동",
@@ -38,7 +43,8 @@ class BiostarOperationModeTest {
         null,
         null,
         List.of(),
-        operationMode);
+        operationMode,
+        department);
   }
 
   @Test
@@ -60,6 +66,55 @@ class BiostarOperationModeTest {
     JsonNode user = mapper.readTree(adapter.userPayload(request("400001", null))).path("User");
 
     assertFalse(user.has("private_operation_modes"), user.toString());
+  }
+
+  // ── 부서(허가구역) ────────────────────────────────────────────────────────
+
+  @Test
+  void 부서에_허가구역_번호가_실린다() throws Exception {
+    // 장비 화면·이벤트 목록에서 그 사람이 어디를 다니는 사람인지 한눈에 보이라고 넣는다
+    JsonNode user =
+        mapper.readTree(adapter.userPayload(request("400001", null, "124"))).path("User");
+
+    assertEquals("124", user.path("department").asText(), user.toString());
+  }
+
+  @Test
+  void 구역이_없으면_부서를_보내지_않는다() throws Exception {
+    // 등록 payload 는 없는 값을 넣지 않는다 — 빈 문자열을 보내면 장비에 빈 부서가 생긴다
+    JsonNode user = mapper.readTree(adapter.userPayload(request("400001", null))).path("User");
+
+    assertFalse(user.has("department"), user.toString());
+  }
+
+  @Test
+  void 출입그룹을_바꾸면_부서도_따라_바뀐다() throws Exception {
+    // 구역만 고치고 부서를 그대로 두면 장비 화면이 옛 구역을 계속 보여준다 — 둘 중 뭐가 맞는지 알 수 없다
+    JsonNode user = updatePayload(request("400001", null, "12"), request("400001", null, "124"));
+
+    assertEquals("124", user.path("department").asText(), user.toString());
+  }
+
+  @Test
+  void 구역을_전부_빼면_부서를_지운다() throws Exception {
+    // 있다가 없어진 값은 공란으로 보낸다(BiostarUserAdapter 규칙). 안 보내면 지워지지 않는다
+    JsonNode user = updatePayload(request("400001", null, "124"), request("400001", null, null));
+
+    assertTrue(user.has("department"), user.toString());
+    assertEquals("", user.path("department").asText());
+  }
+
+  @Test
+  void 부서가_그대로면_보내지_않는다() throws Exception {
+    JsonNode user = updatePayload(request("400001", null, "124"), request("400001", null, "124"));
+
+    assertFalse(user.has("department"), user.toString());
+  }
+
+  /** PUT payload 의 User 노드 — updateUser 는 통신을 하므로 델타 구성만 같은 방식으로 확인한다. */
+  private JsonNode updatePayload(BiostarUserRequest before, BiostarUserRequest after)
+      throws Exception {
+    return mapper.readTree(adapter.updatePayload(before, after)).path("User");
   }
 
   @Test

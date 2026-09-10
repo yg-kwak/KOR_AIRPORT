@@ -50,6 +50,26 @@ class BiostarEventSocketTest {
     assertEquals("1786412281_543737030_527832", e.imageId());
   }
 
+  /** 미등록 카드를 리더에 댄 순간 — user_id 자리에 '읽은 카드번호'가 온다(방문객 카드 태깅). */
+  private static final String CARD_TAGGED =
+      "{\"Event\":{\"id\":\"178900552005437370300000550567\","
+          + "\"event_type_id\":{\"code\":\"4354\",\"name\":\"VERIFY_FAIL_CARD\"},"
+          + "\"index\":\"550567\",\"datetime\":\"2026-09-10T01:58:40.00Z\","
+          + "\"device_id\":{\"id\":\"543737030\",\"name\":\"FaceStation F2 543737030\"},"
+          + "\"user_id\":{\"user_id\":\"113732383\",\"name\":\"-\"},\"parameter\":\"-1\"}}";
+
+  @Test
+  void 카드_태깅_프레임에서_카드번호를_뽑는다() throws Exception {
+    // 이 값이 tb_card.biostar_card_value 다. 자리가 어긋나면 카드를 못 찾아 태깅이 통째로 안 먹는다
+    BiostarAuthEvent e =
+        BiostarEventSocket.parse(new com.fasterxml.jackson.databind.ObjectMapper(), CARD_TAGGED);
+
+    assertEquals("4354", e.eventCode());
+    assertEquals("543737030", e.deviceId());
+    assertEquals("113732383", e.userId());
+    assertNull(e.imageId(), "인증 실패라 사진이 없다");
+  }
+
   @Test
   void 이벤트가_아닌_메시지는_버린다() throws Exception {
     assertNull(

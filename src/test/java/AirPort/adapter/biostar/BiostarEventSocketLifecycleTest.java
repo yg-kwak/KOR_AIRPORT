@@ -62,26 +62,42 @@ class BiostarEventSocketLifecycleTest {
     BiostarEventSocket s = socket();
     AtomicInteger notified = new AtomicInteger();
 
-    s.start("10.0.0.1", "admin", "pw", e -> {}, notified::incrementAndGet);
+    s.start("10.0.0.1", "admin", "pw", "monitor", e -> {}, notified::incrementAndGet);
     awaitTrue(() -> s.error() != null, "실패 사유가 남아야 한다");
 
     assertFalse(s.isReady(), "이벤트를 받을 수 없는데 준비됨으로 보고하면 안 된다");
     assertNotNull(s.error());
     assertEquals(1, notified.get(), "실패도 화면에 알려야 한다");
-    s.stop();
+    s.stop("monitor");
   }
 
   @Test
   void 구독자가_없어지면_남은_오류가_지워진다() throws Exception {
     loginFails();
     BiostarEventSocket s = socket();
-    s.start("10.0.0.1", "admin", "pw", e -> {}, () -> {});
+    s.start("10.0.0.1", "admin", "pw", "monitor", e -> {}, () -> {});
     awaitTrue(() -> s.error() != null, "실패 사유가 남아야 한다");
 
-    s.stop();
+    s.stop("monitor");
 
     assertFalse(s.isReady());
     assertNull(s.error(), "다음 구독자에게 지난 오류가 새어 나가면 안 된다");
+  }
+
+  @Test
+  void 한_채널이_떠나도_남은_채널이_있으면_계속_받는다() throws Exception {
+    // 실시간 이벤트 창을 닫는 순간 방문객 카드 태깅이 조용히 멈추면 안 된다
+    loginFails();
+    BiostarEventSocket s = socket();
+    s.start("10.0.0.1", "admin", "pw", "monitor", e -> {}, () -> {});
+    s.start("10.0.0.1", "admin", "pw", "cardTag", e -> {}, () -> {});
+    awaitTrue(() -> s.error() != null, "실패 사유가 남아야 한다");
+
+    s.stop("monitor"); // 실시간 화면만 닫았다
+
+    assertNotNull(s.error(), "남은 채널이 있는데 소켓을 닫았다 — 카드 태깅이 멈춘다");
+    s.stop("cardTag");
+    assertNull(s.error(), "마지막 채널까지 떠나면 정리된다");
   }
 
   @Test
@@ -96,12 +112,12 @@ class BiostarEventSocketLifecycleTest {
     // 이미 실패해 재연결 대기 중인데 또 확인하면 장비를 이중으로 두드린다
     loginFails();
     BiostarEventSocket s = socket();
-    s.start("10.0.0.1", "admin", "pw", e -> {}, () -> {});
+    s.start("10.0.0.1", "admin", "pw", "monitor", e -> {}, () -> {});
     awaitTrue(() -> s.error() != null, "실패 사유가 남아야 한다");
 
     s.verify();
 
     verify(eventAdapter, never()).start(any(), any(), any());
-    s.stop();
+    s.stop("monitor");
   }
 }

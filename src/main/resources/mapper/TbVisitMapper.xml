@@ -31,13 +31,18 @@
            컬럼(cols)은 남긴다: 신청서 차량표와 주차 연동이 과거 방문의 업체명을 물러설 값으로 읽는다. -->
       <if test="keyword != null and keyword != ''">
         <choose>
+          <!-- 작업번호는 int PK 다. 숫자가 아닌 글자가 들어와도 TRY_CAST 가 NULL 을 내 결과만 비고,
+               CAST 처럼 SQL 오류(245)로 500 이 나지 않는다. 부분일치는 쓰지 않는다 —
+               '4' 가 4·40·41·46 을 다 끌어오면 번호로 찾는 뜻이 없어진다 -->
+          <when test="searchType == 'visitNo'">AND v.visit_no = TRY_CAST(#{keyword} AS int)</when>
           <when test="searchType == 'carNo'">AND <include refid="exCar"/></when>
           <when test="searchType == 'cardNo'">AND (<include refid="exPersonCard"/> OR <include refid="exCarCard"/>)</when>
           <when test="searchType == 'visitorName'">AND <include refid="exVisitorName"/></when>
           <when test="searchType == 'managerName'">AND <include refid="exManagerName"/></when>
           <otherwise>
             AND (
-              v.work_purpose LIKE '%' + #{keyword} + '%'
+              v.visit_no = TRY_CAST(#{keyword} AS int)
+              OR v.work_purpose LIKE '%' + #{keyword} + '%'
               OR <include refid="exCar"/>
               OR <include refid="exPersonCard"/>
               OR <include refid="exCarCard"/>
@@ -94,13 +99,28 @@
     CONVERT(varchar(19), v.checkout_dt, 120)   AS checkout_dt,
     pt.code_name AS visit_type_name, vs.code_name AS status_name,
     (SELECT COUNT(*) FROM tb_visit_person vp WHERE vp.visit_no = v.visit_no) AS person_count,
-    (SELECT COUNT(*) FROM tb_visit_car vc WHERE vc.visit_no = v.visit_no) AS car_count
+    (SELECT COUNT(*) FROM tb_visit_car vc WHERE vc.visit_no = v.visit_no) AS car_count,
+    mgr.person_name AS manager_name, mgr.affiliation AS manager_affiliation,
+    mgr.company_name AS manager_company_name
   </sql>
 
   <sql id="joins">
     FROM tb_visit v
     LEFT JOIN tb_common pt ON pt.cmm_id = 'PT' AND pt.code_id = v.visit_type
     LEFT JOIN tb_common vs ON vs.cmm_id = 'VS' AND vs.code_id = <include refid="statusExpr"/>
+    <!-- 첫 인솔자 — 목록에 대표 한 명의 이름·소속을 보여준다. 인솔자가 여럿이어도 '첫 줄에 적은 사람'이
+         그 방문의 대표다(seq 는 저장 순서 그대로라 ORDER BY seq 가 곧 '첫 번째'). 정렬을 빼면 DB 가
+         고르는 아무 행이 나와, 같은 방문인데 조회할 때마다 다른 인솔자가 보인다.
+         값을 tb_visit 에 복제하지 않고 매번 잇는다 — 소속은 tb_person 이 원천이고 바뀐다.
+         성명 복호화(ARIA)와 소속 판정(Affiliations)은 서비스가 한다. 여기서는 두 값을 그대로 올린다. -->
+    OUTER APPLY (
+      SELECT TOP 1 pm.person_name, pm.affiliation, cm.company_name
+      FROM tb_visit_manager vm
+      JOIN tb_person pm ON pm.person_id = vm.person_id
+      LEFT JOIN tb_company cm ON cm.company_code = pm.company_code
+      WHERE vm.visit_no = v.visit_no
+      ORDER BY vm.seq
+    ) mgr
   </sql>
 
   <select id="selectList" parameterType="AirPort.model.VisitSearchParam" resultType="TbVisit">
@@ -114,6 +134,14 @@
   <select id="selectCount" parameterType="AirPort.model.VisitSearchParam" resultType="long">
     SELECT COUNT(*) FROM tb_visit v
     <include refid="searchWhere"/>
+  </select>
+
+  <!-- 미반납 건수 — 목록과 같은 검색 조건에서 '작업기간이 끝났는데 아직 입실 중'인 방문이 몇 건인가.
+       카드가 아직 회수되지 않았다는 뜻이라 목록 위에 늘 보여 준다(statusExpr 가 조회 시각으로 계산한다). -->
+  <select id="selectUnreturnedCount" parameterType="AirPort.model.VisitSearchParam" resultType="long">
+    SELECT COUNT(*) FROM tb_visit v
+    <include refid="searchWhere"/>
+    AND <include refid="statusExpr"/> = 'VS05'
   </select>
 
   <select id="selectById" resultType="TbVisit">

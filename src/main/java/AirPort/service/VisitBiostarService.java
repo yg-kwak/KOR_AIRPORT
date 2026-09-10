@@ -4,6 +4,7 @@ import AirPort.adapter.biostar.BiostarResult;
 import AirPort.adapter.biostar.BiostarUserAdapter;
 import AirPort.adapter.biostar.BiostarUserCard;
 import AirPort.adapter.biostar.BiostarUserRequest;
+import AirPort.common.AccessAreas;
 import AirPort.mapper.TbAcGroupMapper;
 import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbCommonMapper;
@@ -83,6 +84,12 @@ public class VisitBiostarService {
         (acGroupIds == null || acGroupIds.isEmpty())
             ? null
             : acGroupMapper.selectBiostarAcIdsByGroupIds(acGroupIds);
+    // 부서 = 허가구역 번호(예: "124"). 장비 화면·이벤트 목록에서 어디를 다니는 사람인지 한눈에 보이게 한다.
+    // 표기 규칙은 실시간 이벤트의 [허가 구역]과 같다 — 상위를 고르면 하위가 함께 딸려 와도 같은 구역은 한 번만 센다
+    String department =
+        (acGroupIds == null || acGroupIds.isEmpty())
+            ? null
+            : AccessAreas.key(acGroupMapper.selectNamesByIds(acGroupIds));
 
     List<String> fails = new java.util.ArrayList<>();
     for (String pid : personIds) {
@@ -118,7 +125,8 @@ public class VisitBiostarService {
               null,
               cards,
               // 방문객은 얼굴을 등록하지 않는다 — 카드만으로 인증하게 개인 인증 모드를 붙인다
-              BiostarUserAdapter.OPERATION_MODE_CARD_ONLY);
+              BiostarUserAdapter.OPERATION_MODE_CARD_ONLY,
+              department);
       try {
         boolean exists = biostarUserAdapter.userExists(ip, id, pw, pid);
         BiostarResult res =
@@ -234,7 +242,7 @@ public class VisitBiostarService {
       BiostarUserRequest before =
           new BiostarUserRequest(
               pid, null, null, null, null, null, null, null, null, null, null, null, null, current,
-              null);
+              null, null);
       BiostarUserRequest after =
           new BiostarUserRequest(
               pid,
@@ -251,7 +259,8 @@ public class VisitBiostarService {
               null,
               null,
               java.util.List.of(), // 카드 전체 제거
-              null); // 인증 모드는 건드리지 않는다(before 와 같아 전송 대상이 아니다)
+              null, // 인증 모드는 건드리지 않는다(before 와 같아 전송 대상이 아니다)
+              null); // 부서도 그대로 둔다 — 퇴실은 출입을 막는 일이지 소속 구역을 지우는 일이 아니다
       BiostarResult res = biostarUserAdapter.updateUser(ip, id, pw, before, after);
       if (!res.success()) {
         fails.add(pid + "(" + res.message() + ")");
@@ -283,7 +292,8 @@ public class VisitBiostarService {
 
   private static BiostarUserRequest empty(String userId) {
     return new BiostarUserRequest(
-        userId, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        userId, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+        null);
   }
 
   private static String datetime(String value, String defaultTime) {

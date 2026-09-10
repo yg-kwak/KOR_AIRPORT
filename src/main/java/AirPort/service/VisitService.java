@@ -111,8 +111,16 @@ public class VisitService {
         param.getKeyword() == null ? null : encryptOrNull(param.getKeyword().trim()));
     long total = visitMapper.selectCount(param);
     List<TbVisit> rows = visitMapper.selectList(param);
+    for (TbVisit row : rows) {
+      row.setManagerName(decrypt(row.getManagerName())); // 성명은 ARIA 암호문이라 SQL 이 풀지 못한다
+      // 소속 판정은 한 곳에서만 한다 — SQL 에 옮겨 적으면 화면마다 다른 소속이 보이기 시작한다
+      row.setManagerAffiliation(
+          AirPort.common.Affiliations.of(row.getManagerAffiliation(), row.getManagerCompanyName()));
+    }
     auditService.log(actor, AuditService.READ, menuId, "방문 목록 조회 (결과 " + total + "건)");
-    return new PageResult<>(rows, total, param.getPage(), param.getSize());
+    // 미반납(카드 미회수)은 목록을 넘겨 가며 셀 값이 아니다 — 같은 조건 전체에서 세어 위에 늘 보여 준다
+    return new AirPort.model.VisitPageResult(
+        rows, total, param.getPage(), param.getSize(), visitMapper.selectUnreturnedCount(param));
   }
 
   /** 인솔자 후보(정규인원 PT01) — 성명 복호화. */
@@ -161,6 +169,8 @@ public class VisitService {
       mf.setPersonId(m.getPersonId());
       TbPerson mp = personMapper.selectById(m.getPersonId());
       mf.setPersonName(mp != null ? decrypt(mp.getPersonName()) : "");
+      // 소속은 표기 전용 — 방문에 저장하지 않는다. 동명이인이 인솔자로 나란히 있을 때 누구인지 가릴 단서다
+      mf.setAffiliation(AirPort.common.Affiliations.of(mp));
       // 그 방문에 적어 둔 연락처 — 정규인원의 번호가 아니다
       mf.setPhone(decrypt(m.getManagerPhone()));
       d.managers.add(mf);
@@ -180,6 +190,7 @@ public class VisitService {
         if (!pc.isEmpty()) {
           f.setCardId(pc.get(0).getCardId());
           f.setCardLabel(pc.get(0).getBiostarCardValue());
+          f.setCardName(pc.get(0).getCardName()); // 화면은 번호가 아니라 명칭을 보여준다
         }
         f.setLastCardNo(visitMapper.selectVisitorLastCard(visitNo, pid)); // 회수 후에도 보존된 마지막 카드
         f.setCheckoutDt(visitMapper.selectVisitorCheckout(visitNo, pid)); // 값이 있으면 퇴실(카드 재발급 불가)

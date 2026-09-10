@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.net.http.WebSocket;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -58,8 +60,11 @@ public class BiostarEventSocket {
   private String ip;
   private String loginId;
   private String password;
-  private Consumer<BiostarAuthEvent> sink;
-  private Runnable statusListener; // 상태가 바뀌면 알린다(화면 갱신용)
+  /* 채널별 구독자 — 지금은 둘이다: 실시간 이벤트 화면('monitor')과 방문객 카드 태깅('cardTag').
+  장비 연결은 그래도 하나다. 채널마다 소켓을 열면 BiostarX 세션이 갈라져 한쪽이 다른 쪽을 끊는다.
+  이름으로 등록하는 이유: 호출자는 구독할 때마다 새 람다(this::onEvent)를 넘기므로 객체로는 뗄 수 없다. */
+  private final Map<String, Consumer<BiostarAuthEvent>> sinks = new ConcurrentHashMap<>();
+  private final Map<String, Runnable> statusListeners = new ConcurrentHashMap<>();
 
   public BiostarEventSocket(
       ObjectMapper objectMapper, BiostarSession session, BiostarEventAdapter eventAdapter) {
@@ -78,14 +83,15 @@ public class BiostarEventSocket {
       String ip,
       String loginId,
       String password,
+      String channel,
       Consumer<BiostarAuthEvent> sink,
       Runnable statusListener) {
     synchronized (lock) {
       this.ip = ip;
       this.loginId = loginId;
       this.password = password;
-      this.sink = sink;
-      this.statusListener = statusListener;
+      sinks.put(channel, sink);
+      statusListeners.put(channel, statusListener);
       if (worker == null) {
         worker = Executors.newSingleThreadScheduledExecutor(BiostarEventSocket::thread);
       }
@@ -97,10 +103,19 @@ public class BiostarEventSocket {
     submit(this::connect);
   }
 
-  /** 마지막 구독자가 떠났을 때. 소켓을 닫고 재연결도 멈춘다(아무도 안 보는 이벤트를 계속 받지 않는다). */
-  public void stop() {
+  /**
+   * 그 채널의 마지막 구독자가 떠났을 때. <b>다른 채널이 남아 있으면 소켓은 그대로 둔다.</b>
+   *
+   * <p>채널 하나가 떠났다고 소켓을 닫으면, 실시간 이벤트를 보다 창을 닫는 순간 방문객 카드 태깅이 조용히 멈춘다.
+   */
+  public void stop(String channel) {
     WebSocket ws;
     synchronized (lock) {
+      sinks.remove(channel);
+      statusListeners.remove(channel);
+      if (!sinks.isEmpty()) {
+        return; // 아직 보는 채널이 있다
+      }
       wanted = false;
       ready = false;
       lastError = null;
@@ -380,11 +395,9 @@ public class BiostarEventSocket {
         parsed.deviceId(),
         parsed.userId(),
         parsed.imageId());
-    Consumer<BiostarAuthEvent> target;
-    synchronized (lock) {
-      target = sink;
-    }
-    if (target != null) {
+    // 채널마다 관심사가 다르다 — 실시간 화면은 인증 성공을, 카드 태깅은 미등록 카드 읽기를 본다.
+    // 여기서 거르지 않고 그대로 넘긴다(어댑터는 판정하지 않는다).
+    for (Consumer<BiostarAuthEvent> target : sinks.values()) {
       target.accept(parsed);
     }
   }
@@ -450,11 +463,7 @@ public class BiostarEventSocket {
   }
 
   private void notifyStatus() {
-    Runnable listener;
-    synchronized (lock) {
-      listener = statusListener;
-    }
-    if (listener != null) {
+    for (Runnable listener : statusListeners.values()) {
       listener.run();
     }
   }

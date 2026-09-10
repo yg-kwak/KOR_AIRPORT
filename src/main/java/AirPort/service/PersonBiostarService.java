@@ -5,6 +5,7 @@ import AirPort.adapter.biostar.BiostarSessionException;
 import AirPort.adapter.biostar.BiostarUserAdapter;
 import AirPort.adapter.biostar.BiostarUserCard;
 import AirPort.adapter.biostar.BiostarUserRequest;
+import AirPort.common.AccessAreas;
 import AirPort.mapper.TbCardMapper;
 import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbCompanyMapper;
@@ -72,7 +73,11 @@ public class PersonBiostarService {
       return "소속 기관에 BiostarX 사용자그룹이 없습니다. 기관등록관리에서 해당 기관을 저장(동기화)해 그룹을 만든 뒤 다시 시도하세요.";
     }
     BiostarUserRequest after =
-        biostarRequest(form, acGroupMapper.selectBiostarAcIds(form.getPersonId()));
+        biostarRequest(
+            form,
+            acGroupMapper.selectBiostarAcIds(form.getPersonId()),
+            // 부서 = 허가구역 번호. 출입그룹은 이 시점에 이미 저장돼 있다(PersonService.saveAcGroups 뒤)
+            AccessAreas.key(acGroupMapper.selectAcGroupNames(form.getPersonId())));
     BiostarResult res;
     try {
       res = syncUser(cfg, before, after);
@@ -116,11 +121,13 @@ public class PersonBiostarService {
   /** 비교 기준이 없을 때 쓰는 빈 요청 — 모든 항목이 '변경됨'이 되어 전 항목이 전송된다. */
   public static BiostarUserRequest empty(String userId) {
     return new BiostarUserRequest(
-        userId, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        userId, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+        null);
   }
 
   /** 저장된 인원(수정 전 상태) → BiostarX 전송 값. 얼굴 템플릿은 보관하지 않으므로 없음. */
-  public BiostarUserRequest requestOf(TbPerson p, String faceImage, List<Integer> acIds) {
+  public BiostarUserRequest requestOf(
+      TbPerson p, String faceImage, List<Integer> acIds, List<String> acNames) {
     return biostarRequest(
         p.getPersonId(),
         p.getPersonName(),
@@ -134,7 +141,8 @@ public class PersonBiostarService {
         acIds,
         null,
         null,
-        CardService.toBiostarCardsOf(cardMapper.selectByPerson(p.getPersonId())));
+        CardService.toBiostarCardsOf(cardMapper.selectByPerson(p.getPersonId())),
+        AccessAreas.key(acNames));
   }
 
   /**
@@ -143,7 +151,7 @@ public class PersonBiostarService {
    * <p><b>비활성 상태면 얼굴을 함께 지운다.</b> 출입을 막아 놓고 생체정보만 장비에 남겨 두면, 상태를 되돌리는 순간 예전 얼굴로 문이 열린다. 퇴사·분실처럼 사람이
    * 떠났거나 카드를 잃은 상태에서는 남겨 둘 이유도 없다(개인정보 최소화).
    */
-  private BiostarUserRequest biostarRequest(PersonForm f, List<Integer> acIds) {
+  private BiostarUserRequest biostarRequest(PersonForm f, List<Integer> acIds, String department) {
     boolean disabled = isDisabled(f.getStatusCode());
     // 사용자 사진(photo)은 원본, 인증용 얼굴(visualFaces)은 장비가 돌려준 정규화 이미지를 쓴다.
     // 원본이 없으면(장치 촬영) 정규화 이미지를 사진으로도 쓴다.
@@ -164,7 +172,8 @@ public class PersonBiostarService {
         acIds,
         disabled ? null : f.getFaceTemplate9(),
         disabled ? null : f.getFaceTemplate5(),
-        CardService.toBiostarCards(f.getCards()));
+        CardService.toBiostarCards(f.getCards()),
+        department);
   }
 
   /** BiostarX 전송 값 구성(코드 → 실제 값 변환 포함). */
@@ -181,7 +190,8 @@ public class PersonBiostarService {
       List<Integer> acIds,
       String t9,
       String t5,
-      List<BiostarUserCard> cards) {
+      List<BiostarUserCard> cards,
+      String department) {
     return new BiostarUserRequest(
         personId,
         name,
@@ -197,7 +207,8 @@ public class PersonBiostarService {
         t9,
         t5,
         cards,
-        null); // 개인 인증 모드 미지정 — 정규인원은 얼굴+카드라 장비/사용자그룹 설정을 그대로 따른다
+        null, // 개인 인증 모드 미지정 — 정규인원은 얼굴+카드라 장비/사용자그룹 설정을 그대로 따른다
+        department);
   }
 
   /** 기관의 BiostarX 사용자그룹 ID. */

@@ -37,6 +37,7 @@ public class VisitRosterService {
   private final TbCommonMapper commonMapper;
   private final CardService cardService;
   private final CardIssueService cardIssue;
+  private final VisitCardService visitCard;
   private final VisitBiostarService visitBiostar;
   private final ParkingPassService parkingPass;
   private final AuditService auditService;
@@ -50,6 +51,7 @@ public class VisitRosterService {
       TbCommonMapper commonMapper,
       CardService cardService,
       CardIssueService cardIssue,
+      VisitCardService visitCard,
       VisitBiostarService visitBiostar,
       ParkingPassService parkingPass,
       AuditService auditService,
@@ -61,6 +63,7 @@ public class VisitRosterService {
     this.commonMapper = commonMapper;
     this.cardService = cardService;
     this.cardIssue = cardIssue;
+    this.visitCard = visitCard;
     this.visitBiostar = visitBiostar;
     this.parkingPass = parkingPass;
     this.auditService = auditService;
@@ -152,6 +155,18 @@ public class VisitRosterService {
           }
           // 정상이 아닌 카드(분실·정지·반납·폐기)는 발급하지 않는다 — 장비에서 차단돼 문이 열리지 않는다
           cardIssue.requireIssuable(vf.getCardId(), heldByVisitor.get(pid), "방문객 " + pid);
+          // 새로 주는 카드는 이 방문의 구역에 맞는 이름이어야 한다(임시234-0001). 화면이 후보를 좁히지만
+          // 저장 요청은 화면을 거치지 않고도 온다. 이미 들고 있던 카드는 그대로 둔다 — 규칙이 생기기 전에
+          // 발급된 카드까지 되돌아가 막으면, 카드 한 장 건드리지 않는 수정조차 저장되지 않는다.
+          java.util.Set<Integer> held = heldByVisitor.get(pid);
+          if (held == null || !held.contains(vf.getCardId())) {
+            // 안내에는 방금 만들어진 ID 가 아니라 화면에 보이는 이름을 쓴다 — 저장이 취소되면 그 ID 는 사라진다
+            String who =
+                vf.getPersonName() == null || vf.getPersonName().isBlank()
+                    ? pid
+                    : vf.getPersonName().trim();
+            visitCard.requireUsable(vf.getCardId(), form.getAcGroupIds(), "방문객 " + who);
+          }
           // 장비 미등록 카드면 지금 등록 — 실패하면 예외로 저장이 취소된다(문 안 열리는 카드 방지)
           cardService.ensureBiostarCard(vf.getCardId(), actor, menuId);
           cardMapper.assignPerson(vf.getCardId(), pid);

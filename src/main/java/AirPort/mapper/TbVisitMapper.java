@@ -12,6 +12,13 @@ public interface TbVisitMapper {
 
   long selectCount(VisitSearchParam param);
 
+  /**
+   * 같은 검색 조건에서 <b>미반납</b>(작업기간이 끝났는데 아직 입실 중) 건수 — 목록 위 요약.
+   *
+   * <p>미반납은 저장되는 상태가 아니라 조회 시각으로 계산한다. 그래서 세는 것도 목록과 <b>같은 식</b>이어야 한다.
+   */
+  long selectUnreturnedCount(VisitSearchParam param);
+
   TbVisit selectById(@Param("visitNo") int visitNo);
 
   int insert(TbVisit row);
