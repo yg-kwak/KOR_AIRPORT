@@ -146,7 +146,8 @@ INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_leve
   (800, N'카드관리',     NULL, NULL,                 1, 6, 'card',     'Y'),
   (801, N'카드등록관리', 800,  '/card/card',          2, 1, NULL,      'Y'),
   (900, N'모니터링',     NULL, NULL,                 1, 7, 'monitor',  'Y'),
-  (901, N'실시간 이벤트', 900, '/monitor/event',      2, 1, NULL,      'Y');
+  (901, N'실시간 이벤트', 900, '/monitor/event',      2, 1, NULL,      'Y'),
+  (902, N'이벤트 로그',   900, '/monitor/eventLog',   2, 2, NULL,      'Y');
 
 /* 관리자 권한 + 공통코드관리 전권 + 관리자 계정 */
 INSERT INTO dbo.tb_menu_auth (auth_name) VALUES (N'관리자');
@@ -167,7 +168,8 @@ VALUES (@authId, 301, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 101, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 102, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 602, 'Y', 'Y', 'Y', 'Y'),   -- 주차 조회
-       (@authId, 901, 'Y', 'Y', 'Y', 'Y');   -- 실시간 이벤트
+       (@authId, 901, 'Y', 'Y', 'Y', 'Y'),   -- 실시간 이벤트
+       (@authId, 902, 'Y', 'Y', 'Y', 'Y');   -- 이벤트 로그
 
 /* 관리자 계정: 아이디 admin / 비밀번호 admin123 (ARIA 암호문) */
 INSERT INTO dbo.tb_login_user
@@ -197,7 +199,8 @@ VALUES (@viewerAuthId, 301, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 101, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 102, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 602, 'Y', 'N', 'N', 'N'),   -- 주차 조회
-       (@viewerAuthId, 901, 'Y', 'N', 'N', 'N');   -- 실시간 이벤트
+       (@viewerAuthId, 901, 'Y', 'N', 'N', 'N'),   -- 실시간 이벤트
+       (@viewerAuthId, 902, 'Y', 'N', 'N', 'N');   -- 이벤트 로그
 
 INSERT INTO dbo.tb_login_user
   (user_id, user_name, password, dept_name, use_yn, root_yn, auth_id, start_menu_id, work_location_code)

@@ -20,17 +20,22 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-/** 실시간 이벤트 모니터링 — 조회 전용(입력/수정/삭제 없음). */
+/**
+ * 이벤트 로그 모니터링 — 조회 전용. 실시간 이벤트(901)와 <b>같은 이벤트</b>를 다른 배치로 본다.
+ *
+ * <p>다른 점은 둘이다: <b>단말기를 여러 대</b> 한 화면에서 보고, 지난 인증을 옆으로 늘어놓는 대신 <b>세로로 쌓아 스크롤</b>한다. 서버가 하는 일은 같아
+ * {@link MonitorService} 를 그대로 쓴다 — 권한은 각 화면이 자기 menu_id(요청 URL 로 해석)로 확인한다.
+ */
 @Controller
-@RequestMapping("/monitor/event")
-public class MonitorController {
+@RequestMapping("/monitor/eventLog")
+public class MonitorLogController {
 
   private final MonitorService monitorService;
   private final MenuService menuService;
   private final MenuAuthService menuAuthService;
   private final CurrentMenu currentMenu; // 요청 URL 로 해석된 menu_id (하드코딩 대체)
 
-  public MonitorController(
+  public MonitorLogController(
       MonitorService monitorService,
       MenuService menuService,
       MenuAuthService menuAuthService,
@@ -55,17 +60,10 @@ public class MonitorController {
     }
     model.addAttribute("menus", menuService.tree(actor(session)));
     model.addAttribute("perm", perm);
-    return "web/monitor/event";
+    return "web/monitor/eventLog";
   }
 
-  /**
-   * 로그인 세션 유지 (AJAX) — 화면이 주기적으로 부른다.
-   *
-   * <p>SSE 는 <b>요청 하나</b>다. 연결이 유지되는 동안 세션의 최종접근시각은 갱신되지 않으므로, 이 화면을 켜 두기만 하면 한 시간 뒤 세션이 만료된다. 그 뒤
-   * 망이 한 번만 출렁여도 재연결이 로그인 화면으로 튕기고, 브라우저는 그것을 3초마다 영원히 반복한다 — 상황실에 사람이 없으면 몇 시간을 그렇게 있는다.
-   *
-   * <p>이 요청은 그 자체로 세션을 갱신한다. 세션이 이미 끊겼으면 인증 인터셉터가 막으므로 화면이 그때 사용자에게 알린다.
-   */
+  /** 로그인 세션 유지 (AJAX) — SSE 는 요청 하나라 연결만으로는 세션이 갱신되지 않는다. */
   @GetMapping("/alive")
   @ResponseBody
   public ApiResponse<Void> alive(HttpSession session) {
@@ -80,11 +78,7 @@ public class MonitorController {
     return ApiResponse.ok(monitorService.devices(actor(session), menuId()));
   }
 
-  /**
-   * 인증 이벤트 스트림 (SSE) — 고른 단말기의 인증 성공만 흘려 보낸다.
-   *
-   * <p>브라우저가 BiostarX 소켓을 직접 열 수 없어(self-signed 인증서 + 세션은 서버 보유) 서버가 중계한다.
-   */
+  /** 인증 이벤트 스트림 (SSE) — 고른 단말기 <b>여러 대</b>의 인증을 한 화면으로 흘려 보낸다. */
   @GetMapping("/stream")
   public SseEmitter stream(@RequestParam List<String> deviceId, HttpSession session) {
     return monitorService.subscribe(deviceId, actor(session), menuId());

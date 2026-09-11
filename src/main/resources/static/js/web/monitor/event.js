@@ -15,16 +15,11 @@
      지나간 사람이 계속 커다랗게 떠 있으면, 방금 지나간 사람으로 오독된다. */
   const MAIN_HOLD_MS = 60 * 1000;
 
-  /* 소리 설정은 이 브라우저에 남긴다 — 상황실 PC 마다 조건이 다르다(스피커 유무·야간 소음). */
-  const SOUND_KEY = 'monitorSound';
-
   let stream = null;      // 현재 EventSource
   let keepAlive = null;   // 세션 유지 타이머
   let holdTimer = null;   // MAIN 유지 타이머
   let deviceId = null;    // 보고 있는 단말기
   let mainHeld = false;   // MAIN 이 지금 한 건을 붙잡고 있는가(그 건은 띠에서 뺀다)
-  let soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; // 기본은 켜짐
-  let koVoice = null;     // 한국어 음성(미리 찾아 둔다 — 인증 순간에 찾으면 늦다)
   const history = [];     // 최근 → 과거 순. 화면은 뒤집어 그린다
 
   /* 카드 그림 — 얼굴이 없는 자리에 세운다. 카드로만 인증한 사람(임시·장기·상주·순찰·대여)은
@@ -71,95 +66,10 @@
     $('monitorMain').classList.add('shown');
   }
 
-  /* 인증마다 결과를 소리로 알린다 — 상황실은 화면을 늘 보고 있지 않다.
-
-     미리 만들어 둔 음성 파일을 쓴다. 브라우저 내장 음성(speechSynthesis)은 speak() 를
-     불러도 실제 소리가 나기까지 **1초 남짓** 걸린다(엔진이 그때 말을 만든다) — 실제로
-     재 보니 첫 발화 1240ms, 이후에도 평균 1055ms 였다. 화면보다 눈에 띄게 늦는다.
-     파일은 미리 받아 디코딩해 두므로 재생 시작이 즉시다.
-
-     파일을 못 받으면 내장 음성으로, 그것도 안 되면 알림음으로 내려간다 — 무음보다 낫다. */
-  const SOUND_URL = { ok: '/sound/auth-granted.wav', deny: '/sound/auth-denied.wav' };
-  let audioCtx = null;
-  const buffers = {}; // 디코딩까지 끝내 둔다 — 인증 순간에 할 일을 남기지 않는다
-
-  async function loadSounds() {
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      await Promise.all(Object.entries(SOUND_URL).map(async ([k, url]) => {
-        const res = await fetch(url);
-        if (!res.ok) return;
-        buffers[k] = await audioCtx.decodeAudioData(await res.arrayBuffer());
-      }));
-    } catch (err) { /* 파일이 없으면 아래 대체 경로로 간다 */ }
-  }
-
-  function speak(text, ok) {
-    if (!soundOn) return;
-    const buf = buffers[ok ? 'ok' : 'deny'];
-    if (audioCtx && buf) {
-      try {
-        // 브라우저가 소리를 막아 둔 상태면 깨운다(사용자가 화면을 손댄 뒤에는 통과한다)
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const src = audioCtx.createBufferSource();
-        src.buffer = buf;
-        src.connect(audioCtx.destination);
-        src.start();
-        return;
-      } catch (err) { /* 아래 대체 경로로 */ }
-    }
-    speakByEngine(text, ok);
-  }
-
-  /* 음성 파일을 못 받은 경우의 대체 — 늦지만 무음보다는 낫다. */
-  function speakByEngine(text, ok) {
-    try {
-      const synth = window.speechSynthesis;
-      if (!synth || !koVoice) { beep(ok); return; }
-      if (synth.speaking || synth.pending) synth.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.voice = koVoice;
-      u.lang = koVoice.lang;
-      synth.speak(u);
-    } catch (err) {
-      beep(ok);
-    }
-  }
-
-  /* 음성 목록은 페이지 로드보다 늦게 채워진다. 인증이 왔을 때 비어 있으면 한국어 음성이
-     있는데도 알림음으로 새므로, 미리 찾아 두고 목록이 바뀌면 다시 찾는다. */
-  function findVoice() {
-    const synth = window.speechSynthesis;
-    if (!synth) return;
-    koVoice = synth.getVoices().find((v) => (v.lang || '').toLowerCase().startsWith('ko')) || null;
-  }
-
-  /* 음성 파일도 내장 음성도 없을 때 — 성공은 높고 짧게, 실패는 낮고 길게. */
-  function beep(ok) {
-    try {
-      const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = ok ? 880 : 320;
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (ok ? 0.25 : 0.6));
-      osc.start();
-      osc.stop(ctx.currentTime + (ok ? 0.25 : 0.6));
-    } catch (err) { /* 소리를 못 내도 화면은 그대로 돈다 */ }
-  }
-
-  function applySound() {
-    localStorage.setItem(SOUND_KEY, soundOn ? 'on' : 'off');
-    $('btnSound').classList.toggle('off', !soundOn);
-    $('btnSound').setAttribute('aria-pressed', String(soundOn));
-  }
-
   function onAuth(e) {
     // 소리를 먼저 시작한다 — 그리기(사진 2장 + 지난 인증 6칸 다시 그리기)가 끝난 뒤에
-    // 부르면 그만큼 발화가 늦어 화면과 어긋난다. speak 는 큐에 넣고 곧바로 돌아오므로
-    // 그리는 동안 음성 엔진이 준비되어 결과적으로 화면과 같이 나온다.
-    speak(e.granted ? '인증 성공' : '인증 실패', e.granted);
+    // 부르면 그만큼 발화가 늦어 화면과 어긋난다. play 는 큐에 넣고 곧바로 돌아온다.
+    authSound.play(e.granted);
     history.unshift(e);
     if (history.length > HISTORY + 1) history.pop(); // MAIN 1건 + 지난 6건
     mainHeld = true;
@@ -270,19 +180,7 @@
       $('deviceField').title = '';
       stop();
     });
-    /* 켤 때 한 번 읽어 준다 — 브라우저는 사용자가 손대기 전에는 소리를 막는다.
-       이 클릭이 그 '손댐'이 되어, 이후 인증 안내가 조용히 묻히지 않는다. */
-    $('btnSound').addEventListener('click', () => {
-      soundOn = !soundOn;
-      applySound();
-      //if (soundOn) speak('소리 켜짐', true);
-    });
-    loadSounds(); // 미리 받아 디코딩해 둔다 — 인증 순간에 남는 일이 없어야 화면과 같이 난다
-    if (window.speechSynthesis) {
-      findVoice();
-      window.speechSynthesis.addEventListener('voiceschanged', findVoice);
-    }
-    applySound();
+    authSound.attach($('btnSound')); // 소리 엔진은 이벤트 로그 화면과 한 벌(core/auth-sound.js)
     window.addEventListener('beforeunload', stop); // 떠나면 서버도 구독을 정리한다
     renderHistory(); // 빈칸 6개를 먼저 세워 둔다 — 어디가 채워질 자리인지 보이게
   }

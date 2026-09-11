@@ -14,6 +14,7 @@ import AirPort.model.TbSystem;
 import AirPort.security.ARIAUtil;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -58,8 +59,12 @@ public class MonitorService {
   /** 보강 대기열 상한 — 넘치면 <b>가장 오래된 것</b>을 버린다(실시간 화면에서 중요한 것은 최신이다). */
   private static final int QUEUE_LIMIT = 50;
 
-  /** 구독자 → 보고 있는 장치 ID. 장치가 다르면 같은 이벤트라도 보내지 않는다. */
-  private final Map<SseEmitter, String> viewers = new ConcurrentHashMap<>();
+  /**
+   * 구독자 → 보고 있는 장치 ID <b>집합</b>. 그 안에 없는 장치의 이벤트는 같은 소켓으로 들어와도 보내지 않는다.
+   *
+   * <p>이벤트 로그 화면은 여러 대를 한 화면에서 본다. 실시간 이벤트 화면은 한 대만 보내므로 원소가 하나인 집합이 된다 — 두 화면이 같은 판정을 쓴다.
+   */
+  private final Map<SseEmitter, Set<String>> viewers = new ConcurrentHashMap<>();
 
   /** 구독자 목록과 소켓 수명을 함께 지키는 잠금 — 둘이 엇갈리면 소켓 없이 구독자만 남는다. */
   private final Object viewerLock = new Object();
@@ -122,13 +127,20 @@ public class MonitorService {
    * <p>구독자 등록과 소켓 시작을 <b>한 잠금 안에서</b> 한다. 나누면 "마지막 구독자 이탈"과 "새 구독"이 엇갈려, 새 구독자는 목록에 있는데 소켓은 닫힌 채
    * 아무도 다시 열지 않는 상태가 된다(그 화면은 새로고침 전까지 영구 정지). 소켓 연결 자체는 비동기라 이 잠금은 짧다.
    */
-  public SseEmitter subscribe(String deviceId, TbLoginUser actor, Integer menuId) {
+  public SseEmitter subscribe(List<String> deviceIds, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
-    if (deviceId == null || deviceId.isBlank()) {
+    Set<String> watch = new java.util.LinkedHashSet<>();
+    if (deviceIds != null) {
+      deviceIds.stream()
+          .filter(id -> id != null && !id.isBlank())
+          .map(String::trim)
+          .forEach(watch::add);
+    }
+    if (watch.isEmpty()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "조회할 단말기를 선택하세요.");
     }
     TbSystem cfg = config();
-    auditIfNew(actor, menuId, deviceId);
+    auditIfNew(actor, menuId, watch);
 
     SseEmitter emitter = new SseEmitter(NO_TIMEOUT);
     emitter.onCompletion(() -> release(emitter));
@@ -136,7 +148,7 @@ public class MonitorService {
     emitter.onError(e -> release(emitter));
 
     synchronized (viewerLock) {
-      viewers.put(emitter, deviceId);
+      viewers.put(emitter, watch);
       eventSocket.start(
           cfg.getBiostarIp(),
           cfg.getBiostarId(),
@@ -155,15 +167,16 @@ public class MonitorService {
    * <p>브라우저의 EventSource 는 끊기면 <b>3초마다</b> 스스로 다시 붙는다. 망이 한 번 출렁이면 구독 요청이 분당 수십 건이 되고, 그대로 기록하면
    * 감사추적이 이 줄로 덮여 정작 사람이 한 일을 못 찾는다.
    */
-  private void auditIfNew(TbLoginUser actor, Integer menuId, String deviceId) {
-    String key = (actor == null ? "?" : actor.getUserId()) + "\u0000" + deviceId;
+  private void auditIfNew(TbLoginUser actor, Integer menuId, Set<String> deviceIds) {
+    String devices = String.join(",", deviceIds);
+    String key = (actor == null ? "?" : actor.getUserId()) + "\u0000" + devices;
     long now = System.currentTimeMillis();
     Long last = auditedAt.get(key);
     if (last != null && now - last < AUDIT_QUIET_MINUTES * 60_000L) {
       return; // 재연결 — 새 구독이 아니다
     }
     auditedAt.put(key, now);
-    auditService.log(actor, AuditService.READ, menuId, "실시간 이벤트 구독 (단말기 " + deviceId + ")");
+    auditService.log(actor, AuditService.READ, menuId, "실시간 이벤트 구독 (단말기 " + devices + ")");
   }
 
   /** 소켓 수신 스레드에서 불린다 — 여기서 오래 걸리면 다음 이벤트가 밀린다. 판정만 하고 넘긴다. */
@@ -184,15 +197,20 @@ public class MonitorService {
   }
 
   private boolean watched(String deviceId) {
-    return viewers.containsValue(deviceId);
+    return viewers.values().stream().anyMatch(ids -> watching(ids, deviceId));
+  }
+
+  /** 그 화면이 보고 있는 장치인가 — 고른 것만 본다(장비 전체를 받아 화면에서 거르지 않는다). */
+  static boolean watching(Set<String> watched, String deviceId) {
+    return deviceId != null && watched != null && watched.contains(deviceId);
   }
 
   private void enrichAndPush(BiostarAuthEvent event) {
     try {
       AuthEventResult row = enricher.enrich(event);
       viewers.forEach(
-          (emitter, deviceId) -> {
-            if (deviceId.equals(event.deviceId())) {
+          (emitter, deviceIds) -> {
+            if (watching(deviceIds, event.deviceId())) {
               send(emitter, "auth", row);
             }
           });
@@ -204,7 +222,7 @@ public class MonitorService {
   /** 소켓 상태가 바뀌면 보고 있는 모든 화면에 알린다 — 조용히 끊기면 "인증이 없는 것"과 구분되지 않는다. */
   private void pushStatus() {
     Map<String, Object> payload = statusPayload();
-    viewers.forEach((emitter, deviceId) -> send(emitter, "status", payload));
+    viewers.forEach((emitter, deviceIds) -> send(emitter, "status", payload));
   }
 
   /**
@@ -226,7 +244,7 @@ public class MonitorService {
    */
   @Scheduled(fixedDelay = 25_000)
   public void ping() {
-    viewers.forEach((emitter, deviceId) -> keepAlive(emitter));
+    viewers.forEach((emitter, deviceIds) -> keepAlive(emitter));
   }
 
   private void keepAlive(SseEmitter emitter) {

@@ -765,6 +765,85 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 .monitor-main.shown.deny .monitor-result { background: var(--monitor-deny); }
 
 /* 지난 인증 — 왼쪽이 오래된 것(7), 오른쪽이 최근(2) */
+/* ── 이벤트 로그 모니터링(902) — 같은 이벤트를 다른 배치로 본다 ──────────────
+   왼쪽·가운데에 방금 인증한 사람(사진 2장), 오른쪽에 지난 인증을 세로로 쌓는다.
+   실시간 이벤트(901)가 지난 인증을 옆으로 6칸 늘어놓는 것과 다른 점이 여기다 —
+   세로로 쌓으면 15건까지 스크롤로 거슬러 볼 수 있다. */
+.monitor-log-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.monitor-log-bar h2 { margin: 0 6px 0 0; }
+/* 무엇을 보고 있는지 — 여러 대면 길어지므로 남는 폭을 쓰고 넘치면 말줄임(제목은 title 로 본다) */
+.monitor-log-devices { flex: 1; min-width: 0; font-size: 14px; font-weight: 600;
+  color: var(--nt-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.monitor-log { display: grid; grid-template-columns: 1fr 1fr 420px;
+  /* 1줄=사진(남는 높이를 전부), 2줄=출입자 정보·결과. 같은 줄끼리 높이가 저절로 같다.
+     2줄에 최소 높이를 준다 — 값이 비었을 때 짧아지면 그만큼 사진이 커졌다가, 사람이 지나가는
+     순간 도로 줄어든다. 늘 켜 두는 화면에서 그 출렁임이 눈에 거슬린다. */
+  grid-template-rows: minmax(0, 1fr) minmax(260px, auto); gap: 14px; margin: 14px 0 0;
+  /* 남는 화면을 다 쓴다 — 사진을 크게 보는 화면이라 아래를 비워 둘 이유가 없다.
+     빼는 값은 머리말(56)+제목줄(52)+여백이다. */
+  height: calc(100vh - 168px); }
+/* 오른쪽 지난 인증은 두 줄에 걸친다 */
+.monitor-log-side { grid-column: 3; grid-row: 1 / -1; }
+/* 출입거부면 초록이던 곳이 통째로 붉어진다 — 멀리 있는 모니터에서 색만 보고 판단한다 */
+.monitor-log.deny .monitor-panel-head { background: var(--monitor-deny); }
+/* 사진은 칸이 주는 높이를 그대로 채운다(고정 높이가 아니다) — 화면이 크면 그만큼 커진다.
+   min-height:0 이 없으면 격자 칸이 사진 원본 높이 밑으로 못 줄어 아래가 잘린다.
+   ⚠️ 등록 사진 원본은 작다(224x224·141x187). 크게 늘리면 다소 뭉개진다 — 비율은 그대로다(contain). */
+.monitor-log .monitor-panel { min-height: 0; }
+.monitor-log .monitor-photo { flex: 1; min-height: 0; }
+.monitor-log .monitor-photo img { width: 100%; height: 100%; object-fit: contain; }
+/* 사진이 없어 그림을 세울 때도 칸에 맞춰 키운다 — 사진칸이 커진 만큼 그림이 작아 보이면
+   '사진이 없다'가 눈에 안 들어온다. 칸에 비례해 잡아 모니터가 커져도 같은 비율로 보인다. */
+.monitor-log .monitor-photo .monitor-card-icon { width: 62%; max-width: 340px; }
+.monitor-log .monitor-photo .monitor-face-icon { width: 46%; max-width: 260px; }
+/* 멀리 있는 모니터에서 읽는 화면이라 [출입자 정보]도 한 단계 키운다 */
+.monitor-log .monitor-info dt { font-size: clamp(15px, 1.25vw, 22px); }
+.monitor-log .monitor-info dd { font-size: clamp(22px, 2.1vw, 38px); }
+.monitor-log .monitor-info dd.monitor-info-sub { font-size: clamp(15px, 1.25vw, 24px); }
+/* 결과 배너 — 옆 [출입자 정보]와 같은 줄이라 높이가 늘 같다(로그가 쌓여도 변하지 않는다) */
+.monitor-log .monitor-result { margin: 0; padding: 26px 10px; border-radius: 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  font-size: clamp(30px, 3vw, 52px); font-weight: 700; color: #fff; background: var(--nt-bg-gray); }
+.monitor-log.shown .monitor-result { background: var(--monitor-ok); }
+.monitor-log.shown.deny .monitor-result { background: var(--monitor-deny); }
+/* 어느 문을 지났는지 — 결과보다는 작게, 그러나 멀리 있는 모니터에서도 읽히게 */
+.monitor-result-device { font-size: clamp(22px, 1.9vw, 34px); font-weight: 600; opacity: .95; }
+
+.monitor-log-side { display: flex; flex-direction: column; min-width: 0; }
+.monitor-log-title { margin: 0 0 10px; font-size: 16px; font-weight: 700; }
+/* 높이는 격자 칸이 준다 — 내용에 따라 늘었다 줄었다 하지 않으므로 왼쪽 배너도 흔들리지 않는다.
+   넘치는 만큼은 스크롤로 본다. min-height:0 이 없으면 내용만큼 늘어 스크롤이 생기지 않는다. */
+.monitor-log-list { display: flex; flex-direction: column; gap: 10px;
+  flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.monitor-log-item { display: grid; grid-template-columns: 170px 1fr; gap: 12px; padding: 10px;
+  border: 1px solid var(--monitor-ok); border-radius: 8px; background: var(--nt-bg); }
+.monitor-log-item.deny { border-color: var(--monitor-deny); }
+.monitor-log-photo { height: 150px; display: flex; align-items: center; justify-content: center;
+  background: var(--nt-bg-gray); border-radius: 6px; overflow: hidden; }
+.monitor-log-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.monitor-log-photo .monitor-card-icon, .monitor-log-photo .monitor-face-icon { width: 70%; }
+/* 라벨·값을 한 그리드에 둔다 — 줄마다 나누면 라벨 폭이 제각각이라 값의 시작이 어긋난다 */
+.monitor-log-info { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px;
+  align-content: center; margin: 0; }
+.monitor-log-info dt { color: var(--nt-text-2); font-size: 15px; white-space: nowrap; }
+.monitor-log-info dd { margin: 0; font-size: 17px; font-weight: 700;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 어느 문을 지났는지 — 여러 대를 한 화면에서 보므로 건마다 적어야 어디였는지 알 수 있다.
+   장치명은 "FaceStation F2 543737030 (192.168.0.10)" 처럼 길어 사람 정보보다 한 단계 작게 두고,
+   그래도 넘치면 말줄임으로 자른다(전체는 마우스를 올려 title 로 본다). */
+.monitor-log-info dd.monitor-log-device { font-size: 15px; color: var(--nt-text-2); }
+.monitor-log-empty { color: var(--nt-text-2); font-size: 14px; padding: 18px; text-align: center;
+  border: 1px dashed var(--nt-border); border-radius: 8px; }
+
+/* 좁은 화면 — 지난 인증을 아래로 내린다(사진 두 장이 먼저다) */
+@media (max-width: 1400px) {
+  .monitor-log { grid-template-columns: 1fr 1fr; height: auto; }
+  .monitor-log-side { grid-column: 1 / -1; grid-row: auto; }
+  .monitor-log .monitor-photo { min-height: 320px; }
+  .monitor-log-list { height: 360px; flex: none; }
+}
+
 .monitor-history { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
 .monitor-card { border: 1px solid var(--monitor-ok); border-radius: 6px; padding: 6px;
   text-align: center; background: var(--nt-bg); }

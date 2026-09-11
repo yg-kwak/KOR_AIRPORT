@@ -76,6 +76,18 @@ class MonitorEventTest {
   }
 
   @Test
+  void 고른_단말기의_이벤트만_화면에_올린다() {
+    // 장비 소켓 하나로 모든 장치의 이벤트가 들어온다 — 여기서 거르지 않으면 안 보기로 한 문의
+    // 인증이 화면에 뜬다. 이벤트 로그 화면은 여러 대를, 실시간 이벤트 화면은 한 대를 본다
+    assertTrue(MonitorService.watching(java.util.Set.of("1", "2", "3"), "2"));
+    assertTrue(MonitorService.watching(java.util.Set.of("1"), "1"));
+    assertFalse(MonitorService.watching(java.util.Set.of("1", "2"), "9"));
+    assertFalse(MonitorService.watching(java.util.Set.of(), "1"));
+    assertFalse(MonitorService.watching(java.util.Set.of("1"), null), "장치를 모르는 이벤트는 올리지 않는다");
+    assertFalse(MonitorService.watching(null, "1"));
+  }
+
+  @Test
   void 이벤트_시각은_시분초만_남긴다() {
     assertEquals("01:38:01", MonitorEnrichService.time("2026-08-11T01:38:01.00Z"));
   }
