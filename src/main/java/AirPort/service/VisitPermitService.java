@@ -59,6 +59,21 @@ public class VisitPermitService {
     this.auditService = auditService;
   }
 
+  /**
+   * 신청서 번호 {@code {출입년도}-{출입번호}} — 예: {@code 2026-26}.
+   *
+   * <p>출입번호는 <b>방문번호</b>다(목록의 [번호]·검색조건의 [작업번호]와 같은 값) — 종이와 화면에서 같은 번호로 찾을 수 있어야 한다.
+   *
+   * <p>연도는 작업 시작일 기준이다. 옛 방문 중 그 값이 비어 있으면 등록일로 물러선다 — 연도 없이 번호만 찍으면 해가 바뀐 뒤 같은 번호가 두 장이 된다.
+   */
+  private String permitNo(TbVisit v) {
+    String year = datePart(v.getWorkStartDt());
+    if (year != null && year.length() >= 4) {
+      return year.substring(0, 4) + "-" + v.getVisitNo();
+    }
+    return (v.getRegDt() == null ? "" : v.getRegDt().getYear() + "-") + v.getVisitNo();
+  }
+
   /** 신청서 1건 — 출력은 화면이 한다(서버는 값만 준다). */
   public PermitForm permit(int visitNo, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
@@ -67,6 +82,7 @@ public class VisitPermitService {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
     PermitForm f = new PermitForm();
+    f.setPermitNo(permitNo(v));
     f.setAccessStart(v.getWorkStartDt());
     f.setAccessEnd(v.getWorkEndDt());
     f.setPurpose(v.getWorkPurpose());
@@ -84,7 +100,8 @@ public class VisitPermitService {
       }
       PermitForm.Visitor x = new PermitForm.Visitor();
       x.setName(decrypt(p.getPersonName()));
-      x.setBirthDate(decrypt(p.getBirthDate()));
+      // 양식 칸이 좁아 여섯 자리로 적는다(1993-04-07 → 930407). 저장 형태는 그대로다
+      x.setBirthDate(AirPort.common.BirthDates.yymmdd(decrypt(p.getBirthDate())));
       x.setAffiliation(p.getAffiliation());
       x.setCardName(cardNameOfPerson(pid, visitNo));
       f.getVisitors().add(x);

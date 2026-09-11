@@ -50,6 +50,23 @@ class BirthDatesTest {
   }
 
   @Test
+  void 신청서에는_여섯_자리로_찍는다() {
+    // 양식 칸이 좁아 여덟 자리로는 줄이 접힌다. 저장 형태는 그대로 두고 찍을 때만 줄인다
+    assertEquals("930407", BirthDates.yymmdd("1993-04-07"));
+    assertEquals("000101", BirthDates.yymmdd("2000-01-01"), "2000년대는 앞 두 자리가 00 이다");
+    assertEquals("991231", BirthDates.yymmdd("1999-12-31"));
+  }
+
+  @Test
+  void 규칙_밖의_옛_값은_그대로_찍는다() {
+    // 신청서는 사람이 눈으로 확인하는 종이다 — 예전에 다른 형태로 들어간 값이
+    // 빈칸으로 사라지는 것보다 그대로 보이는 편이 낫다(개발 DB 에 '1990304' 같은 값이 실제로 있다)
+    assertEquals("1990304", BirthDates.yymmdd("1990304"));
+    assertEquals("", BirthDates.yymmdd(""));
+    assertNull(BirthDates.yymmdd(null));
+  }
+
+  @Test
   void 오류_문구에_대상_이름이_들어간다() {
     // 방문객 표에서는 어느 칸이 잘못됐는지 문구로만 알 수 있다
     BusinessException e =

@@ -658,22 +658,27 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
     padding: 14mm 12mm; box-sizing: border-box; color: #000; background: #fff; }
   /* 카드 인쇄용 height:100% 가 신청서에서는 한 장을 넘길 때 방해가 된다 */
   html:has(#permitPrintArea:not(:empty)), body:has(#permitPrintArea:not(:empty)) { height: auto !important; }
-  .permit-sheet { font-family: Pretendard, sans-serif; font-size: 10pt; line-height: 1.5; }
-  .permit-title { font-size: 15pt; font-weight: 700; text-align: center; margin: 0 0 10mm; letter-spacing: -0.5px; }
-  .permit-table { width: 100%; border-collapse: collapse; margin-bottom: 3mm; table-layout: fixed; }
-  .permit-table th, .permit-table td { border: 1px solid #000; padding: 1.6mm 1mm; text-align: center;
+  /* 글자·칸 높이·간격을 줄여 한 장에 담기는 인원·차량을 늘렸다(본문 10pt→8pt 등, 현장에서 정한 값).
+     표 '폭'은 100% 그대로다: 폭까지 줄이면 A4 왼쪽에 몰려 양식으로 보이지 않는다. */
+  .permit-sheet { font-family: Pretendard, sans-serif; font-size: 8pt; line-height: 1.5; }
+  /* 문서 관리번호 — 제목 바로 위 가운데. 본문보다 한 단계 크게, 제목과 붙지 않게 아래 여백만 준다 */
+  .permit-no { font-size: 9pt; font-weight: 600; text-align: center; margin: 0 0 2mm; letter-spacing: 0.5px; }
+  .permit-title { font-size: 12pt; font-weight: 700; text-align: center; margin: 0 0 6mm; letter-spacing: -0.3px; }
+  .permit-table { width: 100%; border-collapse: collapse; margin-bottom: 1.8mm; table-layout: fixed; }
+  /* 가로 여백은 세로에 맞춰 함께 준다(원래 1.6mm : 1mm 비율) — 한쪽만 키우면 글자가 칸 벽에 붙는다 */
+  .permit-table th, .permit-table td { border: 1px solid #000; padding: 1.3mm 0.8mm; text-align: center;
     vertical-align: middle; font-weight: 400; word-break: keep-all; overflow-wrap: break-word; }
   /* 일시는 중간에서 끊기면 읽을 수 없다(14:1 / 1) — 한 줄로 두고 글자만 줄인다 */
-  .permit-table .permit-period { white-space: nowrap; font-size: 8.5pt; }
+  .permit-table .permit-period { white-space: nowrap; font-size: 7pt; }
   .permit-table th { font-weight: 500; }
-  .permit-table .permit-left { text-align: left; padding-left: 2mm; }
-  .permit-table .permit-tall td { height: 16mm; }
+  .permit-table .permit-left { text-align: left; padding-left: 1.2mm; }
+  .permit-table .permit-tall td { height: 13mm; }
   .permit-table .w-11 { width: 11%; } .permit-table .w-14 { width: 14%; }
   .permit-table .w-16 { width: 16%; } .permit-table .w-18 { width: 18%; }
-  .permit-body { margin: 6mm 0 0; text-align: justify; }
-  .permit-center { text-align: center; margin: 4mm 0 0; }
-  .permit-right { text-align: right; margin: 3mm 0 0; letter-spacing: 1px; }
-  .permit-approve { font-size: 13pt; font-weight: 700; text-align: center; margin: 10mm 0 0; }
+  .permit-body { margin: 3.6mm 0 0; text-align: justify; }
+  .permit-center { text-align: center; margin: 2.4mm 0 0; }
+  .permit-right { text-align: right; margin: 1.8mm 0 0; letter-spacing: 0.6px; }
+  .permit-approve { font-size: 11pt; font-weight: 700; text-align: center; margin: 6mm 0 0; }
 }
 
 /* BiostarX 가져오기(설정관리) — 체크 항목 줄과 결과 상자 */

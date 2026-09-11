@@ -61,6 +61,8 @@ window.permitPrint = (function () {
   function html(d) {
     return `
 <div class="permit-sheet">
+  <!-- 문서 관리번호 {출입년도}-{출입번호} — 출입번호는 방문번호(목록의 [번호])라 종이와 화면을 같은 번호로 잇는다 -->
+  <p class="permit-no">${esc(d.permitNo)}</p>
   <h1 class="permit-title">청주국제공항 내 보호구역1일 임시출입허가 신청서</h1>
   <table class="permit-table">
     <tr>

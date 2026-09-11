@@ -46,6 +46,28 @@ public final class BirthDates {
     }
   }
 
+  /**
+   * 신청서 표기 — {@code 1993-04-07} → {@code 930407}.
+   *
+   * <p>양식 칸이 좁아 여덟 자리로는 줄이 접힌다. 저장 형태는 그대로 두고 <b>찍을 때만</b> 줄인다 — 화면에서 정규식으로 자르면 같은 규칙이 또 한 벌이 되고,
+   * 형식이 바뀔 때 한쪽만 고쳐진다.
+   *
+   * <p>알아볼 수 없는 값은 있는 그대로 돌려준다. 신청서는 사람이 눈으로 확인하는 종이라, 예전에 다른 형태로 들어간 값이 빈칸으로 사라지는 것보다 그대로 보이는 편이
+   * 낫다.
+   */
+  public static String yymmdd(String value) {
+    if (value == null || value.isBlank()) {
+      return value;
+    }
+    String v = value.trim();
+    try {
+      LocalDate d = LocalDate.parse(v);
+      return String.format("%02d%02d%02d", d.getYear() % 100, d.getMonthValue(), d.getDayOfMonth());
+    } catch (DateTimeParseException e) {
+      return v; // 규칙 밖의 옛 값 — 손대지 않는다
+    }
+  }
+
   /** 정규화 + 필수 검사. 비어 있으면 400. */
   public static String require(String value, String label) {
     if (value == null || value.isBlank()) {

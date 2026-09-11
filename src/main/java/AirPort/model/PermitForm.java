@@ -10,6 +10,9 @@ import java.util.List;
  */
 public class PermitForm {
 
+  // 신청서 번호 "{출입년도}-{출입번호}" (예: 2026-26). 출입번호는 방문번호(= 목록의 '번호', 작업번호)다
+  private String permitNo;
+
   private String accessStart; // 출입시간 시작
   private String accessEnd; // 출입시간 종료
   private String carAreas; // 출입구역(차량) — 숫자만, 예 "1,2"
@@ -141,6 +144,14 @@ public class PermitForm {
     public void setPhone(String phone) {
       this.phone = phone;
     }
+  }
+
+  public String getPermitNo() {
+    return permitNo;
+  }
+
+  public void setPermitNo(String permitNo) {
+    this.permitNo = permitNo;
   }
 
   public String getAccessStart() {
