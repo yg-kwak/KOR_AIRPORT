@@ -812,8 +812,8 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
   font-size: clamp(30px, 3vw, 52px); font-weight: 700; color: #fff; background: var(--nt-bg-gray); }
 .monitor-log.shown .monitor-result { background: var(--monitor-ok); }
 .monitor-log.shown.deny .monitor-result { background: var(--monitor-deny); }
-/* 어느 문을 지났는지 — 결과보다는 작게, 그러나 멀리 있는 모니터에서도 읽히게 */
-.monitor-result-device { font-size: clamp(22px, 1.9vw, 34px); font-weight: 600; opacity: .95; }
+/* 어느 문을 지났는지 — 멀리 있는 모니터에서 결과와 함께 읽히게 크게(현장에서 정한 값) */
+.monitor-result-device { font-size: 45px; font-weight: 600; opacity: .95; line-height: 1.2; }
 
 .monitor-log-side { display: flex; flex-direction: column; min-width: 0; }
 .monitor-log-title { margin: 0 0 10px; font-size: 16px; font-weight: 700; }
