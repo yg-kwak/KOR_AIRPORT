@@ -21,6 +21,7 @@
   /* 연락처는 정규인원에서 당겨오지 않는다 — 같은 사람이라도 방문마다 연락 받을 번호가 다르다.
      소속은 반대로 그 사람의 '지금' 값이라 표기만 하고 방문에는 저장하지 않는다. */
   function render() {
+    if ($('mgrCount')) $('mgrCount').textContent = `( ${managers.length} )`;
     $('mgrBody').innerHTML = managers.length
       ? managers.map((m, i) => `<tr><td>${esc(m.personId)}</td><td>${esc(m.personName)}</td>
           <td>${esc(m.affiliation) || '-'}</td>

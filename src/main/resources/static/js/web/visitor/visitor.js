@@ -124,6 +124,7 @@
   // ---- 방문객 ----
   let visitors = []; // [{personId?, personName, birthDate, affiliation, cardId}]
   function visRender() {
+    $('visCount').textContent = `( ${visitors.length} )`;
     $('visBody').innerHTML = visitors.length
       ? visitors.map((v, i) => `<tr>
           <td>${v.biostarUserId ? esc(v.biostarUserId) : badge.none('등록 전')}</td>
@@ -151,6 +152,7 @@
     return '<option value="">선택</option>' + carTypes.map((c) => `<option value="${c.codeId}"${c.codeId === sel ? ' selected' : ''}>${esc(c.codeName)}</option>`).join('');
   }
   function carRender() {
+    $('carCount').textContent = `( ${cars.length} )`;
     $('carBody').innerHTML = cars.length
       ? cars.map((c, i) => `<tr>
           <td><input class="input" data-f="carNo" data-i="${i}" value="${esc(c.carNo)}"/></td>
@@ -178,7 +180,7 @@
     }
     if ($('btnDelete')) $('btnDelete').style.display = 'none'; // 삭제는 신청일 때만(로드 후 노출)
     if ($('btnSave')) $('btnSave').style.display = ''; // 퇴실완료면 로드 후 숨김(읽기전용)
-    $('editModal').querySelector('.visit-modal').classList.remove('readonly'); // 읽기전용 해제(VS04면 로드 후 재설정)
+    $('editModal').querySelector('.visit-modal').classList.remove('readonly'); visitKind.setDisabled(false); // 읽기전용 해제(VS04면 로드 후 재설정)
     await loadRefs();
     acGroupTree.set(AC_TREE, []);
     carAcRender([]);
@@ -197,7 +199,7 @@
     // 신청(VS01)이면 삭제 가능·신청서는 아직(출입증번호 없음). 신청서는 '임시출입허가' 양식이라 임시 화면에서만.
     const applied = v.statusCode === 'VS01';
     for (const [id, show] of [['btnDelete', applied], ['btnPermit', !applied && !!VISIT_TYPE], ['btnSave', v.statusCode !== 'VS04']]) { const el = $(id); if (el) el.style.display = show ? '' : 'none'; }
-    if (v.statusCode === 'VS04') { $('editModal').querySelector('.visit-modal').classList.add('readonly'); $('modalTitle').textContent = '방문 상세 (퇴실완료 — 수정 불가)'; } // 읽기전용
+    if (v.statusCode === 'VS04') { $('editModal').querySelector('.visit-modal').classList.add('readonly'); visitKind.setDisabled(true); $('modalTitle').textContent = '방문 상세 (퇴실완료 — 수정 불가)'; } // 읽기전용
     acGroupTree.set(AC_TREE, d.acGroupIds || []);
     carAcRender(d.carAcCodes || []);
     visitKind.set(v.visitKind || visitKind.infer(d.visitors, d.cars)); // 이 컬럼 이전의 방문은 명단으로 되짚는다
@@ -345,7 +347,14 @@
     });
 
     // 방문객 칸이 보일 때만 리더를 듣는다 — 차량만인 방문에서 지나가며 찍힌 카드가 배정되면 안 된다
-    visitKind.init('visitKind', (k) => { if (visitKind.person(k)) visitCardTag.on(); else visitCardTag.off(); });
+    visitKind.init('visitKind', async (k, prev) => {
+      if (visitKind.person(k)) { visitCardTag.on(); return; }
+      visitCardTag.off();
+      // 카드가 발급돼 BiostarX 에 올라간 방문객이 있으면 — '차량'으로 저장하는 순간 그 사람들이 장비에서도 지워진다
+      const synced = visitors.filter((v) => v.biostarUserId).length;
+      if (prev && synced && !(await confirmModal.open({ title: '방문구분 변경', confirmText: '변경',
+        message: `카드가 발급되어 BiostarX 에 등록된 방문객이 ${synced}명 있습니다. '차량'으로 저장하면 연동된 방문객 정보가 삭제되고 BiostarX 에서도 제거됩니다. 계속하시겠습니까?` }))) visitKind.set(prev);
+    });
     // 카드를 고른 뒤 출입그룹을 바꾸면 그 카드가 새 구역과 맞지 않을 수 있다 — 되돌리지 않고 알리기만 한다
     $(AC_TREE).addEventListener('change', () => {
       collectRows();

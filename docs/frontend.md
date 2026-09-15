@@ -95,7 +95,7 @@ src/main/resources/
 ## 더 나은 구성 제안
 - **플레이스홀더 이름 확정**: `{공통조각}` 대신 `components/`(또는 `_partials/`) 로 통일 — 도메인 폴더와 시각적으로 구분되고 예측 가능.
 - **방문 모달은 탭이 없다** — 키오스크처럼 `.visit-section` 을 한 화면에 차례로 쌓는다(방문 그룹 정보 → 인솔자 → 방문구역 → 방문객 정보 → 차량 정보, `modal-body` 가 스크롤). 탭(`.tabs`)은 정규인원등록만 쓴다.
-- **방문구분(인원/차량/인원+차량)**: `fragments/components/visit-kind.html` + `js/core/visit-kind.js`. 임시·장기 editModal 과 키오스크가 같은 조각을 쓰고, 고르지 않은 쪽은 `data-kind="person|car"` 요소가 `kind-hidden` 으로 숨는다(`conventions.md`).
+- **방문구분(인원/차량/인원+차량)**: `fragments/components/visit-kind.html` + `js/core/visit-kind.js`. 임시·장기 editModal 과 키오스크가 같은 조각을 쓰고, 고르지 않은 쪽은 `data-kind="person|car"` 요소가 `kind-hidden` 으로 숨는다(`conventions.md`). `init(id, (kind, prev) => …)` 의 콜백은 **직전 값**을 함께 받아 되물릴 수 있다 — 임시·장기는 BiostarX 에 올라간 방문객(`biostarUserId`)이 있는데 '차량'으로 바꾸면 확인창을 띄우고 취소하면 `set(prev)` 로 되돌린다. 읽기전용(퇴실 완료)은 `setDisabled(true)` — 라벨 클릭은 `pointer-events` 만으로 못 막는다. 인솔자·방문객·차량 섹션 제목의 `( N )` 건수는 각 render 가 갱신한다.
 - **공용/전용 모달의 승격 규칙**: 처음엔 `web/components/` 에 두고, kiosk 와 공유가 생기면 `fragments/components/` 로 승격. "중복 발견 시 상위로 올린다" 를 관례로.
 - **CSS 도 동일 트리로**: `static/css/web/**`, `static/css/kiosk/**`, 공용은 `static/css/common/**` — JS/템플릿과 미러링해 일관.
 - **core JS 는 탭 제거에 맞춰 정리**: 탭 매니저/iframe 레지스트리 대신 `page-factory` + `head`/`sidebar` 초기화만 둔다.

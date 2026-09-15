@@ -9,6 +9,7 @@ window.visitKind = (function () {
   const car = (k) => k === CAR || k === BOTH;
   let root = null;
   let onChange = null;
+  let current = null; // 직전 값 — 바꾸기를 되물릴 때 돌아갈 곳
 
   const radios = () => (root ? [...root.querySelectorAll('input[name="visitKind"]')] : []);
 
@@ -25,7 +26,14 @@ window.visitKind = (function () {
       const want = el.dataset.kind === 'person' ? person(k) : car(k);
       el.classList.toggle(HIDE, !want);
     });
-    if (onChange) onChange(k);
+    const prev = current;
+    current = k;
+    if (onChange) onChange(k, prev);
+  }
+
+  /* 읽기전용(퇴실 완료 등) — 라벨을 눌러도 바뀌지 않게 input 자체를 잠근다(pointer-events 만으로는 라벨 클릭이 새어 든다) */
+  function setDisabled(on) {
+    radios().forEach((r) => { r.disabled = !!on; });
   }
 
   function set(k) {
@@ -65,5 +73,5 @@ window.visitKind = (function () {
     if (root) root.addEventListener('change', (e) => { if (e.target.name === 'visitKind') apply(); });
   }
 
-  return { PERSON, CAR, BOTH, init, get, set, apply, infer, prune, problem, person, car };
+  return { PERSON, CAR, BOTH, init, get, set, apply, setDisabled, infer, prune, problem, person, car };
 })();
