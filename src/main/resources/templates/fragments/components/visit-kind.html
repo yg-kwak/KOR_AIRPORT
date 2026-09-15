@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 방문구분(인원/차량/인원+차량) 선택 (공용) — 짝 스크립트: static/js/core/visit-kind.js
+     사용: <div th:replace="~{fragments/components/visit-kind :: visitKind('visitKind')}"></div>
+     화면 스크립트에서 visitKind.init(id) 로 붙이면, 고르지 않은 쪽의 data-kind="person|car" 요소가 숨는다. -->
+<div th:fragment="visitKind(fid)" class="visit-kind" th:id="${fid}">
+  <span class="visit-kind-label">방문구분 <span class="req">*</span></span>
+  <label class="visit-kind-item"><input type="radio" name="visitKind" value="PERSON"/><span>인원</span></label>
+  <label class="visit-kind-item"><input type="radio" name="visitKind" value="CAR"/><span>차량</span></label>
+  <label class="visit-kind-item"><input type="radio" name="visitKind" value="BOTH"/><span>인원+차량</span></label>
+</div>
+</body>
+</html>

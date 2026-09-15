@@ -179,9 +179,10 @@
       .forEach((id) => { const el = $(id); if (el) el.value = ''; });
     visitManagers.reset(); visitors = []; cars = [];
     if (VISIT_TYPE) { $('visitType').value = VISIT_TYPE.id; if ($('visitTypeName')) $('visitTypeName').value = VISIT_TYPE.name; } // 임시 고정
-    if (mode === 'create') { // 작업기간 기본: 시작=오늘 현재시각, 종료=오늘 18:00
+    if (mode === 'create') { // 작업기간 기본: 시작=오늘 현재시각, 종료=오늘 18:00. 방문구분은 인원이 기본
       $('workStartDt').value = todayAt(0, 0, true);
       $('workEndDt').value = todayAt(18, 0, false);
+      visitKind.set(visitKind.PERSON);
     }
     if ($('btnDelete')) $('btnDelete').style.display = 'none'; // 삭제는 신청일 때만(로드 후 노출)
     if ($('btnSave')) $('btnSave').style.display = ''; // 퇴실완료면 로드 후 숨김(읽기전용)
@@ -208,6 +209,7 @@
     if (v.statusCode === 'VS04') { $('editModal').querySelector('.visit-modal').classList.add('readonly'); $('modalTitle').textContent = '방문 상세 (퇴실완료 — 수정 불가)'; } // 읽기전용
     acGroupTree.set(AC_TREE, d.acGroupIds || []);
     carAcRender(d.carAcCodes || []);
+    visitKind.set(v.visitKind || visitKind.infer(d.visitors, d.cars)); // 이 컬럼 이전의 방문은 명단으로 되짚는다
     visitManagers.set(d.managers);
     // issuedCardId = 저장된 카드(서버 응답 기준). 화면에서 방금 고른 카드와 구분해 퇴실 버튼 노출을 판단한다
     visitors = (d.visitors || []).map((x) => ({ ...x, issuedCardId: x.cardId || null }));
@@ -245,16 +247,16 @@
         affiliation: (c.affiliation || '').trim() || null,
         cardId: c.cardId ? Number(c.cardId) : null })),
     };
+    visitKind.prune(payload); // 고르지 않은 쪽(감춰진 탭)의 값은 보내지 않는다
     if (!payload.visitType || !payload.workStartDt || !payload.workEndDt || !payload.workPurpose) { toast.warning('방문유형·작업기간·작업목적은 필수입니다.'); return; }
+    const kindProblem = visitKind.problem(payload); if (kindProblem) { toast.warning(kindProblem); return; }
     if (payload.workStartDt > payload.workEndDt) { toast.warning('작업기간 시작은 종료보다 늦을 수 없습니다.'); return; }
     if (payload.visitors.some((v) => !v.personName || !v.birthDate || !v.affiliation)) { toast.warning('방문객 성명·생년월일·소속은 필수입니다.'); return; }
     if (payload.visitors.some((v) => !birthDate.isValid(v.birthDate))) { toast.warning('방문객 ' + birthDate.HINT); return; }
     // 차량은 선택이지만, 행을 추가했으면 차량번호는 필수
     if (payload.cars.some((c) => !c.carNo)) { toast.warning('차량번호는 필수입니다.'); return; }
-    const hasVis = payload.visitors.length > 0, hasCar = payload.cars.length > 0;
-    if (payload.acGroupIds.length && !hasVis) { toast.warning('사용자 출입그룹을 선택하면 방문객을 입력해야 합니다.'); return; }
-    if (payload.carAcCodes.length && !hasCar) { toast.warning('차량 출입그룹을 선택하면 차량을 입력해야 합니다.'); return; }
-    if (hasVis && !payload.managers.length) { toast.warning('방문객이 있으면 인솔자를 지정해야 합니다.'); return; }
+    // 출입그룹↔대상 짝은 방문구분이 보장한다(고른 쪽은 있어야 하고, 고르지 않은 쪽은 prune 이 비운다)
+    if (payload.visitors.length && !payload.managers.length) { toast.warning('방문객이 있으면 인솔자를 지정해야 합니다.'); return; }
     if (payload.managers.some((m) => !m.phone)) { toast.warning('인솔자 연락처를 입력하세요.'); return; }
     // 카드 발급(cardId) 시 해당 출입구역 미선택이면 무효 카드가 되므로 구역 선택을 강제
     if (payload.visitors.some((v) => v.cardId) && !payload.acGroupIds.length) { toast.warning('방문객에게 카드를 발급하려면 인원 출입구역을 선택하세요.'); return; }
@@ -352,6 +354,8 @@
     });
 
     document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+    // 보고 있던 탭이 감춰지면 그룹정보로 — 빈 화면에 남지 않게
+    visitKind.init('visitKind', () => { const on = document.querySelector('.tab-btn.active'); if (on && on.classList.contains('kind-hidden')) showTab('group'); });
     // 카드를 고른 뒤 출입그룹을 바꾸면 그 카드가 새 구역과 맞지 않을 수 있다 — 되돌리지 않고 알리기만 한다
     $(AC_TREE).addEventListener('change', () => {
       collectRows();

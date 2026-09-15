@@ -15,6 +15,7 @@ public class VisitForm {
   private Integer visitNo;
   private String visitType;
   private String statusCode;
+  private String visitKind; // 방문구분 PERSON/CAR/BOTH — 고르지 않은 쪽(방문객/차량)은 비어 있어야 한다
   private String workPurpose;
   private String permitDt;
   private String workStartDt;

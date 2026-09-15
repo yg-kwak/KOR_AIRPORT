@@ -277,6 +277,7 @@ CREATE TABLE dbo.tb_visit (
   visit_no      int IDENTITY(1,1) NOT NULL,           -- 그룹번호 (PK)
   visit_type    nvarchar(50)   NULL,                  -- 유형(임시/장기 등) → tb_common(cmm_id='PT'). 소속 인원 person_type·카드 pass_type 결정
   status_code   nvarchar(50)   NULL,                  -- 방문상태 → tb_common(cmm_id='VS')
+  visit_kind    nvarchar(10)   NULL,                  -- 방문구분 PERSON(인원)/CAR(차량)/BOTH(인원+차량). 코드가 원천(AirPort.common.VisitKinds) — 화면이 고른 쪽만 연다. NULL 은 이 컬럼 이전의 방문
   work_purpose  nvarchar(500)  NULL,                  -- 작업목적
   permit_dt     datetime2(0)   NULL,                  -- 작업 허가일자
   work_start_dt datetime2(0)   NULL,                  -- 작업기간 시작
@@ -292,7 +293,8 @@ CREATE TABLE dbo.tb_visit (
   reg_dt        datetime2(0)   NOT NULL DEFAULT getdate(),
   mod_dt        datetime2(0)   NOT NULL DEFAULT getdate(),
   CONSTRAINT PK_tb_visit PRIMARY KEY (visit_no),
-  CONSTRAINT CHK_tb_visit_del_yn CHECK (del_yn IN ('Y','N'))
+  CONSTRAINT CHK_tb_visit_del_yn CHECK (del_yn IN ('Y','N')),
+  CONSTRAINT CHK_tb_visit_kind CHECK (visit_kind IS NULL OR visit_kind IN ('PERSON','CAR','BOTH'))
 );
 
 /* 인솔자 (1 visit : N) — 정규인원(tb_person, person_type='PT01').

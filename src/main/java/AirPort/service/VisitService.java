@@ -157,6 +157,15 @@ public class VisitService {
   /** 단건 상세 — 그룹 + 인솔자/방문객/차량/출입그룹 로드(수정 모달용). */
   public VisitDetail detail(int visitNo, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
+    return detailOf(visitNo);
+  }
+
+  /**
+   * 상세 본문 — 권한 판정 없이 읽는다(키오스크 겸용, package-private).
+   *
+   * <p>키오스크는 메뉴 권한이 아니라 <b>"그 방문의 인솔자인가"</b>로 판정한다. 그 판정은 호출자가 먼저 하고 여기로 온다.
+   */
+  VisitDetail detailOf(int visitNo) {
     TbVisit visit = visitMapper.selectById(visitNo);
     if (visit == null || "Y".equals(visit.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
@@ -318,6 +327,7 @@ public class VisitService {
     r.setVisitNo(form.getVisitNo());
     r.setVisitType(form.getVisitType());
     r.setStatusCode(form.getStatusCode());
+    r.setVisitKind(form.getVisitKind());
     r.setWorkPurpose(form.getWorkPurpose());
     r.setPermitDt(blankToNull(form.getPermitDt()));
     r.setWorkStartDt(withSeconds(form.getWorkStartDt()));
@@ -342,6 +352,13 @@ public class VisitService {
         form.getCars() != null
             && form.getCars().stream()
                 .anyMatch(c -> c.getCarNo() != null && !c.getCarNo().isBlank());
+    // 방문구분(인원/차량/인원+차량) — 고른 쪽은 있어야 하고 고르지 않은 쪽은 없어야 한다(규칙은 VisitKinds 한 곳)
+    AirPort.common.VisitKinds.check(
+        form.getVisitKind(),
+        hasVisitors,
+        hasCars,
+        notEmpty(form.getAcGroupIds()),
+        notEmpty(form.getCarAcCodes()));
     // 출입그룹을 선택했으면 대상(방문객/차량) 입력 강제, 방문객이 있으면 인솔자 필수
     check(notEmpty(form.getAcGroupIds()) && !hasVisitors, "사용자 출입그룹을 선택하면 방문객을 입력해야 합니다.");
     check(notEmpty(form.getCarAcCodes()) && !hasCars, "차량 출입그룹을 선택하면 차량을 입력해야 합니다.");

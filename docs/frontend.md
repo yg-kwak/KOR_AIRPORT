@@ -94,6 +94,7 @@ src/main/resources/
 
 ## 더 나은 구성 제안
 - **플레이스홀더 이름 확정**: `{공통조각}` 대신 `components/`(또는 `_partials/`) 로 통일 — 도메인 폴더와 시각적으로 구분되고 예측 가능.
+- **방문구분(인원/차량/인원+차량)**: `fragments/components/visit-kind.html` + `js/core/visit-kind.js`. 임시·장기 editModal 과 키오스크가 같은 조각을 쓰고, 고르지 않은 쪽은 `data-kind="person|car"` 요소가 `kind-hidden` 으로 숨는다(`conventions.md`).
 - **공용/전용 모달의 승격 규칙**: 처음엔 `web/components/` 에 두고, kiosk 와 공유가 생기면 `fragments/components/` 로 승격. "중복 발견 시 상위로 올린다" 를 관례로.
 - **CSS 도 동일 트리로**: `static/css/web/**`, `static/css/kiosk/**`, 공용은 `static/css/common/**` — JS/템플릿과 미러링해 일관.
 - **core JS 는 탭 제거에 맞춰 정리**: 탭 매니저/iframe 레지스트리 대신 `page-factory` + `head`/`sidebar` 초기화만 둔다.

@@ -802,6 +802,27 @@ BEGIN
   PRINT '  + tb_visit.checkout_dt 추가';
 END
 GO
+
+/* 방문구분(2026-09-15) — 인원/차량/인원+차량. 화면이 고른 쪽만 연다. */
+IF COL_LENGTH('dbo.tb_visit', 'visit_kind') IS NULL
+BEGIN
+  ALTER TABLE dbo.tb_visit ADD visit_kind nvarchar(10) NULL;
+  PRINT '  + tb_visit.visit_kind 추가';
+END
+GO
+IF OBJECT_ID('dbo.CHK_tb_visit_kind', 'C') IS NULL
+  ALTER TABLE dbo.tb_visit ADD CONSTRAINT CHK_tb_visit_kind
+    CHECK (visit_kind IS NULL OR visit_kind IN ('PERSON','CAR','BOTH'));
+GO
+/* 기존 방문은 명단으로 되짚는다 — 방문객만 있으면 인원, 차량만 있으면 차량, 그 밖은 인원+차량(모든 칸을 연다). */
+UPDATE v SET visit_kind =
+  CASE WHEN EXISTS (SELECT 1 FROM dbo.tb_visit_person p WHERE p.visit_no = v.visit_no)
+        AND NOT EXISTS (SELECT 1 FROM dbo.tb_visit_car c WHERE c.visit_no = v.visit_no) THEN 'PERSON'
+       WHEN EXISTS (SELECT 1 FROM dbo.tb_visit_car c WHERE c.visit_no = v.visit_no)
+        AND NOT EXISTS (SELECT 1 FROM dbo.tb_visit_person p WHERE p.visit_no = v.visit_no) THEN 'CAR'
+       ELSE 'BOTH' END
+FROM dbo.tb_visit v WHERE v.visit_kind IS NULL;
+GO
 /* 이미 퇴실 완료된 방문에는 시각이 없다 — 파기 기준이 되어야 하므로 mod_dt 로 채운다.
    근사치지만 유일한 단서이고, 1년 뒤 파기 대상 판정에는 충분하다. */
 IF EXISTS (SELECT 1 FROM dbo.tb_visit WHERE status_code = 'VS04' AND checkout_dt IS NULL)

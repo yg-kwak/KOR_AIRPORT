@@ -13,6 +13,7 @@ public class TbVisit {
   private Integer visitNo;
   private String visitType; // → tb_common(PT). 방문객 person_type·카드 pass_type 결정
   private String statusCode; // → tb_common(VS)
+  private String visitKind; // 방문구분 PERSON/CAR/BOTH (AirPort.common.VisitKinds) — 화면은 고른 쪽만 보여 준다
   private String workPurpose;
   private String permitDt;
   private String workStartDt;

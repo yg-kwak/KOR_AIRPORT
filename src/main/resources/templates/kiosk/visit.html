@@ -12,6 +12,7 @@
   <script src="/js/core/busy.js" defer></script>
   <script src="/js/core/app.js" defer></script>
   <script src="/js/core/birth-date.js" defer></script>
+  <script src="/js/core/visit-kind.js" defer></script>
   <script src="/js/core/components/ac-group-tree.js" defer></script>
   <script src="/js/web/kiosk/visit.js" defer></script>
 </head>
@@ -30,17 +31,52 @@
     <ol class="kiosk-steps">
       <li><strong>방문 정보</strong><span>작업기간 · 작업목적</span></li>
       <li><strong>인솔자 · 방문구역</strong><span>인솔자 검색, 출입구역 선택</span></li>
-      <li><strong>방문객 · 차량</strong><span>방문객 명단과 차량 입력</span></li>
+      <li><strong>방문객 · 차량</strong><span>방문구분에 따라 명단·차량 입력</span></li>
     </ol>
-    <button type="button" class="btn btn-primary kiosk-start" id="btnStart">방문자 등록 시작</button>
+    <div class="kiosk-start-row">
+      <button type="button" class="btn btn-primary kiosk-start" id="btnStart">방문자 등록 시작</button>
+      <button type="button" class="btn kiosk-start" id="btnEdit">등록 수정</button>
+    </div>
     <p class="kiosk-note">신청 후 관리자 확인을 거쳐 출입카드가 발급됩니다.<br/>
-      입력한 정보는 공항 출입관리 목적으로만 이용됩니다.</p>
+      입력한 정보는 공항 출입관리 목적으로만 이용됩니다.<br/>
+      이미 신청한 내용은 [등록 수정]에서 인솔자 인원ID·성명으로 찾아 고칠 수 있습니다.</p>
+  </section>
+
+  <!-- 등록 수정 — 인솔자 인원ID·성명으로 자기 신청을 찾는다 -->
+  <section class="kiosk-form" id="lookup" style="display:none">
+    <div class="kiosk-card kiosk-lookup">
+      <h2>신청 조회</h2>
+      <p class="form-hint">신청할 때 선택한 인솔자의 인원ID와 성명을 입력하세요. 아직 관리자가 확인하지 않은(신청 상태) 건만 수정할 수 있습니다.</p>
+      <div class="form-grid" style="margin-top:8px">
+        <div class="form-group">
+          <label>인솔자 인원ID <span class="req">*</span></label>
+          <input type="text" id="lookupMgrId" class="input" autocomplete="off"/>
+        </div>
+        <div class="form-group">
+          <label>인솔자 성명 <span class="req">*</span></label>
+          <input type="text" id="lookupMgrName" class="input" autocomplete="off"/>
+        </div>
+      </div>
+      <div class="kiosk-actions" style="margin-top:12px">
+        <button type="button" class="btn" id="btnLookupBack">처음으로</button>
+        <button type="button" class="btn btn-primary" id="btnLookup">조회</button>
+      </div>
+      <div class="matrix-wrap list-scroll" id="mineWrap" style="display:none; margin-top:12px">
+        <table class="grid">
+          <thead><tr><th class="w-100">방문번호</th><th class="w-260">작업기간</th><th style="text-align:left">작업목적</th><th class="w-100">방문객</th></tr></thead>
+          <tbody id="mineBody"></tbody>
+        </table>
+      </div>
+    </div>
   </section>
 
   <!-- 등록 폼 -->
   <section class="kiosk-form" id="form" style="display:none">
+    <div class="kiosk-edit-banner" id="editBanner" style="display:none"></div>
     <div class="kiosk-card">
       <h2>방문 그룹 정보</h2>
+      <!-- 방문구분 — 맨 위. 고른 쪽(방문객·인원 출입구역 / 차량·차량 출입구역)만 보인다 -->
+      <div th:replace="~{fragments/components/visit-kind :: visitKind('visitKind')}"></div>
       <div class="form-grid">
         <div class="form-group">
           <label>작업기간 시작 <span class="req">*</span></label>
@@ -81,20 +117,20 @@
 
     <div class="kiosk-card">
       <h2>방문구역 <span class="req">*</span></h2>
-      <p class="form-hint">출입이 필요한 구역만 선택하세요. 차량으로 출입하면 차량 구역도 함께 선택합니다.</p>
+      <p class="form-hint">출입이 필요한 구역만 선택하세요.</p>
       <div class="kiosk-area" style="margin-top:8px">
-        <div>
+        <div data-kind="person">
           <div class="form-group-label">인원 출입구역</div>
           <div class="ac-select-tree" id="acTree"><div class="empty">불러오는 중...</div></div>
         </div>
-        <div>
+        <div data-kind="car">
           <div class="form-group-label">차량 출입구역</div>
           <div class="ac-select-tree" id="carAcBox"><div class="empty">불러오는 중...</div></div>
         </div>
       </div>
     </div>
 
-    <div class="kiosk-card">
+    <div class="kiosk-card" data-kind="person">
       <h2>방문객 정보</h2>
       <div class="grid-toolbar" style="padding:0 0 8px">
         <span class="form-hint">성명·생년월일·소속을 입력하세요.</span>
@@ -106,10 +142,10 @@
       </table>
     </div>
 
-    <div class="kiosk-card">
+    <div class="kiosk-card" data-kind="car">
       <h2>차량 정보</h2>
       <div class="grid-toolbar" style="padding:0 0 8px">
-        <span class="form-hint">차량구역을 선택하면 차량정보를 입력해야 합니다.</span>
+        <span class="form-hint">차량번호는 필수입니다.</span>
         <div class="grid-actions"><button type="button" class="btn btn-sm" id="btnAddCar">차량 추가</button></div>
       </div>
       <table class="grid">

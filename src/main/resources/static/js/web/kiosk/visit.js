@@ -1,5 +1,6 @@
 /* 키오스크(무인증) 방문 신청 — 인솔자·방문구역·방문객 입력 후 저장. 임시·신청 상태로 접수되어
-   관리자 임시인원등록에서 카드 발급. 관리자 UI(사이드바/헤더) 없이 독립 동작. */
+   관리자 임시인원등록에서 카드 발급. 관리자 UI(사이드바/헤더) 없이 독립 동작.
+   [등록 수정]은 인솔자 인원ID·성명으로 자기 신청(신청 상태만)을 찾아 같은 폼으로 고친다. */
 (function () {
   const BASE = '/kiosk/visit';
   const AC_TREE = 'acTree';
@@ -8,20 +9,23 @@
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
 
   let managers = []; // [{personId, personName, phone}]
-  let visitors = []; // [{personName, birthDate, affiliation}]
+  let visitors = []; // [{personId?, personName, birthDate, affiliation}] — personId 는 수정 때 유지용
   let cars = []; // [{carNo, carName, carType, affiliation}]
+  /* 수정 중인 신청 — 인솔자 ID·성명은 저장 요청에도 다시 붙인다(서버가 매 요청 재확인) */
+  let editing = null; // {visitNo, managerId, managerName}
   let carCodes = []; // tb_common(CAR) 차량구역
   let carTypes = []; // tb_common(CT) 차종
   const pad2 = (n) => String(n).padStart(2, '0');
+  const fmtDt = (v) => (v == null ? '' : String(v).replace('T', ' '));
   const todayAt = (hh, mm, now) => {
     const d = new Date();
     const date = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
     return `${date}T${now ? pad2(d.getHours()) + ':' + pad2(d.getMinutes()) : pad2(hh) + ':' + pad2(mm)}`;
   };
 
-  function showForm(on) {
-    $('landing').style.display = on ? 'none' : '';
-    $('form').style.display = on ? '' : 'none';
+  /* 화면은 셋 중 하나만 보인다 — 시작 / 신청 조회 / 폼 */
+  function show(id) {
+    ['landing', 'lookup', 'form'].forEach((s) => { $(s).style.display = s === id ? '' : 'none'; });
   }
 
   // ---- 인솔자 ----
@@ -61,9 +65,10 @@
   }
 
   // ---- 차량구역(CAR) ----
-  function carAcRender() {
+  function carAcRender(checked) {
+    const on = new Set(checked || []);
     $('carAcBox').innerHTML = carCodes.length
-      ? carCodes.map((c) => `<label class="ac-select-item"><input type="checkbox" value="${esc(c.codeId)}"/><span>${esc(c.codeName)}</span></label>`).join('')
+      ? carCodes.map((c) => `<label class="ac-select-item"><input type="checkbox" value="${esc(c.codeId)}"${on.has(c.codeId) ? ' checked' : ''}/><span>${esc(c.codeName)}</span></label>`).join('')
       : '<div class="empty">등록된 차량구역이 없습니다.</div>';
   }
   const carAcSelected = () => [...$('carAcBox').querySelectorAll('input:checked')].map((c) => c.value);
@@ -97,6 +102,7 @@
       acGroupIds: acGroupTree.get(AC_TREE),
       carAcCodes,
       visitors: visitors.map((v) => ({
+        personId: v.personId || null, // 수정 때 남은 방문객은 갱신, 빠진 방문객만 정리된다
         personName: (v.personName || '').trim() || null,
         birthDate: birthDate.normalize(v.birthDate) || null,
         affiliation: (v.affiliation || '').trim() || null,
@@ -111,28 +117,82 @@
     if (!payload.workPurpose) { toast.warning('작업목적을 입력하세요.'); return; }
     if (!payload.managers.length) { toast.warning('인솔자를 선택하세요.'); return; }
     if (payload.managers.some((m) => !m.phone)) { toast.warning('인솔자 연락처를 입력하세요.'); return; }
-    if (!payload.acGroupIds.length) { toast.warning('방문구역을 선택하세요.'); return; }
-    if (!payload.visitors.length || payload.visitors.some((v) => !v.personName || !v.birthDate || !v.affiliation)) {
+    visitKind.prune(payload); // 고르지 않은 쪽(감춰진 칸)의 값은 보내지 않는다
+    const kindProblem = visitKind.problem(payload); if (kindProblem) { toast.warning(kindProblem); return; }
+    if (visitKind.person(payload.visitKind) && !payload.acGroupIds.length) { toast.warning('인원 출입구역을 선택하세요.'); return; }
+    if (visitKind.car(payload.visitKind) && !payload.carAcCodes.length) { toast.warning('차량 출입구역을 선택하세요.'); return; }
+    if (payload.visitors.some((v) => !v.personName || !v.birthDate || !v.affiliation)) {
       toast.warning('방문객 성명·생년월일·소속은 필수입니다.'); return;
     }
     if (payload.visitors.some((v) => !birthDate.isValid(v.birthDate))) { toast.warning('방문객 ' + birthDate.HINT); return; }
-    if (payload.carAcCodes.length && !payload.cars.length) {
-      toast.warning('차량구역을 선택하면 차량정보를 입력하세요.'); return;
+    if (editing) {
+      payload.visitNo = editing.visitNo;
+      await api.put(BASE + '?' + mgrQuery(editing), payload);
+    } else {
+      await api.post(BASE, payload);
     }
-    await api.post(BASE, payload);
     reset();
   }
 
   function reset() {
-    managers = []; visitors = []; cars = [];
-    ['workStartDt', 'workEndDt', 'workPurpose'].forEach((id) => { $(id).value = ''; });
+    managers = []; visitors = []; cars = []; editing = null;
+    ['workStartDt', 'workEndDt', 'workPurpose', 'lookupMgrId', 'lookupMgrName'].forEach((id) => { $(id).value = ''; });
     $('mgrKeyword').value = '';
     $('mgrResultWrap').style.display = 'none';
     $('mgrResult').innerHTML = '';
+    $('mineWrap').style.display = 'none';
+    $('mineBody').innerHTML = '';
+    $('editBanner').style.display = 'none';
+    $('btnSave').textContent = '저장';
     acGroupTree.set(AC_TREE, []);
     carAcRender();
     mgrRender(); visRender(); carRender();
-    showForm(false);
+    show('landing');
+  }
+
+  // ---- 등록 수정 ----
+  const mgrQuery = (m) => 'managerId=' + encodeURIComponent(m.managerId) + '&managerName=' + encodeURIComponent(m.managerName);
+
+  /* 인원ID·성명 둘 다 맞아야 목록이 온다 — 하나만으로 남의 신청을 볼 수 없게 서버가 막는다 */
+  async function lookup() {
+    const managerId = $('lookupMgrId').value.trim();
+    const managerName = $('lookupMgrName').value.trim();
+    if (!managerId || !managerName) { toast.warning('인솔자 인원ID와 성명을 모두 입력하세요.'); return; }
+    const rows = (await api.get(BASE + '/mine?' + mgrQuery({ managerId, managerName }))) || [];
+    $('mineWrap').style.display = '';
+    $('mineBody').innerHTML = rows.length
+      ? rows.map((r) => `<tr class="row-click mine-pick" data-no="${r.visitNo}">
+          <td>${r.visitNo}</td>
+          <td>${esc(fmtDt(r.workStartDt))} ~ ${esc(fmtDt(r.workEndDt))}</td>
+          <td style="text-align:left">${esc(r.workPurpose || '')}</td>
+          <td>${r.personCount || 0}명</td></tr>`).join('')
+      : '<tr><td colspan="4" class="empty">신청 상태인 방문이 없습니다. 인원ID·성명을 확인하세요.</td></tr>';
+  }
+
+  /* 목록에서 고른 신청을 폼에 채운다 — 등록 폼을 그대로 쓰되 수정 중임을 위에 띄운다 */
+  async function openEdit(visitNo) {
+    const m = { visitNo, managerId: $('lookupMgrId').value.trim(), managerName: $('lookupMgrName').value.trim() };
+    const d = await api.get(BASE + '/detail?visitNo=' + visitNo + '&' + mgrQuery(m));
+    if (!d) return;
+    editing = m;
+    const v = d.visit;
+    $('workStartDt').value = v.workStartDt || '';
+    $('workEndDt').value = v.workEndDt || '';
+    $('workPurpose').value = v.workPurpose || '';
+    managers = (d.managers || []).map((x) => ({ personId: x.personId, personName: x.personName, phone: x.phone || '' }));
+    visitors = (d.visitors || []).map((x) => ({
+      personId: x.personId, personName: x.personName || '', birthDate: x.birthDate || '', affiliation: x.affiliation || '',
+    }));
+    cars = (d.cars || []).map((x) => ({
+      carNo: x.carNo || '', carName: x.carName || '', carType: x.carType || '', affiliation: x.affiliation || '',
+    }));
+    acGroupTree.set(AC_TREE, d.acGroupIds || []);
+    carAcRender(d.carAcCodes || []);
+    visitKind.set(v.visitKind || visitKind.infer(d.visitors, d.cars)); // 이 컬럼 이전의 방문은 명단으로 되짚는다
+    $('editBanner').textContent = `방문번호 ${visitNo} 신청을 수정하고 있습니다. 고친 뒤 [수정 저장]을 누르세요.`;
+    $('editBanner').style.display = '';
+    $('btnSave').textContent = '수정 저장';
+    show('form'); mgrRender(); visRender(); carRender();
   }
 
   async function loadCodes() {
@@ -144,11 +204,20 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     acGroupTree.init(AC_TREE, BASE + '/acGroups');
+    visitKind.init('visitKind');
     loadCodes().then(carAcRender);
     $('btnStart').addEventListener('click', () => {
       $('workStartDt').value = todayAt(0, 0, true); // 시작=오늘 현재시각
       $('workEndDt').value = todayAt(18, 0, false); // 종료=오늘 18:00
-      showForm(true); mgrRender(); visRender(); carRender();
+      visitKind.set(visitKind.PERSON); // 방문구분은 인원이 기본
+      show('form'); mgrRender(); visRender(); carRender();
+    });
+    $('btnEdit').addEventListener('click', () => show('lookup'));
+    $('btnLookupBack').addEventListener('click', reset);
+    $('btnLookup').addEventListener('click', lookup);
+    ['lookupMgrId', 'lookupMgrName'].forEach((id) => $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') lookup(); }));
+    $('mineBody').addEventListener('click', (e) => {
+      const row = e.target.closest('.mine-pick'); if (row) openEdit(Number(row.dataset.no));
     });
     $('btnCancel').addEventListener('click', reset);
     $('btnMgrSearch').addEventListener('click', searchMgr);

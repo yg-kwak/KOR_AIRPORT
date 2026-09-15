@@ -90,7 +90,7 @@
   </sql>
 
   <sql id="cols">
-    v.visit_no, v.visit_type, <include refid="statusExpr"/> AS status_code,
+    v.visit_no, v.visit_type, <include refid="statusExpr"/> AS status_code, v.visit_kind,
     v.work_purpose, v.company_type, v.company_name,
     v.receiver, v.returner, v.evidence_file, v.remark, v.del_yn, v.reg_dt, v.mod_dt,
     CONVERT(varchar(10), v.permit_dt, 23)      AS permit_dt,
@@ -152,10 +152,10 @@
 
   <insert id="insert" parameterType="TbVisit" useGeneratedKeys="true" keyProperty="visitNo">
     INSERT INTO tb_visit
-      (visit_type, status_code, work_purpose, permit_dt, work_start_dt, work_end_dt,
+      (visit_type, status_code, visit_kind, work_purpose, permit_dt, work_start_dt, work_end_dt,
        company_type, company_name, receiver, returner, evidence_file, remark)
     VALUES
-      (#{visitType}, #{statusCode}, #{workPurpose}, #{permitDt}, #{workStartDt}, #{workEndDt},
+      (#{visitType}, #{statusCode}, #{visitKind}, #{workPurpose}, #{permitDt}, #{workStartDt}, #{workEndDt},
        #{companyType}, #{companyName}, #{receiver}, #{returner}, #{evidenceFile}, #{remark})
   </insert>
 
@@ -164,7 +164,8 @@
        신청서 차량표와 주차 연동이 그 값을 물러설 값으로 읽는다(VisitPermitService·ParkingPassService). -->
   <update id="update" parameterType="TbVisit">
     UPDATE tb_visit
-    SET visit_type = #{visitType}, status_code = #{statusCode}, work_purpose = #{workPurpose},
+    SET visit_type = #{visitType}, status_code = #{statusCode}, visit_kind = #{visitKind},
+        work_purpose = #{workPurpose},
         permit_dt = #{permitDt}, work_start_dt = #{workStartDt}, work_end_dt = #{workEndDt},
         company_type = #{companyType},
         receiver = #{receiver}, returner = #{returner}, remark = #{remark}, mod_dt = getdate()
@@ -254,6 +255,28 @@
   <select id="selectManagers" resultType="TbVisitManager">
     SELECT visit_no, seq, person_id, manager_phone
     FROM tb_visit_manager WHERE visit_no = #{visitNo} ORDER BY seq
+  </select>
+
+  <!-- 키오스크 [등록 수정] — 이 인솔자가 붙어 있고 아직 '신청' 상태인 임시 방문.
+       무인증 화면이라 인원ID 하나로는 명단을 훑을 수 있다 — 인원ID 와 성명이 **둘 다** 맞아야 한다.
+       성명은 ARIA 암호문이라 암호문끼리 비교한다(평문으로 넘기면 아무것도 못 찾고 조용히 통과한다 — conventions).
+       신청 상태만이다: 관리자가 카드를 붙인 뒤(입실 중)에는 방문객이 스스로 고치면 안 된다.
+       visitNo 를 주면 그 한 건만 — 상세·수정 요청이 정말 이 사람의 것인지 확인하는 데 쓴다. -->
+  <select id="selectAppliedByManager" resultType="TbVisit">
+    SELECT <include refid="cols"/>
+    <include refid="joins"/>
+    WHERE v.del_yn = 'N'
+      AND v.visit_type = #{visitType}
+      AND v.status_code = #{statusCode}
+      AND EXISTS (SELECT 1 FROM tb_visit_manager vm
+                  JOIN tb_person pm ON pm.person_id = vm.person_id
+                  WHERE vm.visit_no = v.visit_no
+                    AND vm.person_id = #{managerId}
+                    AND pm.person_name = #{managerNameEnc})
+    <if test="visitNo != null">
+      AND v.visit_no = #{visitNo}
+    </if>
+    ORDER BY v.visit_no DESC
   </select>
 
   <!-- 임시끼리 인솔자 겹침 검사 — 진행중(신청 VS01·입실중 VS03) 다른 임시(PT02) 방문에 이미 인솔자인 person_id.

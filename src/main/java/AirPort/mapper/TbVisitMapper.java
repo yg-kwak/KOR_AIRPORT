@@ -63,6 +63,18 @@ public interface TbVisitMapper {
   List<AirPort.model.TbVisitManager> selectManagers(@Param("visitNo") int visitNo);
 
   /** 임시(PT02) 인솔자 겹침 — 진행중(신청·입실중) 다른 임시 방문에 이미 인솔자인 person_id 목록. */
+  /**
+   * 키오스크 [등록 수정] — 이 인솔자(인원ID + 성명 암호문)가 붙어 있고 아직 신청 상태인 임시 방문.
+   *
+   * @param visitNo null 이면 목록, 주면 그 한 건만(상세·수정 요청이 이 사람의 것인지 확인)
+   */
+  List<TbVisit> selectAppliedByManager(
+      @Param("managerId") String managerId,
+      @Param("managerNameEnc") String managerNameEnc,
+      @Param("visitNo") Integer visitNo,
+      @Param("visitType") String visitType,
+      @Param("statusCode") String statusCode);
+
   List<String> selectActiveTempManagers(
       @Param("personIds") List<String> personIds, @Param("excludeVisitNo") Integer excludeVisitNo);
 

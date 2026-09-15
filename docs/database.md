@@ -326,6 +326,7 @@ PK: `visit_no` (IDENTITY). 임시·장기 출입자의 방문 1건. **정규(`tb
 | visit_no | int | Y | 그룹번호 | IDENTITY(1,1) |
 | visit_type | nvarchar(50) | | 유형 | → `tb_common`(cmm_id='PT'). 소속 인원 `person_type`·카드 `pass_type` 결정 |
 | status_code | nvarchar(50) | | 방문상태 | → `tb_common`(cmm_id='VS'): 신청(VS01)/입실 중(VS03)/미반납(VS05)/퇴실 완료(VS04). **취소 상태는 두지 않는다** — 신청 단계면 방문 자체를 삭제한다. **상태는 서버가 정한다**(사용자 선택 불가) |
+| visit_kind | nvarchar(10) | | 방문구분 | `PERSON`(인원)/`CAR`(차량)/`BOTH`(인원+차량), CHK. **공통코드가 아니라 코드(`AirPort.common.VisitKinds`)가 원천** — 값마다 화면이 감추는 칸과 서버가 요구하는 입력이 묶여 있어 코드표에서 늘릴 수 있는 값이 아니다. 고른 쪽은 있어야 하고 고르지 않은 쪽은 비어 있어야 한다. NULL 은 이 컬럼 이전의 방문(명단으로 되짚는다) |
 | work_purpose | nvarchar(500) | | 작업목적 | |
 | permit_dt | datetime2(0) | | 작업 허가일자 | |
 | work_start_dt | datetime2(0) | | 작업기간 시작 | 승인 시 인원 `access_start_dt` 로 전파 |
