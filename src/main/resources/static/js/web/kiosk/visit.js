@@ -42,6 +42,7 @@
       : '<tr><td colspan="4" class="empty">검색 결과가 없습니다.</td></tr>';
   }
   function mgrRender() {
+    $('mgrCount').textContent = `( ${managers.length} )`;
     // 연락처는 방문마다 손으로 적는다 — 정규인원 정보에서 당겨오지 않는다
     $('mgrBody').innerHTML = managers.length
       ? managers.map((m, i) => `<tr><td>${esc(m.personId)}</td><td>${esc(m.personName)}</td>
@@ -52,6 +53,7 @@
 
   // ---- 방문객 ----
   function visRender() {
+    $('visCount').textContent = `( ${visitors.length} )`;
     $('visBody').innerHTML = visitors.length
       ? visitors.map((v, i) => `<tr>
           <td><input class="input" data-f="personName" data-i="${i}" value="${esc(v.personName)}"/></td>
@@ -78,6 +80,7 @@
     return '<option value="">선택</option>' + carTypes.map((c) => `<option value="${c.codeId}"${c.codeId === sel ? ' selected' : ''}>${esc(c.codeName)}</option>`).join('');
   }
   function carRender() {
+    $('carCount').textContent = `( ${cars.length} )`;
     $('carBody').innerHTML = cars.length
       ? cars.map((c, i) => `<tr>
           <td><input class="input" data-f="carNo" data-i="${i}" value="${esc(c.carNo)}"/></td>

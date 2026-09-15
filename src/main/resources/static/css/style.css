@@ -367,7 +367,7 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 /* 방문 모달 — 탭 대신 키오스크처럼 한 화면에 차례로(방문 그룹 정보 → 인솔자 → 방문구역 → 방문객 → 차량) */
 .visit-section { border: 1px solid var(--color-tertiary-active); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; }
 .visit-section h3 { font-size: 15px; font-weight: 700; margin: 0 0 12px; }
-.visit-section .visit-count { font-weight: 600; color: var(--color-primary-default); margin-left: 2px; } /* 추가한 인원·대수 */
+.visit-section .visit-count, .kiosk-card .visit-count { font-weight: 600; color: var(--color-primary-default); margin-left: 2px; } /* 추가한 인원·대수 */
 .visit-modal.readonly .visit-kind-item { pointer-events: none; opacity: .55; } /* 퇴실 완료 — 방문구분도 잠근다 */
 .visit-area { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 /* 섹션 안 표 — 칸 폭은 th 의 w-* 가 정하고 나머지 한 칸이 남는 폭을 받는다. 입력칸은 칸을 채우되 넘지 않는다.
