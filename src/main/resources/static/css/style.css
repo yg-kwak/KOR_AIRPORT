@@ -590,6 +590,7 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 .modal-container.card-side { display: none; width: 440px; }
 .modal-container.card-side.open { display: flex; }
 .confirm-message { margin: 4px 0; font-size: 14px; color: var(--color-black); }
+.confirm-note { margin: 8px 0 0; font-size: 14px; font-weight: 700; color: var(--color-error); } /* 사람이 꼭 해야 할 일 */
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--color-tertiary-active); flex: none; }
 .modal-title { font-size: 18px; font-weight: 700; margin: 0; }
 .modal-close { border: none; background: none; font-size: 22px; cursor: pointer; line-height: 1; color: var(--neutral-700); }

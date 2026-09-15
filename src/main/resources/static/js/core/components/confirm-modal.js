@@ -1,5 +1,6 @@
 /* 공통 확인 모달 (fragments/components/confirm-modal.html 과 한 쌍).
-   const ok = await confirmModal.open({ title, message, confirmText });  // true=확인, false=닫기 */
+   const ok = await confirmModal.open({ title, message, confirmText, note });  // true=확인, false=닫기
+   note 는 붉은 글씨 한 줄(사람이 꼭 해야 할 일) — 없으면 숨는다 */
 window.confirmModal = (function () {
   let resolver = null;
   const el = (id) => document.getElementById(id);
@@ -10,9 +11,11 @@ window.confirmModal = (function () {
     if (resolver) { resolver(result); resolver = null; }
   }
 
-  function open({ title = '확인', message = '', confirmText = '확인' } = {}) {
+  function open({ title = '확인', message = '', confirmText = '확인', note = '' } = {}) {
     el('confirmModalTitle').textContent = title;
     el('confirmModalMessage').textContent = message;
+    el('confirmModalNote').textContent = note;
+    el('confirmModalNote').style.display = note ? '' : 'none';
     el('confirmModalOk').textContent = confirmText;
     el('confirmModal').classList.add('open');
     el('confirmModalOk').focus(); // 포커스를 확인 버튼에 둬 Enter 로 바로 처리(포커스 링으로 안내)

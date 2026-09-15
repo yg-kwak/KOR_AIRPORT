@@ -106,6 +106,9 @@ public interface TbVisitMapper {
   /** 방문객의 마지막 배정 카드번호 조회. */
   String selectVisitorLastCard(@Param("visitNo") int visitNo, @Param("personId") String personId);
 
+  String selectVisitorLastCardName(
+      @Param("visitNo") int visitNo, @Param("personId") String personId);
+
   // ── 방문 차량(car_id) ──
   List<Integer> selectCarIds(@Param("visitNo") int visitNo);
 

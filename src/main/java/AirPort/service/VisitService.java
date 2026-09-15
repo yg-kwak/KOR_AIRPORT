@@ -202,6 +202,7 @@ public class VisitService {
           f.setCardName(pc.get(0).getCardName()); // 화면은 번호가 아니라 명칭을 보여준다
         }
         f.setLastCardNo(visitMapper.selectVisitorLastCard(visitNo, pid)); // 회수 후에도 보존된 마지막 카드
+        f.setLastCardName(visitMapper.selectVisitorLastCardName(visitNo, pid));
         f.setCheckoutDt(visitMapper.selectVisitorCheckout(visitNo, pid)); // 값이 있으면 퇴실(카드 재발급 불가)
         f.setBiostarUserId(p.getBiostarUserId()); // 장비에 실제 생성된 뒤에만 값이 있다(화면 인원ID 표시 기준)
         d.visitors.add(f);

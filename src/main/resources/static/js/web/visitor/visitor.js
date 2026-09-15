@@ -98,10 +98,10 @@
 
   /* 카드 셀 — 고른 카드 표시 + 선택 버튼(팝업). kind=vis|car. 퇴실한 방문객은 재발급 불가라 버튼을 뺀다.
      방문객은 카드명칭(임시234-0001)을 보여준다 — 그 카드가 어느 구역용인지가 번호에는 안 드러난다.
-     회수 표시는 카드번호로 남긴다(마지막 카드 스냅샷이 번호라 명칭을 알 수 없다). */
+     회수 표시도 명칭이다 — 스냅샷은 번호뿐이라 서버가 카드표에서 되찾아 준다(지워진 카드면 번호). */
   function cardCell(obj, i, kind) {
     const picked = kind === 'car' ? obj.cardLabel : obj.cardName || obj.cardLabel;
-    const label = obj.cardId ? esc(picked || obj.cardId) : badge.none(obj.lastCardNo ? `회수됨(${obj.lastCardNo})` : '카드 없음');
+    const label = obj.cardId ? esc(picked || obj.cardId) : badge.none(obj.lastCardNo ? `회수됨(${obj.lastCardName || obj.lastCardNo})` : '카드 없음');
     const btn = obj.checkoutDt ? ''
       : `<button type="button" class="btn btn-sm" data-act="${kind}-card" data-idx="${i}">선택</button>`;
     return `<div class="file-field-row">
@@ -351,9 +351,10 @@
       if (visitKind.person(k)) { visitCardTag.on(); return; }
       visitCardTag.off();
       // 카드가 발급돼 BiostarX 에 올라간 방문객이 있으면 — '차량'으로 저장하는 순간 그 사람들이 장비에서도 지워진다
-      const synced = visitors.filter((v) => v.biostarUserId).length;
+      const synced = visitors.filter((v) => v.biostarUserId).length, carded = visitors.filter((v) => v.issuedCardId).length;
       if (prev && synced && !(await confirmModal.open({ title: '방문구분 변경', confirmText: '변경',
-        message: `카드가 발급되어 BiostarX 에 등록된 방문객이 ${synced}명 있습니다. '차량'으로 저장하면 연동된 방문객 정보가 삭제되고 BiostarX 에서도 제거됩니다. 계속하시겠습니까?` }))) visitKind.set(prev);
+        message: `카드가 발급되어 BiostarX 에 등록된 방문객이 ${synced}명 있습니다. '차량'으로 저장하면 연동된 방문객 정보가 삭제되고 BiostarX 에서도 제거됩니다. 계속하시겠습니까?`,
+        note: `(발급된 카드 ${carded} 장을 모두 회수해 주시길 바랍니다)` }))) visitKind.set(prev);
     });
     // 카드를 고른 뒤 출입그룹을 바꾸면 그 카드가 새 구역과 맞지 않을 수 있다 — 되돌리지 않고 알리기만 한다
     $(AC_TREE).addEventListener('change', () => {

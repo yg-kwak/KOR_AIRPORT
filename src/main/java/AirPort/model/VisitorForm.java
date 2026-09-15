@@ -15,6 +15,7 @@ public class VisitorForm {
   // 표시용 카드명칭(응답 전용) — 방문객 칸에는 번호 대신 이 값을 보여준다(어느 구역용 카드인지가 이름에 있다)
   private String cardName;
   private String lastCardNo; // 마지막 배정 카드번호(응답 전용) — 회수 후에도 보존, 저장 시 무시
+  private String lastCardName; // 그 카드의 명칭(응답 전용) — 화면은 번호가 아니라 명칭으로 알아본다
   private String checkoutDt; // 개별 퇴실 일시(응답 전용) — 값이 있으면 재실이 아니라 카드 재발급 불가
   private String phone; // 인솔자 연락처(응답 전용) — 그 방문에 적어 둔 번호
   private String biostarUserId; // BiostarX 사용자ID(응답 전용) — 장비 생성이 성공해야 채워진다(화면 인원ID 표시 기준)

@@ -329,6 +329,15 @@
     SELECT last_card_no FROM tb_visit_person WHERE visit_no = #{visitNo} AND person_id = #{personId}
   </select>
 
+  <!-- 회수된 카드의 '이름' — 스냅샷은 번호뿐이라 카드표에서 되찾는다(지워진 카드면 번호 그대로).
+       화면은 번호가 아니라 명칭(임시2-0012)으로 알아본다. 신청서는 번호를 찍으므로 위 조회를 그대로 쓴다. -->
+  <select id="selectVisitorLastCardName" resultType="string">
+    SELECT TOP 1 ISNULL(c.card_name, vp.last_card_no)
+    FROM tb_visit_person vp
+    LEFT JOIN tb_card c ON c.biostar_card_value = vp.last_card_no
+    WHERE vp.visit_no = #{visitNo} AND vp.person_id = #{personId}
+  </select>
+
   <!-- ── 방문 차량 ── -->
   <select id="selectCarIds" resultType="int">
     SELECT car_id FROM tb_visit_car WHERE visit_no = #{visitNo}
