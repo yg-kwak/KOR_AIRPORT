@@ -368,6 +368,11 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 .visit-section { border: 1px solid var(--color-tertiary-active); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; }
 .visit-section h3 { font-size: 15px; font-weight: 700; margin: 0 0 12px; }
 .visit-area { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+/* 섹션 안 표 — 칸 폭은 th 의 w-* 가 정하고 나머지 한 칸이 남는 폭을 받는다. 입력칸은 칸을 채우되 넘지 않는다.
+   그냥 두면 input 의 기본 폭(≈170px)이 칸을 밀어 표가 모달 밖으로 튀어나가 가로 스크롤이 생긴다. */
+.visit-section .grid { table-layout: fixed; }
+.visit-section .grid td .input { width: 100%; min-width: 0; box-sizing: border-box; }
+.visit-section .grid td .card-picked { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 권한메뉴관리 — 좌: 권한 목록 / 우: 설정(메뉴 트리) 2패널 */
 .perm-layout { display: flex; gap: 16px; align-items: flex-start; }
