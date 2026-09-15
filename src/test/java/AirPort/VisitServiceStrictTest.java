@@ -12,6 +12,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import AirPort.common.VisitKinds;
 import AirPort.common.exception.BusinessException;
 import AirPort.mapper.TbCarMapper;
 import AirPort.mapper.TbCardMapper;
@@ -118,7 +119,7 @@ class VisitServiceStrictTest {
     VisitForm form = new VisitForm();
     form.setVisitNo(28);
     form.setVisitType("PT02");
-    form.setVisitKind(AirPort.common.VisitKinds.PERSON); // 방문객만 — 차량 칸은 비어 있어야 한다
+    form.setVisitKind(VisitKinds.PERSON); // 방문객만 — 차량 칸은 비어 있어야 한다
     form.setWorkStartDt("2026-09-08T09:00"); // 작업기간·작업목적은 필수(키오스크와 같은 규칙)
     form.setWorkEndDt("2026-09-08T18:00");
     form.setWorkPurpose("검증");
@@ -151,7 +152,7 @@ class VisitServiceStrictTest {
   private static VisitForm carOnly(Integer cardId) {
     VisitForm form = new VisitForm();
     form.setVisitType("PT02");
-    form.setVisitKind(AirPort.common.VisitKinds.CAR);
+    form.setVisitKind(VisitKinds.CAR);
     form.setWorkStartDt("2026-09-15T09:00");
     form.setWorkEndDt("2026-09-15T18:00");
     form.setWorkPurpose("검증");
@@ -212,7 +213,7 @@ class VisitServiceStrictTest {
     VisitForm form = new VisitForm();
     form.setVisitNo(28);
     form.setVisitType("PT02");
-    form.setVisitKind(AirPort.common.VisitKinds.PERSON); // 방문객만 — 차량 칸은 비어 있어야 한다
+    form.setVisitKind(VisitKinds.PERSON); // 방문객만 — 차량 칸은 비어 있어야 한다
     form.setWorkStartDt("2026-09-08T09:00"); // 작업기간·작업목적은 필수(키오스크와 같은 규칙)
     form.setWorkEndDt("2026-09-08T18:00");
     form.setWorkPurpose("검증");
@@ -319,7 +320,7 @@ class VisitServiceStrictTest {
     VisitForm form = new VisitForm();
     form.setVisitNo(28);
     form.setVisitType("PT02");
-    form.setVisitKind(AirPort.common.VisitKinds.PERSON); // 방문객만 — 차량 칸은 비어 있어야 한다
+    form.setVisitKind(VisitKinds.PERSON); // 방문객만 — 차량 칸은 비어 있어야 한다
     form.setWorkStartDt("2026-09-08T09:00"); // 작업기간·작업목적은 필수(키오스크와 같은 규칙)
     form.setWorkEndDt("2026-09-08T18:00");
     form.setWorkPurpose("검증");

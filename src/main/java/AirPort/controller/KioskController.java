@@ -1,10 +1,13 @@
 package AirPort.controller;
 
 import AirPort.common.ApiResponse;
+import AirPort.common.exception.BusinessException;
+import AirPort.common.exception.ErrorCode;
+import AirPort.model.KioskEditForm;
+import AirPort.model.KioskVisitResult;
 import AirPort.model.TbAcGroup;
 import AirPort.model.TbCommon;
 import AirPort.model.TbPerson;
-import AirPort.model.TbVisit;
 import AirPort.model.VisitForm;
 import AirPort.service.KioskVisitService;
 import AirPort.service.VisitService;
@@ -69,32 +72,36 @@ public class KioskController {
     return ApiResponse.okMessage("방문 신청이 접수되었습니다. 관리자 확인 후 카드가 발급됩니다.");
   }
 
-  // ── [등록 수정] — 인솔자 인원ID·성명이 둘 다 맞아야 자기 신청(VS01)만 보고 고친다 ──
+  // ── [등록 수정] — 인솔자 인원ID·성명이 둘 다 맞아야 자기 신청(VS01)만 보고 고친다.
+  //    성명은 개인정보라 셋 다 본문으로 받는다(URL 쿼리는 공용 단말의 이력·접근 로그에 남는다) ──
 
   /** 이 인솔자의 신청 상태 방문 목록. */
-  @GetMapping("/mine")
+  @PostMapping("/mine")
   @ResponseBody
-  public ApiResponse<List<TbVisit>> mine(
-      @RequestParam String managerId, @RequestParam String managerName) {
-    return ApiResponse.ok(kioskVisitService.applied(managerId, managerName));
+  public ApiResponse<List<KioskVisitResult>> mine(@RequestBody KioskEditForm req) {
+    return ApiResponse.ok(kioskVisitService.applied(req.getManagerId(), req.getManagerName()));
   }
 
   /** 수정할 방문 상세 — 인솔자 확인을 다시 한다(방문번호만으로는 열 수 없다). */
-  @GetMapping("/detail")
+  @PostMapping("/detail")
   @ResponseBody
-  public ApiResponse<VisitService.VisitDetail> detail(
-      @RequestParam int visitNo, @RequestParam String managerId, @RequestParam String managerName) {
-    return ApiResponse.ok(kioskVisitService.detail(visitNo, managerId, managerName));
+  public ApiResponse<VisitService.VisitDetail> detail(@RequestBody KioskEditForm req) {
+    if (req.getVisitNo() == null) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "방문번호가 필요합니다.");
+    }
+    return ApiResponse.ok(
+        kioskVisitService.detail(req.getVisitNo(), req.getManagerId(), req.getManagerName()));
   }
 
   /** 방문 신청 수정 — 임시·신청 상태 유지. */
   @PutMapping
   @ResponseBody
-  public ApiResponse<Void> update(
-      @RequestBody VisitForm form,
-      @RequestParam String managerId,
-      @RequestParam String managerName) {
-    kioskVisitService.update(form, managerId, managerName);
+  public ApiResponse<Void> update(@RequestBody KioskEditForm req) {
+    if (req.getForm() == null) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "수정할 내용이 없습니다.");
+    }
+    req.getForm().setVisitNo(req.getVisitNo());
+    kioskVisitService.update(req.getForm(), req.getManagerId(), req.getManagerName());
     return ApiResponse.okMessage("방문 신청이 수정되었습니다.");
   }
 }

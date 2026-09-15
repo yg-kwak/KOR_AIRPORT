@@ -129,8 +129,8 @@
     }
     if (payload.visitors.some((v) => !birthDate.isValid(v.birthDate))) { toast.warning('방문객 ' + birthDate.HINT); return; }
     if (editing) {
-      payload.visitNo = editing.visitNo;
-      await api.put(BASE + '?' + mgrQuery(editing), payload);
+      // 인솔자 ID·성명은 본문으로 — URL 에 성명이 남지 않게
+      await api.put(BASE, { ...editing, form: payload });
     } else {
       await api.post(BASE, payload);
     }
@@ -154,14 +154,12 @@
   }
 
   // ---- 등록 수정 ----
-  const mgrQuery = (m) => 'managerId=' + encodeURIComponent(m.managerId) + '&managerName=' + encodeURIComponent(m.managerName);
-
   /* 인원ID·성명 둘 다 맞아야 목록이 온다 — 하나만으로 남의 신청을 볼 수 없게 서버가 막는다 */
   async function lookup() {
     const managerId = $('lookupMgrId').value.trim();
     const managerName = $('lookupMgrName').value.trim();
     if (!managerId || !managerName) { toast.warning('인솔자 인원ID와 성명을 모두 입력하세요.'); return; }
-    const rows = (await api.get(BASE + '/mine?' + mgrQuery({ managerId, managerName }))) || [];
+    const rows = (await api.post(BASE + '/mine', { managerId, managerName })) || [];
     $('mineWrap').style.display = '';
     $('mineBody').innerHTML = rows.length
       ? rows.map((r) => `<tr class="row-click mine-pick" data-no="${r.visitNo}">
@@ -175,7 +173,7 @@
   /* 목록에서 고른 신청을 폼에 채운다 — 등록 폼을 그대로 쓰되 수정 중임을 위에 띄운다 */
   async function openEdit(visitNo) {
     const m = { visitNo, managerId: $('lookupMgrId').value.trim(), managerName: $('lookupMgrName').value.trim() };
-    const d = await api.get(BASE + '/detail?visitNo=' + visitNo + '&' + mgrQuery(m));
+    const d = await api.post(BASE + '/detail', m);
     if (!d) return;
     editing = m;
     const v = d.visit;

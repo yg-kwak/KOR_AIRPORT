@@ -1,6 +1,7 @@
 package AirPort.service;
 
 import AirPort.common.PageResult;
+import AirPort.common.VisitKinds;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCarMapper;
@@ -17,6 +18,7 @@ import AirPort.model.TbPerson;
 import AirPort.model.TbVisit;
 import AirPort.model.VisitCarForm;
 import AirPort.model.VisitForm;
+import AirPort.model.VisitManagerForm;
 import AirPort.model.VisitSearchParam;
 import AirPort.model.VisitorForm;
 import AirPort.security.ARIAUtil;
@@ -260,7 +262,7 @@ public class VisitService {
     // 카드를 들고 있는 동안(입실 중·미반납)엔 카드 '교환'만 허용 — 카드 회수(빈 카드)나 방문객 제외는 퇴실 처리로만 가능.
     // 단, 이미 개별 퇴실한 방문객은 카드가 없는 게 정상이므로 이 검사에서 뺀다(빼지 않으면 카드 교체가 아예 막힌다).
     if (holding(existing.getStatusCode())) {
-      if (AirPort.common.VisitKinds.CAR.equals(form.getVisitKind())) {
+      if (VisitKinds.CAR.equals(form.getVisitKind())) {
         // 차량만인 방문은 차량 카드가 입실의 근거다 — 같은 규칙을 차량에 적용한다(차량은 매번 다시 만들므로 대수로 본다)
         boolean carNoCard =
             form.getCars() == null || form.getCars().stream().anyMatch(c -> c.getCardId() == null);
@@ -363,7 +365,7 @@ public class VisitService {
             && form.getCars().stream()
                 .anyMatch(c -> c.getCarNo() != null && !c.getCarNo().isBlank());
     // 방문구분(인원/차량/인원+차량) — 고른 쪽은 있어야 하고 고르지 않은 쪽은 없어야 한다(규칙은 VisitKinds 한 곳)
-    AirPort.common.VisitKinds.check(
+    VisitKinds.check(
         form.getVisitKind(),
         hasVisitors,
         hasCars,
@@ -375,7 +377,7 @@ public class VisitService {
     check(hasVisitors && form.managerIds().isEmpty(), "방문객이 있으면 인솔자를 지정해야 합니다.");
     // 연락처는 방문마다 손으로 적는다 — 정규인원 정보에서 당겨오지 않으므로 비면 신청서에 빈 칸이 남는다.
     // 키오스크도 같은 규칙을 쓴다(VisitManagerForm 에 모아 둠).
-    AirPort.model.VisitManagerForm.requirePhones(form.getManagers());
+    VisitManagerForm.requirePhones(form.getManagers());
   }
 
   /** 임시(PT02)끼리 인솔자 겹침 금지 — 진행중 다른 임시 방문의 인솔자면 차단(임시↔장기·상주, 장기끼리는 허용). */
@@ -410,7 +412,7 @@ public class VisitService {
    * 방문은 사람이 없으니 <b>차량 전원</b>의 카드가 기준이다(그렇지 않으면 차량만인 방문은 영영 신청 상태에 머문다).
    */
   private static boolean allCarded(VisitForm form) {
-    if (AirPort.common.VisitKinds.CAR.equals(form.getVisitKind())) {
+    if (VisitKinds.CAR.equals(form.getVisitKind())) {
       List<VisitCarForm> cs = form.getCars();
       return cs != null && !cs.isEmpty() && cs.stream().allMatch(c -> c.getCardId() != null);
     }

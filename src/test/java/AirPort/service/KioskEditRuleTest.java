@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import AirPort.TestKeys;
+import AirPort.common.VisitKinds;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCarMapper;
@@ -22,6 +23,7 @@ import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbPersonMapper;
 import AirPort.mapper.TbVisitMapper;
 import AirPort.model.TbVisit;
+import AirPort.model.VisitCarForm;
 import AirPort.model.VisitForm;
 import AirPort.model.VisitManagerForm;
 import AirPort.model.VisitorForm;
@@ -127,6 +129,7 @@ class KioskEditRuleTest {
             anyString(), anyString(), any(), anyString(), anyString()))
         .thenReturn(List.of(mine));
     when(visitService.toRow(any())).thenReturn(new TbVisit());
+    when(visitService.detailOf(7)).thenReturn(detail(null, null));
     when(visitMapper.selectPersonIds(7)).thenReturn(List.of("IS000001"));
     when(roster.upsertVisitor(any(), any())).thenReturn("IS000009");
 
@@ -151,6 +154,7 @@ class KioskEditRuleTest {
             anyString(), anyString(), any(), anyString(), anyString()))
         .thenReturn(List.of(mine));
     when(visitService.toRow(any())).thenReturn(new TbVisit());
+    when(visitService.detailOf(7)).thenReturn(detail(null, null));
     when(roster.upsertVisitor(any(), any())).thenReturn("IS000001");
 
     VisitForm form = form(7);
@@ -165,10 +169,69 @@ class KioskEditRuleTest {
     assertEquals(VisitService.DEFAULT_STATUS, row.getValue().getStatusCode());
   }
 
+  @Test
+  void 카드가_붙었거나_BiostarX_에_올라간_사람이_있으면_키오스크_수정을_거절한다() {
+    // 신청 상태여도 일부에게 카드가 붙어 있을 수 있다 — 여기서 빼면 카드가 지워진 사람에게 묶인 채 남는다
+    TbVisit mine = new TbVisit();
+    mine.setVisitNo(7);
+    when(visitMapper.selectAppliedByManager(
+            anyString(), anyString(), any(), anyString(), anyString()))
+        .thenReturn(List.of(mine));
+
+    for (VisitService.VisitDetail d :
+        List.of(detail(55, null), detail(null, "IS000001"), carDetail(66))) {
+      when(visitService.detailOf(7)).thenReturn(d);
+      BusinessException ex =
+          assertThrows(BusinessException.class, () -> svc.update(form(7), "REG1", "홍길동"));
+      assertTrue(ex.getMessage().contains("카드가 발급된"), ex.getMessage());
+    }
+    verify(visitMapper, never()).update(any());
+    verify(personMapper, never()).softDelete(anyString());
+  }
+
+  @Test
+  void 목록은_화면이_쓰는_값만_내보낸다() {
+    TbVisit v = new TbVisit();
+    v.setVisitNo(7);
+    v.setWorkPurpose("점검");
+    v.setManagerName("암호문"); // 무인증 응답에 실려 나가면 안 되는 값
+    when(visitMapper.selectAppliedByManager(
+            anyString(), anyString(), any(), anyString(), anyString()))
+        .thenReturn(List.of(v));
+
+    var rows = svc.applied("REG1", "홍길동");
+
+    assertEquals(1, rows.size());
+    assertEquals(7, rows.get(0).getVisitNo());
+    assertEquals("점검", rows.get(0).getWorkPurpose());
+    assertTrue(!rows.get(0).toString().contains("암호문"), rows.get(0).toString());
+  }
+
+  /** 방문객 한 명짜리 상세 — 카드·BiostarX 여부를 인자로. */
+  private static VisitService.VisitDetail detail(Integer cardId, String biostarUserId) {
+    VisitService.VisitDetail d = new VisitService.VisitDetail();
+    VisitorForm v = visitor("IS000001", "김방문");
+    v.setCardId(cardId);
+    v.setBiostarUserId(biostarUserId);
+    d.visitors = List.of(v);
+    d.cars = List.of();
+    return d;
+  }
+
+  private static VisitService.VisitDetail carDetail(Integer cardId) {
+    VisitService.VisitDetail d = new VisitService.VisitDetail();
+    VisitCarForm c = new VisitCarForm();
+    c.setCarNo("12가3456");
+    c.setCardId(cardId);
+    d.visitors = List.of();
+    d.cars = List.of(c);
+    return d;
+  }
+
   private static VisitForm form(int visitNo) {
     VisitForm f = new VisitForm();
     f.setVisitNo(visitNo);
-    f.setVisitKind(AirPort.common.VisitKinds.PERSON);
+    f.setVisitKind(VisitKinds.PERSON);
     f.setWorkStartDt("2026-09-15T09:00");
     f.setWorkEndDt("2026-09-15T18:00");
     f.setWorkPurpose("점검");

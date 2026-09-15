@@ -1,16 +1,20 @@
 package AirPort.service;
 
+import AirPort.common.VisitKinds;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCarMapper;
 import AirPort.mapper.TbCommonMapper;
 import AirPort.mapper.TbPersonMapper;
 import AirPort.mapper.TbVisitMapper;
+import AirPort.model.KioskVisitResult;
 import AirPort.model.TbAcGroup;
 import AirPort.model.TbCommon;
+import AirPort.model.TbPerson;
 import AirPort.model.TbVisit;
 import AirPort.model.VisitCarForm;
 import AirPort.model.VisitForm;
+import AirPort.model.VisitManagerForm;
 import AirPort.model.VisitorForm;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,7 +64,7 @@ public class KioskVisitService {
   }
 
   /** 인솔자 후보 검색 — 무인증. */
-  public List<AirPort.model.TbPerson> searchManagers(String keyword) {
+  public List<TbPerson> searchManagers(String keyword) {
     return visitService.searchManagersPublic(keyword);
   }
 
@@ -86,8 +90,7 @@ public class KioskVisitService {
     row.setStatusCode(VisitService.DEFAULT_STATUS); // 신청
     visitMapper.insert(row);
     int visitNo = row.getVisitNo();
-    visitMapper.insertManagers(
-        visitNo, AirPort.model.VisitManagerForm.encrypted(form.getManagers()));
+    visitMapper.insertManagers(visitNo, VisitManagerForm.encrypted(form.getManagers()));
     if (has(form.getAcGroupIds())) { // 차량만이면 비어 있다 — 빈 VALUES 는 SQL 오류
       visitMapper.insertAcGroups(visitNo, form.getAcGroupIds());
     }
@@ -112,14 +115,21 @@ public class KioskVisitService {
    * <p>무인증 화면이라 인원ID 하나로는 명단을 훑을 수 있다 — 성명까지 <b>둘 다</b> 맞아야 보여 준다. 신청 상태만이다: 관리자가 카드를 붙인 뒤에는 방문객이
    * 스스로 고치면 안 된다.
    */
-  public List<TbVisit> applied(String managerId, String managerName) {
-    return byManager(managerId, managerName, null);
+  public List<KioskVisitResult> applied(String managerId, String managerName) {
+    List<KioskVisitResult> out = new ArrayList<>();
+    for (TbVisit v : byManager(managerId, managerName, null)) {
+      out.add(KioskVisitResult.of(v)); // 화면이 쓰는 값만 — 인솔자 성명 암호문 같은 것은 내보내지 않는다
+    }
+    return out;
   }
 
-  /** 상세 — 그 방문이 정말 이 인솔자의 신청인지 먼저 확인한다. */
+  /** 상세 — 그 방문이 정말 이 인솔자의 신청인지 먼저 확인한다. 개인정보를 복호화해 돌려주므로 조회도 감사에 남긴다. */
   public VisitService.VisitDetail detail(int visitNo, String managerId, String managerName) {
     requireMine(visitNo, managerId, managerName);
-    return visitService.detailOf(visitNo);
+    VisitService.VisitDetail d = visitService.detailOf(visitNo);
+    auditService.log(
+        null, AuditService.READ, null, "키오스크 방문 조회: " + visitNo + " (인솔자 " + managerId + ")");
+    return d;
   }
 
   /**
@@ -132,6 +142,7 @@ public class KioskVisitService {
     bad(form.getVisitNo() == null, "방문번호가 필요합니다.");
     int visitNo = form.getVisitNo();
     requireMine(visitNo, managerId, managerName);
+    requireNoCards(visitNo);
     List<VisitorForm> visitors = nonBlankVisitors(form);
     List<VisitCarForm> cars = nonBlankCars(form);
     validate(form, visitors, cars);
@@ -145,8 +156,7 @@ public class KioskVisitService {
     visitMapper.update(row);
 
     visitMapper.deleteManagers(visitNo);
-    visitMapper.insertManagers(
-        visitNo, AirPort.model.VisitManagerForm.encrypted(form.getManagers()));
+    visitMapper.insertManagers(visitNo, VisitManagerForm.encrypted(form.getManagers()));
     visitMapper.deleteAcGroups(visitNo);
     if (has(form.getAcGroupIds())) { // 차량만이면 비어 있다 — 빈 VALUES 는 SQL 오류
       visitMapper.insertAcGroups(visitNo, form.getAcGroupIds());
@@ -200,15 +210,35 @@ public class KioskVisitService {
     }
   }
 
+  /**
+   * 카드가 하나라도 붙었거나 BiostarX 에 올라간 사람이 있으면 키오스크에서는 고칠 수 없다.
+   *
+   * <p>신청 상태여도 관리자가 <b>일부</b>에게 카드를 붙였을 수 있다(전원이 아니면 상태는 그대로다). 그 사람을 여기서 빼면 카드가 지워진 사람에게 묶인 채 남고,
+   * 부분 동기화로 장비에 올라간 사용자는 장비에만 남는다. 회수·장비 삭제는 관리자 화면의 일이다.
+   */
+  private void requireNoCards(int visitNo) {
+    VisitService.VisitDetail d = visitService.detailOf(visitNo);
+    boolean carded =
+        d.visitors.stream().anyMatch(v -> v.getCardId() != null || v.getBiostarUserId() != null)
+            || d.cars.stream().anyMatch(c -> c.getCardId() != null);
+    bad(carded, "카드가 발급된 신청은 키오스크에서 고칠 수 없습니다. 관리자에게 문의하세요.");
+  }
+
   private List<TbVisit> byManager(String managerId, String managerName, Integer visitNo) {
     req(managerId, "인원ID");
     req(managerName, "성명");
-    return visitMapper.selectAppliedByManager(
-        managerId.trim(),
-        VisitService.encryptOrNull(managerName.trim()), // 암호문끼리 비교한다
-        visitNo,
-        VisitService.VISIT_TYPE,
-        VisitService.DEFAULT_STATUS);
+    List<TbVisit> rows =
+        visitMapper.selectAppliedByManager(
+            managerId.trim(),
+            VisitService.encryptOrNull(managerName.trim()), // 암호문끼리 비교한다
+            visitNo,
+            VisitService.VISIT_TYPE,
+            VisitService.DEFAULT_STATUS);
+    if (rows.isEmpty()) {
+      // 불일치도 남긴다 — 무작위 대입이 로그에 드러난다. 성명은 적지 않는다(그 자체가 개인정보)
+      auditService.log(null, AuditService.READ, null, "키오스크 신청 조회 불일치: 인원ID " + managerId.trim());
+    }
+    return rows;
   }
 
   /** 등록·수정 공통 필수값 — 관리자 화면(VisitService.validate)과 같은 규칙이되 키오스크 문구로. */
@@ -219,18 +249,18 @@ public class KioskVisitService {
     req(form.getWorkPurpose(), "작업목적");
     bad(form.managerIds().isEmpty(), "인솔자를 선택하세요."); // 차량만이어도 — [등록 수정]이 인솔자로 찾는다
     // 연락처 필수 — 관리자 화면과 같은 규칙을 쓴다(VisitManagerForm 에 모아 둠)
-    AirPort.model.VisitManagerForm.requirePhones(form.getManagers());
+    VisitManagerForm.requirePhones(form.getManagers());
     // 방문구분 — 고른 쪽은 있어야 하고 고르지 않은 쪽은 없어야 한다(규칙은 VisitKinds 한 곳, 관리자 화면과 같다)
     String kind = form.getVisitKind();
-    AirPort.common.VisitKinds.check(
+    VisitKinds.check(
         kind,
         !visitors.isEmpty(),
         !cars.isEmpty(),
         has(form.getAcGroupIds()),
         has(form.getCarAcCodes()));
     // 키오스크는 구역까지 필수다 — 관리자가 카드를 붙일 때 어디를 열지 신청서에 적혀 있어야 한다
-    bad(AirPort.common.VisitKinds.person(kind) && !has(form.getAcGroupIds()), "방문구역을 선택하세요.");
-    bad(AirPort.common.VisitKinds.car(kind) && !has(form.getCarAcCodes()), "차량구역을 선택하세요.");
+    bad(VisitKinds.person(kind) && !has(form.getAcGroupIds()), "방문구역을 선택하세요.");
+    bad(VisitKinds.car(kind) && !has(form.getCarAcCodes()), "차량구역을 선택하세요.");
   }
 
   private static List<VisitorForm> nonBlankVisitors(VisitForm form) {
