@@ -219,9 +219,11 @@
       <button class="btn btn-primary" id="btnSave" th:if="${perm.canCreate}">저장</button>
     </div>
   </div>
+</div>
 
-  <!-- 인솔자 선택 팝업 -->
-  <div class="modal-container card-side" id="mgrModal">
+<!-- 인솔자 선택 팝업 — 카드 선택 팝업처럼 정면에 띄운다(방문 모달 위에 겹치는 자기 오버레이) -->
+<div class="modal-overlay code-picker-overlay" id="mgrModal">
+  <div class="modal-container wide">
     <div class="modal-header">
       <h2 class="modal-title">인솔자 선택</h2>
       <button type="button" class="modal-close" id="mgrClose">&times;</button>
