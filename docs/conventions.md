@@ -299,3 +299,8 @@ ID 하나는 명단을 훑어 맞힐 수 있고, 카드가 붙은 뒤에는 방�
 정규인원 엑셀 [기존 인원 갱신](`PersonImportUpdateService`)이 그렇다. 엑셀 열(11개)에 값이 있는 것만 저장값에 덮어 쓰고(`merge`), 신규 등록에 넣는 기본값(상태·출입기간)은 갱신에서는 넣지 않는다 —
 넣으면 비워 둔 상태 칸이 '신규'로, 기간 칸이 오늘~2037 로 바뀐다. 화면 수정(`PersonService.update`)은 폼에 없는 사진·출입그룹·카드·근거문서를 **지우는** 길이라 엑셀에는 쓰지 않고, 그 열만 바꾸는 `updateBasics` 를 둔다.
 검증(`validate(form, prev)`)과 BiostarX 변경 전·후 전송(`PersonBiostarService.syncRequests`)은 화면 수정과 같은 것을 쓴다 — 규칙이 둘이 되지 않게.
+
+### 엑셀 업로드의 날짜 칸은 서식이 아니라 **값**으로 읽는다
+사용자가 `1990-12-31` 이라고 치면 엑셀은 일련번호 + 날짜 서식으로 저장하고, POI `DataFormatter` 는 그 서식대로(`12/31/90`, `1990년 12월 31일`…) 문자열을 만든다.
+그대로 넘기면 "YYYY-MM-DD 형식으로" 로 거절된다 — 사용자는 분명히 그 형식으로 적었는데. `ExcelUtil.read` 가 날짜 칸(`looksLikeDate`: POI 판정 + 서식 문자열의 y·m·d)을
+`YYYY-MM-DD`(시각이 있으면 `YYYY-MM-DDTHH:mm`)로 바꿔 준다. 한국식 서식(`yyyy"년" m"월" d"일"`)은 POI 가 날짜로 보지 못하므로 서식 문자열까지 본다(`ExcelUtilReadTest`).

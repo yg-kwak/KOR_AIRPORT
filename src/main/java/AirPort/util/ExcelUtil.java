@@ -11,6 +11,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -89,9 +90,20 @@ public final class ExcelUtil {
         for (int c = 0; c < colCount; c++) {
           Cell cell = row.getCell(c);
           String v = cell == null ? "" : fmt.formatCellValue(cell).trim();
-          // 엑셀이 숫자로 인식한 코드값의 소수점 꼬리(예: 1002.0) 제거
-          if (cell != null && cell.getCellType() == CellType.NUMERIC && v.endsWith(".0")) {
-            v = v.substring(0, v.length() - 2);
+          if (cell != null && cell.getCellType() == CellType.NUMERIC) {
+            if (looksLikeDate(cell)) {
+              // 엑셀이 '날짜'로 알아본 칸 — 표시 형식(12/31/90, 1990년 12월 31일 …)이 아니라 값으로 읽는다.
+              // 시각이 있으면 출입시작일처럼 "YYYY-MM-DDTHH:mm", 없으면 생년월일처럼 "YYYY-MM-DD"
+              java.time.LocalDateTime dt = cell.getLocalDateTimeCellValue();
+              v =
+                  (dt.getHour() == 0 && dt.getMinute() == 0)
+                      ? dt.toLocalDate().toString()
+                      : dt.toLocalDate()
+                          + "T"
+                          + String.format("%02d:%02d", dt.getHour(), dt.getMinute());
+            } else if (v.endsWith(".0")) {
+              v = v.substring(0, v.length() - 2); // 숫자로 인식한 코드값의 소수점 꼬리(예: 1002.0) 제거
+            }
           }
           vals[c] = v;
           if (!v.isEmpty()) {
@@ -104,5 +116,22 @@ public final class ExcelUtil {
       }
     }
     return rows;
+  }
+
+  /**
+   * 엑셀이 날짜로 다루는 칸인가 — POI 의 판정에 더해 서식 문자열을 직접 본다. 한국식 서식(yyyy"년" m"월" d"일")처럼 따옴표 글자가 섞인 서식은 POI 가
+   * 날짜로 보지 못해 일련번호(33238)가 그대로 나온다.
+   */
+  private static boolean looksLikeDate(Cell cell) {
+    if (DateUtil.isCellDateFormatted(cell)) {
+      return true;
+    }
+    String f = cell.getCellStyle() == null ? null : cell.getCellStyle().getDataFormatString();
+    if (f == null) {
+      return false;
+    }
+    // 따옴표 글자("년")와 대괄호 조건([$-412])을 걷어내고 y·m·d 가 남는지 본다
+    String bare = f.replaceAll("\"[^\"]*\"", "").replaceAll("\\[[^\\]]*\\]", "").toLowerCase();
+    return bare.contains("y") && (bare.contains("d") || bare.contains("m"));
   }
 }
