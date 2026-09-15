@@ -259,25 +259,34 @@ public class VisitService {
     // 카드를 들고 있는 동안(입실 중·미반납)엔 카드 '교환'만 허용 — 카드 회수(빈 카드)나 방문객 제외는 퇴실 처리로만 가능.
     // 단, 이미 개별 퇴실한 방문객은 카드가 없는 게 정상이므로 이 검사에서 뺀다(빼지 않으면 카드 교체가 아예 막힌다).
     if (holding(existing.getStatusCode())) {
-      boolean noCard =
-          form.getVisitors() == null
-              || form.getVisitors().stream()
-                  .anyMatch(
-                      vf ->
-                          vf.getCardId() == null
-                              && visitMapper.selectVisitorCheckout(
-                                      form.getVisitNo(), vf.getPersonId())
-                                  == null);
-      List<String> kept =
-          form.getVisitors() == null
-              ? List.of()
-              : form.getVisitors().stream()
-                  .map(VisitorForm::getPersonId)
-                  .filter(java.util.Objects::nonNull)
-                  .toList();
-      check(
-          noCard || !kept.containsAll(visitMapper.selectPersonIds(form.getVisitNo())),
-          "입실 중인 방문은 카드 교환만 가능합니다. 카드 회수·방문객 제외는 퇴실 처리로 해주세요.");
+      if (AirPort.common.VisitKinds.CAR.equals(form.getVisitKind())) {
+        // 차량만인 방문은 차량 카드가 입실의 근거다 — 같은 규칙을 차량에 적용한다(차량은 매번 다시 만들므로 대수로 본다)
+        boolean carNoCard =
+            form.getCars() == null || form.getCars().stream().anyMatch(c -> c.getCardId() == null);
+        check(
+            carNoCard || form.getCars().size() < visitMapper.selectCarIds(form.getVisitNo()).size(),
+            "입실 중인 방문은 카드 교환만 가능합니다. 차량 카드 회수·차량 제외는 퇴실 처리로 해주세요.");
+      } else {
+        boolean noCard =
+            form.getVisitors() == null
+                || form.getVisitors().stream()
+                    .anyMatch(
+                        vf ->
+                            vf.getCardId() == null
+                                && visitMapper.selectVisitorCheckout(
+                                        form.getVisitNo(), vf.getPersonId())
+                                    == null);
+        List<String> kept =
+            form.getVisitors() == null
+                ? List.of()
+                : form.getVisitors().stream()
+                    .map(VisitorForm::getPersonId)
+                    .filter(java.util.Objects::nonNull)
+                    .toList();
+        check(
+            noCard || !kept.containsAll(visitMapper.selectPersonIds(form.getVisitNo())),
+            "입실 중인 방문은 카드 교환만 가능합니다. 카드 회수·방문객 제외는 퇴실 처리로 해주세요.");
+      }
     }
     TbVisit row = toRow(form);
     // 상태는 서버가 관리(사용자 변경 불가) — 기존 상태를 기준으로 전원 카드 발급 시 입실중 승격
@@ -390,10 +399,22 @@ public class VisitService {
     if (STATUS_LEFT.equals(stored)) {
       return stored; // 퇴실 완료는 되돌리지 않는다
     }
+    return allCarded(form) ? STATUS_ENTERED : stored;
+  }
+
+  /**
+   * 전원 카드 발급 — 입실 중으로 올리는 조건.
+   *
+   * <p>사람이 있는 방문(인원·인원+차량)은 <b>방문객 전원</b>이 기준이다 — 차량 카드는 함께 있어도 없어도 사람이 다 들어갔으면 입실이다. <b>차량만</b>인
+   * 방문은 사람이 없으니 <b>차량 전원</b>의 카드가 기준이다(그렇지 않으면 차량만인 방문은 영영 신청 상태에 머문다).
+   */
+  private static boolean allCarded(VisitForm form) {
+    if (AirPort.common.VisitKinds.CAR.equals(form.getVisitKind())) {
+      List<VisitCarForm> cs = form.getCars();
+      return cs != null && !cs.isEmpty() && cs.stream().allMatch(c -> c.getCardId() != null);
+    }
     List<VisitorForm> vs = form.getVisitors();
-    boolean allCarded =
-        vs != null && !vs.isEmpty() && vs.stream().allMatch(v -> v.getCardId() != null);
-    return allCarded ? STATUS_ENTERED : stored;
+    return vs != null && !vs.isEmpty() && vs.stream().allMatch(v -> v.getCardId() != null);
   }
 
   static void require(String v, String label) {

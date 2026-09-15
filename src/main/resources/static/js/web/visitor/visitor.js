@@ -1,4 +1,4 @@
-/* 임시인원등록(방문) — 그룹/인솔자/방문객/차량 탭. 카드는 검색 팝업 선택(방문객=스캔 지원, 차량=스캔 없음).
+/* 임시인원등록(방문) — 방문 그룹 정보/인솔자/방문구역/방문객/차량을 한 화면에 차례로. 카드는 검색 팝업 선택(방문객=스캔 지원, 차량=스캔 없음).
    방문객=tb_person, 차량=tb_car. 저장 시 방문객을 BiostarX 사용자로 편입하고 카드/출입그룹 전달(서버). */
 (function () {
   const CFG = window.VISIT_CFG || {};
@@ -108,14 +108,6 @@
       <span class="card-picked" data-i="${i}" style="min-width:90px">${label}</span>${btn}</div>`;
   }
 
-  // ---- 탭 ----
-  function showTab(name) {
-    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
-    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p.id === 'tab-' + name));
-    // 방문객 탭에서만 리더를 듣는다 — 다른 탭에서 지나가며 찍힌 카드가 배정되면 안 된다
-    if (name === 'vis') visitCardTag.on(); else visitCardTag.off();
-  }
-
   /** 태깅한 카드를 다음 빈 방문객에게 — 위에서부터 차례로. 자리가 없으면 false. */
   function assignTaggedCard(card) {
     collectRows();
@@ -187,7 +179,6 @@
     if ($('btnDelete')) $('btnDelete').style.display = 'none'; // 삭제는 신청일 때만(로드 후 노출)
     if ($('btnSave')) $('btnSave').style.display = ''; // 퇴실완료면 로드 후 숨김(읽기전용)
     $('editModal').querySelector('.visit-modal').classList.remove('readonly'); // 읽기전용 해제(VS04면 로드 후 재설정)
-    showTab('group');
     await loadRefs();
     acGroupTree.set(AC_TREE, []);
     carAcRender([]);
@@ -353,9 +344,8 @@
       if (tr && PERM.canCreate) openModal('edit', tr.dataset.no);
     });
 
-    document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
-    // 보고 있던 탭이 감춰지면 그룹정보로 — 빈 화면에 남지 않게
-    visitKind.init('visitKind', () => { const on = document.querySelector('.tab-btn.active'); if (on && on.classList.contains('kind-hidden')) showTab('group'); });
+    // 방문객 칸이 보일 때만 리더를 듣는다 — 차량만인 방문에서 지나가며 찍힌 카드가 배정되면 안 된다
+    visitKind.init('visitKind', (k) => { if (visitKind.person(k)) visitCardTag.on(); else visitCardTag.off(); });
     // 카드를 고른 뒤 출입그룹을 바꾸면 그 카드가 새 구역과 맞지 않을 수 있다 — 되돌리지 않고 알리기만 한다
     $(AC_TREE).addEventListener('change', () => {
       collectRows();

@@ -357,13 +357,17 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 
 .form-group-label { display: block; font-size: 13px; font-weight: 700; color: var(--neutral-900); margin: 4px 0 6px; }
 /* 방문구분(인원/차량/인원+차량) — 고르지 않은 쪽의 data-kind 요소는 kind-hidden 으로 감춘다.
-   탭 패널(.tab-panel.active) 도 이 규칙으로 감춰야 하므로 !important 다. */
+   다른 표시 규칙보다 앞서야 하므로 !important 다. */
 .visit-kind { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 10px 12px; margin-bottom: 12px;
   background: var(--color-tertiary-hover); border: 1px solid var(--color-tertiary-active); border-radius: var(--radius); }
 .visit-kind-label { font-size: 13px; font-weight: 700; color: var(--neutral-900); margin-right: 4px; }
 .visit-kind-item { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
 .visit-kind-item input { width: 16px; height: 16px; accent-color: var(--color-primary-default); cursor: pointer; }
 .kind-hidden { display: none !important; }
+/* 방문 모달 — 탭 대신 키오스크처럼 한 화면에 차례로(방문 그룹 정보 → 인솔자 → 방문구역 → 방문객 → 차량) */
+.visit-section { border: 1px solid var(--color-tertiary-active); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; }
+.visit-section h3 { font-size: 15px; font-weight: 700; margin: 0 0 12px; }
+.visit-area { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
 /* 권한메뉴관리 — 좌: 권한 목록 / 우: 설정(메뉴 트리) 2패널 */
 .perm-layout { display: flex; gap: 16px; align-items: flex-start; }

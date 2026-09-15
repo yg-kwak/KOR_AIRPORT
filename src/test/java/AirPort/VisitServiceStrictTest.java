@@ -30,6 +30,7 @@ import AirPort.service.VisitRosterService;
 import AirPort.service.VisitService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * 방문 엄격 정책 단위 테스트 — (1) 퇴실은 BiostarX 비활성화 성공해야 진행(실패=예외, 카드 회수 안 함), (2) 입실중(VS03)엔 카드 교환만
@@ -132,6 +133,70 @@ class VisitServiceStrictTest {
     BusinessException ex =
         assertThrows(BusinessException.class, () -> service().update(form, null, 101));
     assertTrue(ex.getMessage().contains("카드 교환만"));
+    verify(visitMapper, never()).update(any());
+  }
+
+  /** INSERT 가 채번하는 visit_no 흉내 — 없으면 자식 저장에서 NPE. */
+  private void insertGivesNo() {
+    org.mockito.Mockito.doAnswer(
+            inv -> {
+              ((TbVisit) inv.getArgument(0)).setVisitNo(28);
+              return 1;
+            })
+        .when(visitMapper)
+        .insert(any());
+  }
+
+  /** 차량만인 방문 폼 — 차량 한 대, 카드는 인자로. */
+  private static VisitForm carOnly(Integer cardId) {
+    VisitForm form = new VisitForm();
+    form.setVisitType("PT02");
+    form.setVisitKind(AirPort.common.VisitKinds.CAR);
+    form.setWorkStartDt("2026-09-15T09:00");
+    form.setWorkEndDt("2026-09-15T18:00");
+    form.setWorkPurpose("검증");
+    form.setCarAcCodes(List.of("CAR01"));
+    AirPort.model.VisitCarForm cf = new AirPort.model.VisitCarForm();
+    cf.setCarNo("12가3456");
+    cf.setCardId(cardId);
+    form.setCars(List.of(cf));
+    return form;
+  }
+
+  @Test
+  void 차량만인_방문은_차량_전원에_카드가_붙으면_입실중이_된다() {
+    // 사람이 없으니 방문객 기준으로는 영영 신청에 머문다 — 차량 카드가 입실의 근거다
+    when(visitMapper.selectActiveTempManagers(any(), any())).thenReturn(List.of());
+    insertGivesNo();
+    ArgumentCaptor<TbVisit> row = ArgumentCaptor.forClass(TbVisit.class);
+
+    service().create(carOnly(77), null, 101);
+    verify(visitMapper).insert(row.capture());
+    assertEquals("VS03", row.getValue().getStatusCode());
+  }
+
+  @Test
+  void 차량만인_방문도_카드가_없으면_신청_그대로다() {
+    when(visitMapper.selectActiveTempManagers(any(), any())).thenReturn(List.of());
+    insertGivesNo();
+    ArgumentCaptor<TbVisit> row = ArgumentCaptor.forClass(TbVisit.class);
+
+    service().create(carOnly(null), null, 101);
+    verify(visitMapper).insert(row.capture());
+    assertEquals("VS01", row.getValue().getStatusCode());
+  }
+
+  @Test
+  void 입실중인_차량만_방문은_차량_카드_회수가_불가하다() {
+    when(visitMapper.selectById(28)).thenReturn(visit("VS03"));
+    when(visitMapper.selectCarIds(28)).thenReturn(List.of(5));
+    when(visitMapper.selectActiveTempManagers(any(), any())).thenReturn(List.of());
+    VisitForm form = carOnly(null); // 카드 회수 시도
+    form.setVisitNo(28);
+
+    BusinessException ex =
+        assertThrows(BusinessException.class, () -> service().update(form, null, 101));
+    assertTrue(ex.getMessage().contains("차량 카드 회수"), ex.getMessage());
     verify(visitMapper, never()).update(any());
   }
 

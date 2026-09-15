@@ -97,16 +97,10 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="visitNo"/>
-      <div class="tabs">
-        <button type="button" class="tab-btn active" data-tab="group">그룹정보</button>
-        <button type="button" class="tab-btn" data-tab="mgr">인솔자</button>
-        <button type="button" class="tab-btn" data-tab="vis" data-kind="person">방문객</button>
-        <button type="button" class="tab-btn" data-tab="car" data-kind="car">차량</button>
-      </div>
-
-      <!-- 탭1: 그룹정보 -->
-      <div class="tab-panel active" id="tab-group">
-        <!-- 방문구분 — 맨 위. 고른 쪽(방문객·사용자 출입그룹 / 차량·차량 출입그룹)만 보인다 -->
+      <!-- 탭 없이 키오스크처럼 한 화면에 차례로 — 방문 그룹 정보 / 인솔자 / 방문구역 / 방문객 정보 / 차량 정보.
+           방문구분이 고르지 않은 쪽(data-kind)은 통째로 감춘다. -->
+      <section class="visit-section">
+        <h3>방문 그룹 정보</h3>
         <div th:replace="~{fragments/components/visit-kind :: visitKind('visitKind')}"></div>
         <div class="form-grid">
           <div class="form-group">
@@ -162,20 +156,10 @@
             <input type="text" id="remark" class="input" maxlength="1000" autocomplete="off"/>
           </div>
         </div>
+      </section>
 
-        <div data-kind="person">
-          <div class="form-group-label" style="margin-top:12px">사용자 출입그룹</div>
-          <div th:replace="~{fragments/components/ac-group-tree :: acGroupTree('acTree')}"></div>
-        </div>
-
-        <div data-kind="car">
-          <div class="form-group-label" style="margin-top:12px">차량 출입그룹</div>
-          <div class="ac-select-tree" id="carAcBox"><div class="empty">불러오는 중...</div></div>
-        </div>
-      </div>
-
-      <!-- 탭2: 인솔자 -->
-      <div class="tab-panel" id="tab-mgr">
+      <section class="visit-section">
+        <h3>인솔자</h3>
         <div class="grid-toolbar" style="padding:0 0 8px">
           <span class="form-hint">인솔자는 정규인원(PT01)에서 선택합니다.</span>
           <div class="grid-actions"><button type="button" class="btn btn-sm" id="btnAddMgr">인솔자 추가</button></div>
@@ -185,10 +169,24 @@
             <th class="w-200">연락처 <span class="req">*</span></th><th class="w-80">관리</th></tr></thead>
           <tbody id="mgrBody"><tr><td colspan="5" class="empty">인솔자가 없습니다.</td></tr></tbody>
         </table>
-      </div>
+      </section>
 
-      <!-- 탭3: 방문객 -->
-      <div class="tab-panel" id="tab-vis" data-kind="person">
+      <section class="visit-section">
+        <h3>방문구역</h3>
+        <div class="visit-area">
+          <div data-kind="person">
+            <div class="form-group-label">사용자 출입그룹</div>
+            <div th:replace="~{fragments/components/ac-group-tree :: acGroupTree('acTree')}"></div>
+          </div>
+          <div data-kind="car">
+            <div class="form-group-label">차량 출입그룹</div>
+            <div class="ac-select-tree" id="carAcBox"><div class="empty">불러오는 중...</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="visit-section" data-kind="person">
+        <h3>방문객 정보</h3>
         <div class="grid-toolbar" style="padding:0 0 8px">
           <span class="form-hint">방문객 성명·생년월일·소속은 필수입니다. 생년월일은 1990-01-01 형식으로 입력합니다.</span>
           <div class="grid-actions"><button type="button" class="btn btn-sm" id="btnAddVis">방문객 추가</button></div>
@@ -198,10 +196,10 @@
             <th class="w-200">카드</th><th class="w-160">관리</th></tr></thead>
           <tbody id="visBody"><tr><td colspan="6" class="empty">방문객이 없습니다.</td></tr></tbody>
         </table>
-      </div>
+      </section>
 
-      <!-- 탭4: 차량 -->
-      <div class="tab-panel" id="tab-car" data-kind="car">
+      <section class="visit-section" data-kind="car">
+        <h3>차량 정보</h3>
         <div class="grid-toolbar" style="padding:0 0 8px">
           <span class="form-hint">차량소속은 신청서 차량표의 [출입자소속] 칸에 그대로 찍힙니다.</span>
           <div class="grid-actions"><button type="button" class="btn btn-sm" id="btnAddCar">차량 추가</button></div>
@@ -211,7 +209,7 @@
             <th class="w-200">카드</th><th class="w-80">관리</th></tr></thead>
           <tbody id="carBody"><tr><td colspan="6" class="empty">차량이 없습니다.</td></tr></tbody>
         </table>
-      </div>
+      </section>
     </div>
     <div class="modal-footer">
       <button class="btn btn-danger modal-footer-left" id="btnDelete" th:if="${perm.canDelete}" style="display:none">삭제</button>
