@@ -5,6 +5,7 @@
      사용: <div th:replace="~{fragments/components/excel-import-modal :: excelImportModal}"></div>
            excelImport.open({ baseUrl: '/company/company', hint: ['항목1', '항목2', ...], onDone: load });
            hint 은 문자열 또는 문자열 배열(배열이면 항목별 불릿 목록으로 렌더).
+     option: { name, label, hint } 은 선택 — 체크박스 하나를 파일 칸 아래 두고, 업로드 때 {name}=true|false 로 함께 보낸다(정규인원의 [기존 인원 갱신]).
      서버는 {baseUrl}/excel/template(양식) · {baseUrl}/excel/import(업로드) 를 제공해야 한다. -->
 <div th:fragment="excelImportModal" class="modal-overlay" id="importModal">
   <div class="modal-container small">
@@ -25,6 +26,11 @@
           <button type="button" class="btn" id="btnPickExcel">파일 선택</button>
           <span class="file-field-name empty-text" id="excelFileName">선택된 파일 없음</span>
         </div>
+      </div>
+      <!-- 선택 옵션(화면이 open 에 option 을 주면 보인다) — 기본은 꺼짐: 명단을 실수로 덮어쓰지 않게 -->
+      <div class="form-group import-option" id="importOptionRow" style="display:none; margin-top:12px">
+        <label class="visit-kind-item"><input type="checkbox" id="importOption"/><span id="importOptionLabel"></span></label>
+        <div class="form-hint" id="importOptionHint"></div>
       </div>
       <!-- 업로드 결과 — 실패 행은 토스트로 흘려보내지 않고 여기에 전부 남긴다(어느 줄을 고칠지 확인해야 한다) -->
       <div class="import-result" id="importResult" style="display:none">

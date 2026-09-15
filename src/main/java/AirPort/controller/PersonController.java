@@ -134,6 +134,7 @@ public class PersonController {
   @ResponseBody
   public ApiResponse<ExcelImportResult> excelImport(
       @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+      @RequestParam(defaultValue = "false") boolean updateExisting,
       HttpSession session)
       throws java.io.IOException {
     if (file == null || file.isEmpty()) {
@@ -141,7 +142,8 @@ public class PersonController {
           AirPort.common.exception.ErrorCode.INVALID_INPUT.code(), "업로드할 파일을 선택하세요.");
     }
     return ApiResponse.ok(
-        personImportService.importExcel(file.getInputStream(), actor(session), menuId()));
+        personImportService.importExcel(
+            file.getInputStream(), updateExisting, actor(session), menuId()));
   }
 
   /** 목록 (AJAX) */

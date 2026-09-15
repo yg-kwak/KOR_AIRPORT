@@ -8,11 +8,16 @@ import lombok.Getter;
 @Getter
 public class ExcelImportResult {
 
-  private int success;
+  private int success; // 신규 등록
+  private int updated; // 기존 인원 갱신([기존 인원 갱신] 을 켠 정규인원 엑셀만)
   private final List<String> errors = new ArrayList<>();
 
   public void addSuccess() {
     success++;
+  }
+
+  public void addUpdated() {
+    updated++;
   }
 
   /** 실패 행 기록 — 엑셀 행번호(2부터: 헤더 제외)와 사유. */

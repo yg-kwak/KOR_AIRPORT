@@ -64,20 +64,30 @@ public class PersonBiostarService {
    * 아니면 호출자가 트랜잭션을 롤백해야 한다(장비-DB 정합성 유지).
    */
   public String syncPersonToBiostar(PersonForm form, BiostarUserRequest before) {
-    TbSystem cfg = systemMapper.selectOne();
-    if (cfg == null) {
-      return "BiostarX 설정이 없습니다. 설정관리에서 먼저 등록하세요.";
-    }
-    // 소속 기관에 BiostarX 사용자그룹이 없으면 사용자를 만들 수 없다 — 유령 인원 방지 위해 막는다
-    if (companyGroupId(form.getCompanyCode()) == null) {
-      return "소속 기관에 BiostarX 사용자그룹이 없습니다. 기관등록관리에서 해당 기관을 저장(동기화)해 그룹을 만든 뒤 다시 시도하세요.";
-    }
     BiostarUserRequest after =
         biostarRequest(
             form,
             acGroupMapper.selectBiostarAcIds(form.getPersonId()),
             // 부서 = 허가구역 번호. 출입그룹은 이 시점에 이미 저장돼 있다(PersonService.saveAcGroups 뒤)
             AccessAreas.key(acGroupMapper.selectAcGroupNames(form.getPersonId())));
+    return syncRequests(form.getCompanyCode(), before, after);
+  }
+
+  /**
+   * 변경 전·후 전송 값으로 장비를 맞춘다 — 실패 사유 문자열, 성공이면 null. 화면 수정과 엑셀 갱신이 같은 길을 쓴다.
+   *
+   * <p>전송 값은 호출자가 만든다({@link #requestOf} 또는 폼) — 여기서는 설정·기관 그룹을 확인하고 있으면 수정, 없으면 등록한다.
+   */
+  public String syncRequests(
+      String companyCode, BiostarUserRequest before, BiostarUserRequest after) {
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null) {
+      return "BiostarX 설정이 없습니다. 설정관리에서 먼저 등록하세요.";
+    }
+    // 소속 기관에 BiostarX 사용자그룹이 없으면 사용자를 만들 수 없다 — 유령 인원 방지 위해 막는다
+    if (companyGroupId(companyCode) == null) {
+      return "소속 기관에 BiostarX 사용자그룹이 없습니다. 기관등록관리에서 해당 기관을 저장(동기화)해 그룹을 만든 뒤 다시 시도하세요.";
+    }
     BiostarResult res;
     try {
       res = syncUser(cfg, before, after);
@@ -87,7 +97,7 @@ public class PersonBiostarService {
     if (!res.success()) {
       return res.message();
     }
-    personMapper.updateBiostarUserId(form.getPersonId(), form.getPersonId());
+    personMapper.updateBiostarUserId(after.userId(), after.userId());
     return null;
   }
 

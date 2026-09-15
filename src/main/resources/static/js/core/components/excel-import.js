@@ -5,7 +5,7 @@ window.excelImport = (function () {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
-  let cfg = null; // { baseUrl, hint, onDone }
+  let cfg = null; // { baseUrl, hint, onDone, option? {name, label, hint} }
   let picked = null;
 
   function setName(file) {
@@ -23,6 +23,12 @@ window.excelImport = (function () {
     $('importHint').innerHTML = Array.isArray(cfg.hint)
       ? '<ul class="hint-list">' + cfg.hint.map((s) => `<li>${s}</li>`).join('') + '</ul>'
       : (cfg.hint || '');
+    // 선택 옵션(예: 정규인원의 [기존 인원 갱신]) — 열 때마다 꺼진 채로 시작한다
+    const opt = cfg.option;
+    $('importOptionRow').style.display = opt ? '' : 'none';
+    $('importOption').checked = false;
+    $('importOptionLabel').textContent = opt ? opt.label : '';
+    $('importOptionHint').textContent = opt && opt.hint ? opt.hint : '';
     clearResult();
     $('importModal').classList.add('open');
   }
@@ -32,6 +38,7 @@ window.excelImport = (function () {
     if (!picked) { toast.warning('업로드할 파일을 선택하세요.'); return; }
     const fd = new FormData();
     fd.append('file', picked);
+    if (cfg.option) fd.append(cfg.option.name, $('importOption').checked ? 'true' : 'false');
     const res = await window.busy.wrap(fetch(cfg.baseUrl + '/excel/import', {
       method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd,
     })); // 행 수가 많으면 오래 걸린다 — 진행 중임을 알린다
@@ -42,21 +49,24 @@ window.excelImport = (function () {
     }
     const r = json.data;
     if (r.fail === 0) {
-      toast.success(`등록 ${r.success}건 완료`);
+      toast.success(`${summary(r)} 완료`);
       close();
       if (cfg.onDone) cfg.onDone();
       return;
     }
     // 실패가 있으면 모달을 열어 둔 채 사유를 전부 보여준다 — 토스트로 흘리면 어느 행을 고칠지 알 수 없다
     showResult(r);
-    toast.warning(`등록 ${r.success}건 / 실패 ${r.fail}건 — 아래 목록을 확인하세요.`);
+    toast.warning(`${summary(r)} / 실패 ${r.fail}건 — 아래 목록을 확인하세요.`);
     if (r.success > 0 && cfg.onDone) cfg.onDone(); // 성공분은 즉시 목록에 반영
   }
+
+  /* 갱신 건수는 정규인원 엑셀에서 [기존 인원 갱신] 을 켰을 때만 온다 — 0 이면 적지 않는다 */
+  const summary = (r) => `등록 ${r.success}건` + (r.updated ? ` / 갱신 ${r.updated}건` : '');
 
   /** 업로드 결과(성공/실패 건수 + 실패 행 전체)를 모달 안에 남긴다. */
   function showResult(r) {
     $('importResultSummary').textContent =
-      `등록 ${r.success}건 / 실패 ${r.fail}건 — 아래 행을 고쳐 다시 업로드하세요.`;
+      `${summary(r)} / 실패 ${r.fail}건 — 아래 행을 고쳐 다시 업로드하세요.`;
     $('importResultErrors').innerHTML = (r.errors || [])
       .map((e) => `<li>${esc(e)}</li>`).join('');
     $('importResult').style.display = '';

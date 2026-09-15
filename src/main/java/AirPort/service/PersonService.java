@@ -312,7 +312,7 @@ public class PersonService {
   }
 
   /** 폼 → 저장 행. 성명·생년월일·연락처는 ARIA 암호화, 출입기간은 초까지 채운다. (등록/수정 공통) */
-  private TbPerson toRow(PersonForm form) {
+  TbPerson toRow(PersonForm form) {
     TbPerson row = new TbPerson();
     row.setPersonId(form.getPersonId());
     row.setPersonName(ARIAUtil.ariaEncrypt(form.getPersonName()));
@@ -378,7 +378,7 @@ public class PersonService {
   }
 
   /** "YYYY-MM-DDTHH:mm"(또는 날짜만) → 초까지 채운 ISO 문자열. DB(datetime2) 저장·BiostarX 변환 공통. */
-  private static String withSeconds(String value, String defaultTime) {
+  static String withSeconds(String value, String defaultTime) {
     if (value == null || value.isBlank()) {
       return null;
     }
@@ -420,8 +420,8 @@ public class PersonService {
     validate(form, null);
   }
 
-  /** prev(저장된 인원)가 있으면 코드 검증은 값이 바뀐 항목만 — 코드가 정리돼도 기존 행 수정이 막히지 않게 한다. */
-  private void validate(PersonForm form, TbPerson prev) {
+  /** prev(저장된 인원)가 있으면 코드 검증은 값이 바뀐 항목만 — 코드가 정리돼도 기존 행 수정이 막히지 않게 한다. (엑셀 갱신도 같은 검증) */
+  void validate(PersonForm form, TbPerson prev) {
     require(form.getPersonId(), "인원ID");
     require(form.getPersonName(), "성명");
     require(form.getCompanyCode(), "기관");

@@ -236,6 +236,23 @@
     WHERE person_id = #{personId}
   </update>
 
+  <!-- 엑셀 갱신 — 엑셀에 있는 열만. 화면 수정(update)과 달리 근거문서·교육 칸은 건드리지 않는다(엑셀에 없다). -->
+  <update id="updateBasics" parameterType="TbPerson">
+    UPDATE tb_person
+    SET person_name = #{personName},
+        birth_date = #{birthDate},
+        person_phone = #{personPhone},
+        company_code = #{companyCode},
+        title_code = #{titleCode},
+        status_code = #{statusCode},
+        main_task = #{mainTask},
+        access_start_dt = #{accessStartDt},
+        access_end_dt = #{accessEndDt},
+        remark = #{remark},
+        mod_dt = getdate()
+    WHERE person_id = #{personId}
+  </update>
+
   <!-- 소프트 삭제 — 물리 DELETE 금지 -->
   <update id="softDelete">
     UPDATE tb_person SET del_yn = 'Y', mod_dt = getdate() WHERE person_id = #{personId}

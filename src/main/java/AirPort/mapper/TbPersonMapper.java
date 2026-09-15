@@ -47,6 +47,9 @@ public interface TbPersonMapper {
 
   int update(TbPerson row);
 
+  /** 엑셀 갱신 — 엑셀에 있는 열만(기관·성명·생년월일·연락처·직위·상태·출입기간·업무·메모). 사진·권한·근거문서는 손대지 않는다. */
+  int updateBasics(TbPerson row);
+
   /**
    * BiostarX 가져오기(갱신) 전용 — <b>장비가 원천인 컬럼만</b> 덮어쓴다.
    *
