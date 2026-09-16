@@ -55,9 +55,12 @@ public class PersonImportUpdateService {
   /** 엑셀 한 행으로 기존 인원을 갱신한다 — 행 단위 트랜잭션(호출자가 행마다 부른다). 없는 인원ID 면 거절. */
   @Transactional
   public void update(PersonForm excel, TbLoginUser actor, Integer menuId) {
+    if (excel.getPersonId() == null || excel.getPersonId().isBlank()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "갱신에는 인원ID 가 필요합니다.");
+    }
     TbPerson existing = personMapper.selectById(excel.getPersonId());
     if (existing == null || "Y".equals(existing.getDelYn())) {
-      throw new BusinessException(ErrorCode.NOT_FOUND, "없는 인원ID 입니다 — 갱신할 인원이 없습니다.");
+      throw new BusinessException(ErrorCode.NOT_FOUND, "없는 인원ID 입니다 — 갱신 모드에서는 신규로 등록하지 않습니다.");
     }
     TbPerson plain = decrypted(existing);
     String photo = photoMapper.selectPhoto(plain.getPersonId());

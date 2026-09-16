@@ -98,11 +98,14 @@ class PersonImportUpdateTest {
   }
 
   @Test
-  void 없는_인원ID_는_거절하고_삭제된_인원도_갱신하지_않는다() {
+  void 없거나_빈_인원ID_는_거절하고_삭제된_인원도_갱신하지_않는다() {
     when(personMapper.selectById("X")).thenReturn(null);
     PersonForm excel = new PersonForm();
     excel.setPersonId("X");
     assertThrows(BusinessException.class, () -> svc.update(excel, null, 201));
+
+    PersonForm noId = new PersonForm(); // 갱신 모드에서 ID 를 비우면 채번하지 않는다 — 대상이 없다
+    assertThrows(BusinessException.class, () -> svc.update(noId, null, 201));
 
     TbPerson dead = stored();
     dead.setDelYn("Y");

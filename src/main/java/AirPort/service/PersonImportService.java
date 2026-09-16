@@ -6,7 +6,6 @@ import AirPort.mapper.TbPersonMapper;
 import AirPort.model.ExcelImportResult;
 import AirPort.model.PersonForm;
 import AirPort.model.TbLoginUser;
-import AirPort.model.TbPerson;
 import AirPort.util.ExcelUtil;
 import java.io.InputStream;
 import java.time.LocalDate;
@@ -69,8 +68,8 @@ public class PersonImportService {
   /**
    * 엑셀 일괄등록 — 성공/실패 건수와 행별 사유. 각 행은 프록시 경유로 독립 트랜잭션 처리.
    *
-   * @param updateExisting [기존 인원 갱신] — 켜면 이미 있는 인원ID 행은 <b>엑셀에 값이 있는 열만</b> 갱신한다(빈 칸은 그대로). 끄면 지금처럼
-   *     "이미 존재하는 인원ID" 로 실패한다 — 명단을 실수로 덮어쓰지 않게 기본은 끔이다.
+   * @param updateExisting [기존 인원 갱신] — 켜면 <b>갱신만</b> 한다: 있는 인원ID 행은 엑셀에 값이 있는 열만 갱신하고(빈 칸은 그대로), 없는
+   *     ID 는 신규로 만들지 않고 실패로 남긴다. 끄면 지금처럼 신규만(있는 ID 는 "이미 존재하는 인원ID" 로 실패). 기본은 끔이다.
    */
   public ExcelImportResult importExcel(
       InputStream in, boolean updateExisting, TbLoginUser actor, Integer menuId) {
@@ -92,7 +91,8 @@ public class PersonImportService {
         continue; // 안내용 예시 행 — 건너뛴다
       }
       try {
-        if (updateExisting && exists(r[1])) {
+        if (updateExisting) {
+          // 갱신 모드는 갱신만 — 없는 ID 를 신규로 만들지 않는다(ID 오타 한 줄이 새 인원이 되면 안 된다). 없는 ID 는 그 행이 실패로 남는다
           updateService.update(toForm(r, true), actor, menuId); // 프록시 경유 — 행마다 독립 트랜잭션
           result.addUpdated();
         } else {
@@ -120,16 +120,6 @@ public class PersonImportService {
     return result;
   }
 
-  /** 살아 있는 인원ID 인가 — 갱신 대상 판정. 삭제된 ID 는 create 가 되살리는 길로 보낸다. */
-  private boolean exists(String personId) {
-    String id = blankToNull(personId);
-    if (id == null) {
-      return false;
-    }
-    TbPerson p = personMapper.selectById(id.trim());
-    return p != null && !"Y".equals(p.getDelYn());
-  }
-
   /**
    * 엑셀 한 행 → PersonForm. 인원ID 비면 자동 채번(사용자권한·카드는 다루지 않음).
    *
@@ -139,7 +129,9 @@ public class PersonImportService {
   private PersonForm toForm(String[] r, boolean forUpdate) {
     PersonForm form = new PersonForm();
     String personId = blankToNull(r[1]);
-    form.setPersonId(personId != null ? personId.trim() : personMapper.selectNextPersonId());
+    // 갱신은 ID 가 곧 대상이다 — 비면 채번하지 않고 비운 채 넘겨 거절되게 한다
+    form.setPersonId(
+        personId != null ? personId.trim() : forUpdate ? null : personMapper.selectNextPersonId());
     form.setCompanyCode(blankToNull(r[0]));
     form.setPersonName(blankToNull(r[2]));
     form.setBirthDate(blankToNull(r[3]));

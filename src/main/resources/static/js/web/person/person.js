@@ -325,8 +325,8 @@
       baseUrl: BASE,
       hint: ['양식을 내려받아 인원 정보를 채운 뒤 업로드하세요.', '<b>기관코드·성명</b>은 필수입니다.',
         '사용자권한·카드정보는 제외되고, 인원ID 를 비우면 자동 채번됩니다.', '2행은 예시이니 지우거나 덮어써서 입력하세요.',
-        '<b>기존 인원 갱신</b>을 켜면 이미 있는 인원ID 행은 엑셀에 적은 열만 바뀌고 빈 칸은 그대로 둡니다(예: ID·성명·생년월일만 적으면 그 둘만 갱신).'],
-      option: { name: 'updateExisting', label: '기존 인원 갱신', hint: '이미 있는 인원의 정보를 수정합니다' }, onDone: load,
+        '<b>기존 인원 갱신</b>을 켜면 갱신만 합니다 — 있는 인원ID 행은 엑셀에 적은 열만 바뀌고 빈 칸은 그대로, 없는 ID 는 실패로 남습니다(신규 등록 안 함).'],
+      option: { name: 'updateExisting', label: '기존 인원 갱신', hint: '이미 있는 인원의 정보를 수정합니다 (없는 인원ID 는 등록하지 않습니다)' }, onDone: load,
     }));
     if ($('btnDeleteSel')) $('btnDeleteSel').addEventListener('click', removeSelected);
     if ($('btnPrintSel')) $('btnPrintSel').addEventListener('click', () => window.cardPrint.bulk(selectedIds()));
