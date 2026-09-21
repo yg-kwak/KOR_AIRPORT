@@ -1,6 +1,7 @@
 package AirPort.service;
 
 import AirPort.common.AccessAreas;
+import AirPort.common.BirthDates;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbAcGroupMapper;
@@ -101,7 +102,7 @@ public class VisitPermitService {
       PermitForm.Visitor x = new PermitForm.Visitor();
       x.setName(decrypt(p.getPersonName()));
       // 양식 칸이 좁아 여섯 자리로 적는다(1993-04-07 → 930407). 저장 형태는 그대로다
-      x.setBirthDate(AirPort.common.BirthDates.yymmdd(decrypt(p.getBirthDate())));
+      x.setBirthDate(BirthDates.yymmdd(decrypt(p.getBirthDate())));
       x.setAffiliation(p.getAffiliation());
       x.setCardName(cardNameOfPerson(pid, visitNo));
       f.getVisitors().add(x);

@@ -24,6 +24,24 @@ class BirthDatesTest {
   }
 
   @Test
+  void 여섯_자리가_기본이고_세기는_올해_두_자리로_가른다() {
+    // 현장의 명단·신분증 모양(900101). 세기가 없으니 들어올 때 붙인다 — 올해 두 자리 이하면 2000년대
+    int yy = java.time.LocalDate.now().getYear() % 100;
+    assertEquals("1990-01-01", BirthDates.normalize("900101", "생년월일"));
+    assertEquals(
+        String.format("20%02d-01-01", yy),
+        BirthDates.normalize(String.format("%02d0101", yy), "생년월일"),
+        "올해와 같은 두 자리는 2000년대");
+    assertEquals(
+        String.format("19%02d-01-01", yy + 1),
+        BirthDates.normalize(String.format("%02d0101", yy + 1), "생년월일"),
+        "올해보다 크면 1900년대");
+    assertEquals("2000-02-29", BirthDates.normalize("000229", "생년월일"), "2000년은 윤년");
+    assertThrows(BusinessException.class, () -> BirthDates.normalize("900230", "생년월일"));
+    assertThrows(BusinessException.class, () -> BirthDates.normalize("9001", "생년월일"));
+  }
+
+  @Test
   void 앞뒤_공백은_털어낸다() {
     assertEquals("1990-01-01", BirthDates.normalize("  1990-01-01  ", "생년월일"));
   }
@@ -37,7 +55,6 @@ class BirthDatesTest {
 
   @Test
   void 알아볼_수_없는_값은_거절한다() {
-    assertThrows(BusinessException.class, () -> BirthDates.normalize("90-01-01", "생년월일"));
     assertThrows(BusinessException.class, () -> BirthDates.normalize("어제", "생년월일"));
   }
 

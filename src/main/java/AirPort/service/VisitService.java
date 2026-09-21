@@ -1,5 +1,6 @@
 package AirPort.service;
 
+import AirPort.common.BirthDates;
 import AirPort.common.PageResult;
 import AirPort.common.VisitKinds;
 import AirPort.common.exception.BusinessException;
@@ -195,7 +196,7 @@ public class VisitService {
         VisitorForm f = new VisitorForm();
         f.setPersonId(p.getPersonId());
         f.setPersonName(decrypt(p.getPersonName()));
-        f.setBirthDate(decrypt(p.getBirthDate()));
+        f.setBirthDate(BirthDates.yymmdd(decrypt(p.getBirthDate()))); // 화면은 여섯 자리
         f.setAffiliation(p.getAffiliation());
         List<TbCard> pc = cardMapper.selectByPerson(pid);
         if (!pc.isEmpty()) {

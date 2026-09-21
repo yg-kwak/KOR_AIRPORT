@@ -1,5 +1,6 @@
 package AirPort.service;
 
+import AirPort.common.BirthDates;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbCarMapper;
@@ -259,7 +260,7 @@ public class VisitRosterService {
   public String upsertVisitor(VisitorForm vf, VisitForm form) {
     VisitService.require(vf.getPersonName(), "방문객 성명");
     VisitService.require(vf.getAffiliation(), "방문객 소속");
-    String birthDate = AirPort.common.BirthDates.require(vf.getBirthDate(), "방문객 생년월일");
+    String birthDate = BirthDates.require(vf.getBirthDate(), "방문객 생년월일");
     // 제재인원이면 여기서 막는다 — 관리자 화면과 키오스크가 모두 이 길목을 지난다
     blacklistService.requireNotBanned(vf.getPersonName(), birthDate);
     boolean isNew = vf.getPersonId() == null || vf.getPersonId().isBlank();

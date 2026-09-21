@@ -129,7 +129,7 @@
       ? visitors.map((v, i) => `<tr>
           <td>${v.biostarUserId ? esc(v.biostarUserId) : badge.none('등록 전')}</td>
           <td><input class="input" data-f="personName" data-i="${i}" value="${esc(v.personName)}"/></td>
-          <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="1990-01-01" maxlength="10" inputmode="numeric" value="${esc(v.birthDate)}"/></td>
+          <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="900101" maxlength="10" inputmode="numeric" value="${esc(v.birthDate)}"/></td>
           <td><input class="input" data-f="affiliation" data-i="${i}" value="${esc(v.affiliation)}"/></td>
           <td>${cardCell(v, i, 'vis')}</td>
           <td>${visActions(v, i)}</td></tr>`).join('')

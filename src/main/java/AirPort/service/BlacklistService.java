@@ -213,7 +213,7 @@ public class BlacklistService {
   /** 조회 결과 복호화 + 화면 표시용 상태 계산. */
   private static void decrypt(TbBlacklist row) {
     row.setPersonName(ARIAUtil.ariaDecrypt(row.getPersonName()));
-    row.setBirthDate(ARIAUtil.ariaDecrypt(row.getBirthDate()));
+    row.setBirthDate(BirthDates.yymmdd(ARIAUtil.ariaDecrypt(row.getBirthDate()))); // 화면은 여섯 자리
     row.setBanStatus(status(row));
   }
 

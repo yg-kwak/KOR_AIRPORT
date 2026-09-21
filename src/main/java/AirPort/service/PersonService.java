@@ -2,6 +2,7 @@ package AirPort.service;
 
 import AirPort.adapter.biostar.BiostarUserRequest;
 import AirPort.common.Affiliations;
+import AirPort.common.BirthDates;
 import AirPort.common.PageResult;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
@@ -434,7 +435,7 @@ public class PersonService {
     }
     // 생년월일은 필수이고 저장 형태는 YYYY-MM-DD 하나다 — 방문객과 같은 규칙을 쓴다(BirthDates).
     // 폼 값을 정규화한 값으로 되돌려 놓아야 toRow 가 그 값을 암호화해 넣는다.
-    form.setBirthDate(AirPort.common.BirthDates.require(form.getBirthDate(), "생년월일"));
+    form.setBirthDate(BirthDates.require(form.getBirthDate(), "생년월일"));
 
     // 날짜는 "YYYY-MM-DD" 형식이라 문자열 비교로 대소 판정이 가능하다
     // 상한만 막는다 — 기본값(계약 기간)을 넘기는 것은 정상이다(계약은 연장된다)
@@ -472,7 +473,7 @@ public class PersonService {
   /** 표시용 복호화 — 성명/생년월일/연락처. */
   private void decrypt(TbPerson row) {
     row.setPersonName(decryptOrNull(row.getPersonName()));
-    row.setBirthDate(decryptOrNull(row.getBirthDate()));
+    row.setBirthDate(BirthDates.yymmdd(decryptOrNull(row.getBirthDate()))); // 화면은 여섯 자리
     row.setPersonPhone(decryptOrNull(row.getPersonPhone()));
   }
 

@@ -57,7 +57,7 @@
     $('visBody').innerHTML = visitors.length
       ? visitors.map((v, i) => `<tr>
           <td><input class="input" data-f="personName" data-i="${i}" value="${esc(v.personName)}"/></td>
-          <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="1990-01-01" maxlength="10" inputmode="numeric" value="${esc(v.birthDate)}"/></td>
+          <td><input class="input" data-f="birthDate" data-i="${i}" placeholder="900101" maxlength="10" inputmode="numeric" value="${esc(v.birthDate)}"/></td>
           <td><input class="input" data-f="affiliation" data-i="${i}" value="${esc(v.affiliation)}"/></td>
           <td><button type="button" class="btn btn-sm btn-danger" data-act="vis-del" data-idx="${i}">제거</button></td></tr>`).join('')
       : '<tr><td colspan="4" class="empty">방문객이 없습니다.</td></tr>';
