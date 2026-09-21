@@ -212,11 +212,13 @@
       </section>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-danger modal-footer-left" id="btnDelete" th:if="${perm.canDelete}" style="display:none">삭제</button>
+      <!-- 삭제는 취소 바로 왼쪽 — 신청 상태에서만 보인다 -->
+      <button class="btn btn-danger" id="btnDelete" th:if="${perm.canDelete}" style="display:none">삭제</button>
       <button class="btn" id="btnCancel">취소</button>
       <!-- 신청 상태에는 아직 출입증번호가 없어 의미가 없다 — 그 뒤 상태에서만 노출 -->
       <button class="btn" id="btnPermit" style="display:none">신청서 출력</button>
-      <button class="btn btn-primary" id="btnSave" th:if="${perm.canCreate}">저장</button>
+      <!-- 임시(고정 유형)는 관리자가 신청을 확인해 카드를 붙이는 화면이라 [승인], 장기는 [저장] -->
+      <button class="btn btn-primary" id="btnSave" th:if="${perm.canCreate}" th:text="${fixedVisitType != null} ? '승인' : '저장'">저장</button>
     </div>
   </div>
 </div>

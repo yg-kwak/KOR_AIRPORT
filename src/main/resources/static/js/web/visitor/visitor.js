@@ -11,8 +11,7 @@
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
-  const fmtDt = (v) => (v == null ? '' : String(v).replace('T', ' '));
-  const pad2 = (n) => String(n).padStart(2, '0');
+  const fmtDt = (v) => (v == null ? '' : String(v).replace('T', ' ')); const pad2 = (n) => String(n).padStart(2, '0');
   // 오늘 날짜의 일시 값(서버 형식 YYYY-MM-DDTHH:mm — 일시 칸이 24시간 문자열로 보여 준다). now=true 면 현재 시각, 아니면 hh:mm
   const todayAt = (hh, mm, now) => {
     const d = new Date();
@@ -270,8 +269,9 @@
   // 퇴실 — 입실중 방문만. BiostarX 비활성화 + 카드 회수(재대여 가능)
   async function checkout(visitNo) {
     if (!PERM.canCreate) return;
+    const d = await api.get(`${BASE}/detail?visitNo=${visitNo}`); // 발급된 카드 장수 — 실물 회수를 먼저 묻는다
     const ok = await confirmModal.open({ title: '퇴실 확인', confirmText: '퇴실',
-      message: `방문(${visitNo})을 퇴실 처리하시겠습니까? 카드가 회수되고 BiostarX 사용자가 비활성화됩니다.` });
+      message: `${[...d.visitors, ...d.cars].filter((x) => x.cardId).length}장의 카드를 모두 회수하셨습니까?\n\n방문(${visitNo})을 퇴실 처리하시겠습니까? 카드가 회수되고 BiostarX 사용자가 비활성화됩니다.` });
     if (!ok) return;
     await api.post(`${BASE}/checkout?visitNo=${visitNo}`, {});
     load();
