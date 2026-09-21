@@ -305,3 +305,9 @@ ID 하나는 명단을 훑어 맞힐 수 있고, 카드가 붙은 뒤에는 방�
 사용자가 `1990-12-31` 이라고 치면 엑셀은 일련번호 + 날짜 서식으로 저장하고, POI `DataFormatter` 는 그 서식대로(`12/31/90`, `1990년 12월 31일`…) 문자열을 만든다.
 그대로 넘기면 "YYYY-MM-DD 형식으로" 로 거절된다 — 사용자는 분명히 그 형식으로 적었는데. `ExcelUtil.read` 가 날짜 칸(`looksLikeDate`: POI 판정 + 서식 문자열의 y·m·d)을
 `YYYY-MM-DD`(시각이 있으면 `YYYY-MM-DDTHH:mm`)로 바꿔 준다. 한국식 서식(`yyyy"년" m"월" d"일"`)은 POI 가 날짜로 보지 못하므로 서식 문자열까지 본다(`ExcelUtilReadTest`).
+
+### 일시 입력칸은 `datetime-local` 이 아니라 `<input type="text" data-datetime>` + `js/core/date-time.js`
+`datetime-local` 은 OS·브라우저 언어에 따라 "오후 06:33" 처럼 12시간제로 그려져 현장에서 오전/오후를 번번이 고르게 한다. 일시 칸은 텍스트로 두고 공용 모듈이 붙어
+`YYYY-MM-DD HH:mm`(24시간) 모양을 잡는다(숫자만 쳐도, `T` 구분자를 붙여넣어도 같은 결과). **`.value` 는 그대로 서버 형식(`YYYY-MM-DDTHH:mm`)** 으로 읽고 쓴다 —
+화면 스크립트는 `datetime-local` 때와 같은 코드다. 알아볼 수 없는 값은 `.value` 가 `''` 라 필수 검사가 잡고, 칸을 떠날 때 안내와 붉은 테두리(`is-invalid`)를 띄운다.
+날짜만 받는 칸(`type="date"`, 검색 기간·허가일자·정지기간)은 그대로다 — 시각이 없어 오전/오후 문제가 없다.

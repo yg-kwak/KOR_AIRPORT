@@ -12,6 +12,7 @@
   <script src="/js/core/busy.js" defer></script>
   <script src="/js/core/app.js" defer></script>
   <script src="/js/core/birth-date.js" defer></script>
+  <script src="/js/core/date-time.js" defer></script>
   <script src="/js/core/visit-kind.js" defer></script>
   <script src="/js/core/components/ac-group-tree.js" defer></script>
   <script src="/js/web/kiosk/visit.js" defer></script>
@@ -80,11 +81,11 @@
       <div class="form-grid">
         <div class="form-group">
           <label>작업기간 시작 <span class="req">*</span></label>
-          <input type="datetime-local" id="workStartDt" class="input" max="2037-12-31T23:59"/>
+          <input type="text" data-datetime id="workStartDt" class="input"/>
         </div>
         <div class="form-group">
           <label>작업기간 종료 <span class="req">*</span></label>
-          <input type="datetime-local" id="workEndDt" class="input" max="2037-12-31T23:59"/>
+          <input type="text" data-datetime id="workEndDt" class="input"/>
         </div>
         <div class="form-group full">
           <label>작업목적 <span class="req">*</span></label>

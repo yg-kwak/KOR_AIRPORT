@@ -13,7 +13,7 @@
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
   const fmtDt = (v) => (v == null ? '' : String(v).replace('T', ' '));
   const pad2 = (n) => String(n).padStart(2, '0');
-  // 오늘 날짜의 datetime-local 값. now=true 면 현재 시각, 아니면 hh:mm
+  // 오늘 날짜의 일시 값(서버 형식 YYYY-MM-DDTHH:mm — 일시 칸이 24시간 문자열로 보여 준다). now=true 면 현재 시각, 아니면 hh:mm
   const todayAt = (hh, mm, now) => {
     const d = new Date();
     const date = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;

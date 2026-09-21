@@ -33,7 +33,7 @@
 
   let face = { photo: null, image: null, t9: null, t5: null }; // photo=원본 사진 / image=정규화 얼굴(인증용)
 
-  // 현재 일시를 datetime-local 형식("YYYY-MM-DDTHH:mm")으로 (로컬 시간 기준)
+  // 현재 일시를 서버 형식("YYYY-MM-DDTHH:mm")으로 (로컬 시간 기준) — 일시 칸(core/date-time.js)이 24시간 문자열로 보여 준다
   function nowLocal() {
     const d = new Date();
     const p = (n) => String(n).padStart(2, '0');
