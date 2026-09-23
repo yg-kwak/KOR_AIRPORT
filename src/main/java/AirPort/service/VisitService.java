@@ -377,8 +377,11 @@ public class VisitService {
     check(notEmpty(form.getCarAcCodes()) && !hasCars, "차량 출입그룹을 선택하면 차량을 입력해야 합니다.");
     check(hasVisitors && form.managerIds().isEmpty(), "방문객이 있으면 인솔자를 지정해야 합니다.");
     // 연락처는 방문마다 손으로 적는다 — 정규인원 정보에서 당겨오지 않으므로 비면 신청서에 빈 칸이 남는다.
-    // 키오스크도 같은 규칙을 쓴다(VisitManagerForm 에 모아 둠).
-    VisitManagerForm.requirePhones(form.getManagers());
+    // 임시(일일)만 필수다 — 하루 단위라 그날 연락할 번호가 있어야 한다. 장기·상주는 상주하는 인솔자라
+    // 방문마다 번호를 받지 않는다(비워 두면 신청서 연락처 칸이 빈다). 키오스크는 늘 임시라 함께 걸린다.
+    if (VISIT_TYPE.equals(form.getVisitType())) {
+      VisitManagerForm.requirePhones(form.getManagers());
+    }
   }
 
   /** 임시(PT02)끼리 인솔자 겹침 금지 — 진행중 다른 임시 방문의 인솔자면 차단(임시↔장기·상주, 장기끼리는 허용). */

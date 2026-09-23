@@ -188,7 +188,8 @@
         </div>
         <table class="grid">
           <thead><tr><th class="w-160">인원ID</th><th>성명</th><th>소속</th>
-            <th class="w-200">연락처 <span class="req">*</span></th><th class="w-80">관리</th></tr></thead>
+            <!-- 연락처는 임시(일일)만 필수 — 장기·상주는 상주 인솔자라 방문마다 받지 않는다 -->
+            <th class="w-200">연락처 <span class="req" th:if="${fixedVisitType != null}">*</span></th><th class="w-80">관리</th></tr></thead>
           <tbody id="mgrBody"><tr><td colspan="5" class="empty">인솔자가 없습니다.</td></tr></tbody>
         </table>
       </section>

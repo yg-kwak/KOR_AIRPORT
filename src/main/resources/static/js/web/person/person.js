@@ -14,7 +14,7 @@
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
   const fmtDt = (v) => (v == null ? '' : String(v).replace('T', ' '));
 
-  /* 저장하면 얼굴이 지워지는 상태 — 공통코드(PS.code_tag)가 원천이라 서버가 내려준다.
+  /* 저장하면 BiostarX 얼굴이 지워지는 상태 — 공통코드(PS.code_tag)가 원천이라 서버가 내려준다.
      화면에 코드를 박으면 현장에서 상태를 추가했을 때 안내가 조용히 빠진다. */
   const DISABLED_STATUS = window.PAGE_DISABLED_STATUS || [];
 
@@ -277,12 +277,12 @@
     if (titleName && !TITLE_ALLOWED.test(titleName)) { toast.warning('직위에 특수문자를 사용할 수 없습니다.'); return; }
     // 카드 발급 시 출입구역이 없으면 실제로 못 여는 무효 카드가 되므로 구역 선택을 강제한다
     if (payload.cards.length && !payload.acGroupIds.length) { toast.warning('카드를 발급하려면 출입구역을 선택하세요.'); return; }
-    // 비활성 상태(정지·퇴사·회수·분실)로 저장하면 얼굴이 지워진다 — 되돌릴 수 없으므로 먼저 알린다.
-    // 지울 얼굴이 없으면 묻지 않는다(없는 것을 지운다고 겁줄 이유가 없다).
+    // 비활성 상태(정지·퇴사·회수·분실)로 저장하면 BiostarX 의 얼굴이 지워진다 — 되돌릴 수 없으므로 먼저 알린다.
+    // 출입증 사진(카드 인쇄용)은 그대로 남는다. 지울 얼굴이 없으면 묻지 않는다.
     if (DISABLED_STATUS.includes(payload.statusCode) && (face.photo || face.image)) {
       const st = $('statusName').value || payload.statusCode;
-      const ok = await confirmModal.open({ title: '얼굴 정보 삭제', confirmText: '삭제하고 저장',
-        message: `'${st}' 상태로 저장하면 등록된 얼굴 정보가 삭제됩니다. BiostarX 장비의 얼굴도 함께 지워지며 되돌릴 수 없습니다.` });
+      const ok = await confirmModal.open({ title: 'BiostarX 얼굴 삭제', confirmText: '삭제하고 저장',
+        message: `'${st}' 상태로 저장하면 BiostarX 장비의 사진·얼굴 인증 정보가 지워집니다(되돌릴 수 없습니다).`, note: '출입증 발급용 사진은 그대로 보관됩니다.' });
       if (!ok) return;
     }
     // 상태를 [정지] 로 바꾸는 순간에만 묻는다 — 이미 정지였던 사람을 다시 저장할 때는 묻지 않는다.

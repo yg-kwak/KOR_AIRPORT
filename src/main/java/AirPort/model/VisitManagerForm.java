@@ -21,6 +21,7 @@ public class VisitManagerForm {
    * 함께 둔다 — 받는 규칙과 저장하는 규칙이 떨어지면 안 된다.
    */
   public static void requirePhones(java.util.List<VisitManagerForm> managers) {
+    // 임시(일일)에서만 부르는 검사다 — 장기·상주는 상주 인솔자라 방문마다 번호를 받지 않는다
     if (managers == null) {
       return;
     }

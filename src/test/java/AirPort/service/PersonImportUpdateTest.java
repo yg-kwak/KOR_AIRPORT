@@ -133,7 +133,7 @@ class PersonImportUpdateTest {
   }
 
   @Test
-  void 비활성_상태로_바꾸면_얼굴을_지우고_장비에도_얼굴_없이_보낸다() {
+  void 비활성_상태로_바꾸면_장비에만_얼굴_없이_보내고_출입증_사진은_남긴다() {
     when(personMapper.selectById("400001")).thenReturn(stored());
     when(personService.toRow(any())).thenReturn(new TbPerson());
     when(photoMapper.selectPhoto("400001")).thenReturn("PHOTO");
@@ -147,7 +147,7 @@ class PersonImportUpdateTest {
     excel.setStatusCode("03");
     svc.update(excel, null, 201);
 
-    verify(photoMapper).deleteByPerson("400001");
+    verify(photoMapper, never()).deleteByPerson(anyString()); // 출입증(카드 인쇄)용 사진은 보관한다
     ArgumentCaptor<String> photo = ArgumentCaptor.forClass(String.class);
     verify(personBiostar, org.mockito.Mockito.times(2))
         .requestOf(any(), photo.capture(), any(), any());

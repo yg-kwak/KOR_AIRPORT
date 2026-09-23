@@ -72,11 +72,8 @@ public class PersonImportUpdateService {
     personService.validate(merged, existing); // 화면 수정과 같은 검증(코드는 바뀐 항목만)
 
     personMapper.updateBasics(personService.toRow(merged));
-    // 비활성으로 바뀌면 얼굴을 지운다 — 출입을 막아 놓고 생체정보만 남기지 않는다(화면 수정과 같은 규칙)
+    // 비활성으로 바뀌면 '장비' 얼굴만 지운다(얼굴 없이 전송) — 출입증 사진은 카드 인쇄용이라 보관한다
     boolean disabled = personBiostar.isDisabled(merged.getStatusCode());
-    if (disabled) {
-      photoMapper.deleteByPerson(merged.getPersonId());
-    }
     TbPerson afterPlain = applied(plain, merged);
     BiostarUserRequest after =
         personBiostar.requestOf(afterPlain, disabled ? null : photo, acIds, acNames);

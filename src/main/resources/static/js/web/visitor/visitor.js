@@ -249,7 +249,7 @@
     if (payload.cars.some((c) => !c.carNo)) { toast.warning('차량번호는 필수입니다.'); return; }
     // 출입그룹↔대상 짝은 방문구분이 보장한다(고른 쪽은 있어야 하고, 고르지 않은 쪽은 prune 이 비운다)
     if (payload.visitors.length && !payload.managers.length) { toast.warning('방문객이 있으면 인솔자를 지정해야 합니다.'); return; }
-    if (payload.managers.some((m) => !m.phone)) { toast.warning('인솔자 연락처를 입력하세요.'); return; }
+    if (VISIT_TYPE && payload.managers.some((m) => !m.phone)) { toast.warning('인솔자 연락처를 입력하세요.'); return; } // 임시만 필수
     // 카드 발급(cardId) 시 해당 출입구역 미선택이면 무효 카드가 되므로 구역 선택을 강제
     if (payload.visitors.some((v) => v.cardId) && !payload.acGroupIds.length) { toast.warning('방문객에게 카드를 발급하려면 인원 출입구역을 선택하세요.'); return; }
     if (payload.cars.some((c) => c.cardId) && !payload.carAcCodes.length) { toast.warning('차량에 카드를 발급하려면 차량 출입구역을 선택하세요.'); return; }
