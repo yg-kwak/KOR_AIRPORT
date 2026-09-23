@@ -27,6 +27,14 @@
           </span>
         </div>
       </div>
+      <!-- 방문유형 — 유형이 여럿인 화면(장기출입등록)에만. 임시는 한 가지라 고르게 할 것이 없다 -->
+      <div class="search-field" th:if="${fixedVisitType == null}">
+        <label>방문유형</label>
+        <select id="visitTypeFilter" class="input w-160">
+          <option value="">전체</option>
+          <option th:each="t : ${visitTypes}" th:value="${t.codeId}" th:text="${t.codeName}"></option>
+        </select>
+      </div>
       <div class="search-field">
         <label>상태</label>
         <input type="hidden" id="statusFilter"/>

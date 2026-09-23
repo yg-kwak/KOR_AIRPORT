@@ -43,6 +43,14 @@ public interface TbPersonMapper {
   /** 임시(방문)인원 다음 ID — IS000001 부터 채번. */
   String selectNextVisitorId(@Param("prefix") String prefix);
 
+  /**
+   * 같은 사람(성명·생년월일 암호문)이 지금 <b>장기 계열 출입증(카드)</b>을 들고 있으면 그 유형명 — 없으면 null.
+   *
+   * <p>일일(임시) 출입증 중복 발급을 막는 데 쓴다. 사람을 잇는 키는 성명+생년월일뿐이다(인원ID 는 발급 때마다 새로 난다).
+   */
+  String selectLongTermPassType(
+      @Param("personNameEnc") String personNameEnc, @Param("birthDateEnc") String birthDateEnc);
+
   int insert(TbPerson row);
 
   int update(TbPerson row);

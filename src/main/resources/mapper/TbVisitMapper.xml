@@ -18,6 +18,8 @@
       <if test="codeTag != null and codeTag != ''">
         AND v.visit_type IN (SELECT code_id FROM tb_common WHERE cmm_id = 'PT' AND code_tag = #{codeTag})
       </if>
+      <!-- 방문유형 — 계열(codeTag) 안에서 한 가지로 더 좁힌다(장기출입등록: 장기/상주/순찰/대여) -->
+      <if test="visitType != null and visitType != ''">AND v.visit_type = #{visitType}</if>
       <if test="statusCode != null and statusCode != ''">AND <include refid="statusExpr"/> = #{statusCode}</if>
       <!-- 출입시작(작업 시작일) 기간 — 감사추적과 같은 프리셋. 종료일은 그날 24시까지 포함한다 -->
       <if test="startDate != null and startDate != ''">

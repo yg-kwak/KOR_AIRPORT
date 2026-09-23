@@ -7,7 +7,7 @@
   const HOLDING = ['VS03', 'VS05']; // 카드 보유 상태 — 퇴실로만 벗어난다(서버 규칙과 동일)
   // fixedType 있으면 방문유형 고정(임시=PT02), 없으면 화면 select 값 사용(장기=PTD03 선택)
   const VISIT_TYPE = CFG.fixedType ? { id: CFG.fixedType, name: CFG.fixedTypeName } : null;
-  const state = { page: 1, size: 30, keyword: '', searchType: 'all', statusCode: '', startDate: '', endDate: '', sort: 'visitNo', dir: 'desc' };
+  const state = { page: 1, size: 30, keyword: '', searchType: 'all', visitType: '', statusCode: '', startDate: '', endDate: '', sort: 'visitNo', dir: 'desc' };
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
@@ -28,7 +28,7 @@
   // ---- 목록 ----
   async function load() {
     const q = `?page=${state.page}&size=${state.size}&keyword=${encodeURIComponent(state.keyword)}` +
-      `&searchType=${state.searchType}&statusCode=${encodeURIComponent(state.statusCode)}` +
+      `&searchType=${state.searchType}&visitType=${encodeURIComponent(state.visitType)}&statusCode=${encodeURIComponent(state.statusCode)}` +
       `&startDate=${state.startDate}&endDate=${state.endDate}&sort=${state.sort}&dir=${state.dir}`;
     const data = await api.get(BASE + '/list' + q);
     const body = $('gridBody');
@@ -67,15 +67,15 @@
     state.keyword = $('keyword').value.trim();
     state.searchType = $('searchType').value;
     state.statusCode = $('statusFilter').value;
+    state.visitType = $('visitTypeFilter') ? $('visitTypeFilter').value : ''; // 장기에만 있는 칸
     applyPeriod();
-    state.page = 1;
-    load();
+    state.page = 1; load();
   }
   function reset() {
-    ['keyword', 'statusFilter', 'statusFilterName'].forEach((id) => { $(id).value = ''; });
+    ['keyword', 'statusFilter', 'statusFilterName', 'visitTypeFilter'].forEach((id) => { if ($(id)) $(id).value = ''; });
     $('searchType').value = 'all';
     periodCtl.reset(PERIOD_DEF);
-    Object.assign(state, { page: 1, size: 30, keyword: '', searchType: 'all', statusCode: '', sort: 'visitNo', dir: 'desc' });
+    Object.assign(state, { page: 1, size: 30, keyword: '', searchType: 'all', visitType: '', statusCode: '', sort: 'visitNo', dir: 'desc' });
     applyPeriod();
     $('pageSize').value = '30';
     load();

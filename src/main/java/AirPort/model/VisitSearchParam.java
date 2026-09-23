@@ -9,6 +9,7 @@ import lombok.Setter;
 @Setter
 public class VisitSearchParam extends PageParam {
   private String statusCode; // tb_common(VS)
+  private String visitType; // 방문유형 한 가지로 좁힘 — 장기출입등록의 검색조건(PTD03 계열 안에서 장기/상주/순찰/대여)
   private String codeTag; // 방문유형 계열 필터 — PT.code_tag (PTD02 임시 / PTD03 장기·상주). 서버가 화면별로 설정
   private String startDate; // 출입시작(work_start_dt) 기간 시작 yyyy-MM-dd — 빈값이면 전체
   private String endDate; // 출입시작 기간 종료 yyyy-MM-dd (그날 24시까지 포함)

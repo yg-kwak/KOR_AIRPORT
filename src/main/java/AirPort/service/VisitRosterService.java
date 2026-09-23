@@ -263,6 +263,7 @@ public class VisitRosterService {
     String birthDate = BirthDates.require(vf.getBirthDate(), "방문객 생년월일");
     // 제재인원이면 여기서 막는다 — 관리자 화면과 키오스크가 모두 이 길목을 지난다
     blacklistService.requireNotBanned(vf.getPersonName(), birthDate);
+    requireNoLongTermPass(vf.getPersonName(), birthDate, form.getVisitType());
     boolean isNew = vf.getPersonId() == null || vf.getPersonId().isBlank();
     TbPerson p = new TbPerson();
     p.setPersonId(
@@ -286,6 +287,28 @@ public class VisitRosterService {
       personMapper.update(p);
     }
     return p.getPersonId();
+  }
+
+  /**
+   * 장기 계열 출입증(장기·상주·순찰·대여)을 들고 있는 사람에게는 <b>일일(임시) 출입증을 내주지 않는다</b>.
+   *
+   * <p>이미 문이 열리는 카드가 있는데 하루짜리를 또 주면 한 사람이 출입증 두 장을 들게 되고, 회수·이력이 갈린다. 사람을 잇는 키는 <b>성명+생년월일</b>뿐이다 —
+   * 발급 때마다 인원ID 가 새로 나므로 ID 로는 같은 사람인지 알 수 없다. 암호문끼리 비교한다(ARIA 결정적 암호화).
+   *
+   * <p>기준은 <b>배정된 카드</b>다 — 퇴실하면 카드가 회수되므로, 카드가 없으면 더 이상 출입증 보유자가 아니다.
+   */
+  private void requireNoLongTermPass(String personName, String birthDate, String visitType) {
+    if (!VisitService.VISIT_TYPE.equals(visitType)) {
+      return; // 일일(임시) 발급에만 건다 — 장기 계열끼리는 이 화면의 일이 아니다
+    }
+    String held =
+        personMapper.selectLongTermPassType(
+            ARIAUtil.ariaEncrypt(personName.trim()), VisitService.encryptOrNull(birthDate));
+    if (held != null) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT,
+          personName.trim() + " 님은 이미 " + held + " 출입증을 발급받았습니다. 일일 출입증은 발급할 수 없습니다.");
+    }
   }
 
   /**
