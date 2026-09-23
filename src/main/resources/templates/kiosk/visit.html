@@ -31,7 +31,7 @@
     <p class="kiosk-lead">방문 신청을 시작하려면 아래 버튼을 눌러주세요.</p>
     <ol class="kiosk-steps">
       <li><strong>방문 정보</strong><span>작업기간 · 작업목적</span></li>
-      <li><strong>인솔자 · 방문구역</strong><span>인솔자 검색, 출입구역 선택</span></li>
+      <li><strong>방문구역 · 인솔자</strong><span>출입구역 선택, 인솔자 검색</span></li>
       <li><strong>방문객 · 차량</strong><span>방문구분에 따라 명단·차량 입력</span></li>
     </ol>
     <div class="kiosk-start-row">
@@ -95,6 +95,21 @@
     </div>
 
     <div class="kiosk-card">
+      <h2>방문구역 <span class="req">*</span></h2>
+      <p class="form-hint">출입이 필요한 구역만 선택하세요.</p>
+      <div class="kiosk-area" style="margin-top:8px">
+        <div data-kind="person">
+          <div class="form-group-label">인원 출입구역</div>
+          <div class="ac-select-tree" id="acTree"><div class="empty">불러오는 중...</div></div>
+        </div>
+        <div data-kind="car">
+          <div class="form-group-label">차량 출입구역</div>
+          <div class="ac-select-tree" id="carAcBox"><div class="empty">불러오는 중...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="kiosk-card">
       <h2>인솔자 <span class="req">*</span> <span class="visit-count" id="mgrCount">( 0 )</span></h2>
       <p class="form-hint">공항 정규인원만 인솔자가 될 수 있습니다. 인원ID 또는 성명(전체)으로 검색하세요.</p>
       <div class="file-field-row" style="margin-top:8px">
@@ -114,21 +129,6 @@
             <th class="w-200">연락처 <span class="req">*</span></th><th class="w-80">관리</th></tr></thead>
         <tbody id="mgrBody"><tr><td colspan="4" class="empty">선택된 인솔자가 없습니다.</td></tr></tbody>
       </table>
-    </div>
-
-    <div class="kiosk-card">
-      <h2>방문구역 <span class="req">*</span></h2>
-      <p class="form-hint">출입이 필요한 구역만 선택하세요.</p>
-      <div class="kiosk-area" style="margin-top:8px">
-        <div data-kind="person">
-          <div class="form-group-label">인원 출입구역</div>
-          <div class="ac-select-tree" id="acTree"><div class="empty">불러오는 중...</div></div>
-        </div>
-        <div data-kind="car">
-          <div class="form-group-label">차량 출입구역</div>
-          <div class="ac-select-tree" id="carAcBox"><div class="empty">불러오는 중...</div></div>
-        </div>
-      </div>
     </div>
 
     <div class="kiosk-card" data-kind="person">

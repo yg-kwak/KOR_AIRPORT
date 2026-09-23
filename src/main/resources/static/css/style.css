@@ -692,7 +692,8 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
      표 '폭'은 100% 그대로다: 폭까지 줄이면 A4 왼쪽에 몰려 양식으로 보이지 않는다. */
   .permit-sheet { font-family: Pretendard, sans-serif; font-size: 8pt; line-height: 1.5; }
   /* 문서 관리번호 — 제목 바로 위 가운데. 본문보다 한 단계 크게, 제목과 붙지 않게 아래 여백만 준다 */
-  .permit-no { font-size: 9pt; font-weight: 600; text-align: center; margin: 0 0 2mm; letter-spacing: 0.5px; }
+  /* 문서 관리번호 — 종이를 넘기며 번호부터 찾는 칸이라 제목(12pt)보다 크게 */
+  .permit-no { font-size: 16pt; font-weight: 700; text-align: center; margin: 0 0 2mm; letter-spacing: 0.5px; }
   .permit-title { font-size: 12pt; font-weight: 700; text-align: center; margin: 0 0 6mm; letter-spacing: -0.3px; }
   .permit-table { width: 100%; border-collapse: collapse; margin-bottom: 1.8mm; table-layout: fixed; }
   /* 가로 여백은 세로에 맞춰 함께 준다(원래 1.6mm : 1mm 비율) — 한쪽만 키우면 글자가 칸 벽에 붙는다 */
