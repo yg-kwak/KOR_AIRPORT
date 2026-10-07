@@ -284,13 +284,18 @@ public class PersonService {
     return null;
   }
 
-  /** 1명 삭제 — BiostarX 사용자 삭제가 성공해야 DB 소프트삭제를 커밋한다(실패=예외 → 롤백 + 실패 감사). */
+  /**
+   * 1명 삭제 — BiostarX 에 있으면 장비 삭제가 성공해야 DB 소프트삭제를 커밋한다(실패=예외 → 롤백 + 실패 감사). 장비에 <b>없으면</b> DB 만
+   * 지운다(지울 것이 없다). 확인할 수 없으면(통신·권한 오류) 실패다 — DB 만 지우면 장비에 남은 사용자로 문이 계속 열린다.
+   */
   private void deleteOne(String personId, TbLoginUser actor, Integer menuId) {
     TbPerson existing = personMapper.selectById(personId);
     if (existing == null || "Y".equals(existing.getDelYn())) {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
-    String fail = personBiostar.deleteUser(personId, existing.getCompanyCode());
+    PersonBiostarService.DeleteOutcome outcome =
+        personBiostar.deleteUser(personId, existing.getCompanyCode());
+    String fail = outcome.fail();
     if (fail != null) {
       auditService.logAlways(
           actor, AuditService.DELETE, menuId, "정규인원 삭제 실패(" + personId + "): " + fail);
@@ -309,7 +314,10 @@ public class PersonService {
         actor,
         AuditService.DELETE,
         menuId,
-        "정규인원 삭제: " + personId + (released > 0 ? " (카드 " + released + "장 회수)" : ""));
+        "정규인원 삭제: "
+            + personId
+            + (outcome.absent() ? " (BiostarX 에 없어 DB 만 삭제)" : "")
+            + (released > 0 ? " (카드 " + released + "장 회수)" : ""));
   }
 
   /** 폼 → 저장 행. 성명·생년월일·연락처는 ARIA 암호화, 출입기간은 초까지 채운다. (등록/수정 공통) */

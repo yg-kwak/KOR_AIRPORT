@@ -57,9 +57,12 @@ class PersonDeleteCardReleaseTest {
         null);
   }
 
+  private static final PersonBiostarService.DeleteOutcome DELETED =
+      new PersonBiostarService.DeleteOutcome(false, null);
+
   @Test
   void 인원을_삭제하면_보유카드가_회수되어_재발급_가능해진다() {
-    when(personBiostar.deleteUser(anyString(), anyString())).thenReturn(null); // BiostarX 삭제 성공
+    when(personBiostar.deleteUser(anyString(), anyString())).thenReturn(DELETED); // BiostarX 삭제 성공
     when(cardService.releasePersonCards("P001")).thenReturn(1);
 
     service().delete("P001", null, 201);
@@ -72,7 +75,7 @@ class PersonDeleteCardReleaseTest {
   @Test
   void 인원을_삭제하면_얼굴_사진도_지운다() {
     // 생체정보를 소프트 삭제로 남기지 않는다. 남기면 인원ID 재사용 시 다음 사람에게 그대로 붙는다
-    when(personBiostar.deleteUser(anyString(), anyString())).thenReturn(null);
+    when(personBiostar.deleteUser(anyString(), anyString())).thenReturn(DELETED);
 
     service().delete("P001", null, 201);
 
@@ -81,12 +84,28 @@ class PersonDeleteCardReleaseTest {
 
   @Test
   void BiostarX_삭제가_실패하면_카드도_회수하지_않는다() {
-    when(personBiostar.deleteUser(anyString(), anyString())).thenReturn("HTTP 500");
+    when(personBiostar.deleteUser(anyString(), anyString()))
+        .thenReturn(new PersonBiostarService.DeleteOutcome(false, "HTTP 500"));
 
     assertThrows(BusinessException.class, () -> service().delete("P001", null, 201));
 
     verify(cardService, never()).releasePersonCards(anyString());
     verify(personMapper, never()).softDelete(anyString());
     verify(auditService).logAlways(any(), any(), anyInt(), anyString()); // 실패는 감사에 남긴다
+  }
+
+  @Test
+  void BiostarX_에_없는_인원은_DB_만_삭제하고_감사에_그_사실을_남긴다() {
+    // 장비에 원래 없으면 지울 것이 없다 — 오류로 막으면 DB 에만 남은 인원을 영영 지울 수 없다
+    when(personBiostar.deleteUser(anyString(), anyString()))
+        .thenReturn(new PersonBiostarService.DeleteOutcome(true, null));
+
+    service().delete("P001", null, 201);
+
+    verify(personMapper).softDelete("P001");
+    verify(cardService).releasePersonCards("P001");
+    verify(auditService)
+        .log(
+            any(), any(), anyInt(), org.mockito.ArgumentMatchers.contains("BiostarX 에 없어 DB 만 삭제"));
   }
 }

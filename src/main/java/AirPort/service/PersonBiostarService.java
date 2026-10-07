@@ -101,16 +101,44 @@ public class PersonBiostarService {
     return null;
   }
 
-  /** BiostarX 사용자 삭제 — 실패 사유 문자열, 성공이면 null. 호출자(PersonService.deleteOne)는 null 이 아니면 롤백한다. */
-  public String deleteUser(String personId, String companyCode) {
+  /** BiostarX 사용자 삭제 결과 — {@code fail} 이 있으면 실패(호출자가 롤백), {@code absent} 면 장비에 원래 없어 지울 것이 없었다. */
+  public record DeleteOutcome(boolean absent, String fail) {
+    static DeleteOutcome deleted() {
+      return new DeleteOutcome(false, null);
+    }
+
+    static DeleteOutcome notOnDevice() {
+      return new DeleteOutcome(true, null);
+    }
+
+    static DeleteOutcome failed(String why) {
+      return new DeleteOutcome(false, why);
+    }
+  }
+
+  /**
+   * BiostarX 사용자 삭제 — 있으면 지우고, <b>없으면 건너뛴다</b>(지울 것이 없으니 성공이다).
+   *
+   * <p>'없음'은 BiostarX 가 분명히 그렇게 답한 경우뿐이다({@link BiostarUserAdapter#userExists}). 설정이 없거나 통신·권한·서버
+   * 오류로 판단할 수 없으면 실패다 — 그때 DB 만 지우면 장비에 사용자가 남아 그 카드로 문이 계속 열린다.
+   */
+  public DeleteOutcome deleteUser(String personId, String companyCode) {
     TbSystem cfg = systemMapper.selectOne();
     if (cfg == null) {
-      return "BiostarX 설정이 없습니다. 설정관리에서 먼저 등록하세요.";
+      return DeleteOutcome.failed("BiostarX 설정이 없습니다. 설정관리에서 먼저 등록하세요.");
+    }
+    try {
+      if (!biostarUserAdapter.userExists(
+          cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), personId)) {
+        return DeleteOutcome.notOnDevice();
+      }
+    } catch (BiostarSessionException e) {
+      return DeleteOutcome.failed(e.getMessage()); // 판단할 수 없다 — '없음'으로 오판하지 않는다
     }
     BiostarResult res =
         biostarUserAdapter.deleteUser(
             cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), personId, companyGroupId(companyCode));
-    return res.success() ? null : res.message();
+    return res.success() ? DeleteOutcome.deleted() : DeleteOutcome.failed(res.message());
   }
 
   /**

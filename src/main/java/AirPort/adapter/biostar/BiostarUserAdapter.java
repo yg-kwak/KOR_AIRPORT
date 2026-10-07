@@ -151,7 +151,17 @@ public class BiostarUserAdapter {
           "/api/users/"
               + java.net.URLEncoder.encode(userId, java.nio.charset.StandardCharsets.UTF_8);
       HttpResponse<String> resp = session.get(baseUrl(ip), loginId, password, path);
-      return BiostarAdapter.responseError(objectMapper, resp) == null;
+      String err = BiostarAdapter.responseError(objectMapper, resp);
+      if (err == null) {
+        return true;
+      }
+      // '없음'은 BiostarX 가 분명히 "그 사용자가 없다"(code 201)고 답했을 때만이다. 권한 없음(403)·서버 오류(500)
+      // 같은 다른 실패까지 '없음'으로 읽으면, 삭제는 장비를 건너뛰고 DB 만 지워 장비에 사용자가 남는다 — 그 카드로
+      // 문이 계속 열린다. 판단할 수 없으면 실패로 올린다(호출자들은 이미 그것을 실패로 처리한다).
+      if (isUserNotFound(resp)) {
+        return false;
+      }
+      throw new BiostarSessionException("BiostarX 사용자 확인 실패(" + userId + "): " + err);
     } catch (BiostarSessionException e) {
       throw e; // 로그인/세션 오류 — 그대로 전파
     } catch (Exception e) {
@@ -159,6 +169,19 @@ public class BiostarUserAdapter {
       throw new BiostarSessionException(friendlyError(e, "사용자 확인"));
     }
   }
+
+  /** BiostarX 사용자 조회 응답이 "그 ID 의 사용자가 없다"인가 — HTTP 400 + {@code Response.code=201}(장비 실측). */
+  private boolean isUserNotFound(HttpResponse<String> resp) {
+    try {
+      String code = objectMapper.readTree(resp.body()).path("Response").path("code").asText("");
+      return USER_NOT_FOUND_CODE.equals(code);
+    } catch (Exception e) {
+      return false; // 본문을 읽을 수 없으면 '없음'으로 단정하지 않는다
+    }
+  }
+
+  /** BiostarX 응답 코드 — 사용자 조회에서 "User can not be found with id". */
+  static final String USER_NOT_FOUND_CODE = "201";
 
   /** BiostarX 사용자 생성 — {@code POST /api/users}. 실패 시 BiostarX 메시지를 그대로 돌려준다. */
   public BiostarResult createUser(
