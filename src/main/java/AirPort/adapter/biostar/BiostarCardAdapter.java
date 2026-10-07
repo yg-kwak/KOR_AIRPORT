@@ -161,8 +161,17 @@ public class BiostarCardAdapter {
   }
 
   /**
-   * 장치 리더로 카드 읽기 — {@code POST /api/devices/{devId}/scan_card}. 응답 {@code Card.card_id} 만 사용한다(등록
-   * 전이라 {@code id} 는 "0").
+   * 장치 리더로 카드 읽기 — {@code POST /api/devices/{devId}/scan_card}, <b>본문 없이</b> 보낸다.
+   *
+   * <p>본문을 비우면 장비가 일반 카드(CSN)와 스마트카드(Secure Credential Card)를 모두 읽는다. 응답 모양이 둘로 갈린다:
+   *
+   * <ul>
+   *   <li>스마트카드 — {@code SmartCard.card_id.display_card_id} 를 쓴다. 같은 객체의 {@code card_id} 는 암호화된 값이라
+   *       <b>읽을 때마다 바뀐다</b>(장비 실측) — 카드를 가리키는 번호가 아니다. 화면·저장은 카드에 인쇄된 표시번호로 한다.
+   *   <li>그 밖(일반 카드) — 지금처럼 {@code Card.card_id}(CSN, {@code display_card_id} 와 같다).
+   * </ul>
+   *
+   * <p>{@code SmartCard} 가 있으면 그것을, 없으면 {@code Card} 를 본다 — 둘 다 오는 경우는 없지만 스마트카드가 우선이다.
    */
   public BiostarCard scanCard(String ip, String loginId, String password, String devId) {
     if (ip == null || ip.isBlank()) {
@@ -174,16 +183,12 @@ public class BiostarCardAdapter {
     try {
       HttpResponse<String> resp =
           session.post(
-              baseUrl(ip),
-              loginId,
-              password,
-              "/api/devices/" + devId + "/scan_card",
-              "{\"noblockui\":true}");
+              baseUrl(ip), loginId, password, "/api/devices/" + devId + "/scan_card", null);
       String err = BiostarAdapter.responseError(objectMapper, resp);
       if (err != null) {
         return BiostarCard.fail(err);
       }
-      String cardNo = objectMapper.readTree(resp.body()).path("Card").path("card_id").asText(null);
+      String cardNo = scannedCardNo(objectMapper.readTree(resp.body()));
       if (cardNo == null || cardNo.isBlank() || "0".equals(cardNo)) {
         return BiostarCard.fail("읽은 카드가 없습니다. 장치에 카드를 다시 태그하세요.");
       }
@@ -191,6 +196,15 @@ public class BiostarCardAdapter {
     } catch (Exception e) {
       return BiostarCard.fail(friendlyError(e, "카드 읽기"));
     }
+  }
+
+  /** 스캔 응답 → 화면·저장에 쓸 카드번호. 스마트카드는 표시번호, 일반 카드는 CSN. 없으면 null. */
+  static String scannedCardNo(JsonNode root) {
+    JsonNode smart = root.path("SmartCard").path("card_id");
+    if (!smart.isMissingNode() && !smart.isNull()) {
+      return smart.path("display_card_id").asText(null);
+    }
+    return root.path("Card").path("card_id").asText(null);
   }
 
   /** 사용자 payload 의 {@code cards[]} 한 건을 채운다 — 카드 부여(is_assigned=true). */
