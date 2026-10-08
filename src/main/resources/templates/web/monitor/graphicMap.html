@@ -69,16 +69,16 @@
 
   <!-- 아래 — 인증 로그 -->
   <section class="gmap-events">
-    <!-- 기본은 이 맵에 놓인 문의 이벤트·인증 사진만, [모두 보기]를 누르면 모든 장치 -->
-    <div class="gmap-side-head"><span>이벤트 (<b id="eventCount">0</b>)</span>
+    <!-- 기본은 이 맵에 놓인 문의 이벤트·인증 사진만, [모두 보기]를 누르면 누른 뒤부터 모든 장치 -->
+    <div class="gmap-side-head"><span>이벤트</span>
       <span class="gmap-head-actions">
         <button type="button" class="btn btn-sm" id="btnShowAll" aria-pressed="false">모두 보기</button>
         <button type="button" class="btn btn-sm" id="btnEventClear">지우기</button></span></div>
     <div class="gmap-event-scroll">
       <table class="grid gmap-event-table">
         <thead><tr><th class="w-160">날짜 시간</th><th>출입문</th><th>장치</th>
-          <th>사용자</th><th>이벤트</th><th class="w-80">상태</th></tr></thead>
-        <tbody id="eventBody"><tr><td colspan="6" class="empty">결과 없음</td></tr></tbody>
+          <th>사용자</th><th>이벤트</th></tr></thead>
+        <tbody id="eventBody"><tr><td colspan="5" class="empty">결과 없음</td></tr></tbody>
       </table>
     </div>
   </section>

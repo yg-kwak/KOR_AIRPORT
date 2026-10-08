@@ -22,6 +22,7 @@
   };
   let stream = null, wasConnected = false;
   const events = [], photos = []; // 받은 것 전부(최근이 앞) — [모두 보기]·맵이 바뀌면 걸러 다시 그린다
+  let seq = 0, allFrom = 0;       // 받은 순번 — [모두 보기]는 누른 뒤에 받은 것(순번 > allFrom)만 보인다
   /* 출입문 잠금 상태 — doorId → true(개방) / false(잠금). 처음엔 장비에 묻고(doors/status), 그 뒤엔 소켓의 UNLOCKED·LOCKED 로 바꾼다 */
   const unlocked = new Map();
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
@@ -243,12 +244,13 @@
   const placedOf = (e) => state.doors.find((x) => e.deviceId && x.deviceId === String(e.deviceId));
   const onMap = (e) => (e.doorId != null && e.doorId !== '' && state.doors.some((x) => String(x.doorId) === String(e.doorId)))
     || !!placedOf(e);
-  const shown = (e) => state.showAll || onMap(e);
+  const shown = (e) => (state.showAll ? e._seq > allFrom : onMap(e));
 
   const doorName = (e) => { const d = placedOf(e); return (d && d.doorName) || e.deviceName || e.deviceId || '-'; };
 
   function onAuth(e) {
     flashDevice(e.deviceId, e.granted);
+    e._seq = ++seq;
     photos.unshift(e); if (photos.length > PHOTO_KEEP) photos.length = PHOTO_KEEP;
     if (shown(e)) addPhoto(e); // 이벤트 표는 'log' 가 채운다 — 여기서도 넣으면 인증이 두 줄이 된다
   }
@@ -256,9 +258,8 @@
   /* 걸러 다시 그린다 — [모두 보기]를 바꿀 때·맵을 바꿀 때 */
   function renderFeeds() {
     const rows = events.filter(shown).slice(0, EVENT_MAX);
-    $('eventBody').innerHTML = rows.length ? '' : '<tr><td colspan="6" class="empty">결과 없음</td></tr>';
+    $('eventBody').innerHTML = rows.length ? '' : '<tr><td colspan="5" class="empty">결과 없음</td></tr>';
     rows.forEach((e) => $('eventBody').append(eventRow(e)));
-    $('eventCount').textContent = String(rows.length);
     const pics = photos.filter(shown).slice(0, PHOTO_MAX);
     $('photoList').innerHTML = pics.length ? '' : '<div class="gmap-empty">아직 인증이 없습니다.</div>';
     pics.reverse().forEach(addPhoto); // addPhoto 는 위에 붙인다 — 오래된 것부터
@@ -266,6 +267,7 @@
 
   function toggleAll() {
     state.showAll = !state.showAll;
+    if (state.showAll) allFrom = seq; // 누른 뒤의 것부터 — 끄면 다시 이 맵의 문 것(앞서 받은 것 포함)
     $('btnShowAll').setAttribute('aria-pressed', String(state.showAll));
     renderFeeds();
     subscribe(); // 인증 사진의 범위가 바뀐다
@@ -273,20 +275,19 @@
 
   /* 모든 이벤트 한 줄 — 인증·문 열림/잠김·운영자 조작·장치 연결까지. 출입문은 이벤트가 문을 실어 오면 그것,
      아니면 이 맵에 놓인 문 중 그 단말기가 입구인 문 */
-  const TONE_TEXT = { success: '통과', error: '경고', info: '-' };
   function addEvent(e) {
     // 문 상태가 바뀌는 이벤트 — 개방(UNLOCKED·릴레이 켜짐) / 잠금(LOCKED·릴레이 꺼짐). 문이 실려 오지 않으면 그 단말기가 입구인 문
     if (e.eventName === 'UNLOCKED' || e.eventName === 'LOCKED') {
       const byDevice = state.doors.filter((x) => e.deviceId && x.deviceId === String(e.deviceId)).map((x) => x.doorId);
       (e.doorId ? [e.doorId] : byDevice).forEach((id) => setLock(id, e.eventName === 'UNLOCKED'));
     }
+    e._seq = ++seq;
     events.unshift(e); if (events.length > EVENT_MAX) events.length = EVENT_MAX;
     if (!shown(e)) return;
     const body = $('eventBody');
     if (body.querySelector('td.empty')) body.innerHTML = '';
     body.prepend(eventRow(e));
     while (body.rows.length > EVENT_MAX) body.deleteRow(body.rows.length - 1);
-    $('eventCount').textContent = String(body.rows.length);
   }
 
   function eventRow(e) {
@@ -296,19 +297,18 @@
     tr.className = e.tone === 'error' ? 'deny' : '';
     tr.title = e.eventName || '';
     tr.innerHTML = `<td>${esc(e.eventTime || '')}</td><td>${esc(door)}</td><td>${esc(e.deviceName || e.deviceId || '-')}</td>
-      <td>${esc(e.userName || e.userId || '-')}</td><td>${esc(e.label || e.eventName || '')}</td>
-      <td>${e.tone === 'info' ? '-' : badge.of(TONE_TEXT[e.tone] || '-', e.tone)}</td>`;
+      <td>${esc(e.userName || e.userId || '-')}</td><td>${esc(e.label || e.eventName || '')}</td>`;
     return tr;
   }
 
   const FACE_ICON = `<svg class="monitor-face-icon" viewBox="0 0 96 96" aria-label="사진 없음">
       <circle cx="48" cy="33" r="19"/><path d="M14 90c0-18.8 15.2-34 34-34s34 15.2 34 34"/></svg>`;
 
-  /* 인증 사진 — 장비가 찍은 사진이 있으면 그것, 없으면 등록 사진 */
+  /* 인증 사진 — 등록 사진(tb_person_photo). 없으면 빈 얼굴 — 장비가 찍은 사진은 쓰지 않는다 */
   function addPhoto(e) {
     const list = $('photoList');
     const empty = list.querySelector('.gmap-empty'); if (empty) empty.remove();
-    const pic = e.authPhoto || e.registeredPhoto;
+    const pic = e.registeredPhoto;
     const div = document.createElement('div');
     div.className = 'gmap-photo' + (e.granted ? '' : ' deny');
     div.innerHTML = `<div class="gmap-photo-img">${pic ? `<img src="data:image/jpeg;base64,${pic}" alt="인증 사진"/>` : FACE_ICON}</div>
