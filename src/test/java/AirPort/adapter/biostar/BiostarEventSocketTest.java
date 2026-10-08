@@ -76,4 +76,28 @@ class BiostarEventSocketTest {
         BiostarEventSocket.parse(
             new com.fasterxml.jackson.databind.ObjectMapper(), "{\"ping\":1}"));
   }
+
+  /** 운영자가 문을 해제했을 때 — 출입문 이벤트는 door_id 가 배열로 온다(장비 실측). */
+  private static final String DOOR_EVENT =
+      "{\"Event\":{\"id\":\"1\",\"event_type_id\":{\"code\":\"23556\",\"name\":\"RELEASE_DOOR_BY_OPERATOR\"},"
+          + "\"datetime\":\"2026-10-08T03:50:09.00Z\","
+          + "\"device_id\":{\"id\":\"543737030\",\"name\":\"FaceStation F2\"},"
+          + "\"door_id\":[{\"id\":\"5\",\"name\":\"F2\"}]}}";
+
+  @Test
+  void 출입문_이벤트에서_문과_사용자_이름을_뽑는다() throws Exception {
+    BiostarAuthEvent e =
+        BiostarEventSocket.parse(new com.fasterxml.jackson.databind.ObjectMapper(), DOOR_EVENT);
+    assertEquals("5", e.doorId());
+    assertEquals("F2", e.doorName());
+    assertEquals(null, e.userName());
+
+    BiostarAuthEvent auth =
+        BiostarEventSocket.parse(new com.fasterxml.jackson.databind.ObjectMapper(), REAL_MESSAGE);
+    assertEquals("홍길동", auth.userName());
+    assertEquals(null, auth.doorId());
+    BiostarAuthEvent tagged =
+        BiostarEventSocket.parse(new com.fasterxml.jackson.databind.ObjectMapper(), CARD_TAGGED);
+    assertEquals(null, tagged.userName(), "미등록 카드는 이름 자리의 '-' 를 이름으로 보이지 않는다");
+  }
 }

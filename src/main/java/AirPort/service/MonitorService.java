@@ -5,10 +5,12 @@ import AirPort.adapter.biostar.BiostarAuthEvent;
 import AirPort.adapter.biostar.BiostarDevice;
 import AirPort.adapter.biostar.BiostarDevices;
 import AirPort.adapter.biostar.BiostarEventSocket;
+import AirPort.common.EventLogLabels;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbSystemMapper;
 import AirPort.model.AuthEventResult;
+import AirPort.model.EventLogResult;
 import AirPort.model.TbLoginUser;
 import AirPort.model.TbSystem;
 import AirPort.security.ARIAUtil;
@@ -65,6 +67,30 @@ public class MonitorService {
    * <p>이벤트 로그 화면은 여러 대를 한 화면에서 본다. 실시간 이벤트 화면은 한 대만 보내므로 원소가 하나인 집합이 된다 — 두 화면이 같은 판정을 쓴다.
    */
   private final Map<SseEmitter, Set<String>> viewers = new ConcurrentHashMap<>();
+
+  /**
+   * <b>모든 이벤트</b>를 받는 구독자(그래픽맵 아래 이벤트 표) — viewers 의 부분집합이다. 장치·종류를 거르지 않고 소켓이 주는 대로 "log" 로 보낸다.
+   */
+  private final Set<SseEmitter> logViewers = ConcurrentHashMap.newKeySet();
+
+  /**
+   * 모든 이벤트 전송 — 인증 보강(사진 조회로 느리다)과 떼어 둔다. 같은 대기열이면 사진을 기다리는 사이 로그가 상한에 걸려 버려진다. 순서를 지키려 단일 스레드다.
+   */
+  private final ExecutorService logWorker =
+      new ThreadPoolExecutor(
+          1,
+          1,
+          0L,
+          TimeUnit.MILLISECONDS,
+          new LinkedBlockingQueue<>(LOG_QUEUE_LIMIT),
+          r -> {
+            Thread t = new Thread(r, "monitor-log");
+            t.setDaemon(true);
+            return t;
+          },
+          new ThreadPoolExecutor.DiscardOldestPolicy());
+
+  private static final int LOG_QUEUE_LIMIT = 500;
 
   /** 구독자 목록과 소켓 수명을 함께 지키는 잠금 — 둘이 엇갈리면 소켓 없이 구독자만 남는다. */
   private final Object viewerLock = new Object();
@@ -128,6 +154,14 @@ public class MonitorService {
    * 아무도 다시 열지 않는 상태가 된다(그 화면은 새로고침 전까지 영구 정지). 소켓 연결 자체는 비동기라 이 잠금은 짧다.
    */
   public SseEmitter subscribe(List<String> deviceIds, TbLoginUser actor, Integer menuId) {
+    return subscribe(deviceIds, false, actor, menuId);
+  }
+
+  /**
+   * @param allLogs 모든 이벤트도 받는가 — 참이면 고른 장치가 없어도 구독한다(인증 사진·문 반짝임은 고른 장치만, 이벤트 표는 전부)
+   */
+  public SseEmitter subscribe(
+      List<String> deviceIds, boolean allLogs, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
     Set<String> watch = new java.util.LinkedHashSet<>();
     if (deviceIds != null) {
@@ -136,7 +170,7 @@ public class MonitorService {
           .map(String::trim)
           .forEach(watch::add);
     }
-    if (watch.isEmpty()) {
+    if (watch.isEmpty() && !allLogs) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "조회할 단말기를 선택하세요.");
     }
     TbSystem cfg = config();
@@ -149,6 +183,9 @@ public class MonitorService {
 
     synchronized (viewerLock) {
       viewers.put(emitter, watch);
+      if (allLogs) {
+        logViewers.add(emitter);
+      }
       eventSocket.start(
           cfg.getBiostarIp(),
           cfg.getBiostarId(),
@@ -181,6 +218,9 @@ public class MonitorService {
 
   /** 소켓 수신 스레드에서 불린다 — 여기서 오래 걸리면 다음 이벤트가 밀린다. 판정만 하고 넘긴다. */
   private void onEvent(BiostarAuthEvent event) {
+    if (!logViewers.isEmpty()) {
+      logWorker.execute(() -> pushLog(event)); // 모든 이벤트 — 종류·장치를 거르지 않는다
+    }
     // 왜 안 떴는지는 여기서 갈린다 — 인증이 아니었는지, 다른 단말기였는지. 사유를 안 남기면
     // "장비가 안 보냈다"와 구분되지 않아 현장에서 원인을 좁힐 수 없다.
     if (!event.displayable()) {
@@ -217,6 +257,39 @@ public class MonitorService {
     } catch (Exception e) {
       log.warn("실시간 이벤트 처리 실패: {}", e.toString());
     }
+  }
+
+  private void pushLog(BiostarAuthEvent event) {
+    try {
+      EventLogResult row = logRow(event);
+      logViewers.forEach(emitter -> send(emitter, "log", row));
+    } catch (Exception e) {
+      log.warn("이벤트 로그 전송 실패: {}", e.toString());
+    }
+  }
+
+  /** 모든 이벤트 표의 한 줄 — 보강 없이 소켓 값만으로 만든다. */
+  static EventLogResult logRow(BiostarAuthEvent event) {
+    EventLogResult r = new EventLogResult();
+    r.setEventTime(AirPort.common.EventTimes.dateTime(event.datetime()));
+    r.setEventCode(event.eventCode());
+    r.setEventName(event.eventName());
+    boolean displayable = event.displayable();
+    r.setLabel(
+        displayable
+            ? event.resultLabel()
+            : EventLogLabels.label(event.eventName(), event.eventCode()));
+    r.setTone(
+        displayable && !event.granted()
+            ? EventLogLabels.ERROR
+            : EventLogLabels.tone(event.eventName(), event.granted()));
+    r.setDeviceId(event.deviceId());
+    r.setDeviceName(event.deviceName());
+    r.setUserId(event.userId());
+    r.setUserName(event.userName());
+    r.setDoorId(event.doorId());
+    r.setDoorName(event.doorName());
+    return r;
   }
 
   /** 소켓 상태가 바뀌면 보고 있는 모든 화면에 알린다 — 조용히 끊기면 "인증이 없는 것"과 구분되지 않는다. */
@@ -299,6 +372,7 @@ public class MonitorService {
    */
   private void release(SseEmitter emitter) {
     synchronized (viewerLock) {
+      logViewers.remove(emitter);
       if (viewers.remove(emitter) != null && viewers.isEmpty()) {
         eventSocket.stop(CHANNEL);
       }

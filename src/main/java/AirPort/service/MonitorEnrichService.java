@@ -168,11 +168,13 @@ public class MonitorEnrichService {
     return (cipher == null || cipher.isBlank()) ? cipher : ARIAUtil.ariaDecrypt(cipher);
   }
 
-  /** "2026-08-11T01:38:01.00Z" → "01:38:01". 형식이 다르면 원문을 남긴다(조용히 비우지 않는다). */
+  /**
+   * "2026-08-11T01:38:01.00Z"(UTC) → 서버 시간대의 "HH:mm:ss". 형식이 다르면 원문을 남긴다(조용히 비우지 않는다).
+   *
+   * <p>이벤트의 datetime 은 진짜 UTC 다 — 예전에는 문자열을 잘라 써 9시간 이른 시각이 화면에 나갔다({@link
+   * AirPort.common.EventTimes}).
+   */
   static String time(String datetime) {
-    if (datetime == null || datetime.length() < 19 || datetime.charAt(10) != 'T') {
-      return datetime;
-    }
-    return datetime.substring(11, 19);
+    return AirPort.common.EventTimes.time(datetime);
   }
 }

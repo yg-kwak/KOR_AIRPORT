@@ -5,7 +5,7 @@
 (function () {
   const BASE = '/monitor/graphicMap';
   const PHOTO_MAX = 15;   // 오른쪽 사진 — 최근이 위
-  const EVENT_MAX = 200;  // 아래 로그 — 넘으면 오래된 것부터 버린다
+  const EVENT_MAX = 500;  // 아래 이벤트(모든 종류) — 넘으면 오래된 것부터 버린다
   const FLASH_MS = 4000;  // 인증한 문이 반짝이는 시간
   const KEEPALIVE_MS = 5 * 60 * 1000; // 세션 유휴 만료(1시간)보다 짧게 — 늘 켜 두는 화면이라 스트림과 무관하게 계속 두드린다
   const MAP_KEY = 'graphicMapId';     // 마지막에 본 맵 — 늘 켜 두는 화면이라 다시 열면 이어서 본다
@@ -58,7 +58,7 @@
     $('mapTitle').textContent = '맵을 선택하세요';
     $('planeImg').removeAttribute('src');
     $('stageEmpty').hidden = false;
-    renderMapList(); renderDoors(); renderDoorList(); stop();
+    renderMapList(); renderDoors(); renderDoorList(); subscribe(); // 맵이 없어도 아래 이벤트는 받는다
   }
 
   const normDoor = (d) => ({ doorId: Number(d.doorId), doorName: d.doorName || '', deviceId: d.deviceId ? String(d.deviceId) : null,
@@ -183,15 +183,15 @@
 
   function subscribe() {
     stop();
-    if (!state.doors.length) { setState('놓인 출입문 없음', false); return; }
+    // 놓인 문의 입구 단말기 — 인증 사진·문 반짝임용. 아래 이벤트 표는 서버가 장치·종류를 거르지 않고 모두 보낸다(log)
     const q = new URLSearchParams();
     [...new Set(state.doors.map((d) => d.deviceId).filter(Boolean))].forEach((id) => q.append('deviceId', id));
-    if (!q.toString()) { setState('입구 단말기가 있는 문이 없음', true); return; }
-    stream = new EventSource(BASE + '/stream?' + q.toString());
+    stream = new EventSource(BASE + '/stream' + (q.toString() ? '?' + q.toString() : ''));
     const on = (name, fn) => stream.addEventListener(name, (m) => {
       try { fn(JSON.parse(m.data)); } catch (err) { console.warn('이벤트 처리 실패', err); }
     });
     on('auth', onAuth);
+    on('log', addEvent);
     on('status', (s) => {
       if (s.message) setState(s.message, true);
       else setState(s.connected ? '수신 중' : 'BiostarX 연결 중', !s.connected);
@@ -213,21 +213,23 @@
   function onAuth(e) {
     authSound.play(e.granted);
     flashDevice(e.deviceId, e.granted);
-    addEvent(e);
-    addPhoto(e);
+    addPhoto(e); // 이벤트 표는 'log' 가 채운다 — 여기서도 넣으면 인증이 두 줄이 된다
   }
 
+  /* 모든 이벤트 한 줄 — 인증·문 열림/잠김·운영자 조작·장치 연결까지. 출입문은 이벤트가 문을 실어 오면 그것,
+     아니면 이 맵에 놓인 문 중 그 단말기가 입구인 문 */
+  const TONE_TEXT = { success: '통과', error: '경고', info: '-' };
   function addEvent(e) {
     const body = $('eventBody');
     if (!eventCount) body.innerHTML = '';
-    const today = new Date();
-    const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    const who = e.personName || e.personId || '미등록';
+    const placed = state.doors.find((x) => e.deviceId && x.deviceId === String(e.deviceId));
+    const door = e.doorName || (placed && placed.doorName) || '-';
     const tr = document.createElement('tr');
-    tr.className = e.granted ? '' : 'deny';
-    tr.innerHTML = `<td>${esc(date)} ${esc(e.eventTime || '')}</td><td>${esc(doorName(e))}</td><td>${esc(e.deviceId)}</td>
-      <td>${esc(who)}${e.companyName ? ` <span class="gmap-sub">(${esc(e.companyName)})</span>` : ''}</td>
-      <td>${esc(e.resultLabel || '')}</td><td>${badge.of(e.granted ? '통과' : '거부', e.granted ? 'success' : 'error')}</td>`;
+    tr.className = e.tone === 'error' ? 'deny' : '';
+    tr.title = e.eventName || '';
+    tr.innerHTML = `<td>${esc(e.eventTime || '')}</td><td>${esc(door)}</td><td>${esc(e.deviceName || e.deviceId || '-')}</td>
+      <td>${esc(e.userName || e.userId || '-')}</td><td>${esc(e.label || e.eventName || '')}</td>
+      <td>${e.tone === 'info' ? '-' : badge.of(TONE_TEXT[e.tone] || '-', e.tone)}</td>`;
     body.prepend(tr);
     while (body.rows.length > EVENT_MAX) body.deleteRow(body.rows.length - 1);
     eventCount += 1;

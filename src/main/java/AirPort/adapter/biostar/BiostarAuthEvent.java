@@ -12,6 +12,9 @@ import java.util.Map;
  * @param deviceName 장치 이름
  * @param userId 인증한 사용자 ID(= 우리 인원ID). 미등록 카드 등은 비어 있다
  * @param imageId 인증 사진 ID(events/images 조회 키). 성공이어도 없을 수 있다
+ * @param userName 장비가 실어 준 사용자 이름(없으면 null) — 모든 이벤트 표용
+ * @param doorId 출입문 이벤트의 문 ID(문 열림·잠김·운영자 조작 등). 인증 이벤트에는 없다
+ * @param doorName 그 문 이름
  */
 public record BiostarAuthEvent(
     String eventCode,
@@ -20,7 +23,22 @@ public record BiostarAuthEvent(
     String deviceId,
     String deviceName,
     String userId,
-    String imageId) {
+    String imageId,
+    String userName,
+    String doorId,
+    String doorName) {
+
+  /** 인증 화면용(이름·출입문 없이) — 기존 호출 그대로. */
+  public BiostarAuthEvent(
+      String eventCode,
+      String eventName,
+      String datetime,
+      String deviceId,
+      String deviceName,
+      String userId,
+      String imageId) {
+    this(eventCode, eventName, datetime, deviceId, deviceName, userId, imageId, null, null, null);
+  }
 
   /** 통과 문구 — 인증 수단이 무엇이든 사람이 지나갔다는 사실은 하나다. */
   private static final String GRANTED = "O 인증 성공";

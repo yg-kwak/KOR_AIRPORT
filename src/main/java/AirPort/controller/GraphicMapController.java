@@ -161,8 +161,10 @@ public class GraphicMapController {
 
   /** 인증 이벤트 스트림 (SSE) — 지금 맵에 놓인 출입문들의 입구 단말기. */
   @GetMapping("/stream")
-  public SseEmitter stream(@RequestParam List<String> deviceId, HttpSession session) {
-    return monitorService.subscribe(deviceId, actor(session), menuId());
+  public SseEmitter stream(
+      @RequestParam(required = false) List<String> deviceId, HttpSession session) {
+    // 아래 이벤트 표는 모든 이벤트 — 놓인 문이 없는 맵에서도 열린다(사진·문 반짝임은 놓인 문의 단말기만)
+    return monitorService.subscribe(deviceId, true, actor(session), menuId());
   }
 
   private TbLoginUser actor(HttpSession session) {

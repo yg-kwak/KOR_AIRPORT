@@ -439,6 +439,10 @@ public class BiostarEventSocket {
     }
     JsonNode type = event.path("event_type_id");
     JsonNode user = event.path("user_id");
+    JsonNode door = event.path("door_id"); // 출입문 이벤트는 배열이다([{"id":"5","name":"F2"}], 장비 실측)
+    door =
+        door.isArray() ? door.path(0) : door; // 빈 배열이면 path(0) 이 MissingNode — text() 가 null 을 준다
+    String userName = text(user, "name");
     return new BiostarAuthEvent(
         text(type, "code"),
         text(type, "name"),
@@ -446,7 +450,10 @@ public class BiostarEventSocket {
         text(event.path("device_id"), "id"),
         text(event.path("device_id"), "name"),
         text(user, "user_id"),
-        text(event.path("image_id"), "image_data"));
+        text(event.path("image_id"), "image_data"),
+        "-".equals(userName) ? null : userName, // 미등록 카드는 이름 자리에 '-' 가 온다
+        text(door, "id"),
+        text(door, "name"));
   }
 
   private static String text(JsonNode node, String field) {

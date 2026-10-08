@@ -88,8 +88,79 @@ class MonitorEventTest {
   }
 
   @Test
-  void 이벤트_시각은_시분초만_남긴다() {
-    assertEquals("01:38:01", MonitorEnrichService.time("2026-08-11T01:38:01.00Z"));
+  void 이벤트_시각은_UTC_로_읽어_서버_시간대로_바꾼다() {
+    // datetime 은 진짜 UTC 다(장비 실측: 03:50Z = 한국 12:50). 예전처럼 잘라 쓰면 9시간 이른 시각이 나간다
+    java.time.ZoneId seoul = java.time.ZoneId.of("Asia/Seoul");
+    assertEquals(
+        "10:38:01",
+        AirPort.common.EventTimes.format(
+            "2026-08-11T01:38:01.00Z",
+            java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"),
+            seoul));
+    assertEquals(
+        "2026-10-08 12:50:09",
+        AirPort.common.EventTimes.format(
+            "2026-10-08T03:50:09.00Z",
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+            seoul));
+    assertEquals(
+        AirPort.common.EventTimes.time("2026-08-11T01:38:01.00Z"),
+        MonitorEnrichService.time("2026-08-11T01:38:01.00Z"),
+        "실시간 이벤트·이벤트 로그 화면도 같은 변환을 쓴다");
+  }
+
+  @Test
+  void 모든_이벤트_표는_문_이벤트도_싣고_문구와_색을_정한다() {
+    // 장비 실측 — 운영자가 F2 를 해제했을 때
+    AirPort.adapter.biostar.BiostarAuthEvent door =
+        new AirPort.adapter.biostar.BiostarAuthEvent(
+            "23556",
+            "RELEASE_DOOR_BY_OPERATOR",
+            "2026-10-08T03:50:09.00Z",
+            "543737030",
+            "FaceStation F2",
+            null,
+            null,
+            null,
+            "5",
+            "F2");
+    AirPort.model.EventLogResult r = MonitorService.logRow(door);
+    assertEquals("운영자 해제", r.getLabel());
+    assertEquals("info", r.getTone());
+    assertEquals("F2", r.getDoorName());
+    assertEquals("RELEASE_DOOR_BY_OPERATOR", r.getEventName());
+
+    AirPort.adapter.biostar.BiostarAuthEvent ok =
+        new AirPort.adapter.biostar.BiostarAuthEvent(
+            "4106",
+            "VERIFY_SUCCESS_CARD_FACE",
+            "2026-10-08T03:50:09.00Z",
+            "543737030",
+            "FaceStation F2",
+            "400001",
+            null,
+            "홍길동",
+            null,
+            null);
+    assertEquals("success", MonitorService.logRow(ok).getTone());
+    assertEquals("홍길동", MonitorService.logRow(ok).getUserName());
+
+    AirPort.adapter.biostar.BiostarAuthEvent denied =
+        new AirPort.adapter.biostar.BiostarAuthEvent(
+            "6401",
+            "ACCESS_DENIED_INVALID_ACCESS_GROUP",
+            "2026-10-08T03:50:09.00Z",
+            "1",
+            "d",
+            "x",
+            null);
+    assertEquals("error", MonitorService.logRow(denied).getTone());
+    assertEquals("X 출입제한구역", MonitorService.logRow(denied).getLabel());
+
+    AirPort.adapter.biostar.BiostarAuthEvent unknown =
+        new AirPort.adapter.biostar.BiostarAuthEvent(
+            "99999", "SOMETHING_NEW", "2026-10-08T03:50:09.00Z", "1", "d", null, null);
+    assertEquals("SOMETHING_NEW", MonitorService.logRow(unknown).getLabel(), "모르는 이벤트도 숨기지 않는다");
   }
 
   @Test
