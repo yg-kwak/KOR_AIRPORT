@@ -704,7 +704,6 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 .gmap-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gmap-item-sub { color: var(--g-text-2); font-size: 12px; white-space: nowrap; }
 .gmap-empty { padding: 14px; color: var(--g-text-2); font-size: 13px; text-align: center; }
-.gmap-hint { margin: 8px 12px; font-size: 12px; color: #ffb84d; line-height: 1.5; }
 .gmap-map-actions { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px; border-top: 1px solid var(--g-line); }
 
 /* 평면도 무대 — 평면도(plane)는 무대 안에서 크기·위치만 바뀌고, 문은 plane 안에 % 로 서서 함께 움직인다 */
@@ -733,6 +732,18 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 .gmap.editing .gmap-door { cursor: move; }
 .gmap-door-del { position: absolute; top: -8px; right: -10px; width: 18px; height: 18px; border-radius: 50%;
   border: 0; background: var(--monitor-deny); color: #fff; font-size: 12px; line-height: 18px; padding: 0; cursor: pointer; }
+/* 놓인 문 제어 메뉴 — 문 옆에 뜬다 */
+.gmap-door-menu { position: absolute; z-index: 3; min-width: 120px; background: #2b2f38; border: 1px solid var(--g-line);
+  border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.5); padding: 4px; display: flex; flex-direction: column; }
+.gmap-door-menu[hidden] { display: none; }
+.gmap-door-menu-title { font-size: 12px; color: var(--g-text-2); padding: 6px 10px 4px; border-bottom: 1px solid var(--g-line);
+  margin-bottom: 2px; white-space: nowrap; }
+.gmap-door-menu button { text-align: left; background: none; border: 0; color: #e6e8ec; padding: 8px 10px; border-radius: 4px;
+  font-size: 13px; cursor: pointer; }
+.gmap-door-menu button:hover { background: #3a3f4a; }
+.gmap-door-menu button[data-action="unlock"] { color: #7ee2a8; }
+.gmap-door-menu button[data-action="lock"] { color: #ff9c9c; }
+.gmap:not(.editing) .gmap-door { cursor: pointer; }
 .gmap-zoom { position: absolute; right: 14px; bottom: 14px; display: flex; align-items: center; gap: 2px;
   background: #2b2f38; border: 1px solid var(--g-line); border-radius: 18px; padding: 3px; z-index: 2; }
 .gmap-zoom button { width: 30px; height: 28px; border: 0; border-radius: 14px; background: none; color: #e6e8ec;

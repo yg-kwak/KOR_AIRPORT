@@ -30,6 +30,9 @@ public interface TbGraphicMapMapper {
 
   List<TbGraphicMapDoor> selectDoors(@Param("mapId") int mapId);
 
+  /** 이 맵에 놓인 문 — 없으면 null. 원격 제어는 놓인 문만 받는다. */
+  TbGraphicMapDoor selectPlacedDoor(@Param("mapId") int mapId, @Param("doorId") long doorId);
+
   int deleteDoors(@Param("mapId") int mapId);
 
   int insertDoors(@Param("mapId") int mapId, @Param("doors") List<TbGraphicMapDoor> doors);

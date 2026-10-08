@@ -42,9 +42,16 @@
   </update>
 
   <select id="selectDoors" resultType="TbGraphicMapDoor">
-    SELECT map_id, device_id, device_name, pos_x, pos_y
+    SELECT map_id, door_id, door_name, device_id, pos_x, pos_y
     FROM tb_graphic_map_door WHERE map_id = #{mapId}
-    ORDER BY device_name, device_id
+    ORDER BY door_name, door_id
+  </select>
+
+  <!-- 이 맵에 놓인 문인가 — 원격 제어는 평면도에 놓인 문만 받는다(문 번호만 바꿔 다른 문을 열지 못하게) -->
+  <select id="selectPlacedDoor" resultType="TbGraphicMapDoor">
+    SELECT d.map_id, d.door_id, d.door_name, d.device_id, d.pos_x, d.pos_y
+    FROM tb_graphic_map_door d JOIN tb_graphic_map m ON m.map_id = d.map_id AND m.del_yn = 'N'
+    WHERE d.map_id = #{mapId} AND d.door_id = #{doorId}
   </select>
 
   <delete id="deleteDoors">
@@ -52,9 +59,9 @@
   </delete>
 
   <insert id="insertDoors">
-    INSERT INTO tb_graphic_map_door (map_id, device_id, device_name, pos_x, pos_y) VALUES
+    INSERT INTO tb_graphic_map_door (map_id, door_id, door_name, device_id, pos_x, pos_y) VALUES
     <foreach collection="doors" item="d" separator=",">
-      (#{mapId}, #{d.deviceId}, #{d.deviceName}, #{d.posX}, #{d.posY})
+      (#{mapId}, #{d.doorId}, #{d.doorName}, #{d.deviceId}, #{d.posX}, #{d.posY})
     </foreach>
   </insert>
 </mapper>

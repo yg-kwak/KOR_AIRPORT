@@ -1,12 +1,19 @@
 package AirPort.service;
 
+import AirPort.adapter.biostar.BiostarDoor;
+import AirPort.adapter.biostar.BiostarDoorAdapter;
+import AirPort.adapter.biostar.BiostarResult;
+import AirPort.adapter.biostar.BiostarSessionException;
 import AirPort.common.exception.BusinessException;
 import AirPort.common.exception.ErrorCode;
 import AirPort.mapper.TbGraphicMapMapper;
+import AirPort.mapper.TbSystemMapper;
 import AirPort.model.GraphicMapForm;
 import AirPort.model.TbGraphicMap;
 import AirPort.model.TbGraphicMapDoor;
 import AirPort.model.TbLoginUser;
+import AirPort.model.TbSystem;
+import AirPort.security.ARIAUtil;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -17,8 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 그래픽맵 — 평면도를 올리고 그 위에 출입문(단말기)을 놓는다. 인증 이벤트는 {@link MonitorService} 가 그대로 흘려 준다(이 화면은 놓인 단말기들을 구독할
- * 뿐이다).
+ * 그래픽맵 — 평면도를 올리고 그 위에 <b>BiostarX 출입문</b>을 놓는다. 놓인 문은 원격으로 개방·잠금·해제할 수 있다. 인증 이벤트는 {@link
+ * MonitorService} 가 그대로 흘려 준다(이 화면은 놓인 문의 입구 단말기들을 구독할 뿐이다).
  *
  * <p>평면도는 <b>래스터 이미지만</b> 받는다(PNG·JPG·GIF·WEBP). SVG 는 스크립트를 품을 수 있어 받지 않는다. 형식은 업로드한 쪽이 붙인 MIME 이
  * 아니라 <b>파일 앞부분의 서명</b>으로 판정한다 — 확장자만 바꾼 파일이 이미지로 저장되지 않게.
@@ -30,14 +37,86 @@ public class GraphicMapService {
   static final int MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
   private final TbGraphicMapMapper mapMapper;
+  private final TbSystemMapper systemMapper;
+  private final BiostarDoorAdapter doorAdapter;
   private final MenuAuthService menuAuthService;
   private final AuditService auditService;
 
   public GraphicMapService(
-      TbGraphicMapMapper mapMapper, MenuAuthService menuAuthService, AuditService auditService) {
+      TbGraphicMapMapper mapMapper,
+      TbSystemMapper systemMapper,
+      BiostarDoorAdapter doorAdapter,
+      MenuAuthService menuAuthService,
+      AuditService auditService) {
     this.mapMapper = mapMapper;
+    this.systemMapper = systemMapper;
+    this.doorAdapter = doorAdapter;
     this.menuAuthService = menuAuthService;
     this.auditService = auditService;
+  }
+
+  /** 놓을 수 있는 출입문 — BiostarX 에서 그대로 읽는다(전체 출입문 그룹). 배치는 편집 권한이 있어야 하므로 목록도 그 권한으로 연다. */
+  public List<BiostarDoor> biostarDoors(TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireCreate(actor, menuId);
+    TbSystem cfg = config();
+    try {
+      return doorAdapter.searchDoors(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg));
+    } catch (BiostarSessionException e) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, e.getMessage());
+    }
+  }
+
+  /**
+   * 출입문 원격 제어 — 개방·잠금·해제. <b>이 맵에 놓인 문만</b> 받는다(요청의 문 번호만 바꿔 평면도에 없는 문을 열지 못하게).
+   *
+   * <p>문을 여는 일이라 성공·실패 모두 감사에 남긴다 — 실패는 롤백과 무관하게 남아야 해서 {@code logAlways}.
+   */
+  public String controlDoor(
+      int mapId, long doorId, String action, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireCreate(actor, menuId); // 정책: 등록/수정 권한 — 문을 움직이는 일은 보기 권한으로 하지 않는다
+    BiostarDoorAdapter.Action act = action(action);
+    TbGraphicMapDoor door = mapMapper.selectPlacedDoor(mapId, doorId);
+    if (door == null) {
+      throw new BusinessException(ErrorCode.NOT_FOUND, "이 맵에 놓인 출입문이 아닙니다.");
+    }
+    TbSystem cfg = config();
+    BiostarResult res =
+        doorAdapter.control(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), act, doorId);
+    String what =
+        "출입문 " + act.label + ": " + doorId + " " + nvl(door.getDoorName()) + " (맵 " + mapId + ")";
+    if (!res.success()) {
+      auditService.logAlways(actor, AuditService.UPDATE, menuId, what + " 실패 — " + res.message());
+      throw new BusinessException(ErrorCode.INVALID_INPUT, act.label + " 실패: " + res.message());
+    }
+    auditService.log(actor, AuditService.UPDATE, menuId, what);
+    return nvl(door.getDoorName()) + " " + act.label + " 요청을 보냈습니다.";
+  }
+
+  static BiostarDoorAdapter.Action action(String action) {
+    if (action != null) {
+      for (BiostarDoorAdapter.Action a : BiostarDoorAdapter.Action.values()) {
+        if (a.name().equalsIgnoreCase(action.trim())) {
+          return a;
+        }
+      }
+    }
+    throw new BusinessException(ErrorCode.INVALID_INPUT, "알 수 없는 제어입니다: " + action);
+  }
+
+  private TbSystem config() {
+    TbSystem cfg = systemMapper.selectOne();
+    if (cfg == null || cfg.getBiostarIp() == null || cfg.getBiostarIp().isBlank()) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 접속정보가 없습니다. 설정관리에서 등록하세요.");
+    }
+    return cfg;
+  }
+
+  private static String pw(TbSystem cfg) {
+    return cfg.getBiostarPw() == null ? "" : ARIAUtil.ariaDecrypt(cfg.getBiostarPw());
+  }
+
+  private static String nvl(String s) {
+    return s == null ? "" : s;
   }
 
   public List<TbGraphicMap> maps(TbLoginUser actor, Integer menuId) {
@@ -119,24 +198,26 @@ public class GraphicMapService {
   }
 
   /**
-   * 배치 정리 — 같은 단말기는 한 맵에 한 번만, 위치는 평면도 안(0~1)으로 자르고 소수 넷째 자리까지.
+   * 배치 정리 — 같은 출입문은 한 맵에 한 번만, 위치는 평면도 안(0~1)으로 자르고 소수 넷째 자리까지.
    *
    * <p>화면이 끌어다 놓다가 경계를 살짝 넘긴 값이 그대로 저장되면 다시 열었을 때 평면도 밖에 서서 찾을 수 없다.
    */
   static List<TbGraphicMapDoor> cleanDoors(List<TbGraphicMapDoor> in) {
     List<TbGraphicMapDoor> out = new ArrayList<>();
-    Set<String> seen = new HashSet<>();
+    Set<Long> seen = new HashSet<>();
     for (TbGraphicMapDoor d : in) {
-      if (d == null || d.getDeviceId() == null || d.getDeviceId().isBlank()) {
+      if (d == null || d.getDoorId() == null) {
         continue;
       }
-      String id = d.getDeviceId().trim();
-      if (!seen.add(id)) {
-        throw new BusinessException(ErrorCode.INVALID_INPUT, "같은 단말기를 한 맵에 두 번 놓을 수 없습니다: " + id);
+      if (!seen.add(d.getDoorId())) {
+        throw new BusinessException(
+            ErrorCode.INVALID_INPUT, "같은 출입문을 한 맵에 두 번 놓을 수 없습니다: " + d.getDoorId());
       }
       TbGraphicMapDoor c = new TbGraphicMapDoor();
-      c.setDeviceId(id);
-      c.setDeviceName(d.getDeviceName() == null ? null : d.getDeviceName().trim());
+      c.setDoorId(d.getDoorId());
+      c.setDoorName(d.getDoorName() == null ? null : d.getDoorName().trim());
+      c.setDeviceId(
+          d.getDeviceId() == null || d.getDeviceId().isBlank() ? null : d.getDeviceId().trim());
       c.setPosX(clamp(d.getPosX()));
       c.setPosY(clamp(d.getPosY()));
       out.add(c);

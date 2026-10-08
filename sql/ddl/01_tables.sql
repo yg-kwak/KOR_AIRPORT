@@ -417,11 +417,12 @@ CREATE TABLE dbo.tb_graphic_map (
 
 CREATE TABLE dbo.tb_graphic_map_door (
   map_id      int            NOT NULL,              -- → tb_graphic_map.map_id
-  device_id   nvarchar(50)   NOT NULL,              -- BiostarX 장치ID (인증 이벤트의 device_id)
-  device_name nvarchar(200)  NULL,                  -- 배치할 때의 장치 이름(표시용 스냅샷)
-  pos_x       decimal(7,4)   NOT NULL,              -- 평면도 가로 위치 0~1
+  door_id     int            NOT NULL,              -- BiostarX 출입문ID (원격 개방·잠금·해제 대상)
+  door_name   nvarchar(200)  NULL,                  -- 배치할 때의 출입문 이름(표시용 스냅샷)
+  device_id   nvarchar(50)   NULL,                  -- 그 문의 입구 단말기 — 인증 이벤트(device_id)를 이 문에 잇는다
+  pos_x       decimal(7,4)   NOT NULL,              -- 평면도 가로 위치 0~1 (비율 — 확대해도 같은 자리)
   pos_y       decimal(7,4)   NOT NULL,              -- 평면도 세로 위치 0~1
-  CONSTRAINT PK_tb_graphic_map_door PRIMARY KEY (map_id, device_id)
+  CONSTRAINT PK_tb_graphic_map_door PRIMARY KEY (map_id, door_id)
 );
 
 /* 감사추적: reg_dt 범위 + 최신순 정렬 (+ 유형·메뉴·사용자 필터) */

@@ -12,7 +12,7 @@
 
    담는 내용
      [1] tb_menu.new_window_yn — 메뉴를 새 창으로 여는지(Y/N)
-     [2] tb_graphic_map / tb_graphic_map_door — 그래픽맵 평면도와 그 위에 놓은 출입문
+     [2] tb_graphic_map / tb_graphic_map_door — 그래픽맵 평면도와 그 위에 놓은 출입문(BiostarX 출입문 단위)
      [3] 메뉴 903 그래픽맵 (모니터링 900 하위, 새 창) + 권한
 
    왜 필요한가
@@ -53,15 +53,36 @@ ELSE
   PRINT '= tb_graphic_map 이미 있음';
 GO
 
+/* 출입문 배치 — BiostarX 출입문(door) 단위. 같은 날 먼저 배포된 처음 모양(단말기 단위, door_id 없음)이
+   이미 있으면: 비어 있으면 지우고, 배치가 있으면 tb_graphic_map_door_v1 로 이름만 바꿔 보관한다.
+   단말기 → 출입문 짝은 BiostarX 에만 있어 SQL 로 옮길 수 없다 — 화면에서 다시 놓는다(보관본에 옛 위치가 있다). */
+IF OBJECT_ID('dbo.tb_graphic_map_door', 'U') IS NOT NULL
+   AND COL_LENGTH('dbo.tb_graphic_map_door', 'door_id') IS NULL
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM dbo.tb_graphic_map_door)
+  BEGIN
+    DROP TABLE dbo.tb_graphic_map_door;
+    PRINT '~ tb_graphic_map_door 처음 모양(비어 있음) — 출입문 단위로 다시 만든다';
+  END
+  ELSE
+  BEGIN
+    EXEC sp_rename 'dbo.tb_graphic_map_door', 'tb_graphic_map_door_v1';
+    EXEC sp_rename 'dbo.PK_tb_graphic_map_door', 'PK_tb_graphic_map_door_v1';
+    PRINT '!! tb_graphic_map_door 처음 모양의 배치를 tb_graphic_map_door_v1 로 보관했다 — 그래픽맵에서 출입문을 다시 놓으세요';
+  END
+END
+GO
+
 IF OBJECT_ID('dbo.tb_graphic_map_door', 'U') IS NULL
 BEGIN
   CREATE TABLE dbo.tb_graphic_map_door (
     map_id      int            NOT NULL,              -- → tb_graphic_map.map_id
-    device_id   nvarchar(50)   NOT NULL,              -- BiostarX 장치ID (인증 이벤트의 device_id)
-    device_name nvarchar(200)  NULL,                  -- 배치할 때의 장치 이름(표시용 스냅샷)
+    door_id     int            NOT NULL,              -- BiostarX 출입문ID (원격 개방·잠금·해제 대상)
+    door_name   nvarchar(200)  NULL,                  -- 배치할 때의 출입문 이름(표시용 스냅샷)
+    device_id   nvarchar(50)   NULL,                  -- 그 문의 입구 단말기 — 인증 이벤트(device_id)를 이 문에 잇는다
     pos_x       decimal(7,4)   NOT NULL,              -- 평면도 가로 위치 0~1 (비율 — 확대해도 같은 자리)
     pos_y       decimal(7,4)   NOT NULL,              -- 평면도 세로 위치 0~1
-    CONSTRAINT PK_tb_graphic_map_door PRIMARY KEY (map_id, device_id)
+    CONSTRAINT PK_tb_graphic_map_door PRIMARY KEY (map_id, door_id)
   );
   PRINT '+ tb_graphic_map_door 생성';
 END

@@ -52,7 +52,6 @@
     </div>
     <div class="gmap-tab-panel" id="tab-doors" hidden>
       <div class="gmap-side-head"><span id="doorsHead">출입문</span></div>
-      <p class="gmap-hint" id="doorsHint" hidden>단말기를 고른 뒤 평면도를 눌러 놓으세요. 놓인 문은 끌어서 옮기고, × 로 뺍니다.</p>
       <ul class="gmap-list" id="doorList"><li class="gmap-empty">맵을 선택하세요.</li></ul>
     </div>
   </aside>
@@ -62,6 +61,13 @@
     <div class="gmap-plane" id="plane">
       <img id="planeImg" alt="평면도" draggable="false"/>
       <div class="gmap-doors" id="doorLayer"></div>
+    </div>
+    <!-- 놓인 문을 누르면 — 원격 개방·잠금·해제(등록 권한이 있을 때만) -->
+    <div class="gmap-door-menu" id="doorMenu" hidden>
+      <div class="gmap-door-menu-title" id="doorMenuTitle"></div>
+      <button type="button" data-action="unlock">개방</button>
+      <button type="button" data-action="lock">잠금</button>
+      <button type="button" data-action="release">해제</button>
     </div>
     <div class="gmap-stage-empty" id="stageEmpty">왼쪽에서 맵을 선택하거나 ＋ 로 평면도를 추가하세요.</div>
     <div class="gmap-zoom">

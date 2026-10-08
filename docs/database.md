@@ -432,13 +432,15 @@ PK: `map_id` (IDENTITY). 모니터링 903 화면이 쓴다. 삭제는 `del_yn='Y
 | reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | |
 
 ### tb_graphic_map_door — 평면도 위 출입문
-PK: `map_id` + `device_id`. 출입문은 **인증 이벤트가 오는 단말기(BiostarX 장치)**로 묶는다 — 이벤트의 `device_id` 로 어느 문이 반짝일지 정한다. 한 맵에 같은 단말기는 한 번.
+PK: `map_id` + `door_id`. **BiostarX 출입문(door)** 단위로 놓는다(`POST /api/v2/doors/search` 목록) — 원격 개방·잠금·해제 대상이다. 인증 이벤트는 단말기 ID 로 오므로 그 문의 **입구 단말기**(`entry_device_id`)를 함께 저장해 이벤트를 문에 잇는다. 한 맵에 같은 문은 한 번.
+(2026-10-08 처음 배포분은 단말기 단위였다 — 배포 스크립트가 비어 있으면 다시 만들고, 배치가 있으면 `tb_graphic_map_door_v1` 로 보관한다.)
 
 | 컬럼 | 타입 | PK | 설명 | 비고 |
 |------|------|----|------|------|
 | map_id | int | Y | 맵번호 | → `tb_graphic_map.map_id` |
-| device_id | nvarchar(50) | Y | BiostarX 장치ID | |
-| device_name | nvarchar(200) | | 배치할 때의 장치 이름 | 표시용 스냅샷 |
+| door_id | int | Y | BiostarX 출입문ID | 원격 제어 대상 |
+| door_name | nvarchar(200) | | 배치할 때의 출입문 이름 | 표시용 스냅샷 |
+| device_id | nvarchar(50) | | 그 문의 입구 단말기ID | 인증 이벤트(`device_id`)를 이 문에 잇는다. 없으면 이벤트가 붙지 않는다 |
 | pos_x / pos_y | decimal(7,4) | | 평면도 위치 0~1 **비율** | 확대·창 크기와 무관하게 같은 자리. 서버가 0~1 로 자른다 |
 
 ### tb_system_log — 감사추적 (이력, 불변식)

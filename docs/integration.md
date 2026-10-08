@@ -135,6 +135,8 @@ System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true"
 | 사용자 조회(존재 확인)/등록/수정/삭제 | `GET·POST·PUT·DELETE /api/users`, `GET /api/users/{id}` |
 | 카드 발급 | `POST /api/cards` |
 | 장치 카드 스캔 | `POST /api/devices/{deviceId}/scan_card` |
+| 출입문 목록 (그래픽맵) | `POST /api/v2/doors/search` `{"limit":500,"door_group_id":1}` — 전체 출입문 그룹. `rows[].id`·`name`·`entry_device_id.id`(입구 단말기) |
+| 출입문 원격 제어 (그래픽맵) | `POST /api/doors/unlock`(개방) · `/lock`(잠금) · `/release`(해제), 본문 `{"DoorCollection":{"rows":[{"id":"5"}]}}`. 성공 판정은 전체 `Response.code` 와 **문 단위 `DoorResponse.rows[].code`** 둘 다 0 — 장비가 꺼져 있으면 요청은 받아도 문은 움직이지 않는다. 이 맵에 놓인 문만 받고(`selectPlacedDoor`), 등록 권한 필요, 성공·실패 모두 감사(`BiostarDoorAdapter`) |
 | 얼굴 크리덴셜 | `GET /api/devices/{deviceId}/credentials/face` |
 | 출입 이벤트(이력) 검색 | `POST /api/events/search` |
 

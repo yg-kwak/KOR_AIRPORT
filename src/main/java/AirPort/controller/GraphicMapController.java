@@ -1,6 +1,6 @@
 package AirPort.controller;
 
-import AirPort.adapter.biostar.BiostarDevice;
+import AirPort.adapter.biostar.BiostarDoor;
 import AirPort.common.ApiResponse;
 import AirPort.common.CurrentMenu;
 import AirPort.common.SessionKeys;
@@ -140,14 +140,26 @@ public class GraphicMapController {
     return ApiResponse.ok(graphicMapService.doors(mapId, actor(session), menuId()));
   }
 
-  /** 놓을 수 있는 단말기 — BiostarX 장치 목록. */
-  @GetMapping("/devices")
+  /** 놓을 수 있는 출입문 — BiostarX 출입문 목록(전체 출입문 그룹). */
+  @GetMapping("/biostarDoors")
   @ResponseBody
-  public ApiResponse<List<BiostarDevice>> devices(HttpSession session) {
-    return ApiResponse.ok(monitorService.devices(actor(session), menuId()));
+  public ApiResponse<List<BiostarDoor>> biostarDoors(HttpSession session) {
+    return ApiResponse.ok(graphicMapService.biostarDoors(actor(session), menuId()));
   }
 
-  /** 인증 이벤트 스트림 (SSE) — 지금 맵에 놓인 단말기들. */
+  /** 출입문 원격 제어 — action: unlock(개방) · lock(잠금) · release(해제). 이 맵에 놓인 문만. */
+  @PostMapping("/doors/control")
+  @ResponseBody
+  public ApiResponse<Void> control(
+      @RequestParam int mapId,
+      @RequestParam long doorId,
+      @RequestParam String action,
+      HttpSession session) {
+    return ApiResponse.okMessage(
+        graphicMapService.controlDoor(mapId, doorId, action, actor(session), menuId()));
+  }
+
+  /** 인증 이벤트 스트림 (SSE) — 지금 맵에 놓인 출입문들의 입구 단말기. */
   @GetMapping("/stream")
   public SseEmitter stream(@RequestParam List<String> deviceId, HttpSession session) {
     return monitorService.subscribe(deviceId, actor(session), menuId());

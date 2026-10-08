@@ -52,14 +52,15 @@ class GraphicMapServiceTest {
   }
 
   @Test
-  void 배치는_평면도_안으로_자르고_같은_단말기는_두_번_놓을_수_없다() {
+  void 배치는_평면도_안으로_자르고_같은_출입문은_두_번_놓을_수_없다() {
     List<TbGraphicMapDoor> out =
         GraphicMapService.cleanDoors(
-            List.of(door("543737030", "-0.2", "1.37"), door(" 11 ", "0.123456", "0.5")));
+            List.of(door(5L, " 543737030 ", "-0.2", "1.37"), door(7L, null, "0.123456", "0.5")));
     assertEquals(2, out.size());
     assertEquals(new BigDecimal("0.0000"), out.get(0).getPosX(), "평면도 밖으로 끌어낸 값은 가장자리로");
     assertEquals(new BigDecimal("1.0000"), out.get(0).getPosY());
-    assertEquals("11", out.get(1).getDeviceId(), "앞뒤 공백은 턴다");
+    assertEquals("543737030", out.get(0).getDeviceId(), "입구 단말기 앞뒤 공백은 턴다");
+    assertEquals(null, out.get(1).getDeviceId(), "입구 단말기가 없는 문도 놓을 수 있다(이벤트만 안 붙는다)");
     assertEquals(new BigDecimal("0.1235"), out.get(1).getPosX(), "소수 넷째 자리까지");
 
     BusinessException dup =
@@ -67,14 +68,29 @@ class GraphicMapServiceTest {
             BusinessException.class,
             () ->
                 GraphicMapService.cleanDoors(
-                    List.of(door("1", "0.1", "0.1"), door("1", "0.2", "0.2"))));
+                    List.of(door(5L, "1", "0.1", "0.1"), door(5L, "1", "0.2", "0.2"))));
     assertTrue(dup.getMessage().contains("두 번"), dup.getMessage());
   }
 
-  private static TbGraphicMapDoor door(String id, String x, String y) {
+  @Test
+  void 제어는_개방_잠금_해제_셋만_받는다() {
+    assertEquals(
+        AirPort.adapter.biostar.BiostarDoorAdapter.Action.UNLOCK,
+        GraphicMapService.action("unlock"));
+    assertEquals(
+        AirPort.adapter.biostar.BiostarDoorAdapter.Action.LOCK, GraphicMapService.action("LOCK"));
+    assertEquals(
+        AirPort.adapter.biostar.BiostarDoorAdapter.Action.RELEASE,
+        GraphicMapService.action(" release "));
+    assertThrows(BusinessException.class, () -> GraphicMapService.action("open_all"));
+    assertThrows(BusinessException.class, () -> GraphicMapService.action(null));
+  }
+
+  private static TbGraphicMapDoor door(Long id, String deviceId, String x, String y) {
     TbGraphicMapDoor d = new TbGraphicMapDoor();
-    d.setDeviceId(id);
-    d.setDeviceName("문 " + id);
+    d.setDoorId(id);
+    d.setDoorName("문 " + id);
+    d.setDeviceId(deviceId);
     d.setPosX(new BigDecimal(x));
     d.setPosY(new BigDecimal(y));
     return d;

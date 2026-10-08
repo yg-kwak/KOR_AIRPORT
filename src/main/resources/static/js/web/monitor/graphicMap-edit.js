@@ -1,13 +1,13 @@
-/* 그래픽맵 편집 — 맵 추가·이름 변경·평면도 교체·삭제, 그리고 평면도 위 출입문(단말기) 배치.
+/* 그래픽맵 편집 — 맵 추가·이름 변경·평면도 교체·삭제, 그리고 평면도 위 출입문(BiostarX 출입문) 배치.
    '보기'는 graphicMap.js 가 맡고 여기는 window.gmap 으로 그 상태를 이어 받는다.
    배치는 화면에서 끝까지 고친 뒤 [배치 저장] 한 번으로 서버에 보낸다 — 문을 하나 옮길 때마다 저장하면
    실수로 끈 것도 바로 반영되고, 중간 상태가 다른 상황판에 그대로 보인다. */
 (function () {
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
   let g;                 // window.gmap
-  let devices = null;    // BiostarX 장치 [{id, name}] — 편집을 처음 열 때 한 번 읽는다
+  let devices = null;    // BiostarX 출입문 [{id, name, entryDeviceId}] — 편집을 처음 열 때 한 번 읽는다
   let backup = null;     // 편집 전 배치 — [취소] 하면 되돌린다
-  let pending = null;    // 놓으려고 고른 단말기 {id, name}
+  let pending = null;    // 놓으려고 고른 출입문 {id, name, entryDeviceId}
   let modalMode = 'add'; // 맵 모달: add | image
 
   /* ---- 맵 추가 / 평면도 교체 ---- */
@@ -65,12 +65,15 @@
   /* ---- 출입문 배치 ---- */
   async function start() {
     if (g.state.mapId == null) { toast.warning('먼저 맵을 선택하세요.'); return; }
-    if (!devices) devices = ((await api.get(g.BASE + '/devices')) || []).map((d) => ({ id: String(d.id), name: d.name || '' }));
+    if (!devices) {
+      devices = ((await api.get(g.BASE + '/biostarDoors')) || [])
+        .map((d) => ({ id: String(d.id), name: d.name || '', entryDeviceId: d.entryDeviceId || null }));
+    }
+    g.closeMenu();
     backup = g.state.doors.map((d) => ({ ...d }));
     g.state.editing = true;
     toggleBar(true);
-    document.querySelector('.gmap-tab[data-tab="doors"]').click(); // 놓을 단말기가 보이게
-    g.$('doorsHint').hidden = false;
+    document.querySelector('.gmap-tab[data-tab="doors"]').click(); // 놓을 출입문이 보이게
     g.renderDoors(); renderDevices();
   }
 
@@ -90,7 +93,6 @@
     g.state.editing = false; pending = null; backup = null;
     g.$('stage').classList.remove('placing');
     toggleBar(false);
-    g.$('doorsHint').hidden = true;
     g.renderDoors(); g.renderDoorList();
   }
 
@@ -99,20 +101,20 @@
     g.$('gmap').classList.toggle('editing', on);
   }
 
-  /* 편집 중 왼쪽 목록 — 놓을 단말기. 이미 놓인 것은 표시만 한다(한 맵에 한 번) */
+  /* 편집 중 왼쪽 목록 — 놓을 출입문(BiostarX). 이미 놓인 것은 표시만 한다(한 맵에 한 번) */
   function renderDevices() {
-    const placed = new Set(g.state.doors.map((d) => d.deviceId));
-    g.$('doorsHead').textContent = `단말기 (${(devices || []).length})`;
+    const placed = new Set(g.state.doors.map((d) => String(d.doorId)));
+    g.$('doorsHead').textContent = `출입문 (${(devices || []).length})`;
     g.$('doorList').innerHTML = (devices || []).length
       ? devices.map((d) => `<li class="gmap-item${placed.has(d.id) ? ' placed' : ''}${pending && pending.id === d.id ? ' active' : ''}" data-dev="${g.esc(d.id)}">
           <span class="gmap-item-name">${g.esc(d.name || d.id)}</span>
-          <span class="gmap-item-sub">${placed.has(d.id) ? '놓임' : g.esc(d.id)}</span></li>`).join('')
-      : '<li class="gmap-empty">단말기가 없습니다.</li>';
+          <span class="gmap-item-sub">${placed.has(d.id) ? '놓임' : '문 ' + g.esc(d.id)}</span></li>`).join('')
+      : '<li class="gmap-empty">BiostarX 에 출입문이 없습니다.</li>';
   }
 
   function pickDevice(id) {
     const d = devices.find((x) => x.id === id);
-    if (!d || g.state.doors.some((x) => x.deviceId === id)) return;
+    if (!d || g.state.doors.some((x) => String(x.doorId) === id)) return;
     pending = pending && pending.id === id ? null : d; // 다시 누르면 고르기 취소
     g.$('stage').classList.toggle('placing', !!pending);
     renderDevices();
@@ -129,7 +131,7 @@
     const r = g.$('plane').getBoundingClientRect(); // 평면도 밖을 누르면 놓지 않는다
     if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
     const p = ratioAt(e);
-    g.state.doors.push({ deviceId: pending.id, deviceName: pending.name, posX: p.x, posY: p.y });
+    g.state.doors.push({ doorId: Number(pending.id), doorName: pending.name, deviceId: pending.entryDeviceId, posX: p.x, posY: p.y });
     pending = null;
     g.$('stage').classList.remove('placing');
     g.renderDoors(); renderDevices();
@@ -143,11 +145,11 @@
       if (!g.state.editing) return;
       const el = e.target.closest('.gmap-door'); if (!el) return;
       if (e.target.closest('.gmap-door-del')) {
-        g.state.doors = g.state.doors.filter((d) => d.deviceId !== el.dataset.id);
+        g.state.doors = g.state.doors.filter((d) => String(d.doorId) !== el.dataset.id);
         g.renderDoors(); renderDevices(); return;
       }
       e.preventDefault(); e.stopPropagation();
-      drag = { el, door: g.state.doors.find((d) => d.deviceId === el.dataset.id) };
+      drag = { el, door: g.state.doors.find((d) => String(d.doorId) === el.dataset.id) };
       el.setPointerCapture(e.pointerId);
     });
     layer.addEventListener('pointermove', (e) => {

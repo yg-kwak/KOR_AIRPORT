@@ -843,14 +843,27 @@ IF OBJECT_ID('dbo.tb_graphic_map', 'U') IS NULL
     CONSTRAINT CHK_tb_graphic_map_del_yn CHECK (del_yn IN ('Y','N'))
   );
 GO
+/* 처음 모양(단말기 단위, door_id 없음) — 비어 있으면 지우고, 배치가 있으면 _v1 로 보관(화면에서 다시 놓는다) */
+IF OBJECT_ID('dbo.tb_graphic_map_door', 'U') IS NOT NULL AND COL_LENGTH('dbo.tb_graphic_map_door', 'door_id') IS NULL
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM dbo.tb_graphic_map_door)
+    DROP TABLE dbo.tb_graphic_map_door;
+  ELSE
+  BEGIN
+    EXEC sp_rename 'dbo.tb_graphic_map_door', 'tb_graphic_map_door_v1';
+    EXEC sp_rename 'dbo.PK_tb_graphic_map_door', 'PK_tb_graphic_map_door_v1';
+  END
+END
+GO
 IF OBJECT_ID('dbo.tb_graphic_map_door', 'U') IS NULL
   CREATE TABLE dbo.tb_graphic_map_door (
-    map_id      int            NOT NULL,
-    device_id   nvarchar(50)   NOT NULL,
-    device_name nvarchar(200)  NULL,
-    pos_x       decimal(7,4)   NOT NULL,
-    pos_y       decimal(7,4)   NOT NULL,
-    CONSTRAINT PK_tb_graphic_map_door PRIMARY KEY (map_id, device_id)
+    map_id      int            NOT NULL,              -- → tb_graphic_map.map_id
+    door_id     int            NOT NULL,              -- BiostarX 출입문ID (원격 개방·잠금·해제 대상)
+    door_name   nvarchar(200)  NULL,                  -- 배치할 때의 출입문 이름(표시용 스냅샷)
+    device_id   nvarchar(50)   NULL,                  -- 그 문의 입구 단말기 — 인증 이벤트(device_id)를 이 문에 잇는다
+    pos_x       decimal(7,4)   NOT NULL,              -- 평면도 가로 위치 0~1 (비율 — 확대해도 같은 자리)
+    pos_y       decimal(7,4)   NOT NULL,              -- 평면도 세로 위치 0~1
+    CONSTRAINT PK_tb_graphic_map_door PRIMARY KEY (map_id, door_id)
   );
 GO
 IF NOT EXISTS (SELECT 1 FROM dbo.tb_menu WHERE menu_id = 903)
