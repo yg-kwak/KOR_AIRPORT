@@ -86,6 +86,7 @@ PK: `menu_id`
 | menu_order | int | | 메뉴 순서 |
 | menu_icon | nvarchar(30) | | level 1 그룹 아이콘 키 (사이드바, 예: `settings`). 프론트 ICONS 매핑 |
 | use_yn | nchar(1) | | 사용여부 |
+| new_window_yn | nchar(1) | | 새 창으로 여는 메뉴(기본 'N'). 사이드바 링크가 `target=_blank` 가 된다 — 늘 켜 두는 상황판(그래픽맵 903)용 |
 
 ### tb_menu_auth — 권한(그룹)
 PK: `auth_id` (IDENTITY)
@@ -416,6 +417,29 @@ PK: `event_id` (IDENTITY). **아마노 주차관제가 우리 쪽으로 밀어 �
 | reg_dt | datetime2(0) | | 수신일자 | 기본 getdate() |
 
 우리 DB 의 차량명·기관은 조회 시점에 `tb_car` 를 차량번호(공백 제거)로 맞춰 붙인다 — 이벤트 행에 복사해 두지 않는다(차량 정보가 바뀌면 이력이 과거 값으로 굳는다).
+
+### tb_graphic_map — 그래픽맵 평면도
+PK: `map_id` (IDENTITY). 모니터링 903 화면이 쓴다. 삭제는 `del_yn='Y'` 소프트 삭제(배치는 함께 지운다).
+
+| 컬럼 | 타입 | PK | 설명 | 비고 |
+|------|------|----|------|------|
+| map_id | int | Y | 맵번호 | IDENTITY(1,1) |
+| map_name | nvarchar(100) | | 맵 이름 | 예: B3F 남측 |
+| image_data | varbinary(max) | | 평면도 이미지 원본 | **PNG·JPG·GIF·WEBP 만**, 5MB. 형식은 업로드 MIME 이 아니라 파일 앞부분 서명으로 판정(SVG 거절 — 스크립트를 품을 수 있다). 목록 조회는 이 컬럼을 읽지 않는다 |
+| image_type | nvarchar(50) | | 이미지 MIME | 서명으로 판정한 값. 응답 Content-Type 에 그대로 쓴다 |
+| sort_order | int | | 목록 순서 | |
+| del_yn | nchar(1) | | 삭제여부 | 기본 'N', CHK Y/N |
+| reg_dt / mod_dt | datetime2(0) | | 입력/수정일자 | |
+
+### tb_graphic_map_door — 평면도 위 출입문
+PK: `map_id` + `device_id`. 출입문은 **인증 이벤트가 오는 단말기(BiostarX 장치)**로 묶는다 — 이벤트의 `device_id` 로 어느 문이 반짝일지 정한다. 한 맵에 같은 단말기는 한 번.
+
+| 컬럼 | 타입 | PK | 설명 | 비고 |
+|------|------|----|------|------|
+| map_id | int | Y | 맵번호 | → `tb_graphic_map.map_id` |
+| device_id | nvarchar(50) | Y | BiostarX 장치ID | |
+| device_name | nvarchar(200) | | 배치할 때의 장치 이름 | 표시용 스냅샷 |
+| pos_x / pos_y | decimal(7,4) | | 평면도 위치 0~1 **비율** | 확대·창 크기와 무관하게 같은 자리. 서버가 0~1 로 자른다 |
 
 ### tb_system_log — 감사추적 (이력, 불변식)
 PK: `log_id` (IDENTITY). **모든 감사 이력은 이 한 테이블에 간략히 적재**한다. 정책은 `security.md`.

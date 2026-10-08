@@ -27,11 +27,14 @@
           <th:block th:if="${!c.children.isEmpty()}">
             <div class="lnb-subhead" th:text="${c.menuName}">소제목</div>
             <a th:each="gc : ${c.children}" class="lnb-link"
-               th:href="${gc.menuUrl}" th:attr="data-url=${gc.menuUrl}" th:text="${gc.menuName}">링크</a>
+               th:href="${gc.menuUrl}" th:attr="data-url=${gc.menuUrl}" th:text="${gc.menuName}"
+               th:target="${gc.newWindow} ? '_blank' : null" th:rel="${gc.newWindow} ? 'noopener' : null">링크</a>
           </th:block>
           <!-- 하위가 링크면 바로 링크 (2단) -->
+          <!-- 새 창 메뉴(tb_menu.new_window_yn) — 늘 켜 두는 상황판은 작업 화면을 가리지 않게 따로 연다 -->
           <a th:unless="${!c.children.isEmpty()}" class="lnb-link"
-             th:href="${c.menuUrl}" th:attr="data-url=${c.menuUrl}" th:text="${c.menuName}">링크</a>
+             th:href="${c.menuUrl}" th:attr="data-url=${c.menuUrl}" th:text="${c.menuName}"
+             th:target="${c.newWindow} ? '_blank' : null" th:rel="${c.newWindow} ? 'noopener' : null">링크</a>
         </th:block>
       </div>
     </li>

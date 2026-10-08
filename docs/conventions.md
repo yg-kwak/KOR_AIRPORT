@@ -317,3 +317,7 @@ ID 하나는 명단을 훑어 맞힐 수 있고, 카드가 붙은 뒤에는 방�
 제재인원 대조(`BlacklistService.requireNotBanned`)와 **장기 출입증 보유자에게 일일(임시) 출입증을 내주지 않는 검사**(`VisitRosterService.requireNoLongTermPass`)가 같은 방식이다.
 후자의 '보유'는 **배정된 카드**를 뜻한다(`tb_card.person_id`) — 퇴실하면 회수되므로 카드가 곧 유효한 출입증이다. 대상은 `tb_common(PT).code_tag='PTD03'` 계열(장기·상주·순찰·대여)이고,
 코드값을 SQL 에 박지 않아 현장에서 유형이 늘어도 태그만 맞추면 함께 걸린다.
+
+### 새 창으로 여는 메뉴는 `tb_menu.new_window_yn='Y'` 로 정한다
+사이드바가 그 값으로 `target="_blank" rel="noopener"` 를 붙인다(`MenuNode.isNewWindow`). URL·menu_id 를 화면 코드에 박지 않는다 — 메뉴 데이터만 바꾸면 된다.
+새 창 화면은 사이드바·헤더 없이 `fragments/head` 만 쓰고(`web/monitor/graphicMap.html`), 권한·감사는 다른 화면과 같다(menu_id 는 요청 URL 로 해석).

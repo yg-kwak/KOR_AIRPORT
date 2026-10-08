@@ -34,6 +34,7 @@ CREATE TABLE dbo.tb_menu (
   menu_order     int          NULL,
   menu_icon      nvarchar(30) NULL,
   use_yn         nchar(1)     NOT NULL DEFAULT 'Y',
+  new_window_yn  nchar(1)     NOT NULL DEFAULT 'N',   -- 새 창으로 여는 메뉴(예: 그래픽맵 — 늘 켜 두는 상황판)
   CONSTRAINT PK_tb_menu PRIMARY KEY (menu_id)
 );
 
@@ -397,6 +398,31 @@ CREATE TABLE dbo.tb_system_log (
    특히 tb_system_log 는 메뉴접속·조회·입력·수정·삭제를 모두 남겨 가장 빨리 커진다.
    필터 인덱스는 QUOTED_IDENTIFIER ON 필요(위에서 설정됨).
    --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   그래픽맵 — 평면도와 그 위에 놓은 출입문(단말기). 위치는 0~1 비율이라 확대·창 크기와 무관하다.
+   --------------------------------------------------------------------------- */
+CREATE TABLE dbo.tb_graphic_map (
+  map_id      int IDENTITY(1,1) NOT NULL,           -- 맵번호 (PK)
+  map_name    nvarchar(100)  NOT NULL,              -- 맵 이름 (예: B3F 남측)
+  image_data  varbinary(max) NULL,                  -- 평면도 이미지 원본(PNG/JPG/GIF/WEBP)
+  image_type  nvarchar(50)   NULL,                  -- 이미지 MIME (image/png ...)
+  sort_order  int            NOT NULL DEFAULT 0,    -- 목록 순서
+  del_yn      nchar(1)       NOT NULL DEFAULT 'N',  -- 삭제여부 (소프트 삭제)
+  reg_dt      datetime2(0)   NOT NULL DEFAULT getdate(),
+  mod_dt      datetime2(0)   NOT NULL DEFAULT getdate(),
+  CONSTRAINT PK_tb_graphic_map PRIMARY KEY (map_id),
+  CONSTRAINT CHK_tb_graphic_map_del_yn CHECK (del_yn IN ('Y','N'))
+);
+
+CREATE TABLE dbo.tb_graphic_map_door (
+  map_id      int            NOT NULL,              -- → tb_graphic_map.map_id
+  device_id   nvarchar(50)   NOT NULL,              -- BiostarX 장치ID (인증 이벤트의 device_id)
+  device_name nvarchar(200)  NULL,                  -- 배치할 때의 장치 이름(표시용 스냅샷)
+  pos_x       decimal(7,4)   NOT NULL,              -- 평면도 가로 위치 0~1
+  pos_y       decimal(7,4)   NOT NULL,              -- 평면도 세로 위치 0~1
+  CONSTRAINT PK_tb_graphic_map_door PRIMARY KEY (map_id, device_id)
+);
 
 /* 감사추적: reg_dt 범위 + 최신순 정렬 (+ 유형·메뉴·사용자 필터) */
 CREATE INDEX IX_tb_system_log_reg_dt ON dbo.tb_system_log (reg_dt DESC, log_id DESC)

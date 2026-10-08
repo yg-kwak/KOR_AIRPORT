@@ -823,6 +823,45 @@ UPDATE v SET visit_kind =
        ELSE 'BOTH' END
 FROM dbo.tb_visit v WHERE v.visit_kind IS NULL;
 GO
+
+/* 그래픽맵(2026-10-08) — 메뉴 새 창 여부 + 평면도·출입문 + 메뉴 903. 상세는 sql/deploy/2026-10-08_update.sql */
+IF COL_LENGTH('dbo.tb_menu', 'new_window_yn') IS NULL
+  ALTER TABLE dbo.tb_menu ADD new_window_yn nchar(1) NOT NULL
+    CONSTRAINT DF_tb_menu_new_window_yn DEFAULT 'N';
+GO
+IF OBJECT_ID('dbo.tb_graphic_map', 'U') IS NULL
+  CREATE TABLE dbo.tb_graphic_map (
+    map_id      int IDENTITY(1,1) NOT NULL,
+    map_name    nvarchar(100)  NOT NULL,
+    image_data  varbinary(max) NULL,
+    image_type  nvarchar(50)   NULL,
+    sort_order  int            NOT NULL DEFAULT 0,
+    del_yn      nchar(1)       NOT NULL DEFAULT 'N',
+    reg_dt      datetime2(0)   NOT NULL DEFAULT getdate(),
+    mod_dt      datetime2(0)   NOT NULL DEFAULT getdate(),
+    CONSTRAINT PK_tb_graphic_map PRIMARY KEY (map_id),
+    CONSTRAINT CHK_tb_graphic_map_del_yn CHECK (del_yn IN ('Y','N'))
+  );
+GO
+IF OBJECT_ID('dbo.tb_graphic_map_door', 'U') IS NULL
+  CREATE TABLE dbo.tb_graphic_map_door (
+    map_id      int            NOT NULL,
+    device_id   nvarchar(50)   NOT NULL,
+    device_name nvarchar(200)  NULL,
+    pos_x       decimal(7,4)   NOT NULL,
+    pos_y       decimal(7,4)   NOT NULL,
+    CONSTRAINT PK_tb_graphic_map_door PRIMARY KEY (map_id, device_id)
+  );
+GO
+IF NOT EXISTS (SELECT 1 FROM dbo.tb_menu WHERE menu_id = 903)
+  INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn, new_window_yn)
+  VALUES (903, N'그래픽맵', 900, '/monitor/graphicMap', 2, 3, NULL, 'Y', 'Y');
+INSERT INTO dbo.tb_menu_auth_detail (auth_id, menu_id, read_auth, create_auth, update_auth, delete_auth)
+SELECT d.auth_id, 903, d.read_auth, d.create_auth, d.update_auth, d.delete_auth
+FROM dbo.tb_menu_auth_detail d
+WHERE d.menu_id = 902
+  AND NOT EXISTS (SELECT 1 FROM dbo.tb_menu_auth_detail x WHERE x.auth_id = d.auth_id AND x.menu_id = 903);
+GO
 /* 이미 퇴실 완료된 방문에는 시각이 없다 — 파기 기준이 되어야 하므로 mod_dt 로 채운다.
    근사치지만 유일한 단서이고, 1년 뒤 파기 대상 판정에는 충분하다. */
 IF EXISTS (SELECT 1 FROM dbo.tb_visit WHERE status_code = 'VS04' AND checkout_dt IS NULL)

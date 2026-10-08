@@ -13,6 +13,7 @@ public class MenuNode {
   private String menuUrl;
   private Integer menuLevel;
   private String menuIcon; // level 1 그룹 아이콘 키 (프론트 ICONS 매핑)
+  private boolean newWindow; // 새 창으로 여는 메뉴
   private final List<MenuNode> children = new ArrayList<>();
 
   public MenuNode(TbMenu m) {
@@ -21,6 +22,7 @@ public class MenuNode {
     this.menuUrl = m.getMenuUrl();
     this.menuLevel = m.getMenuLevel();
     this.menuIcon = m.getMenuIcon();
+    this.newWindow = "Y".equals(m.getNewWindowYn());
   }
 
   /** 평면 메뉴 목록(level/order 정렬됨)을 parent_menu_id 로 연결해 트리(roots)로 만든다. */
@@ -60,6 +62,10 @@ public class MenuNode {
 
   public String getMenuIcon() {
     return menuIcon;
+  }
+
+  public boolean isNewWindow() {
+    return newWindow;
   }
 
   public List<MenuNode> getChildren() {

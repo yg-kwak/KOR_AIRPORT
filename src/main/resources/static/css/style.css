@@ -664,6 +664,107 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 
 /* 카드 브라우저 인쇄 — 프린터가 클라이언트 PC. @page margin:0 + object-fit:fill 로 카드에 여백 없이 꽉 차게(참조앱과 동일) */
 #cardPrintArea { display: none; }
+/* ===== 그래픽맵(모니터링 903) — 새 창 상황판. 평면도가 주인공이라 어두운 바탕에 띄운다(BiostarX 모니터링과 같은 배치) =====
+   왼쪽 맵/출입문 · 가운데 평면도 · 아래 이벤트 · 오른쪽 인증 사진. 화면 전체를 한 격자로 나눠 스크롤은 칸 안에서만 생긴다. */
+.gmap-body { margin: 0; background: #16181d; color: #e6e8ec; overflow: hidden; }
+.gmap { --g-panel: #1f2229; --g-line: #2e323b; --g-text-2: #9aa1ad; --g-blue: #3d7bfd;
+  display: grid; grid-template-columns: 250px minmax(0, 1fr) 360px; grid-template-rows: 48px minmax(0, 1fr) 240px;
+  height: 100vh; }
+.gmap-bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 16px;
+  background: var(--g-panel); border-bottom: 1px solid var(--g-line); }
+.gmap-bar h1 { font-size: 16px; margin: 0; }
+.gmap-title { font-size: 15px; font-weight: 700; color: #fff; padding: 3px 10px; border-radius: 4px; background: #2b2f38; }
+.gmap .monitor-state { color: var(--g-text-2); }
+.gmap .monitor-state.warn { color: #ffb84d; }
+.gmap-bar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.gmap .btn { background: #2b2f38; border-color: var(--g-line); color: #e6e8ec; }
+.gmap .btn:hover { border-color: var(--g-blue); }
+.gmap .btn-primary { background: var(--g-blue); border-color: var(--g-blue); color: #fff; }
+.gmap .btn-danger { color: #ff7875; }
+.gmap .btn-sound { background: #2b2f38; border-color: var(--g-line); color: #e6e8ec; }
+
+.gmap-side, .gmap-photos { grid-row: 2 / 4; background: var(--g-panel); border-right: 1px solid var(--g-line);
+  display: flex; flex-direction: column; min-height: 0; }
+.gmap-photos { grid-column: 3; border-right: 0; border-left: 1px solid var(--g-line); }
+.gmap-tabs { display: flex; border-bottom: 1px solid var(--g-line); }
+.gmap-tab { flex: 1; padding: 10px 0; background: none; border: 0; border-bottom: 2px solid transparent;
+  color: var(--g-text-2); cursor: pointer; font-size: 13px; }
+.gmap-tab.active { color: #8fb3ff; border-bottom-color: var(--g-blue); font-weight: 700; }
+.gmap-tab-panel { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.gmap-tab-panel[hidden] { display: none; }
+.gmap-side-head { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 12px; font-size: 13px; font-weight: 700; border-bottom: 1px solid var(--g-line); }
+.gmap-icon-btn { width: 26px; height: 26px; border-radius: 4px; border: 1px solid var(--g-line); background: #2b2f38;
+  color: #e6e8ec; cursor: pointer; }
+.gmap-list { list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; flex: 1; min-height: 0; }
+.gmap-item { display: flex; justify-content: space-between; gap: 8px; padding: 8px 14px; cursor: pointer; font-size: 13px; }
+.gmap-item:hover { background: #262a32; }
+.gmap-item.active { background: #24345a; color: #fff; }
+.gmap-item.placed { opacity: .45; cursor: default; }
+.gmap-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gmap-item-sub { color: var(--g-text-2); font-size: 12px; white-space: nowrap; }
+.gmap-empty { padding: 14px; color: var(--g-text-2); font-size: 13px; text-align: center; }
+.gmap-hint { margin: 8px 12px; font-size: 12px; color: #ffb84d; line-height: 1.5; }
+.gmap-map-actions { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px; border-top: 1px solid var(--g-line); }
+
+/* 평면도 무대 — 평면도(plane)는 무대 안에서 크기·위치만 바뀌고, 문은 plane 안에 % 로 서서 함께 움직인다 */
+.gmap-stage { grid-column: 2; grid-row: 2; position: relative; overflow: hidden; background: #111317;
+  cursor: grab; touch-action: none; }
+.gmap-stage:active { cursor: grabbing; }
+.gmap-stage.placing, .gmap-stage.placing:active { cursor: crosshair; }
+.gmap-plane { position: absolute; }
+.gmap-plane img { width: 100%; height: 100%; display: block; user-select: none; pointer-events: none;
+  box-shadow: 0 0 0 1px #000, 0 6px 24px rgba(0,0,0,.5); }
+.gmap-doors { position: absolute; inset: 0; }
+.gmap-stage-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--g-text-2); font-size: 14px; pointer-events: none; }
+.gmap-stage-empty[hidden] { display: none; }
+.gmap-door { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column;
+  align-items: center; gap: 2px; z-index: 1; }
+.gmap-door-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--g-blue); color: #fff;
+  display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.gmap-door-dot svg { width: 17px; height: 17px; }
+.gmap-door-name { font-size: 11px; font-weight: 700; color: #fff; background: rgba(0,0,0,.65); padding: 1px 6px;
+  border-radius: 3px; white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+/* 인증한 문 — 통과 초록 · 거부 빨강으로 잠깐 반짝인다 */
+.gmap-door.ok .gmap-door-dot { background: var(--monitor-ok); animation: gmap-pulse 1s ease-out 3; }
+.gmap-door.deny .gmap-door-dot { background: var(--monitor-deny); animation: gmap-pulse 1s ease-out 3; }
+@keyframes gmap-pulse { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,.8); } 100% { box-shadow: 0 0 0 18px rgba(255,255,255,0); } }
+.gmap.editing .gmap-door { cursor: move; }
+.gmap-door-del { position: absolute; top: -8px; right: -10px; width: 18px; height: 18px; border-radius: 50%;
+  border: 0; background: var(--monitor-deny); color: #fff; font-size: 12px; line-height: 18px; padding: 0; cursor: pointer; }
+.gmap-zoom { position: absolute; right: 14px; bottom: 14px; display: flex; align-items: center; gap: 2px;
+  background: #2b2f38; border: 1px solid var(--g-line); border-radius: 18px; padding: 3px; z-index: 2; }
+.gmap-zoom button { width: 30px; height: 28px; border: 0; border-radius: 14px; background: none; color: #e6e8ec;
+  cursor: pointer; font-size: 15px; }
+.gmap-zoom button:hover { background: #3a3f4a; }
+.gmap-zoom #btnZoomFit { width: auto; padding: 0 10px; font-size: 12px; }
+.gmap-zoom span { min-width: 48px; text-align: center; font-size: 13px; }
+
+/* 아래 이벤트 */
+.gmap-events { grid-column: 2; grid-row: 3; display: flex; flex-direction: column; min-height: 0;
+  background: var(--g-panel); border-top: 1px solid var(--g-line); }
+.gmap-event-scroll { overflow-y: auto; flex: 1; min-height: 0; }
+.gmap .gmap-event-table th { position: sticky; top: 0; background: #262a32; color: var(--g-text-2); font-size: 12px; }
+.gmap .gmap-event-table th, .gmap .gmap-event-table td { border-color: var(--g-line); padding: 6px 10px; font-size: 13px; }
+.gmap .gmap-event-table tr.deny td { color: #ff9c9c; }
+.gmap .gmap-event-table .empty { color: var(--g-text-2); }
+.gmap-sub { color: var(--g-text-2); font-size: 12px; }
+
+/* 오른쪽 인증 사진 — 이벤트 로그(902)의 지난 인증 칸과 같은 모양을 어두운 바탕에 */
+.gmap-photo-list { overflow-y: auto; flex: 1; min-height: 0; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.gmap-photo { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 8px; border-radius: 6px;
+  border: 2px solid var(--monitor-ok); background: #262a32; }
+.gmap-photo.deny { border-color: var(--monitor-deny); }
+.gmap-photo-img { height: 130px; border-radius: 4px; background: #111317; display: flex; align-items: center;
+  justify-content: center; overflow: hidden; }
+.gmap-photo-img img { width: 100%; height: 100%; object-fit: cover; }
+.gmap-photo-img .monitor-face-icon { width: 60%; fill: none; stroke: #5b6170; stroke-width: 4; }
+.gmap-photo dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; align-content: start; font-size: 13px; }
+.gmap-photo dt { color: var(--g-text-2); }
+.gmap-photo dd { margin: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gmap-body .modal-container { color: var(--color-black); }
+
 @media print {
   /* html/body/영역에 height:100% 를 주어야 .print-card-page 가 딱 1페이지로 잡힘(없으면 카드마다 빈 페이지가 추가돼 4장) */
   html, body { width: 100%; height: 100%; margin: 0 !important; padding: 0 !important; background: none;

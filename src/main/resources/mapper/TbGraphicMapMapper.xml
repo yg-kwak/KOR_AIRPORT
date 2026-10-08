@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 그래픽맵 — 평면도(tb_graphic_map)와 그 위에 놓은 출입문(tb_graphic_map_door) -->
+<mapper namespace="AirPort.mapper.TbGraphicMapMapper">
+
+  <!-- 목록은 이미지를 읽지 않는다 — 평면도 한 장이 수 MB 라 목록마다 실으면 화면이 굳는다 -->
+  <select id="selectList" resultType="TbGraphicMap">
+    SELECT m.map_id, m.map_name, m.image_type, m.sort_order, m.del_yn,
+           (SELECT COUNT(*) FROM tb_graphic_map_door d WHERE d.map_id = m.map_id) AS door_count
+    FROM tb_graphic_map m
+    WHERE m.del_yn = 'N'
+    ORDER BY m.sort_order, m.map_id
+  </select>
+
+  <select id="selectById" resultType="TbGraphicMap">
+    SELECT map_id, map_name, image_type, sort_order, del_yn
+    FROM tb_graphic_map WHERE map_id = #{mapId}
+  </select>
+
+  <select id="selectImage" resultType="TbGraphicMap">
+    SELECT map_id, image_data, image_type
+    FROM tb_graphic_map WHERE map_id = #{mapId} AND del_yn = 'N'
+  </select>
+
+  <insert id="insert" parameterType="TbGraphicMap" useGeneratedKeys="true" keyProperty="mapId">
+    INSERT INTO tb_graphic_map (map_name, image_data, image_type, sort_order)
+    VALUES (#{mapName}, #{imageData}, #{imageType},
+            (SELECT ISNULL(MAX(sort_order), 0) + 1 FROM tb_graphic_map))
+  </insert>
+
+  <update id="updateName">
+    UPDATE tb_graphic_map SET map_name = #{mapName}, mod_dt = getdate() WHERE map_id = #{mapId}
+  </update>
+
+  <update id="updateImage">
+    UPDATE tb_graphic_map SET image_data = #{imageData}, image_type = #{imageType}, mod_dt = getdate()
+    WHERE map_id = #{mapId}
+  </update>
+
+  <update id="softDelete">
+    UPDATE tb_graphic_map SET del_yn = 'Y', mod_dt = getdate() WHERE map_id = #{mapId}
+  </update>
+
+  <select id="selectDoors" resultType="TbGraphicMapDoor">
+    SELECT map_id, device_id, device_name, pos_x, pos_y
+    FROM tb_graphic_map_door WHERE map_id = #{mapId}
+    ORDER BY device_name, device_id
+  </select>
+
+  <delete id="deleteDoors">
+    DELETE FROM tb_graphic_map_door WHERE map_id = #{mapId}
+  </delete>
+
+  <insert id="insertDoors">
+    INSERT INTO tb_graphic_map_door (map_id, device_id, device_name, pos_x, pos_y) VALUES
+    <foreach collection="doors" item="d" separator=",">
+      (#{mapId}, #{d.deviceId}, #{d.deviceName}, #{d.posX}, #{d.posY})
+    </foreach>
+  </insert>
+</mapper>

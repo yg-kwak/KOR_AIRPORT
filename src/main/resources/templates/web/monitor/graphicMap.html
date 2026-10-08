@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head}"></head>
+<!-- 그래픽맵(모니터링 903) — 새 창으로 여는 상황판. 사이드바·헤더 없이 화면 전체를 쓴다.
+     왼쪽 맵/출입문 · 가운데 평면도 · 아래 인증 로그 · 오른쪽 인증 사진 -->
+<body class="gmap-body">
+<div class="gmap" id="gmap">
+  <header class="gmap-bar">
+    <h1>그래픽맵</h1>
+    <span class="gmap-title" id="mapTitle">맵을 선택하세요</span>
+    <span class="monitor-state" id="monitorState">대기</span>
+    <div class="gmap-bar-actions">
+      <!-- 편집(맵 추가·출입문 배치)은 등록 권한이 있을 때만 -->
+      <th:block th:if="${perm.canCreate}">
+        <button type="button" class="btn btn-sm" id="btnEdit">출입문 배치</button>
+        <button type="button" class="btn btn-sm btn-primary" id="btnEditSave" hidden>배치 저장</button>
+        <button type="button" class="btn btn-sm" id="btnEditCancel" hidden>취소</button>
+      </th:block>
+      <button type="button" class="btn-sound" id="btnSound" aria-pressed="true"
+              title="소리 켜기/끄기" aria-label="소리 켜기/끄기">
+        <svg class="ic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="4 9 8 9 13 5 13 19 8 15 4 15"/>
+          <path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a9 9 0 0 1 0 12"/>
+        </svg>
+        <svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="4 9 8 9 13 5 13 19 8 15 4 15"/>
+          <line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- 왼쪽 — 맵 목록 / 이 맵의 출입문(편집 중에는 놓을 단말기) -->
+  <aside class="gmap-side">
+    <div class="gmap-tabs">
+      <button type="button" class="gmap-tab active" data-tab="maps">맵</button>
+      <button type="button" class="gmap-tab" data-tab="doors">출입문</button>
+    </div>
+    <div class="gmap-tab-panel" id="tab-maps">
+      <div class="gmap-side-head">
+        <span>모든 맵</span>
+        <button type="button" class="gmap-icon-btn" id="btnMapAdd" th:if="${perm.canCreate}" title="맵 추가">＋</button>
+      </div>
+      <ul class="gmap-list" id="mapList"><li class="gmap-empty">불러오는 중...</li></ul>
+      <div class="gmap-map-actions" id="mapActions" hidden>
+        <button type="button" class="btn btn-sm" id="btnMapRename" th:if="${perm.canCreate}">이름 변경</button>
+        <button type="button" class="btn btn-sm" id="btnMapImage" th:if="${perm.canCreate}">평면도 교체</button>
+        <button type="button" class="btn btn-sm btn-danger" id="btnMapDelete" th:if="${perm.canDelete}">삭제</button>
+      </div>
+    </div>
+    <div class="gmap-tab-panel" id="tab-doors" hidden>
+      <div class="gmap-side-head"><span id="doorsHead">출입문</span></div>
+      <p class="gmap-hint" id="doorsHint" hidden>단말기를 고른 뒤 평면도를 눌러 놓으세요. 놓인 문은 끌어서 옮기고, × 로 뺍니다.</p>
+      <ul class="gmap-list" id="doorList"><li class="gmap-empty">맵을 선택하세요.</li></ul>
+    </div>
+  </aside>
+
+  <!-- 가운데 — 평면도. 문 위치는 0~1 비율이라 확대해도 같은 자리에 선다 -->
+  <section class="gmap-stage" id="stage">
+    <div class="gmap-plane" id="plane">
+      <img id="planeImg" alt="평면도" draggable="false"/>
+      <div class="gmap-doors" id="doorLayer"></div>
+    </div>
+    <div class="gmap-stage-empty" id="stageEmpty">왼쪽에서 맵을 선택하거나 ＋ 로 평면도를 추가하세요.</div>
+    <div class="gmap-zoom">
+      <button type="button" id="btnZoomIn" aria-label="확대">＋</button>
+      <span id="zoomLabel">100%</span>
+      <button type="button" id="btnZoomOut" aria-label="축소">－</button>
+      <button type="button" id="btnZoomFit" title="화면에 맞춤">맞춤</button>
+    </div>
+  </section>
+
+  <!-- 오른쪽 — 인증 사진(최근이 위) -->
+  <aside class="gmap-photos">
+    <div class="gmap-side-head"><span>인증 사진</span></div>
+    <div class="gmap-photo-list" id="photoList"><div class="gmap-empty">아직 인증이 없습니다.</div></div>
+  </aside>
+
+  <!-- 아래 — 인증 로그 -->
+  <section class="gmap-events">
+    <div class="gmap-side-head"><span>이벤트 (<b id="eventCount">0</b>)</span>
+      <button type="button" class="btn btn-sm" id="btnEventClear">지우기</button></div>
+    <div class="gmap-event-scroll">
+      <table class="grid gmap-event-table">
+        <thead><tr><th class="w-160">날짜 시간</th><th>출입문</th><th class="w-120">장치</th>
+          <th>사용자</th><th>이벤트</th><th class="w-80">상태</th></tr></thead>
+        <tbody id="eventBody"><tr><td colspan="6" class="empty">결과 없음</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- 맵 추가 / 평면도 교체 -->
+<div class="modal-overlay" id="mapModal">
+  <div class="modal-container small">
+    <div class="modal-header">
+      <h2 class="modal-title" id="mapModalTitle">맵 추가</h2>
+      <button type="button" class="modal-close" id="mapModalClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" id="mapNameRow">
+        <label>맵 이름 <span class="req">*</span></label>
+        <input type="text" id="mapName" class="input" maxlength="100" placeholder="예: B3F 남측" autocomplete="off"/>
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>평면도 이미지 <span class="req">*</span></label>
+        <input type="file" id="mapFile" accept="image/png,image/jpeg,image/gif,image/webp"/>
+        <p class="form-hint">PNG·JPG·GIF·WEBP, 5MB 까지.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="mapModalCancel">취소</button>
+      <button type="button" class="btn btn-primary" id="mapModalOk">저장</button>
+    </div>
+  </div>
+</div>
+
+<div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
+<div th:replace="~{fragments/components/prompt-modal :: promptModal}"></div>
+
+<script th:inline="javascript">
+  window.PAGE_PERM = { canCreate: [[${perm.canCreate}]], canDelete: [[${perm.canDelete}]] };
+</script>
+<script src="/js/web/monitor/graphicMap.js" defer></script>
+<script src="/js/web/monitor/graphicMap-edit.js" defer></script>
+</body>
+</html>
