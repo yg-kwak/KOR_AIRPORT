@@ -1,6 +1,7 @@
 package AirPort.controller;
 
 import AirPort.adapter.biostar.BiostarDoor;
+import AirPort.adapter.biostar.BiostarDoorStatus;
 import AirPort.common.ApiResponse;
 import AirPort.common.CurrentMenu;
 import AirPort.common.SessionKeys;
@@ -145,6 +146,14 @@ public class GraphicMapController {
   @ResponseBody
   public ApiResponse<List<BiostarDoor>> biostarDoors(HttpSession session) {
     return ApiResponse.ok(graphicMapService.biostarDoors(actor(session), menuId()));
+  }
+
+  /** 이 맵에 놓인 문들의 현재 상태(개방/잠금) — 화면을 열 때. 이후 변화는 소켓 이벤트로. */
+  @GetMapping("/doors/status")
+  @ResponseBody
+  public ApiResponse<List<BiostarDoorStatus>> doorStatus(
+      @RequestParam int mapId, HttpSession session) {
+    return ApiResponse.ok(graphicMapService.doorStatus(mapId, actor(session), menuId()));
   }
 
   /** 출입문 원격 제어 — action: unlock(개방) · lock(잠금) · release(해제). 이 맵에 놓인 문만. */

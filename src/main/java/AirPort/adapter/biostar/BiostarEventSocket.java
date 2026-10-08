@@ -439,9 +439,9 @@ public class BiostarEventSocket {
     }
     JsonNode type = event.path("event_type_id");
     JsonNode user = event.path("user_id");
-    JsonNode door = event.path("door_id"); // 출입문 이벤트는 배열이다([{"id":"5","name":"F2"}], 장비 실측)
-    door =
-        door.isArray() ? door.path(0) : door; // 빈 배열이면 path(0) 이 MissingNode — text() 가 null 을 준다
+    // 문 — 소켓 프레임은 door_id_list, 검색 API 는 door_id(둘 다 배열 [{id,name}], 장비 실측)
+    JsonNode door = event.has("door_id_list") ? event.path("door_id_list") : event.path("door_id");
+    door = door.isArray() ? door.path(0) : door; // 빈 배열이면 MissingNode — text() 가 null
     String userName = text(user, "name");
     return new BiostarAuthEvent(
         text(type, "code"),

@@ -73,6 +73,53 @@ public class BiostarDoorAdapter {
     }
   }
 
+  /**
+   * 출입문 현재 상태 — 화면을 처음 열 때 한 번 묻는다(그 뒤 바뀌는 것은 소켓의 UNLOCKED·LOCKED 이벤트로 안다).
+   *
+   * <p>{@code POST /api/doors/status} {@code
+   * {"DoorCollection":{"total":N,"rows":[{"id":5}]},"monitoring_permission":true}}
+   */
+  public List<BiostarDoorStatus> status(
+      String ip, String loginId, String password, List<Long> doorIds) {
+    try {
+      ObjectNode body = objectMapper.createObjectNode();
+      ObjectNode coll = body.putObject("DoorCollection");
+      coll.put("total", doorIds.size());
+      com.fasterxml.jackson.databind.node.ArrayNode rows = coll.putArray("rows");
+      doorIds.forEach(id -> rows.addObject().put("id", id));
+      body.put("monitoring_permission", true);
+      HttpResponse<String> resp =
+          session.post(baseUrl(ip), loginId, password, "/api/doors/status", body.toString());
+      String err = BiostarAdapter.responseError(objectMapper, resp);
+      if (err != null) {
+        throw new BiostarSessionException("출입문 상태 조회 실패: " + err);
+      }
+      return parseStatus(objectMapper.readTree(resp.body()));
+    } catch (BiostarSessionException e) {
+      throw e;
+    } catch (Exception e) {
+      log.warn("BiostarX 출입문 상태 조회 오류: {}", e.toString());
+      throw new BiostarSessionException("BiostarX 출입문 상태 조회 실패: " + e.getClass().getSimpleName());
+    }
+  }
+
+  /** {@code unlocked} "1" = 개방, "0" = 잠금(장비 실측). */
+  static List<BiostarDoorStatus> parseStatus(JsonNode root) {
+    List<BiostarDoorStatus> out = new ArrayList<>();
+    for (JsonNode n : root.path("DoorStatusCollection").path("rows")) {
+      JsonNode id = n.path("door_id").path("id");
+      if (id.isMissingNode() || id.asText().isBlank()) {
+        continue;
+      }
+      out.add(
+          new BiostarDoorStatus(
+              id.asLong(),
+              "1".equals(n.path("unlocked").asText()),
+              "true".equalsIgnoreCase(n.path("opened").asText())));
+    }
+    return out;
+  }
+
   static List<BiostarDoor> parseDoors(JsonNode root) {
     List<BiostarDoor> out = new ArrayList<>();
     JsonNode rows = root.path("DoorCollection").path("rows");

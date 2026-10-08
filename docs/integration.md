@@ -137,8 +137,9 @@ System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true"
 | 장치 카드 스캔 | `POST /api/devices/{deviceId}/scan_card` |
 | 출입문 목록 (그래픽맵) | `POST /api/v2/doors/search` `{"limit":500,"door_group_id":1}` — 전체 출입문 그룹. `rows[].id`·`name`·`entry_device_id.id`(입구 단말기) |
 | 출입문 원격 제어 (그래픽맵) | `POST /api/doors/unlock`(개방) · `/lock`(잠금) · `/release`(해제), 본문 `{"DoorCollection":{"rows":[{"id":"5"}]}}`. 성공 판정은 전체 `Response.code` 와 **문 단위 `DoorResponse.rows[].code`** 둘 다 0 — 장비가 꺼져 있으면 요청은 받아도 문은 움직이지 않는다. 이 맵에 놓인 문만 받고(`selectPlacedDoor`), 등록 권한 필요, 성공·실패 모두 감사(`BiostarDoorAdapter`) |
+| 출입문 상태 (그래픽맵) | `POST /api/doors/status` `{"DoorCollection":{"total":N,"rows":[{"id":5}]},"monitoring_permission":true}` → `DoorStatusCollection.rows[]` 의 `unlocked` "1"=개방 · "0"=잠금. 화면을 열 때·맵을 바꿀 때·소켓이 다시 붙을 때 한 번 묻고, 그 사이 변화는 소켓의 `UNLOCKED`(20480)·`LOCKED`(20736) 이벤트로 바꾼다 |
 | 실시간 이벤트 시각 | 소켓·검색 이벤트의 `datetime` 은 **진짜 UTC**(장비 실측 `03:50:09.00Z` = 한국 12:50:09). `server_datetime` 은 Z 를 달았지만 현지 시각이다. 화면 시각은 `EventTimes`(UTC → 서버 시간대) 한 곳에서 바꾼다 — 예전 실시간 이벤트·이벤트 로그는 문자열을 잘라 9시간 이른 시각을 보였다 |
-| 모든 이벤트 (그래픽맵 아래 표) | 같은 소켓의 모든 프레임을 `log`(`EventLogResult`)로 — 인증 보강과 다른 작업 스레드(대기 500, 넘치면 오래된 것부터). 문구·색은 `EventLogLabels`(모르는 이름은 원래 이름 그대로 — 숨기지 않는다). 출입문 이벤트의 `door_id` 는 검색 API 에서 배열 `[{id,name}]` 로 오는 것을 확인했고, 소켓 프레임은 배열·객체 둘 다 받는다 |
+| 모든 이벤트 (그래픽맵 아래 표) | 같은 소켓의 모든 프레임을 `log`(`EventLogResult`)로 — 인증 보강과 다른 작업 스레드(대기 500, 넘치면 오래된 것부터). 문구·색은 `EventLogLabels`(모르는 이름은 원래 이름 그대로 — 숨기지 않는다). 출입문 이벤트의 문은 **소켓 프레임에서는 `door_id_list`**, 검색 API 에서는 `door_id` 로 온다(둘 다 배열 `[{id,name}]`, 장비 실측) |
 | 얼굴 크리덴셜 | `GET /api/devices/{deviceId}/credentials/face` |
 | 출입 이벤트(이력) 검색 | `POST /api/events/search` |
 

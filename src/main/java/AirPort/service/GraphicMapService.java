@@ -2,6 +2,7 @@ package AirPort.service;
 
 import AirPort.adapter.biostar.BiostarDoor;
 import AirPort.adapter.biostar.BiostarDoorAdapter;
+import AirPort.adapter.biostar.BiostarDoorStatus;
 import AirPort.adapter.biostar.BiostarResult;
 import AirPort.adapter.biostar.BiostarSessionException;
 import AirPort.common.exception.BusinessException;
@@ -90,6 +91,27 @@ public class GraphicMapService {
     }
     auditService.log(actor, AuditService.UPDATE, menuId, what);
     return nvl(door.getDoorName()) + " " + act.label + " 요청을 보냈습니다.";
+  }
+
+  /**
+   * 이 맵에 놓인 문들의 현재 상태(개방/잠금) — 화면을 열거나 다시 붙을 때 한 번. 그 사이 변화는 소켓 이벤트로 받는다.
+   *
+   * <p>놓인 문이 없으면 장비에 묻지 않는다.
+   */
+  public List<BiostarDoorStatus> doorStatus(int mapId, TbLoginUser actor, Integer menuId) {
+    menuAuthService.requireRead(actor, menuId);
+    requireMap(mapId);
+    List<Long> ids =
+        mapMapper.selectDoors(mapId).stream().map(TbGraphicMapDoor::getDoorId).toList();
+    if (ids.isEmpty()) {
+      return List.of();
+    }
+    TbSystem cfg = config();
+    try {
+      return doorAdapter.status(cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), ids);
+    } catch (BiostarSessionException e) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT, e.getMessage());
+    }
   }
 
   static BiostarDoorAdapter.Action action(String action) {

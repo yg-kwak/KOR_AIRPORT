@@ -725,6 +725,11 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 .gmap-door-dot svg { width: 17px; height: 17px; }
 .gmap-door-name { font-size: 11px; font-weight: 700; color: #fff; background: rgba(0,0,0,.65); padding: 1px 6px;
   border-radius: 3px; white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+/* 잠금 상태 — 잠금은 파랑(닫힌 자물쇠), 개방은 주황(열린 자물쇠). 인증 반짝임(아래)이 잠깐 덮는다 */
+.gmap-door.locked .gmap-door-dot { background: var(--g-blue); }
+.gmap-door.unlocked .gmap-door-dot { background: #f59e0b; }
+.gmap-lock.locked { color: #8fb3ff; }
+.gmap-lock.unlocked { color: #f5b04b; font-weight: 700; }
 /* 인증한 문 — 통과 초록 · 거부 빨강으로 잠깐 반짝인다 */
 .gmap-door.ok .gmap-door-dot { background: var(--monitor-ok); animation: gmap-pulse 1s ease-out 3; }
 .gmap-door.deny .gmap-door-dot { background: var(--monitor-deny); animation: gmap-pulse 1s ease-out 3; }

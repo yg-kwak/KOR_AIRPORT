@@ -18,7 +18,9 @@
     zoom: 1, panX: 0, panY: 0, fitW: 0, fitH: 0, natW: 0, natH: 0,
     editing: false,
   };
-  let stream = null, eventCount = 0;
+  let stream = null, eventCount = 0, wasConnected = false;
+  /* 출입문 잠금 상태 — doorId → true(개방) / false(잠금). 처음엔 장비에 묻고(doors/status), 그 뒤엔 소켓의 UNLOCKED·LOCKED 로 바꾼다 */
+  const unlocked = new Map();
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
 
   /* ---- 맵 ---- */
@@ -48,9 +50,18 @@
     renderMapList();
     state.doors = ((await api.get(`${BASE}/doors?mapId=${mapId}`)) || []).map(normDoor);
     loadImage(mapId);
+    unlocked.clear();
     renderDoors();
     renderDoorList();
     subscribe();
+    loadDoorStatus();
+  }
+
+  /* 처음 상태 — 화면을 열 때·맵을 바꿀 때·소켓이 다시 붙을 때(끊긴 사이 이벤트를 놓쳤을 수 있다) */
+  async function loadDoorStatus() {
+    if (state.mapId == null || !state.doors.length) return;
+    const rows = (await api.get(`${BASE}/doors/status?mapId=${state.mapId}`, { quiet: true })) || [];
+    rows.forEach((r) => setLock(r.doorId, r.unlocked));
   }
 
   function clearMap() {
@@ -123,14 +134,37 @@
       stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16"/><path d="M6 21V4h12v17"/>
       <circle cx="14.5" cy="12.5" r="1"/></svg>`;
 
+  /* 잠금 — 닫힌 자물쇠 / 개방 — 열린 자물쇠. 상태를 모르면(장비 응답 전) 문 그림 */
+  const LOCK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+      stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+  const UNLOCK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+      stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.6-1.7"/></svg>`;
+  const lockOf = (doorId) => (unlocked.has(doorId) ? (unlocked.get(doorId) ? 'unlocked' : 'locked') : '');
+  const iconOf = (st) => (st === 'unlocked' ? UNLOCK_ICON : st === 'locked' ? LOCK_ICON : DOOR_ICON);
+  const LOCK_TEXT = { locked: '잠금', unlocked: '개방', '': '상태 확인 중' };
+
+  /* 한 문의 상태를 바꾼다 — 통째로 다시 그리지 않는다(반짝이는 중인 문이 꺼지지 않게) */
+  function setLock(doorId, isUnlocked) {
+    const id = Number(doorId);
+    if (!state.doors.some((d) => d.doorId === id)) return;
+    unlocked.set(id, !!isUnlocked);
+    const st = lockOf(id);
+    document.querySelectorAll(`.gmap-door[data-id="${id}"]`).forEach((el) => {
+      el.classList.remove('locked', 'unlocked'); el.classList.add(st);
+      el.querySelector('.gmap-door-dot').innerHTML = iconOf(st);
+      el.title = `${el.dataset.name} — ${LOCK_TEXT[st]}`;
+    });
+    if (!state.editing) renderDoorList();
+  }
+
   function renderDoors() {
-    $('doorLayer').innerHTML = state.doors.map((d) => `
-      <div class="gmap-door" data-id="${d.doorId}" data-device="${esc(d.deviceId || '')}" style="left:${d.posX * 100}%;top:${d.posY * 100}%"
-           title="${esc(d.doorName || d.doorId)}">
-        <span class="gmap-door-dot">${DOOR_ICON}</span>
+    $('doorLayer').innerHTML = state.doors.map((d) => { const st = lockOf(d.doorId); return `
+      <div class="gmap-door ${st}" data-id="${d.doorId}" data-name="${esc(d.doorName || d.doorId)}" data-device="${esc(d.deviceId || '')}"
+           style="left:${d.posX * 100}%;top:${d.posY * 100}%" title="${esc(d.doorName || d.doorId)} — ${LOCK_TEXT[st]}">
+        <span class="gmap-door-dot">${iconOf(st)}</span>
         <span class="gmap-door-name">${esc(d.doorName || d.doorId)}</span>
         ${state.editing ? '<button type="button" class="gmap-door-del" aria-label="빼기">×</button>' : ''}
-      </div>`).join('');
+      </div>`; }).join('');
   }
 
   function renderDoorList() {
@@ -139,8 +173,8 @@
     $('doorList').innerHTML = state.mapId == null
       ? '<li class="gmap-empty">맵을 선택하세요.</li>'
       : state.doors.length
-        ? state.doors.map((d) => `<li class="gmap-item" data-door="${d.doorId}">
-            <span class="gmap-item-name">${esc(d.doorName || d.doorId)}</span><span class="gmap-item-sub">문 ${d.doorId}</span></li>`).join('')
+        ? state.doors.map((d) => { const st = lockOf(d.doorId); return `<li class="gmap-item" data-door="${d.doorId}">
+            <span class="gmap-item-name">${esc(d.doorName || d.doorId)}</span><span class="gmap-item-sub gmap-lock ${st}">${LOCK_TEXT[st]}</span></li>`; }).join('')
         : '<li class="gmap-empty">놓인 출입문이 없습니다.</li>';
   }
 
@@ -195,6 +229,9 @@
     on('status', (s) => {
       if (s.message) setState(s.message, true);
       else setState(s.connected ? '수신 중' : 'BiostarX 연결 중', !s.connected);
+      // 다시 붙었으면 상태를 새로 묻는다 — 끊긴 사이의 개방·잠금 이벤트는 오지 않는다
+      if (s.connected && !wasConnected) loadDoorStatus();
+      wasConnected = !!s.connected;
     });
     stream.onerror = () => setState('연결 재시도 중', true);
     setState('연결 중', false);
@@ -220,6 +257,11 @@
      아니면 이 맵에 놓인 문 중 그 단말기가 입구인 문 */
   const TONE_TEXT = { success: '통과', error: '경고', info: '-' };
   function addEvent(e) {
+    // 문 상태가 바뀌는 이벤트 — 개방(UNLOCKED·릴레이 켜짐) / 잠금(LOCKED·릴레이 꺼짐). 문이 실려 오지 않으면 그 단말기가 입구인 문
+    if (e.eventName === 'UNLOCKED' || e.eventName === 'LOCKED') {
+      const byDevice = state.doors.filter((x) => e.deviceId && x.deviceId === String(e.deviceId)).map((x) => x.doorId);
+      (e.doorId ? [e.doorId] : byDevice).forEach((id) => setLock(id, e.eventName === 'UNLOCKED'));
+    }
     const body = $('eventBody');
     if (!eventCount) body.innerHTML = '';
     const placed = state.doors.find((x) => e.deviceId && x.deviceId === String(e.deviceId));

@@ -84,4 +84,25 @@ class BiostarDoorAdapterTest {
     assertFalse(r.success());
     assertTrue(r.message().contains("1004"), r.message());
   }
+
+  @Test
+  void 상태는_unlocked_1_이면_개방_0_이면_잠금이다() throws Exception {
+    answer(
+        "{\"DoorStatusCollection\":{\"rows\":[{\"door_id\":{\"id\":\"5\"},\"opened\":\"false\",\"unlocked\":\"0\"},"
+            + "{\"door_id\":{\"id\":\"6\"},\"opened\":\"true\",\"unlocked\":\"1\"}],\"total\":\"2\"},"
+            + "\"Response\":{\"code\":\"0\",\"message\":\"Success\"}}");
+    List<BiostarDoorStatus> st = adapter.status("10.0.0.1", "id", "pw", List.of(5L, 6L));
+    assertEquals(2, st.size());
+    assertFalse(st.get(0).unlocked(), "unlocked 0 = 잠금");
+    assertTrue(st.get(1).unlocked(), "unlocked 1 = 개방");
+    assertTrue(st.get(1).opened());
+    verify(session)
+        .post(
+            anyString(),
+            anyString(),
+            anyString(),
+            eq("/api/doors/status"),
+            eq(
+                "{\"DoorCollection\":{\"total\":2,\"rows\":[{\"id\":5},{\"id\":6}]},\"monitoring_permission\":true}"));
+  }
 }

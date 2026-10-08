@@ -100,4 +100,21 @@ class BiostarEventSocketTest {
         BiostarEventSocket.parse(new com.fasterxml.jackson.databind.ObjectMapper(), CARD_TAGGED);
     assertEquals(null, tagged.userName(), "미등록 카드는 이름 자리의 '-' 를 이름으로 보이지 않는다");
   }
+
+  /** 개방 이벤트 — 소켓 프레임은 문을 door_id_list 로 싣는다(장비 실측, 사용자 제공). */
+  private static final String UNLOCKED_FRAME =
+      "{\"Event\":{\"id\":\"179143211705437370300000558431\","
+          + "\"event_type_id\":{\"code\":\"20480\",\"name\":\"UNLOCKED\",\"description\":\"Door is unlocked (Relay is on)\"},"
+          + "\"index\":\"558431\",\"datetime\":\"2026-10-08T04:01:57.00Z\",\"server_datetime\":\"2026-10-08T13:01:59.00Z\","
+          + "\"device_id\":{\"id\":\"543737030\",\"name\":\"FaceStation F2\"},"
+          + "\"door_id_list\":[{\"id\":\"5\",\"name\":\"F2\"}],\"parameter\":\"-1\"}}";
+
+  @Test
+  void 소켓_프레임의_door_id_list_에서_문을_뽑는다() throws Exception {
+    BiostarAuthEvent e =
+        BiostarEventSocket.parse(new com.fasterxml.jackson.databind.ObjectMapper(), UNLOCKED_FRAME);
+    assertEquals("UNLOCKED", e.eventName());
+    assertEquals("5", e.doorId());
+    assertEquals("F2", e.doorName());
+  }
 }
