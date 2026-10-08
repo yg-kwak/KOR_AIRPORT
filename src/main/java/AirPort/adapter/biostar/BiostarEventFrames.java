@@ -64,4 +64,17 @@ final class BiostarEventFrames {
   static String baseUrl(String ip) {
     return (ip.startsWith("http://") || ip.startsWith("https://")) ? ip : "https://" + ip;
   }
+
+  /** 로그 한 줄 — 이름(코드) 장치 인원 사진ID. */
+  static String describe(BiostarAuthEvent e) {
+    return e.eventName()
+        + "("
+        + e.eventCode()
+        + ") 장치="
+        + e.deviceId()
+        + " 인원="
+        + e.userId()
+        + " 사진ID="
+        + e.imageId();
+  }
 }

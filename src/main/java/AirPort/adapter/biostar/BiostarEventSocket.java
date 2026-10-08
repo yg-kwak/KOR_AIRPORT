@@ -5,6 +5,7 @@ import java.net.URI;
 import java.net.http.WebSocket;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -223,8 +224,8 @@ public class BiostarEventSocket {
     String currentId;
     String currentPw;
     synchronized (lock) {
-      if (!wanted) {
-        return;
+      if (!wanted || socket != null) {
+        return; // 이미 붙어 있다 — 재연결 예약이 겹쳐도 소켓은 하나
       }
       currentIp = ip;
       currentId = loginId;
@@ -240,9 +241,8 @@ public class BiostarEventSocket {
       dropAndRetry("BiostarX 로그인에 실패했습니다: " + message(e));
       return;
     }
-    WebSocket ws;
-    java.util.concurrent.CompletableFuture<String> authReply =
-        new java.util.concurrent.CompletableFuture<>();
+    WebSocket ws = null; // 실패하면 어느 단계든 반드시 닫는다 — 버려 두면 연결이 둘이 된다
+    CompletableFuture<String> authReply = new CompletableFuture<>();
     try {
       ws =
           session
@@ -250,29 +250,24 @@ public class BiostarEventSocket {
               .newWebSocketBuilder()
               .buildAsync(URI.create(url), new Listener(authReply))
               .join();
-      // 세션은 헤더가 아니라 소켓 본문으로 알린다 — 연 직후 첫 메시지가 "bs-session-id={세션}" 이다
-      // (BiostarX 자체 화면이 그렇게 한다. 브라우저는 WebSocket 핸드셰이크에 임의 헤더를 못 붙인다).
-      // 이걸 빼면 연결도 되고 events/start 도 성공(code 0)하지만, 소켓이 세션에 묶이지 않아
-      // 이벤트가 한 건도 오지 않는다 — 조용히 아무 일도 안 일어나는 가장 나쁜 실패다.
+      // 세션은 헤더가 아니라 소켓 본문으로 알린다(첫 메시지 "bs-session-id={세션}" — BiostarX 화면과 같다).
+      // 빼면 연결·events/start 는 성공(code 0)하는데 소켓이 세션에 묶이지 않아 이벤트가 한 건도 안 온다.
       ws.sendText(SESSION_HEADER + "=" + sid, true).join();
-
-      // 장비가 소켓을 세션에 묶었다고 답할 때까지 기다린다. 기다리지 않고 곧바로 events/start 를
-      // 부르면, 장비가 아직 이 소켓을 세션에 못 붙인 상태에서 시작 요청을 받는다 — 요청은 code 0 을
-      // 주고 이벤트는 오지 않는다. 증상이 없어 가장 찾기 어려운 실패다.
+      // 장비가 묶었다고 답할 때까지 기다린다 — 곧바로 events/start 를 부르면 code 0 인데 이벤트가 안 온다
       String code = authReply.get(AUTH_REPLY_SECONDS, TimeUnit.SECONDS);
       if (!"0".equals(code)) {
         dropAndRetryWith(ws, "이벤트 소켓이 세션을 거부했습니다 (code " + code + ")");
         return;
       }
     } catch (java.util.concurrent.TimeoutException e) {
-      dropAndRetry("장비가 세션 확인에 응답하지 않았습니다 (" + AUTH_REPLY_SECONDS + "초)");
+      dropAndRetryWith(ws, "장비가 세션 확인에 응답하지 않았습니다 (" + AUTH_REPLY_SECONDS + "초)");
       return;
     } catch (Exception e) {
-      dropAndRetry("BiostarX 이벤트 소켓에 연결하지 못했습니다: " + message(e));
+      dropAndRetryWith(ws, "BiostarX 이벤트 소켓에 연결하지 못했습니다: " + message(e));
       return;
     }
     synchronized (lock) {
-      if (!wanted) { // 붙는 사이에 마지막 구독자가 떠났다
+      if (!wanted || socket != null) { // 붙는 사이에 마지막 구독자가 떠났거나, 이미 다른 소켓이 붙었다
         abort(ws);
         return;
       }
@@ -309,6 +304,13 @@ public class BiostarEventSocket {
   /** 어느 단계에서 실패하든 여기로 모인다 — 소켓을 버리고, 사유를 남기고, 다시 붙는다. */
   private void dropAndRetry(String why) {
     drop(why, true);
+  }
+
+  /** 소켓이 보낸 끊김 알림 — 이미 버린(바꾼) 소켓의 것이면 지금 소켓을 끊지 않는다. */
+  private void dropIfCurrent(WebSocket ws, String why) {
+    if (isCurrent(ws)) {
+      dropAndRetry(why);
+    }
   }
 
   /**
@@ -368,9 +370,9 @@ public class BiostarEventSocket {
   private class Listener implements WebSocket.Listener {
 
     private final StringBuilder buffer = new StringBuilder();
-    private final java.util.concurrent.CompletableFuture<String> authReply;
+    private final CompletableFuture<String> authReply;
 
-    Listener(java.util.concurrent.CompletableFuture<String> authReply) {
+    Listener(CompletableFuture<String> authReply) {
       this.authReply = authReply;
     }
 
@@ -392,12 +394,14 @@ public class BiostarEventSocket {
     }
 
     private CompletionStage<?> accumulate(WebSocket webSocket, CharSequence data, boolean last) {
-      liveness.frame();
+      if (isCurrent(webSocket)) {
+        liveness.frame(); // 지금 소켓의 프레임만 센다 — 버린 소켓이 조용함을 가리지 않게
+      }
       buffer.append(data);
       if (last) {
         String message = buffer.toString();
         buffer.setLength(0);
-        dispatch(message, authReply);
+        dispatch(message, authReply, webSocket);
       }
       webSocket.request(1);
       return null;
@@ -413,13 +417,13 @@ public class BiostarEventSocket {
 
     @Override
     public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
-      dropAndRetry("BiostarX 연결이 끊겼습니다 (" + statusCode + ")");
+      dropIfCurrent(webSocket, "BiostarX 연결이 끊겼습니다 (" + statusCode + ")");
       return null;
     }
 
     @Override
     public void onError(WebSocket webSocket, Throwable error) {
-      dropAndRetry("BiostarX 연결 오류 (" + error.getClass().getSimpleName() + ")");
+      dropIfCurrent(webSocket, "BiostarX 연결 오류 (" + error.getClass().getSimpleName() + ")");
     }
   }
 
@@ -431,7 +435,7 @@ public class BiostarEventSocket {
    * AirPort.service} 로거를 DEBUG 로 올린다 — <b>걸러진 사유도 {@code MonitorService} 가 DEBUG 로 남긴다</b>(상시 운용에서
    * 인증마다 여러 줄이 쌓여 INFO 에서 내렸다).
    */
-  private void dispatch(String message, java.util.concurrent.CompletableFuture<String> authReply) {
+  private void dispatch(String message, CompletableFuture<String> authReply, WebSocket from) {
     BiostarAuthEvent parsed;
     try {
       parsed = BiostarEventFrames.parse(objectMapper, message);
@@ -443,18 +447,15 @@ public class BiostarEventSocket {
       return;
     }
     if (parsed == null) {
-      handleNonEvent(message, authReply);
+      handleNonEvent(message, authReply, from);
       return;
     }
-    log.debug(
-        "BiostarX 이벤트 수신 — {}({}) 장치={} 인원={} 사진ID={}",
-        parsed.eventName(),
-        parsed.eventCode(),
-        parsed.deviceId(),
-        parsed.userId(),
-        parsed.imageId());
-    // 채널마다 관심사가 다르다 — 실시간 화면은 인증 성공을, 카드 태깅은 미등록 카드 읽기를 본다.
-    // 여기서 거르지 않고 그대로 넘긴다(어댑터는 판정하지 않는다).
+    if (!isCurrent(from)) { // 지금 쓰는 소켓이 아니다 — 넘기면 같은 인증이 화면에 두 번 뜬다
+      log.debug("BiostarX 이벤트 무시(지금 소켓 아님) — {}", BiostarEventFrames.describe(parsed));
+      return;
+    }
+    log.debug("BiostarX 이벤트 수신 — {}", BiostarEventFrames.describe(parsed));
+    // 채널마다 관심사가 다르다(실시간은 인증 성공, 카드 태깅은 미등록 카드) — 거르지 않고 넘긴다(어댑터는 판정 안 함)
     for (Consumer<BiostarAuthEvent> target : sinks.values()) {
       target.accept(parsed);
     }
@@ -466,8 +467,7 @@ public class BiostarEventSocket {
    * <p>첫 응답은 {@link #connect()} 가 기다리고 있으므로 그쪽으로 넘긴다. 그 뒤에 오는 거부 응답은 소켓이 열린 채 이벤트만 끊긴 상태이므로 직접 버리고
    * 다시 붙는다.
    */
-  private void handleNonEvent(
-      String message, java.util.concurrent.CompletableFuture<String> authReply) {
+  private void handleNonEvent(String message, CompletableFuture<String> authReply, WebSocket from) {
     String code = BiostarEventFrames.responseCode(objectMapper, message);
     if (code == null) {
       log.debug("BiostarX 이벤트 아님(무시): {}", BiostarEventFrames.abbreviate(message));
@@ -478,7 +478,7 @@ public class BiostarEventSocket {
       return; // 첫 응답 — connect() 가 판정한다
     }
     if (!"0".equals(code)) {
-      dropAndRetry("이벤트 소켓이 세션을 거부했습니다 (code " + code + ")");
+      dropIfCurrent(from, "이벤트 소켓이 세션을 거부했습니다 (code " + code + ")");
     }
   }
 
