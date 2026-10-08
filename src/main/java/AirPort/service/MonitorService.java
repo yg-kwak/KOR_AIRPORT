@@ -92,6 +92,9 @@ public class MonitorService {
 
   private static final int LOG_QUEUE_LIMIT = 500;
 
+  /** 보는 장치 집합에 이것이 있으면 모든 장치 — BiostarX 장치 ID 는 숫자라 겹치지 않는다. */
+  static final String ALL_DEVICES = "*";
+
   /** 구독자 목록과 소켓 수명을 함께 지키는 잠금 — 둘이 엇갈리면 소켓 없이 구독자만 남는다. */
   private final Object viewerLock = new Object();
 
@@ -154,17 +157,20 @@ public class MonitorService {
    * 아무도 다시 열지 않는 상태가 된다(그 화면은 새로고침 전까지 영구 정지). 소켓 연결 자체는 비동기라 이 잠금은 짧다.
    */
   public SseEmitter subscribe(List<String> deviceIds, TbLoginUser actor, Integer menuId) {
-    return subscribe(deviceIds, false, actor, menuId);
+    return subscribe(deviceIds, false, false, actor, menuId);
   }
 
   /**
    * @param allLogs 모든 이벤트도 받는가 — 참이면 고른 장치가 없어도 구독한다(인증 사진·문 반짝임은 고른 장치만, 이벤트 표는 전부)
+   * @param allAuth 인증도 모든 장치에서 받는가 — 그래픽맵 [모두 보기]. 고른 장치는 무시한다
    */
   public SseEmitter subscribe(
-      List<String> deviceIds, boolean allLogs, TbLoginUser actor, Integer menuId) {
+      List<String> deviceIds, boolean allLogs, boolean allAuth, TbLoginUser actor, Integer menuId) {
     menuAuthService.requireRead(actor, menuId);
     Set<String> watch = new java.util.LinkedHashSet<>();
-    if (deviceIds != null) {
+    if (allAuth) {
+      watch.add(ALL_DEVICES);
+    } else if (deviceIds != null) {
       deviceIds.stream()
           .filter(id -> id != null && !id.isBlank())
           .map(String::trim)
@@ -213,7 +219,8 @@ public class MonitorService {
       return; // 재연결 — 새 구독이 아니다
     }
     auditedAt.put(key, now);
-    auditService.log(actor, AuditService.READ, menuId, "실시간 이벤트 구독 (단말기 " + devices + ")");
+    String what = deviceIds.contains(ALL_DEVICES) ? "전체" : devices;
+    auditService.log(actor, AuditService.READ, menuId, "실시간 이벤트 구독 (단말기 " + what + ")");
   }
 
   /** 소켓 수신 스레드에서 불린다 — 여기서 오래 걸리면 다음 이벤트가 밀린다. 판정만 하고 넘긴다. */
@@ -240,9 +247,14 @@ public class MonitorService {
     return viewers.values().stream().anyMatch(ids -> watching(ids, deviceId));
   }
 
-  /** 그 화면이 보고 있는 장치인가 — 고른 것만 본다(장비 전체를 받아 화면에서 거르지 않는다). */
+  /**
+   * 그 화면이 보고 있는 장치인가 — 고른 것만 본다(장비 전체를 받아 화면에서 거르지 않는다). {@link #ALL_DEVICES} 를 고른 화면(그래픽맵 [모두
+   * 보기])만 모든 장치다 — 인증마다 사진을 조회하므로 일부러 고른 화면에만 연다.
+   */
   static boolean watching(Set<String> watched, String deviceId) {
-    return deviceId != null && watched != null && watched.contains(deviceId);
+    return deviceId != null
+        && watched != null
+        && (watched.contains(deviceId) || watched.contains(ALL_DEVICES));
   }
 
   private void enrichAndPush(BiostarAuthEvent event) {

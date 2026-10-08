@@ -168,12 +168,14 @@ public class GraphicMapController {
         graphicMapService.controlDoor(mapId, doorId, action, actor(session), menuId()));
   }
 
-  /** 인증 이벤트 스트림 (SSE) — 지금 맵에 놓인 출입문들의 입구 단말기. */
+  /** 인증 이벤트 스트림 (SSE) — 지금 맵에 놓인 출입문들의 입구 단말기, [모두 보기]면 모든 장치({@code all=true}). */
   @GetMapping("/stream")
   public SseEmitter stream(
-      @RequestParam(required = false) List<String> deviceId, HttpSession session) {
-    // 아래 이벤트 표는 모든 이벤트 — 놓인 문이 없는 맵에서도 열린다(사진·문 반짝임은 놓인 문의 단말기만)
-    return monitorService.subscribe(deviceId, true, actor(session), menuId());
+      @RequestParam(required = false) List<String> deviceId,
+      @RequestParam(defaultValue = "false") boolean all,
+      HttpSession session) {
+    // 아래 이벤트 표는 모든 이벤트 — 놓인 문이 없는 맵에서도 열린다(맵의 문만 보일지는 화면이 거른다)
+    return monitorService.subscribe(deviceId, true, all, actor(session), menuId());
   }
 
   private TbLoginUser actor(HttpSession session) {

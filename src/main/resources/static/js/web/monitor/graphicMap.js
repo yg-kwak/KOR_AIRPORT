@@ -5,6 +5,7 @@
 (function () {
   const BASE = '/monitor/graphicMap';
   const PHOTO_MAX = 15;   // 오른쪽 사진 — 최근이 위
+  const PHOTO_KEEP = 60;  // [모두 보기]를 끄면 맵의 문 것만 다시 그리므로 보이는 것보다 넉넉히 들고 있는다
   const EVENT_MAX = 500;  // 아래 이벤트(모든 종류) — 넘으면 오래된 것부터 버린다
   const FLASH_MS = 4000;  // 인증한 문이 반짝이는 시간
   const KEEPALIVE_MS = 5 * 60 * 1000; // 세션 유휴 만료(1시간)보다 짧게 — 늘 켜 두는 화면이라 스트림과 무관하게 계속 두드린다
@@ -17,8 +18,10 @@
     maps: [], mapId: null, doors: [], // doors: [{doorId, doorName, deviceId(입구 단말기), posX, posY}]
     zoom: 1, panX: 0, panY: 0, fitW: 0, fitH: 0, natW: 0, natH: 0,
     editing: false,
+    showAll: false, // [모두 보기] — 기본은 이 맵에 놓인 문의 이벤트·인증 사진만
   };
-  let stream = null, eventCount = 0, wasConnected = false;
+  let stream = null, wasConnected = false;
+  const events = [], photos = []; // 받은 것 전부(최근이 앞) — [모두 보기]·맵이 바뀌면 걸러 다시 그린다
   /* 출입문 잠금 상태 — doorId → true(개방) / false(잠금). 처음엔 장비에 묻고(doors/status), 그 뒤엔 소켓의 UNLOCKED·LOCKED 로 바꾼다 */
   const unlocked = new Map();
   const PERM = window.PAGE_PERM || { canCreate: false, canDelete: false };
@@ -52,7 +55,7 @@
     loadImage(mapId);
     unlocked.clear();
     renderDoors();
-    renderDoorList();
+    renderFeeds();
     subscribe();
     loadDoorStatus();
   }
@@ -69,7 +72,7 @@
     $('mapTitle').textContent = '맵을 선택하세요';
     $('planeImg').removeAttribute('src');
     $('stageEmpty').hidden = false;
-    renderMapList(); renderDoors(); renderDoorList(); subscribe(); // 맵이 없어도 아래 이벤트는 받는다
+    renderMapList(); renderDoors(); renderFeeds(); subscribe(); // 맵이 없어도 아래 이벤트는 받는다
   }
 
   const normDoor = (d) => ({ doorId: Number(d.doorId), doorName: d.doorName || '', deviceId: d.deviceId ? String(d.deviceId) : null,
@@ -154,7 +157,6 @@
       el.querySelector('.gmap-door-dot').innerHTML = iconOf(st);
       el.title = `${el.dataset.name} — ${LOCK_TEXT[st]}`;
     });
-    if (!state.editing) renderDoorList();
   }
 
   function renderDoors() {
@@ -167,15 +169,9 @@
       </div>`; }).join('');
   }
 
+  /* 왼쪽 출입문 목록은 배치 중에만 있다(놓을 BiostarX 출입문) */
   function renderDoorList() {
-    if (state.editing && window.gmapEdit) { window.gmapEdit.renderDevices(); return; }
-    $('doorsHead').textContent = `출입문 (${state.doors.length})`;
-    $('doorList').innerHTML = state.mapId == null
-      ? '<li class="gmap-empty">맵을 선택하세요.</li>'
-      : state.doors.length
-        ? state.doors.map((d) => { const st = lockOf(d.doorId); return `<li class="gmap-item" data-door="${d.doorId}">
-            <span class="gmap-item-name">${esc(d.doorName || d.doorId)}</span><span class="gmap-item-sub gmap-lock ${st}">${LOCK_TEXT[st]}</span></li>`; }).join('')
-        : '<li class="gmap-empty">놓인 출입문이 없습니다.</li>';
+    if (state.editing && window.gmapEdit) window.gmapEdit.renderDevices();
   }
 
   /* 인증한 문을 잠깐 밝힌다 — 통과는 초록, 거부는 빨강. 이벤트는 단말기 ID 로 오므로 그 단말기가 입구인 문을 찾는다 */
@@ -188,7 +184,6 @@
   }
   const flashDevice = (deviceId, granted) =>
     flashEls(document.querySelectorAll(`.gmap-door[data-device="${CSS.escape(String(deviceId))}"]`), granted);
-  const flashDoor = (doorId) => flashEls(document.querySelectorAll(`.gmap-door[data-id="${Number(doorId)}"]`), true);
 
   /* ---- 놓인 문 원격 제어 — 개방·잠금·해제 ---- */
   let menuDoor = null;
@@ -217,9 +212,11 @@
 
   function subscribe() {
     stop();
-    // 놓인 문의 입구 단말기 — 인증 사진·문 반짝임용. 아래 이벤트 표는 서버가 장치·종류를 거르지 않고 모두 보낸다(log)
+    // 인증(사진·문 반짝임)은 놓인 문의 입구 단말기만 — [모두 보기]면 모든 장치(서버가 인증마다 사진을 조회하므로 켤 때만 넓힌다).
+    // 아래 이벤트 표는 서버가 장치·종류를 거르지 않고 모두 보낸다(log) — 맵의 문만 보일지는 여기서 거른다
     const q = new URLSearchParams();
-    [...new Set(state.doors.map((d) => d.deviceId).filter(Boolean))].forEach((id) => q.append('deviceId', id));
+    if (state.showAll) q.append('all', 'true');
+    else [...new Set(state.doors.map((d) => d.deviceId).filter(Boolean))].forEach((id) => q.append('deviceId', id));
     stream = new EventSource(BASE + '/stream' + (q.toString() ? '?' + q.toString() : ''));
     const on = (name, fn) => stream.addEventListener(name, (m) => {
       try { fn(JSON.parse(m.data)); } catch (err) { console.warn('이벤트 처리 실패', err); }
@@ -242,15 +239,36 @@
     $('monitorState').classList.toggle('warn', !!warn);
   }
 
-  const doorName = (e) => {
-    const d = state.doors.find((x) => x.deviceId === String(e.deviceId));
-    return (d && d.doorName) || e.deviceName || e.deviceId || '-';
-  };
+  /* 이 맵에 놓인 문의 것인가 — 이벤트가 문을 실어 오면 그 문, 아니면 그 단말기가 입구인 놓인 문 */
+  const placedOf = (e) => state.doors.find((x) => e.deviceId && x.deviceId === String(e.deviceId));
+  const onMap = (e) => (e.doorId != null && e.doorId !== '' && state.doors.some((x) => String(x.doorId) === String(e.doorId)))
+    || !!placedOf(e);
+  const shown = (e) => state.showAll || onMap(e);
+
+  const doorName = (e) => { const d = placedOf(e); return (d && d.doorName) || e.deviceName || e.deviceId || '-'; };
 
   function onAuth(e) {
-    authSound.play(e.granted);
     flashDevice(e.deviceId, e.granted);
-    addPhoto(e); // 이벤트 표는 'log' 가 채운다 — 여기서도 넣으면 인증이 두 줄이 된다
+    photos.unshift(e); if (photos.length > PHOTO_KEEP) photos.length = PHOTO_KEEP;
+    if (shown(e)) addPhoto(e); // 이벤트 표는 'log' 가 채운다 — 여기서도 넣으면 인증이 두 줄이 된다
+  }
+
+  /* 걸러 다시 그린다 — [모두 보기]를 바꿀 때·맵을 바꿀 때 */
+  function renderFeeds() {
+    const rows = events.filter(shown).slice(0, EVENT_MAX);
+    $('eventBody').innerHTML = rows.length ? '' : '<tr><td colspan="6" class="empty">결과 없음</td></tr>';
+    rows.forEach((e) => $('eventBody').append(eventRow(e)));
+    $('eventCount').textContent = String(rows.length);
+    const pics = photos.filter(shown).slice(0, PHOTO_MAX);
+    $('photoList').innerHTML = pics.length ? '' : '<div class="gmap-empty">아직 인증이 없습니다.</div>';
+    pics.reverse().forEach(addPhoto); // addPhoto 는 위에 붙인다 — 오래된 것부터
+  }
+
+  function toggleAll() {
+    state.showAll = !state.showAll;
+    $('btnShowAll').setAttribute('aria-pressed', String(state.showAll));
+    renderFeeds();
+    subscribe(); // 인증 사진의 범위가 바뀐다
   }
 
   /* 모든 이벤트 한 줄 — 인증·문 열림/잠김·운영자 조작·장치 연결까지. 출입문은 이벤트가 문을 실어 오면 그것,
@@ -262,9 +280,17 @@
       const byDevice = state.doors.filter((x) => e.deviceId && x.deviceId === String(e.deviceId)).map((x) => x.doorId);
       (e.doorId ? [e.doorId] : byDevice).forEach((id) => setLock(id, e.eventName === 'UNLOCKED'));
     }
+    events.unshift(e); if (events.length > EVENT_MAX) events.length = EVENT_MAX;
+    if (!shown(e)) return;
     const body = $('eventBody');
-    if (!eventCount) body.innerHTML = '';
-    const placed = state.doors.find((x) => e.deviceId && x.deviceId === String(e.deviceId));
+    if (body.querySelector('td.empty')) body.innerHTML = '';
+    body.prepend(eventRow(e));
+    while (body.rows.length > EVENT_MAX) body.deleteRow(body.rows.length - 1);
+    $('eventCount').textContent = String(body.rows.length);
+  }
+
+  function eventRow(e) {
+    const placed = placedOf(e);
     const door = e.doorName || (placed && placed.doorName) || '-';
     const tr = document.createElement('tr');
     tr.className = e.tone === 'error' ? 'deny' : '';
@@ -272,10 +298,7 @@
     tr.innerHTML = `<td>${esc(e.eventTime || '')}</td><td>${esc(door)}</td><td>${esc(e.deviceName || e.deviceId || '-')}</td>
       <td>${esc(e.userName || e.userId || '-')}</td><td>${esc(e.label || e.eventName || '')}</td>
       <td>${e.tone === 'info' ? '-' : badge.of(TONE_TEXT[e.tone] || '-', e.tone)}</td>`;
-    body.prepend(tr);
-    while (body.rows.length > EVENT_MAX) body.deleteRow(body.rows.length - 1);
-    eventCount += 1;
-    $('eventCount').textContent = String(eventCount);
+    return tr;
   }
 
   const FACE_ICON = `<svg class="monitor-face-icon" viewBox="0 0 96 96" aria-label="사진 없음">
@@ -299,16 +322,8 @@
 
   /* ---- 묶기 ---- */
   function bind() {
-    document.querySelectorAll('.gmap-tab').forEach((t) => t.addEventListener('click', () => {
-      document.querySelectorAll('.gmap-tab').forEach((x) => x.classList.toggle('active', x === t));
-      $('tab-maps').hidden = t.dataset.tab !== 'maps';
-      $('tab-doors').hidden = t.dataset.tab !== 'doors';
-    }));
     $('mapList').addEventListener('click', (e) => {
       const li = e.target.closest('[data-map]'); if (li) selectMap(Number(li.dataset.map));
-    });
-    $('doorList').addEventListener('click', (e) => { // 목록에서 고르면 평면도의 그 문을 반짝여 찾게 한다
-      const li = e.target.closest('[data-door]'); if (li && !state.editing) flashDoor(li.dataset.door);
     });
     // 놓인 문 누르기 — 보기에서는 제어 메뉴, 편집에서는 끌기(graphicMap-edit.js)
     $('doorLayer').addEventListener('click', (e) => {
@@ -322,13 +337,10 @@
     $('btnZoomIn').addEventListener('click', () => zoomBy(1.25));
     $('btnZoomOut').addEventListener('click', () => zoomBy(1 / 1.25));
     $('btnZoomFit').addEventListener('click', fit);
-    $('btnEventClear').addEventListener('click', () => {
-      eventCount = 0; $('eventCount').textContent = '0';
-      $('eventBody').innerHTML = '<tr><td colspan="6" class="empty">결과 없음</td></tr>';
-    });
+    $('btnShowAll').addEventListener('click', toggleAll);
+    $('btnEventClear').addEventListener('click', () => { events.length = 0; renderFeeds(); }); // 사진은 그대로
     window.addEventListener('resize', () => { if (state.natW) { const z = state.zoom; fit(); state.zoom = z; applyView(); } });
     window.addEventListener('beforeunload', stop);
-    authSound.attach($('btnSound'));
     // 세션 유지 — 늘 켜 두는 상황판이다. 스트림이 없을 때(문이 없는 맵·편집 중)도 계속 두드려야
     // 유휴 1시간 뒤 로그인 화면으로 튕기지 않는다. 세션이 이미 끊겼으면 api 래퍼가 로그인으로 보낸다
     setInterval(() => api.get(BASE + '/alive').catch(() => {}), KEEPALIVE_MS);

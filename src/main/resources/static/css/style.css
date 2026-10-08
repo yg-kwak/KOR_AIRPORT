@@ -681,17 +681,15 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 .gmap .btn:hover { border-color: var(--g-blue); }
 .gmap .btn-primary { background: var(--g-blue); border-color: var(--g-blue); color: #fff; }
 .gmap .btn-danger { color: #ff7875; }
-.gmap .btn-sound { background: #2b2f38; border-color: var(--g-line); color: #e6e8ec; }
+/* [모두 보기] 켜짐 */
+.gmap .btn[aria-pressed="true"] { background: var(--g-blue); border-color: var(--g-blue); color: #fff; }
 
 .gmap-side, .gmap-photos { grid-row: 2 / 4; background: var(--g-panel); border-right: 1px solid var(--g-line);
   display: flex; flex-direction: column; min-height: 0; }
 .gmap-photos { grid-column: 3; border-right: 0; border-left: 1px solid var(--g-line); }
-.gmap-tabs { display: flex; border-bottom: 1px solid var(--g-line); }
-.gmap-tab { flex: 1; padding: 10px 0; background: none; border: 0; border-bottom: 2px solid transparent;
-  color: var(--g-text-2); cursor: pointer; font-size: 13px; }
-.gmap-tab.active { color: #8fb3ff; border-bottom-color: var(--g-blue); font-weight: 700; }
-.gmap-tab-panel { display: flex; flex-direction: column; min-height: 0; flex: 1; }
-.gmap-tab-panel[hidden] { display: none; }
+.gmap-side-panel { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.gmap-side-panel[hidden] { display: none; }
+.gmap-head-actions { display: flex; gap: 6px; }
 .gmap-side-head { display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 10px 12px; font-size: 13px; font-weight: 700; border-bottom: 1px solid var(--g-line); }
 .gmap-icon-btn { width: 26px; height: 26px; border-radius: 4px; border: 1px solid var(--g-line); background: #2b2f38;
@@ -728,8 +726,6 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 /* 잠금 상태 — 잠금은 파랑(닫힌 자물쇠), 개방은 주황(열린 자물쇠). 인증 반짝임(아래)이 잠깐 덮는다 */
 .gmap-door.locked .gmap-door-dot { background: var(--g-blue); }
 .gmap-door.unlocked .gmap-door-dot { background: #f59e0b; }
-.gmap-lock.locked { color: #8fb3ff; }
-.gmap-lock.unlocked { color: #f5b04b; font-weight: 700; }
 /* 인증한 문 — 통과 초록 · 거부 빨강으로 잠깐 반짝인다 */
 .gmap-door.ok .gmap-door-dot { background: var(--monitor-ok); animation: gmap-pulse 1s ease-out 3; }
 .gmap-door.deny .gmap-door-dot { background: var(--monitor-deny); animation: gmap-pulse 1s ease-out 3; }

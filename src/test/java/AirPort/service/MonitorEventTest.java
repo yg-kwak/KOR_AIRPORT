@@ -85,6 +85,9 @@ class MonitorEventTest {
     assertFalse(MonitorService.watching(java.util.Set.of(), "1"));
     assertFalse(MonitorService.watching(java.util.Set.of("1"), null), "장치를 모르는 이벤트는 올리지 않는다");
     assertFalse(MonitorService.watching(null, "1"));
+    // 그래픽맵 [모두 보기] — 모든 장치. 장치를 모르는 이벤트는 여전히 올리지 않는다
+    assertTrue(MonitorService.watching(java.util.Set.of(MonitorService.ALL_DEVICES), "9"));
+    assertFalse(MonitorService.watching(java.util.Set.of(MonitorService.ALL_DEVICES), null));
   }
 
   @Test

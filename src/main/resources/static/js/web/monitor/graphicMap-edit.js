@@ -73,7 +73,6 @@
     backup = g.state.doors.map((d) => ({ ...d }));
     g.state.editing = true;
     toggleBar(true);
-    document.querySelector('.gmap-tab[data-tab="doors"]').click(); // 놓을 출입문이 보이게
     g.renderDoors(); renderDevices();
   }
 
@@ -99,6 +98,7 @@
   function toggleBar(on) {
     g.$('btnEdit').hidden = on; g.$('btnEditSave').hidden = !on; g.$('btnEditCancel').hidden = !on;
     g.$('gmap').classList.toggle('editing', on);
+    g.$('mapPanel').hidden = on; g.$('doorPanel').hidden = !on; // 배치 중엔 맵 목록 자리에 놓을 출입문
   }
 
   /* 편집 중 왼쪽 목록 — 놓을 출입문(BiostarX). 이미 놓인 것은 표시만 한다(한 맵에 한 번) */

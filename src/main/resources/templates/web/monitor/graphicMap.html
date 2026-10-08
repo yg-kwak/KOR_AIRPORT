@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/head :: head}"></head>
 <!-- 그래픽맵(모니터링 903) — 새 창으로 여는 상황판. 사이드바·헤더 없이 화면 전체를 쓴다.
-     왼쪽 맵/출입문 · 가운데 평면도 · 아래 인증 로그 · 오른쪽 인증 사진 -->
+     왼쪽 맵 · 가운데 평면도 · 아래 인증 로그 · 오른쪽 인증 사진 -->
 <body class="gmap-body">
 <div class="gmap" id="gmap">
   <header class="gmap-bar">
@@ -16,29 +16,12 @@
         <button type="button" class="btn btn-sm btn-primary" id="btnEditSave" hidden>배치 저장</button>
         <button type="button" class="btn btn-sm" id="btnEditCancel" hidden>취소</button>
       </th:block>
-      <button type="button" class="btn-sound" id="btnSound" aria-pressed="true"
-              title="소리 켜기/끄기" aria-label="소리 켜기/끄기">
-        <svg class="ic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="4 9 8 9 13 5 13 19 8 15 4 15"/>
-          <path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a9 9 0 0 1 0 12"/>
-        </svg>
-        <svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="4 9 8 9 13 5 13 19 8 15 4 15"/>
-          <line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/>
-        </svg>
-      </button>
     </div>
   </header>
 
-  <!-- 왼쪽 — 맵 목록 / 이 맵의 출입문(편집 중에는 놓을 단말기) -->
+  <!-- 왼쪽 — 맵 목록. 출입문 배치 중에는 그 자리에 놓을 출입문(BiostarX) 목록 -->
   <aside class="gmap-side">
-    <div class="gmap-tabs">
-      <button type="button" class="gmap-tab active" data-tab="maps">맵</button>
-      <button type="button" class="gmap-tab" data-tab="doors">출입문</button>
-    </div>
-    <div class="gmap-tab-panel" id="tab-maps">
+    <div class="gmap-side-panel" id="mapPanel">
       <div class="gmap-side-head">
         <span>모든 맵</span>
         <button type="button" class="gmap-icon-btn" id="btnMapAdd" th:if="${perm.canCreate}" title="맵 추가">＋</button>
@@ -50,9 +33,9 @@
         <button type="button" class="btn btn-sm btn-danger" id="btnMapDelete" th:if="${perm.canDelete}">삭제</button>
       </div>
     </div>
-    <div class="gmap-tab-panel" id="tab-doors" hidden>
+    <div class="gmap-side-panel" id="doorPanel" hidden>
       <div class="gmap-side-head"><span id="doorsHead">출입문</span></div>
-      <ul class="gmap-list" id="doorList"><li class="gmap-empty">맵을 선택하세요.</li></ul>
+      <ul class="gmap-list" id="doorList"></ul>
     </div>
   </aside>
 
@@ -86,8 +69,11 @@
 
   <!-- 아래 — 인증 로그 -->
   <section class="gmap-events">
+    <!-- 기본은 이 맵에 놓인 문의 이벤트·인증 사진만, [모두 보기]를 누르면 모든 장치 -->
     <div class="gmap-side-head"><span>이벤트 (<b id="eventCount">0</b>)</span>
-      <button type="button" class="btn btn-sm" id="btnEventClear">지우기</button></div>
+      <span class="gmap-head-actions">
+        <button type="button" class="btn btn-sm" id="btnShowAll" aria-pressed="false">모두 보기</button>
+        <button type="button" class="btn btn-sm" id="btnEventClear">지우기</button></span></div>
     <div class="gmap-event-scroll">
       <table class="grid gmap-event-table">
         <thead><tr><th class="w-160">날짜 시간</th><th>출입문</th><th>장치</th>
