@@ -1,6 +1,5 @@
 package AirPort.adapter.biostar;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.net.http.WebSocket;
@@ -57,6 +56,7 @@ public class BiostarEventSocket {
   private boolean ready; // 소켓 + 세션 + events/start 가 모두 성공했는가
   private String lastError; // 화면에 그대로 보여 줄 사유. 정상이면 null
   private String boundSessionId; // 이 소켓이 묶인 BiostarX 세션 — 바뀌면 소켓은 죽은 것이다
+  private final BiostarSocketProbe liveness = new BiostarSocketProbe(); // 소켓 자체가 살아 있는가
   private String ip;
   private String loginId;
   private String password;
@@ -96,7 +96,11 @@ public class BiostarEventSocket {
         worker = Executors.newSingleThreadScheduledExecutor(BiostarEventSocket::thread);
       }
       if (wanted) {
-        return; // 이미 돌고 있다
+        // 이미 돌고 있다 — 새로 온 화면(새로고침 포함)을 계기로 소켓이 살아 있는지 본다(앞 화면이 떠난 것은 늦게 알아 새로고침으론 안 닫힌다)
+        if (ready && liveness.claim()) {
+          submit(() -> probe(BiostarSocketProbe.PONG_SECONDS));
+        }
+        return;
       }
       wanted = true;
     }
@@ -175,12 +179,39 @@ public class BiostarEventSocket {
     if (!Objects.equals(bound, now)) {
       // 다른 화면(인원 저장 등)에서 세션이 갱신되면 이 소켓은 죽은 세션에 묶인 채 남는다
       dropAndRetry("BiostarX 세션이 바뀌어 소켓을 다시 엽니다");
+      return;
+    }
+    probe(BiostarSocketProbe.PONG_SECONDS);
+  }
+
+  /** 소켓 자체를 확인한다 — REST 확인으로는 조용히 죽은 소켓을 못 본다({@link BiostarSocketProbe}). */
+  void probe(int pongSeconds) {
+    WebSocket ws;
+    synchronized (lock) {
+      if (!wanted || !ready || socket == null) {
+        return;
+      }
+      ws = socket;
+    }
+    BiostarSocketProbe.Result r = liveness.check(ws, pongSeconds);
+    if (r == BiostarSocketProbe.Result.DEAD && isCurrent(ws)) {
+      dropAndRetry("장비가 소켓 확인(ping)에 응답하지 않았습니다");
+    } else if (r == BiostarSocketProbe.Result.QUIET && isCurrent(ws)) {
+      drop(BiostarSocketProbe.QUIET_MINUTES + "분 동안 받은 메시지가 없어 소켓을 다시 엽니다", false);
+    }
+  }
+
+  /** 확인하는 사이에 다른 이유로 이미 새 소켓이 붙었으면 그것은 건드리지 않는다. */
+  private boolean isCurrent(WebSocket ws) {
+    synchronized (lock) {
+      return socket == ws;
     }
   }
 
   private String currentSessionId(String ip, String loginId, String password) {
     try {
-      return session.sessionId(baseUrl(ip), loginId, password, false); // 캐시값 — 통신 없음
+      return session.sessionId(
+          BiostarEventFrames.baseUrl(ip), loginId, password, false); // 캐시값 — 통신 없음
     } catch (Exception e) {
       return null;
     }
@@ -198,11 +229,13 @@ public class BiostarEventSocket {
       currentIp = ip;
       currentId = loginId;
       currentPw = password;
-      url = wsUrl(currentIp);
+      url = BiostarEventFrames.wsUrl(currentIp);
     }
     String sid;
     try {
-      sid = session.sessionId(baseUrl(currentIp), currentId, currentPw, true); // 항상 새 세션으로 연다
+      sid =
+          session.sessionId(
+              BiostarEventFrames.baseUrl(currentIp), currentId, currentPw, true); // 항상 새 세션으로 연다
     } catch (Exception e) {
       dropAndRetry("BiostarX 로그인에 실패했습니다: " + message(e));
       return;
@@ -262,6 +295,7 @@ public class BiostarEventSocket {
     synchronized (lock) {
       ready = true;
       lastError = null;
+      liveness.frame(); // 조용함은 연결 시각부터 센다
     }
     notifyStatus();
   }
@@ -274,23 +308,35 @@ public class BiostarEventSocket {
 
   /** 어느 단계에서 실패하든 여기로 모인다 — 소켓을 버리고, 사유를 남기고, 다시 붙는다. */
   private void dropAndRetry(String why) {
+    drop(why, true);
+  }
+
+  /**
+   * @param fault 고장인가 — 아니면(오래 조용해 미리 다시 여는 것) 사유를 화면에 남기지 않고 곧바로 다시 붙는다
+   */
+  private void drop(String why, boolean fault) {
     WebSocket ws;
     boolean stillWanted;
+    int delay = fault ? RETRY_SECONDS : 0;
     synchronized (lock) {
       ws = socket;
       socket = null;
       ready = false;
       boundSessionId = null;
       stillWanted = wanted;
-      lastError = stillWanted ? why + " (" + RETRY_SECONDS + "초 뒤 다시 시도합니다)" : null;
+      lastError = stillWanted && fault ? why + " (" + delay + "초 뒤 다시 시도합니다)" : null;
     }
     abort(ws);
     if (!stillWanted) {
       return;
     }
-    log.warn("BiostarX 실시간 이벤트 — {} / {}초 뒤 재연결", why, RETRY_SECONDS);
+    if (fault) {
+      log.warn("BiostarX 실시간 이벤트 — {} / {}초 뒤 재연결", why, delay);
+    } else {
+      log.info("BiostarX 실시간 이벤트 — {}", why);
+    }
     notifyStatus();
-    schedule(this::connect, RETRY_SECONDS);
+    schedule(this::connect, delay);
   }
 
   private static void abort(WebSocket ws) {
@@ -346,12 +392,21 @@ public class BiostarEventSocket {
     }
 
     private CompletionStage<?> accumulate(WebSocket webSocket, CharSequence data, boolean last) {
+      liveness.frame();
       buffer.append(data);
       if (last) {
         String message = buffer.toString();
         buffer.setLength(0);
         dispatch(message, authReply);
       }
+      webSocket.request(1);
+      return null;
+    }
+
+    /** ping 의 답 — 소켓이 살아 있다. 받기 요청을 다시 걸지 않으면 그 뒤 프레임이 오지 않는다. */
+    @Override
+    public CompletionStage<?> onPong(WebSocket webSocket, java.nio.ByteBuffer message) {
+      liveness.pong();
       webSocket.request(1);
       return null;
     }
@@ -379,9 +434,12 @@ public class BiostarEventSocket {
   private void dispatch(String message, java.util.concurrent.CompletableFuture<String> authReply) {
     BiostarAuthEvent parsed;
     try {
-      parsed = parse(objectMapper, message);
+      parsed = BiostarEventFrames.parse(objectMapper, message);
     } catch (Exception e) {
-      log.info("BiostarX 이벤트 파싱 실패(무시) — {} 본문: {}", e.toString(), abbreviate(message));
+      log.info(
+          "BiostarX 이벤트 파싱 실패(무시) — {} 본문: {}",
+          e.toString(),
+          BiostarEventFrames.abbreviate(message));
       return;
     }
     if (parsed == null) {
@@ -410,16 +468,9 @@ public class BiostarEventSocket {
    */
   private void handleNonEvent(
       String message, java.util.concurrent.CompletableFuture<String> authReply) {
-    String code;
-    try {
-      JsonNode resp = objectMapper.readTree(message).path("Response");
-      if (resp.isMissingNode()) {
-        log.debug("BiostarX 이벤트 아님(무시): {}", abbreviate(message));
-        return;
-      }
-      code = resp.path("code").asText("");
-    } catch (Exception e) {
-      log.debug("BiostarX 소켓 응답 해석 실패(무시): {}", abbreviate(message));
+    String code = BiostarEventFrames.responseCode(objectMapper, message);
+    if (code == null) {
+      log.debug("BiostarX 이벤트 아님(무시): {}", BiostarEventFrames.abbreviate(message));
       return;
     }
     if (authReply.complete(code)) {
@@ -429,44 +480,6 @@ public class BiostarEventSocket {
     if (!"0".equals(code)) {
       dropAndRetry("이벤트 소켓이 세션을 거부했습니다 (code " + code + ")");
     }
-  }
-
-  /** MESSAGE 본문 → 이벤트. {@code Event} 가 없으면(하트비트 등) null. 테스트에서 직접 확인한다. */
-  static BiostarAuthEvent parse(ObjectMapper mapper, String message) throws Exception {
-    JsonNode event = mapper.readTree(message).path("Event");
-    if (event.isMissingNode() || event.isNull()) {
-      return null;
-    }
-    JsonNode type = event.path("event_type_id");
-    JsonNode user = event.path("user_id");
-    // 문 — 소켓 프레임은 door_id_list, 검색 API 는 door_id(둘 다 배열 [{id,name}], 장비 실측)
-    JsonNode door = event.has("door_id_list") ? event.path("door_id_list") : event.path("door_id");
-    door = door.isArray() ? door.path(0) : door; // 빈 배열이면 MissingNode — text() 가 null
-    String userName = text(user, "name");
-    return new BiostarAuthEvent(
-        text(type, "code"),
-        text(type, "name"),
-        text(event, "datetime"),
-        text(event.path("device_id"), "id"),
-        text(event.path("device_id"), "name"),
-        text(user, "user_id"),
-        text(event.path("image_id"), "image_data"),
-        "-".equals(userName) ? null : userName, // 미등록 카드는 이름 자리에 '-' 가 온다
-        text(door, "id"),
-        text(door, "name"));
-  }
-
-  private static String text(JsonNode node, String field) {
-    String v = node.path(field).asText(null);
-    return (v == null || v.isBlank()) ? null : v;
-  }
-
-  /** 로그용 절단 — 예상 밖 프레임이 길 수 있다. */
-  private static String abbreviate(String s) {
-    if (s == null) {
-      return "(없음)";
-    }
-    return s.length() <= 300 ? s : s.substring(0, 300) + "…";
   }
 
   private void notifyStatus() {
@@ -483,14 +496,5 @@ public class BiostarEventSocket {
     Thread t = new Thread(r, "biostar-event-socket");
     t.setDaemon(true); // 종료를 막지 않는다
     return t;
-  }
-
-  /** {@code 192.168.0.10[:9443]} 또는 {@code https://...} → {@code wss://.../wsapi}. */
-  static String wsUrl(String ip) {
-    return baseUrl(ip).replaceFirst("^http", "ws") + "/wsapi";
-  }
-
-  private static String baseUrl(String ip) {
-    return (ip.startsWith("http://") || ip.startsWith("https://")) ? ip : "https://" + ip;
   }
 }

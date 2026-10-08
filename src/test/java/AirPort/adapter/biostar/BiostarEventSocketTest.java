@@ -10,19 +10,19 @@ class BiostarEventSocketTest {
 
   @Test
   void IP_만_넣으면_wss_로_붙인다() {
-    assertEquals("wss://192.168.0.10/wsapi", BiostarEventSocket.wsUrl("192.168.0.10"));
+    assertEquals("wss://192.168.0.10/wsapi", BiostarEventFrames.wsUrl("192.168.0.10"));
   }
 
   @Test
   void 포트가_있으면_그대로_유지한다() {
     // 현장은 BiostarX 를 9443 같은 별도 포트로 올려 쓴다
-    assertEquals("wss://192.168.0.10:9443/wsapi", BiostarEventSocket.wsUrl("192.168.0.10:9443"));
+    assertEquals("wss://192.168.0.10:9443/wsapi", BiostarEventFrames.wsUrl("192.168.0.10:9443"));
   }
 
   @Test
   void 스킴이_이미_있으면_그것을_따른다() {
-    assertEquals("wss://192.168.0.10/wsapi", BiostarEventSocket.wsUrl("https://192.168.0.10"));
-    assertEquals("ws://192.168.0.10/wsapi", BiostarEventSocket.wsUrl("http://192.168.0.10"));
+    assertEquals("wss://192.168.0.10/wsapi", BiostarEventFrames.wsUrl("https://192.168.0.10"));
+    assertEquals("ws://192.168.0.10/wsapi", BiostarEventFrames.wsUrl("http://192.168.0.10"));
   }
 
   /** 현장에서 실제로 받은 MESSAGE — 필드 하나라도 어긋나면 화면에 아무것도 안 뜬다. */
@@ -40,7 +40,7 @@ class BiostarEventSocketTest {
   @Test
   void 실제_MESSAGE_에서_필요한_값을_모두_뽑는다() throws Exception {
     BiostarAuthEvent e =
-        BiostarEventSocket.parse(new com.fasterxml.jackson.databind.ObjectMapper(), REAL_MESSAGE);
+        BiostarEventFrames.parse(new com.fasterxml.jackson.databind.ObjectMapper(), REAL_MESSAGE);
 
     assertEquals("4106", e.eventCode());
     assertEquals("VERIFY_SUCCESS_CARD_FACE", e.eventName());
@@ -62,7 +62,7 @@ class BiostarEventSocketTest {
   void 카드_태깅_프레임에서_카드번호를_뽑는다() throws Exception {
     // 이 값이 tb_card.biostar_card_value 다. 자리가 어긋나면 카드를 못 찾아 태깅이 통째로 안 먹는다
     BiostarAuthEvent e =
-        BiostarEventSocket.parse(new com.fasterxml.jackson.databind.ObjectMapper(), CARD_TAGGED);
+        BiostarEventFrames.parse(new com.fasterxml.jackson.databind.ObjectMapper(), CARD_TAGGED);
 
     assertEquals("4354", e.eventCode());
     assertEquals("543737030", e.deviceId());
@@ -73,7 +73,7 @@ class BiostarEventSocketTest {
   @Test
   void 이벤트가_아닌_메시지는_버린다() throws Exception {
     assertNull(
-        BiostarEventSocket.parse(
+        BiostarEventFrames.parse(
             new com.fasterxml.jackson.databind.ObjectMapper(), "{\"ping\":1}"));
   }
 
@@ -87,17 +87,17 @@ class BiostarEventSocketTest {
   @Test
   void 출입문_이벤트에서_문과_사용자_이름을_뽑는다() throws Exception {
     BiostarAuthEvent e =
-        BiostarEventSocket.parse(new com.fasterxml.jackson.databind.ObjectMapper(), DOOR_EVENT);
+        BiostarEventFrames.parse(new com.fasterxml.jackson.databind.ObjectMapper(), DOOR_EVENT);
     assertEquals("5", e.doorId());
     assertEquals("F2", e.doorName());
     assertEquals(null, e.userName());
 
     BiostarAuthEvent auth =
-        BiostarEventSocket.parse(new com.fasterxml.jackson.databind.ObjectMapper(), REAL_MESSAGE);
+        BiostarEventFrames.parse(new com.fasterxml.jackson.databind.ObjectMapper(), REAL_MESSAGE);
     assertEquals("홍길동", auth.userName());
     assertEquals(null, auth.doorId());
     BiostarAuthEvent tagged =
-        BiostarEventSocket.parse(new com.fasterxml.jackson.databind.ObjectMapper(), CARD_TAGGED);
+        BiostarEventFrames.parse(new com.fasterxml.jackson.databind.ObjectMapper(), CARD_TAGGED);
     assertEquals(null, tagged.userName(), "미등록 카드는 이름 자리의 '-' 를 이름으로 보이지 않는다");
   }
 
@@ -112,7 +112,7 @@ class BiostarEventSocketTest {
   @Test
   void 소켓_프레임의_door_id_list_에서_문을_뽑는다() throws Exception {
     BiostarAuthEvent e =
-        BiostarEventSocket.parse(new com.fasterxml.jackson.databind.ObjectMapper(), UNLOCKED_FRAME);
+        BiostarEventFrames.parse(new com.fasterxml.jackson.databind.ObjectMapper(), UNLOCKED_FRAME);
     assertEquals("UNLOCKED", e.eventName());
     assertEquals("5", e.doorId());
     assertEquals("F2", e.doorName());
