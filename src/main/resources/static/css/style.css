@@ -668,7 +668,7 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
    왼쪽 맵/출입문 · 가운데 평면도 · 아래 이벤트 · 오른쪽 인증 사진. 화면 전체를 한 격자로 나눠 스크롤은 칸 안에서만 생긴다. */
 .gmap-body { margin: 0; background: #16181d; color: #e6e8ec; overflow: hidden; }
 .gmap { --g-panel: #1f2229; --g-line: #2e323b; --g-text-2: #9aa1ad; --g-blue: #3d7bfd;
-  display: grid; grid-template-columns: 250px minmax(0, 1fr) 360px; grid-template-rows: 48px minmax(0, 1fr) 240px;
+  display: grid; grid-template-columns: 250px minmax(0, 1fr) 360px; grid-template-rows: 48px minmax(0, 1fr) var(--g-events-h, 240px);
   height: 100vh; }
 .gmap-bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 16px;
   background: var(--g-panel); border-bottom: 1px solid var(--g-line); }
@@ -755,7 +755,10 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 
 /* 아래 이벤트 */
 .gmap-events { grid-column: 2; grid-row: 3; display: flex; flex-direction: column; min-height: 0;
-  background: var(--g-panel); border-top: 1px solid var(--g-line); }
+  background: var(--g-panel); border-top: 1px solid var(--g-line); position: relative; }
+/* 평면도·이벤트 경계 손잡이 — 위아래로 끌어 높이를 바꾼다 */
+.gmap-split { position: absolute; left: 0; right: 0; top: -4px; height: 8px; cursor: row-resize; z-index: 5; touch-action: none; }
+.gmap-split:hover, .gmap-split.active { background: rgba(61, 123, 253, .55); }
 .gmap-event-scroll { overflow-y: auto; flex: 1; min-height: 0; }
 .gmap .gmap-event-table th { position: sticky; top: 0; background: #262a32; color: var(--g-text-2); font-size: 12px; }
 .gmap .gmap-event-table th, .gmap .gmap-event-table td { border-color: var(--g-line); padding: 6px 10px; font-size: 13px; }

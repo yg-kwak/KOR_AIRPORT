@@ -10,6 +10,7 @@
   const FLASH_MS = 4000;  // 인증한 문이 반짝이는 시간
   const KEEPALIVE_MS = 5 * 60 * 1000; // 세션 유휴 만료(1시간)보다 짧게 — 늘 켜 두는 화면이라 스트림과 무관하게 계속 두드린다
   const MAP_KEY = 'graphicMapId';     // 마지막에 본 맵 — 늘 켜 두는 화면이라 다시 열면 이어서 본다
+  const SPLIT_KEY = 'graphicMapEventsH'; // 아래 이벤트 높이(경계를 끌어 바꾼 값)
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
@@ -112,6 +113,34 @@
     state.zoom = Math.min(8, Math.max(0.25, state.zoom * f));
     state.panX *= f; state.panY *= f; // 가운데를 기준으로 키운다
     applyView();
+  }
+
+  /* 평면도·이벤트 경계 — 위아래로 끌어 이벤트 높이를 바꾼다. 평면도는 남은 자리에 다시 맞춘다 */
+  const refit = () => { if (state.natW) { const z = state.zoom; fit(); state.zoom = z; applyView(); } };
+  function setEventsH(h) {
+    const max = $('gmap').clientHeight - 48 - 120; // 머리줄·평면도 최소 높이는 남긴다
+    const v = Math.round(Math.max(120, Math.min(max, h)));
+    $('gmap').style.setProperty('--g-events-h', v + 'px');
+    refit();
+    return v;
+  }
+  function bindSplit() {
+    const bar = $('eventSplit');
+    let saved = null;
+    try { saved = Number(localStorage.getItem(SPLIT_KEY)) || null; } catch (e) { saved = null; }
+    if (saved) setEventsH(saved);
+    let dragging = false;
+    bar.addEventListener('pointerdown', (e) => { dragging = true; bar.setPointerCapture(e.pointerId); bar.classList.add('active'); e.preventDefault(); });
+    bar.addEventListener('pointermove', (e) => {
+      if (dragging) setEventsH($('gmap').getBoundingClientRect().bottom - e.clientY);
+    });
+    const end = () => {
+      if (!dragging) return;
+      dragging = false; bar.classList.remove('active');
+      try { localStorage.setItem(SPLIT_KEY, String($('gmap').querySelector('.gmap-events').offsetHeight)); } catch (e) { /* 저장이 막힌 브라우저 */ }
+    };
+    bar.addEventListener('pointerup', end); bar.addEventListener('pointercancel', end);
+    bar.addEventListener('dblclick', () => { setEventsH(240); try { localStorage.removeItem(SPLIT_KEY); } catch (e) { /* 무시 */ } });
   }
 
   function bindPan() {
@@ -339,12 +368,13 @@
     $('btnZoomFit').addEventListener('click', fit);
     $('btnShowAll').addEventListener('click', toggleAll);
     $('btnEventClear').addEventListener('click', () => { events.length = 0; renderFeeds(); }); // 사진은 그대로
-    window.addEventListener('resize', () => { if (state.natW) { const z = state.zoom; fit(); state.zoom = z; applyView(); } });
+    window.addEventListener('resize', refit);
     window.addEventListener('beforeunload', stop);
     // 세션 유지 — 늘 켜 두는 상황판이다. 스트림이 없을 때(문이 없는 맵·편집 중)도 계속 두드려야
     // 유휴 1시간 뒤 로그인 화면으로 튕기지 않는다. 세션이 이미 끊겼으면 api 래퍼가 로그인으로 보낸다
     setInterval(() => api.get(BASE + '/alive').catch(() => {}), KEEPALIVE_MS);
     bindPan();
+    bindSplit();
     loadMaps();
   }
 
