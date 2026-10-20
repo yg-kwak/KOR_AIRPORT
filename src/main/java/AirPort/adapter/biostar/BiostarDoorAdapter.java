@@ -243,14 +243,23 @@ public class BiostarDoorAdapter {
       long doorId,
       int offset,
       int limit,
-      String searchText) {
+      String searchText,
+      Long userGroupId) {
     try {
       ObjectNode body = objectMapper.createObjectNode();
       ObjectNode q = body.putObject("Query");
-      q.put("offset", offset).put("limit", limit);
-      ObjectNode cond = q.putArray("conditions").addObject();
+      // 한 명 더 묻는다 — 사용자 그룹으로 거르면 total 이 오지 않아(장비 실측) 다음 쪽이 있는지 이것으로 안다
+      q.put("offset", offset).put("limit", limit + 1);
+      com.fasterxml.jackson.databind.node.ArrayNode conds = q.putArray("conditions");
+      ObjectNode cond = conds.addObject();
       cond.put("column", "door.id").put("operator", 2);
       cond.putArray("values").add(String.valueOf(doorId));
+      if (userGroupId != null) {
+        // 그 그룹에 바로 속한 사람만(하위 그룹은 따라오지 않는다 — 장비 실측)
+        ObjectNode g = conds.addObject();
+        g.put("column", "user.user_group_id.id").put("operator", 2);
+        g.putArray("values").add(String.valueOf(userGroupId));
+      }
       q.put("search_text", searchText == null ? "" : searchText);
       q.put("total", true).put("user_only", true);
       HttpResponse<String> resp =
@@ -260,7 +269,7 @@ public class BiostarDoorAdapter {
       if (err != null) {
         throw new BiostarSessionException("추가할 수 있는 사용자 조회 실패: " + err);
       }
-      return parseAccessible(objectMapper.readTree(resp.body()));
+      return parseAccessible(objectMapper.readTree(resp.body()), offset, limit);
     } catch (BiostarSessionException e) {
       throw e;
     } catch (Exception e) {
@@ -269,7 +278,13 @@ public class BiostarDoorAdapter {
     }
   }
 
-  static BiostarDoorUserPage parseAccessible(JsonNode root) {
+  /**
+   * 한 쪽 — {@code limit + 1} 명을 물어 받은 결과다. 넘친 한 명은 버리고 "다음 쪽 있음" 으로 바꾼다.
+   *
+   * <p>건수({@code total})는 문자열로 온다. 사용자 그룹으로 거르면 아예 오지 않는데, 그때 마지막 쪽이면 건수를 셀 수 있고(앞 쪽 + 이번 쪽) 아니면
+   * -1(모름)이다.
+   */
+  static BiostarDoorUserPage parseAccessible(JsonNode root, int offset, int limit) {
     JsonNode coll = root.path("AccessibleUserCollection");
     List<BiostarDoorUser> rows = new ArrayList<>();
     for (JsonNode r : coll.path("rows")) {
@@ -283,7 +298,14 @@ public class BiostarDoorAdapter {
                 u.path("user_group_id").path("name").asText(null)));
       }
     }
-    return new BiostarDoorUserPage(coll.path("total").asLong(rows.size()), rows);
+    boolean more = rows.size() > limit;
+    List<BiostarDoorUser> page = more ? List.copyOf(rows.subList(0, limit)) : rows;
+    JsonNode total = coll.path("total");
+    long count =
+        !total.isMissingNode() && !total.asText().isBlank()
+            ? total.asLong()
+            : (more ? -1 : offset + page.size());
+    return new BiostarDoorUserPage(count, more, page);
   }
 
   /**

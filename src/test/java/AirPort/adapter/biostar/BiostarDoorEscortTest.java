@@ -77,8 +77,10 @@ class BiostarDoorEscortTest {
     HttpResponse<String> r = resp(ACCESSIBLE);
     when(session.post(anyString(), anyString(), anyString(), anyString(), anyString()))
         .thenReturn(r);
-    BiostarDoorUserPage p = adapter.accessibleUsers("10.0.0.1", "id", "pw", 15, 200, 200, "김");
+    BiostarDoorUserPage p =
+        adapter.accessibleUsers("10.0.0.1", "id", "pw", 15, 200, 200, "김", null);
     assertEquals(502, p.total(), "건수도 문자열로 온다");
+    assertFalse(p.more(), "한 명 더 물었는데 둘만 왔다 — 다음 쪽 없음");
     assertEquals(2, p.rows().size());
     assertEquals("인사팀", p.rows().get(1).groupName());
     verify(session)
@@ -88,8 +90,42 @@ class BiostarDoorEscortTest {
             anyString(),
             eq("/api/doors/accessible_users"),
             eq(
-                "{\"Query\":{\"offset\":200,\"limit\":200,\"conditions\":[{\"column\":\"door.id\",\"operator\":2,"
+                "{\"Query\":{\"offset\":200,\"limit\":201,\"conditions\":[{\"column\":\"door.id\",\"operator\":2,"
                     + "\"values\":[\"15\"]}],\"search_text\":\"김\",\"total\":true,\"user_only\":true}}"));
+  }
+
+  @Test
+  void 사용자_그룹으로_거르면_조건을_하나_더_붙인다() throws Exception {
+    HttpResponse<String> r = resp(ACCESSIBLE);
+    when(session.post(anyString(), anyString(), anyString(), anyString(), anyString()))
+        .thenReturn(r);
+    adapter.accessibleUsers("10.0.0.1", "id", "pw", 15, 0, 200, "", 1009L);
+    verify(session)
+        .post(
+            anyString(),
+            anyString(),
+            anyString(),
+            eq("/api/doors/accessible_users"),
+            eq(
+                "{\"Query\":{\"offset\":0,\"limit\":201,\"conditions\":["
+                    + "{\"column\":\"door.id\",\"operator\":2,\"values\":[\"15\"]},"
+                    + "{\"column\":\"user.user_group_id.id\",\"operator\":2,\"values\":[\"1009\"]}],"
+                    + "\"search_text\":\"\",\"total\":true,\"user_only\":true}}"));
+  }
+
+  @Test
+  void 그룹으로_거르면_건수가_없다_마지막_쪽이면_세고_아니면_모른다() throws Exception {
+    // 장비 실측: 사용자 그룹 조건을 붙이면 total 이 오지 않는다
+    String three =
+        "{\"AccessibleUserCollection\":{\"rows\":[{\"user\":{\"user_id\":\"a\"}},"
+            + "{\"user\":{\"user_id\":\"b\"}},{\"user\":{\"user_id\":\"c\"}}]}}";
+    BiostarDoorUserPage more = BiostarDoorAdapter.parseAccessible(mapper.readTree(three), 4, 2);
+    assertTrue(more.more(), "2명을 달라 했는데 3명 — 다음 쪽 있음");
+    assertEquals(2, more.rows().size(), "넘친 한 명은 버린다");
+    assertEquals(-1, more.total(), "건수를 모른다");
+    BiostarDoorUserPage last = BiostarDoorAdapter.parseAccessible(mapper.readTree(three), 4, 5);
+    assertFalse(last.more());
+    assertEquals(7, last.total(), "마지막 쪽이면 앞 쪽 4명 + 이번 3명");
   }
 
   @Test

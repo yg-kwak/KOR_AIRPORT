@@ -30,8 +30,14 @@ class EscortServiceTest {
   private final TbSystemMapper systemMapper = mock(TbSystemMapper.class);
   private final BiostarDoorAdapter doorAdapter = mock(BiostarDoorAdapter.class);
   private final AuditService auditService = mock(AuditService.class);
+  private final MenuAuthService menuAuth = mock(MenuAuthService.class);
   private final EscortService service =
-      new EscortService(systemMapper, doorAdapter, mock(MenuAuthService.class), auditService);
+      new EscortService(
+          systemMapper,
+          doorAdapter,
+          mock(AirPort.adapter.biostar.BiostarAdapter.class),
+          menuAuth,
+          auditService);
 
   EscortServiceTest() {
     TbSystem cfg = new TbSystem();
@@ -60,7 +66,7 @@ class EscortServiceTest {
     when(doorAdapter.updateAuthUsers(any(), any(), any(), anyLong(), any(), any()))
         .thenReturn(BiostarResult.ok());
 
-    String msg = service.addUsers(form(" 202606110002 ", "202606100001", ""), null, 504);
+    String msg = service.update(form(" 202606110002 ", "202606100001", ""), null, 504);
 
     verify(doorAdapter)
         .updateAuthUsers(
@@ -70,7 +76,7 @@ class EscortServiceTest {
             15L,
             "1",
             List.of("1", "202606100001", "202606110002")); // 기존 둘 + 새로 하나, 이미 있던 사람은 한 번만
-    assertEquals("1명을 추가했습니다.", msg);
+    assertEquals("1명 추가했습니다.", msg);
     verify(auditService)
         .log(
             eq(null),
@@ -84,7 +90,7 @@ class EscortServiceTest {
     current(true, null);
     when(doorAdapter.updateAuthUsers(any(), any(), any(), anyLong(), any(), any()))
         .thenReturn(BiostarResult.ok());
-    service.addUsers(form("7"), null, 504);
+    service.update(form("7"), null, 504);
     verify(doorAdapter).updateAuthUsers(any(), any(), any(), eq(15L), eq("1"), eq(List.of("7")));
   }
 
@@ -92,7 +98,7 @@ class EscortServiceTest {
   void 에스코트가_꺼진_문에는_보내지_않는다() {
     current(false, "1");
     BusinessException e =
-        assertThrows(BusinessException.class, () -> service.addUsers(form("7"), null, 504));
+        assertThrows(BusinessException.class, () -> service.update(form("7"), null, 504));
     assertTrue(e.getMessage().contains("꺼져"), e.getMessage());
     verify(doorAdapter, never()).updateAuthUsers(any(), any(), any(), anyLong(), any(), any());
   }
@@ -100,8 +106,64 @@ class EscortServiceTest {
   @Test
   void 고른_사람이_모두_이미_있거나_아무도_없으면_보내지_않는다() {
     current(true, "1", "1");
-    assertThrows(BusinessException.class, () -> service.addUsers(form("1"), null, 504));
-    assertThrows(BusinessException.class, () -> service.addUsers(form(" ", ""), null, 504));
+    assertThrows(BusinessException.class, () -> service.update(form("1"), null, 504));
+    assertThrows(BusinessException.class, () -> service.update(form(" ", ""), null, 504));
+    verify(doorAdapter, never()).updateAuthUsers(any(), any(), any(), anyLong(), any(), any());
+  }
+
+  private static EscortForm change(List<String> add, List<String> remove) {
+    EscortForm f = new EscortForm();
+    f.setDoorId(15L);
+    f.setUserIds(add);
+    f.setRemoveIds(remove);
+    return f;
+  }
+
+  @Test
+  void 체크를_푼_등록자는_빼고_나머지는_지킨다() {
+    current(true, "1", "1", "202606100001", "202606110001");
+    when(doorAdapter.updateAuthUsers(any(), any(), any(), anyLong(), any(), any()))
+        .thenReturn(BiostarResult.ok());
+
+    String msg =
+        service.update(change(List.of("202606110009"), List.of("202606100001")), null, 504);
+
+    verify(doorAdapter)
+        .updateAuthUsers(
+            any(),
+            any(),
+            any(),
+            eq(15L),
+            eq("1"),
+            eq(List.of("1", "202606110001", "202606110009")));
+    verify(menuAuth).requireDelete(null, 504); // 빼는 사람이 있으면 삭제 권한
+    assertEquals("1명 추가 · 1명 제외했습니다.", msg);
+  }
+
+  @Test
+  void 빼기만_해도_되고_추가만이면_삭제_권한을_묻지_않는다() {
+    current(true, "1", "1", "202606100001");
+    when(doorAdapter.updateAuthUsers(any(), any(), any(), anyLong(), any(), any()))
+        .thenReturn(BiostarResult.ok());
+    assertEquals(
+        "2명 제외했습니다.", service.update(change(List.of(), List.of("1", "202606100001")), null, 504));
+    verify(doorAdapter).updateAuthUsers(any(), any(), any(), eq(15L), eq("1"), eq(List.of()));
+
+    current(true, "1", "1");
+    service.update(change(List.of("7"), null), null, 504);
+    verify(menuAuth, org.mockito.Mockito.times(1)).requireDelete(null, 504); // 앞의 제외 한 번뿐
+  }
+
+  @Test
+  void 이미_빠진_사람을_빼거나_같은_사람을_넣고_빼면_바뀐_것이_없다() {
+    current(true, "1", "1");
+    // 화면을 연 뒤 BiostarX 에서 이미 빠진 사람 — 셀 것이 없다
+    assertThrows(
+        BusinessException.class, () -> service.update(change(List.of(), List.of("99")), null, 504));
+    // 넣으면서 빼면 넣는 쪽을 따른다 — 이미 있는 사람이라 바뀐 것이 없다
+    assertThrows(
+        BusinessException.class,
+        () -> service.update(change(List.of("1"), List.of("1")), null, 504));
     verify(doorAdapter, never()).updateAuthUsers(any(), any(), any(), anyLong(), any(), any());
   }
 
@@ -111,7 +173,7 @@ class EscortServiceTest {
     when(doorAdapter.updateAuthUsers(any(), any(), any(), anyLong(), any(), any()))
         .thenReturn(BiostarResult.fail("Invalid user (code 30)"));
     BusinessException e =
-        assertThrows(BusinessException.class, () -> service.addUsers(form("9"), null, 504));
+        assertThrows(BusinessException.class, () -> service.update(form("9"), null, 504));
     assertTrue(e.getMessage().contains("Invalid user"), e.getMessage());
     verify(auditService)
         .logAlways(
@@ -123,9 +185,10 @@ class EscortServiceTest {
 
   @Test
   void 추가할_수_있는_사용자는_한_쪽_200명까지로_묻는다() {
-    when(doorAdapter.accessibleUsers(any(), any(), any(), anyLong(), anyInt(), anyInt(), any()))
-        .thenReturn(new AirPort.adapter.biostar.BiostarDoorUserPage(0, List.of()));
-    service.accessibleUsers(15, 3, 5000, "  김 ", null, 504);
-    verify(doorAdapter).accessibleUsers("10.0.0.1", "admin", "", 15L, 400, 200, "김");
+    when(doorAdapter.accessibleUsers(
+            any(), any(), any(), anyLong(), anyInt(), anyInt(), any(), any()))
+        .thenReturn(new AirPort.adapter.biostar.BiostarDoorUserPage(0, false, List.of()));
+    service.accessibleUsers(15, 3, 5000, "  김 ", 1009L, null, 504);
+    verify(doorAdapter).accessibleUsers("10.0.0.1", "admin", "", 15L, 400, 200, "김", 1009L);
   }
 }

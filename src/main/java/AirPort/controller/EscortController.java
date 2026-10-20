@@ -3,6 +3,7 @@ package AirPort.controller;
 import AirPort.adapter.biostar.BiostarDoor;
 import AirPort.adapter.biostar.BiostarDoorAuth;
 import AirPort.adapter.biostar.BiostarDoorUserPage;
+import AirPort.adapter.biostar.BiostarUserGroup;
 import AirPort.common.ApiResponse;
 import AirPort.common.CurrentMenu;
 import AirPort.common.SessionKeys;
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-/** 에스코트 인원 관리 — BiostarX 출입문의 에스코트 사용자를 조회·추가한다. 이 시스템에는 저장하지 않는다({@link EscortService}). */
+/** 에스코트 인원 관리 — BiostarX 출입문의 에스코트 사용자를 조회·추가·제외한다. 이 시스템에는 저장하지 않는다({@link EscortService}). */
 @Controller
 @RequestMapping("/security/escort")
 public class EscortController {
@@ -84,16 +85,25 @@ public class EscortController {
       @RequestParam(defaultValue = "1") int page,
       @RequestParam(defaultValue = "200") int size,
       @RequestParam(required = false) String keyword,
+      @RequestParam(required = false) Long userGroupId,
       HttpSession session) {
     return ApiResponse.ok(
-        escortService.accessibleUsers(doorId, page, size, keyword, actor(session), menuId()));
+        escortService.accessibleUsers(
+            doorId, page, size, keyword, userGroupId, actor(session), menuId()));
   }
 
-  /** 사용자 추가 (AJAX) — BiostarX 에 바로 반영한다 */
+  /** 사용자 그룹 목록 (AJAX) — 추가할 사용자 검색 조건 */
+  @GetMapping("/userGroups")
+  @ResponseBody
+  public ApiResponse<List<BiostarUserGroup>> userGroups(HttpSession session) {
+    return ApiResponse.ok(escortService.userGroups(actor(session), menuId()));
+  }
+
+  /** 사용자 반영 (AJAX) — 더하고 빼서 BiostarX 에 바로 반영한다 */
   @PutMapping
   @ResponseBody
   public ApiResponse<Void> update(@RequestBody EscortForm form, HttpSession session) {
-    return ApiResponse.okMessage(escortService.addUsers(form, actor(session), menuId()));
+    return ApiResponse.okMessage(escortService.update(form, actor(session), menuId()));
   }
 
   private TbLoginUser actor(HttpSession session) {

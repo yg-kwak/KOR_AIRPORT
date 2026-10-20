@@ -425,6 +425,8 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 .escort-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .escort-layout .grid tbody tr.selected { background: var(--color-tertiary-hover); box-shadow: inset 3px 0 0 var(--color-primary-default); }
 .escort-search { margin-bottom: 8px; }
+/* 체크를 풀어 [완료] 때 빠질 등록자 — 취소선으로 바로 보이게 */
+.escort-out td:not(:first-child) { color: var(--color-error); text-decoration: line-through; }
 .text-danger { color: var(--color-error); }
 @media (max-width: 1024px) { .escort-layout { grid-template-columns: minmax(0, 1fr); } }
 
