@@ -875,6 +875,16 @@ FROM dbo.tb_menu_auth_detail d
 WHERE d.menu_id = 902
   AND NOT EXISTS (SELECT 1 FROM dbo.tb_menu_auth_detail x WHERE x.auth_id = d.auth_id AND x.menu_id = 903);
 GO
+/* 메뉴 504 에스코트 인원 관리 (보안관리 500 하위) — BiostarX 에만 저장, 테이블 없음 */
+IF NOT EXISTS (SELECT 1 FROM dbo.tb_menu WHERE menu_id = 504)
+  INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_level, menu_order, menu_icon, use_yn)
+  VALUES (504, N'에스코트 인원 관리', 500, '/security/escort', 2, 4, NULL, 'Y');
+INSERT INTO dbo.tb_menu_auth_detail (auth_id, menu_id, read_auth, create_auth, update_auth, delete_auth)
+SELECT d.auth_id, 504, d.read_auth, d.create_auth, d.update_auth, d.delete_auth
+FROM dbo.tb_menu_auth_detail d
+WHERE d.menu_id = 501
+  AND NOT EXISTS (SELECT 1 FROM dbo.tb_menu_auth_detail x WHERE x.auth_id = d.auth_id AND x.menu_id = 504);
+GO
 /* 이미 퇴실 완료된 방문에는 시각이 없다 — 파기 기준이 되어야 하므로 mod_dt 로 채운다.
    근사치지만 유일한 단서이고, 1년 뒤 파기 대상 판정에는 충분하다. */
 IF EXISTS (SELECT 1 FROM dbo.tb_visit WHERE status_code = 'VS04' AND checkout_dt IS NULL)

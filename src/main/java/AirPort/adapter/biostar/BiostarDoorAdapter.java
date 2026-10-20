@@ -11,12 +11,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * BiostarX 출입문 — 목록 조회와 원격 제어(개방·잠금·해제). 그래픽맵(모니터링 903)이 쓴다. (docs/integration.md)
+ * BiostarX 출입문 — 목록 조회와 원격 제어(개방·잠금·해제), 에스코트 사용자. 그래픽맵(모니터링 903)·에스코트 인원 관리(보안관리 504)가 쓴다.
+ * (docs/integration.md)
  *
  * <ul>
  *   <li>목록: {@code POST /api/v2/doors/search} {@code {"limit":500,"door_group_id":1}}
  *   <li>제어: {@code POST /api/doors/unlock|lock|release} {@code
  *       {"DoorCollection":{"rows":[{"id":"5"}]}}}
+ *   <li>에스코트: {@code GET /api/doors/{id}}(auth_door_control) · {@code POST
+ *       /api/doors/accessible_users} · {@code PUT /api/doors/{id}}
  * </ul>
  */
 @Component
@@ -55,9 +58,14 @@ public class BiostarDoorAdapter {
 
   /** 출입문 목록 — 실패면 예외(BiostarSessionException, 사유 문구). */
   public List<BiostarDoor> searchDoors(String ip, String loginId, String password) {
+    return searchDoors(ip, loginId, password, SEARCH_LIMIT);
+  }
+
+  /** 출입문 목록 — 읽는 수를 정해서. */
+  public List<BiostarDoor> searchDoors(String ip, String loginId, String password, int limit) {
     try {
       ObjectNode body = objectMapper.createObjectNode();
-      body.put("limit", SEARCH_LIMIT).put("door_group_id", ALL_DOOR_GROUP);
+      body.put("limit", limit).put("door_group_id", ALL_DOOR_GROUP);
       HttpResponse<String> resp =
           session.post(baseUrl(ip), loginId, password, "/api/v2/doors/search", body.toString());
       String err = BiostarAdapter.responseError(objectMapper, resp);
@@ -180,6 +188,136 @@ public class BiostarDoorAdapter {
       }
     }
     return BiostarResult.ok(); // 문 단위 결과가 없으면 전체 응답(성공)을 따른다
+  }
+
+  /** 에스코트 설정 — {@code GET /api/doors/{id}} 의 {@code auth_door_control}. 실패면 예외(사유 문구). */
+  public BiostarDoorAuth authControl(String ip, String loginId, String password, long doorId) {
+    try {
+      HttpResponse<String> resp =
+          session.get(baseUrl(ip), loginId, password, "/api/doors/" + doorId);
+      String err = BiostarAdapter.responseError(objectMapper, resp);
+      if (err != null) {
+        throw new BiostarSessionException("출입문 조회 실패: " + err);
+      }
+      return parseAuth(objectMapper.readTree(resp.body()), doorId);
+    } catch (BiostarSessionException e) {
+      throw e;
+    } catch (Exception e) {
+      log.warn("BiostarX 출입문 {} 조회 오류: {}", doorId, e.toString());
+      throw new BiostarSessionException("BiostarX 출입문 조회 실패: " + e.getClass().getSimpleName());
+    }
+  }
+
+  /** 값은 모두 문자열로 온다({@code "enabled":"true"}). 사용자가 없으면 {@code users} 가 빈 문자열일 수 있다. */
+  static BiostarDoorAuth parseAuth(JsonNode root, long doorId) {
+    JsonNode door = root.path("Door");
+    JsonNode auth = door.path("auth_door_control");
+    JsonNode schedule = auth.path("schedule_id");
+    List<BiostarDoorUser> users = new ArrayList<>();
+    for (JsonNode u : auth.path("users")) {
+      String id = u.path("user_id").asText("");
+      if (!id.isBlank()) {
+        users.add(new BiostarDoorUser(id, u.path("name").asText(null), null));
+      }
+    }
+    return new BiostarDoorAuth(
+        door.hasNonNull("id") ? door.path("id").asLong(doorId) : doorId,
+        door.path("name").asText(null),
+        "true".equalsIgnoreCase(auth.path("enabled").asText()),
+        schedule.hasNonNull("id") ? schedule.path("id").asText() : null,
+        schedule.path("name").asText(null),
+        users);
+  }
+
+  /**
+   * 그 문에 추가할 수 있는 사용자 한 쪽 — {@code POST /api/doors/accessible_users}.
+   *
+   * <p>{@code
+   * {"Query":{"offset":0,"limit":200,"conditions":[{"column":"door.id","operator":2,"values":["15"]}],
+   * "search_text":"","total":true,"user_only":true}}}
+   */
+  public BiostarDoorUserPage accessibleUsers(
+      String ip,
+      String loginId,
+      String password,
+      long doorId,
+      int offset,
+      int limit,
+      String searchText) {
+    try {
+      ObjectNode body = objectMapper.createObjectNode();
+      ObjectNode q = body.putObject("Query");
+      q.put("offset", offset).put("limit", limit);
+      ObjectNode cond = q.putArray("conditions").addObject();
+      cond.put("column", "door.id").put("operator", 2);
+      cond.putArray("values").add(String.valueOf(doorId));
+      q.put("search_text", searchText == null ? "" : searchText);
+      q.put("total", true).put("user_only", true);
+      HttpResponse<String> resp =
+          session.post(
+              baseUrl(ip), loginId, password, "/api/doors/accessible_users", body.toString());
+      String err = BiostarAdapter.responseError(objectMapper, resp);
+      if (err != null) {
+        throw new BiostarSessionException("추가할 수 있는 사용자 조회 실패: " + err);
+      }
+      return parseAccessible(objectMapper.readTree(resp.body()));
+    } catch (BiostarSessionException e) {
+      throw e;
+    } catch (Exception e) {
+      log.warn("BiostarX 출입문 {} 사용자 조회 오류: {}", doorId, e.toString());
+      throw new BiostarSessionException("BiostarX 사용자 조회 실패: " + e.getClass().getSimpleName());
+    }
+  }
+
+  static BiostarDoorUserPage parseAccessible(JsonNode root) {
+    JsonNode coll = root.path("AccessibleUserCollection");
+    List<BiostarDoorUser> rows = new ArrayList<>();
+    for (JsonNode r : coll.path("rows")) {
+      JsonNode u = r.path("user");
+      String id = u.path("user_id").asText("");
+      if (!id.isBlank()) {
+        rows.add(
+            new BiostarDoorUser(
+                id,
+                u.path("name").asText(null),
+                u.path("user_group_id").path("name").asText(null)));
+      }
+    }
+    return new BiostarDoorUserPage(coll.path("total").asLong(rows.size()), rows);
+  }
+
+  /**
+   * 에스코트 사용자 반영 — {@code PUT /api/doors/{id}}. <b>목록 전체를 바꾸므로</b> 남길 사람까지 모두 넣어 보낸다.
+   *
+   * <p>{@code {"Door":{"id":"15","auth_door_control":{"enabled":"true","users":[{"user_id":"1"}],
+   * "schedule_id":{"id":"1"}}}}}
+   */
+  public BiostarResult updateAuthUsers(
+      String ip,
+      String loginId,
+      String password,
+      long doorId,
+      String scheduleId,
+      List<String> userIds) {
+    try {
+      ObjectNode body = objectMapper.createObjectNode();
+      ObjectNode door = body.putObject("Door");
+      door.put("id", String.valueOf(doorId));
+      ObjectNode auth = door.putObject("auth_door_control");
+      auth.put("enabled", "true");
+      com.fasterxml.jackson.databind.node.ArrayNode users = auth.putArray("users");
+      userIds.forEach(id -> users.addObject().put("user_id", id));
+      auth.putObject("schedule_id").put("id", scheduleId);
+      HttpResponse<String> resp =
+          session.put(baseUrl(ip), loginId, password, "/api/doors/" + doorId, body.toString());
+      String err = BiostarAdapter.responseError(objectMapper, resp);
+      return err == null ? BiostarResult.ok() : BiostarResult.fail(err);
+    } catch (BiostarSessionException e) {
+      return BiostarResult.fail(e.getMessage());
+    } catch (Exception e) {
+      log.warn("BiostarX 출입문 {} 에스코트 반영 오류: {}", doorId, e.toString());
+      return BiostarResult.fail("BiostarX 에스코트 반영 실패: " + e.getClass().getSimpleName());
+    }
   }
 
   private static String baseUrl(String ip) {

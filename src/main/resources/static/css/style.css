@@ -421,6 +421,13 @@ textarea.input { height: auto; padding: 8px 10px; line-height: 1.5; resize: vert
 .ac-used td { color: var(--neutral-500); } /* 이미 추가된 출입그룹(비활성) */
 @media (max-width: 1024px) { .perm-layout { flex-direction: column; } .perm-left { width: 100%; } }
 
+/* 에스코트 인원 관리 — 왼쪽 출입문 · 오른쪽 그 문의 사용자. 입실장치 이름이 길어 반반으로 나눈다 */
+.escort-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.escort-layout .grid tbody tr.selected { background: var(--color-tertiary-hover); box-shadow: inset 3px 0 0 var(--color-primary-default); }
+.escort-search { margin-bottom: 8px; }
+.text-danger { color: var(--color-error); }
+@media (max-width: 1024px) { .escort-layout { grid-template-columns: minmax(0, 1fr); } }
+
 /* 필드 많은 폼(사용자 등) — 2열 그리드. .full 은 한 줄 전체 차지 */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 .form-grid .full { grid-column: 1 / -1; }

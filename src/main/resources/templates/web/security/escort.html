@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head}"></head>
+<body>
+<div th:replace="~{fragments/main :: header}"></div>
+<div class="layout-container">
+  <div th:replace="~{fragments/sidebar :: sidebar(${menus})}"></div>
+  <main class="layout-content">
+    <h2>에스코트 인원 관리</h2>
+    <p class="form-hint">BiostarX 출입문의 에스코트(auth_door_control) 사용자를 바로 조회하고 추가합니다. 이 시스템에는 저장하지 않습니다.</p>
+
+    <div class="escort-layout">
+      <!-- 왼쪽 — 출입문 목록 -->
+      <section class="content-card">
+        <div class="grid-toolbar">
+          <span class="grid-total" id="doorTotal">불러오는 중...</span>
+          <div class="grid-actions">
+            <input type="text" id="doorKeyword" class="input w-200" placeholder="검색어를 입력하세요" autocomplete="off"/>
+          </div>
+        </div>
+        <div class="list-scroll" style="--rows:15">
+          <table class="grid">
+            <thead><tr><th class="w-80">ID</th><th>이름</th><th>입실장치</th></tr></thead>
+            <tbody id="doorBody"><tr><td colspan="3" class="empty">불러오는 중...</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 오른쪽 — 고른 출입문의 에스코트 사용자 -->
+      <section class="content-card">
+        <div class="grid-toolbar">
+          <span class="grid-total" id="userTotal">출입문을 선택하세요</span>
+          <div class="grid-actions">
+            <button class="btn" id="btnAddUser" th:if="${perm.canCreate}" hidden>사용자 추가</button>
+          </div>
+        </div>
+        <p class="form-hint" id="doorInfo"></p>
+        <div class="list-scroll" style="--rows:15">
+          <table class="grid">
+            <thead><tr><th class="w-160">사용자ID</th><th>이름</th></tr></thead>
+            <tbody id="userBody"><tr><td colspan="2" class="empty">왼쪽에서 출입문을 선택하세요.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- 사용자 추가 — 그 문에 추가할 수 있는 BiostarX 사용자 -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal-container wide">
+    <div class="modal-header">
+      <h2 class="modal-title" id="addModalTitle">사용자 추가</h2>
+      <button class="modal-close" id="addModalClose" aria-label="닫기">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="search-section escort-search">
+        <div class="search-field">
+          <label>검색어</label>
+          <input type="text" id="userKeyword" class="input w-300" placeholder="검색어를 입력하세요" autocomplete="off"/>
+        </div>
+        <button class="btn btn-primary" id="btnUserSearch">검색</button>
+      </div>
+      <p class="form-hint" id="addInfo"></p>
+      <div class="list-scroll" style="--rows:10">
+        <table class="grid">
+          <thead><tr><th class="w-40"></th><th class="w-160">사용자ID</th><th>이름</th><th>사용자 그룹</th></tr></thead>
+          <tbody id="addBody"><tr><td colspan="4" class="empty">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="paging" id="addPaging"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="btnAddCancel">취소</button>
+      <button class="btn btn-primary" id="btnAddConfirm">완료</button>
+    </div>
+  </div>
+</div>
+
+<div th:replace="~{fragments/components/confirm-modal :: confirmModal}"></div>
+
+<script th:inline="javascript">
+  window.PAGE_PERM = { canCreate: [[${perm.canCreate}]] };
+</script>
+<script src="/js/web/security/escort.js" defer></script>
+</body>
+</html>

@@ -137,6 +137,7 @@ INSERT INTO dbo.tb_menu (menu_id, menu_name, parent_menu_id, menu_url, menu_leve
   (501, N'감사추적',     500,  '/security/systemLog', 2, 1, NULL,      'Y'),
   (502, N'출입권한관리', 500,  '/security/acGroup',   2, 2, NULL,      'Y'),
   (503, N'제재인원관리', 500,  '/security/blacklist', 2, 3, NULL,      'Y'),
+  (504, N'에스코트 인원 관리', 500, '/security/escort', 2, 4, NULL,      'Y'),
   (600, N'차량관리',     NULL, NULL,                 1, 4, 'car',      'Y'),
   (601, N'차량등록관리', 600,  '/carInfo/car',        2, 1, NULL,      'Y'),
   (602, N'주차 조회',    600,  '/carInfo/parkingEvent', 2, 2, NULL,    'Y'),
@@ -164,6 +165,7 @@ VALUES (@authId, 301, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 501, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 502, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 503, 'Y', 'Y', 'Y', 'Y'),   -- 제재인원관리
+       (@authId, 504, 'Y', 'Y', 'Y', 'Y'),   -- 에스코트 인원 관리
        (@authId, 601, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 701, 'Y', 'Y', 'Y', 'Y'),
        (@authId, 201, 'Y', 'Y', 'Y', 'Y'),
@@ -196,6 +198,7 @@ VALUES (@viewerAuthId, 301, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 501, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 502, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 503, 'Y', 'N', 'N', 'N'),   -- 제재인원관리
+       (@viewerAuthId, 504, 'Y', 'N', 'N', 'N'),   -- 에스코트 인원 관리
        (@viewerAuthId, 601, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 701, 'Y', 'N', 'N', 'N'),
        (@viewerAuthId, 201, 'Y', 'N', 'N', 'N'),

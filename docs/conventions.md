@@ -31,6 +31,7 @@
   | Controller / Service / SearchParam | `{Stem}*` (PascalCase) | `CommonController/Service`, `CommonSearchParam` | `LoginUserController/Service`, `LoginUserSearchParam` |
   | 라우트 · 화면(html/js) | `{stem}` (camelCase) | `/system/common`, `common.html/js` | `/system/loginUser`, `loginUser.html/js` |
 
+  - **테이블이 없는 화면**(외부 시스템을 그대로 보여 주고 고치는 화면)은 화면 이름을 어간으로 삼는다 — Controller/Service/route/html/js 는 같은 규칙, `Tb*`·mapper 는 없다. 예: 에스코트 인원 관리 `escort`(`EscortController`·`EscortService`·`/security/escort`, BiostarX 출입문만 다룬다). 화면 DTO 는 `{어간}Form`, 외부 응답은 adapter 의 record 를 그대로 돌려준다(`BiostarDoorAuth`).
   - **한 테이블에 화면이 여러 개**면 그때만 `{stem}{구분}` 으로 분기하고(예: `commonCode`, `commonGroup`) 이 예외를 여기 등록한다. 기본은 1테이블=1토큰.
   - 로그인 인증 로직은 화면 CRUD 와 별개인 `LoginService`(그대로 유지).
   - `MenuAuthService`(stem `menuAuth`, tb_menu_auth)는 **런타임 권한 판정(`permissionFor`/`require*`)과 권한메뉴관리 화면 CRUD 를 함께** 담당한다(한 도메인). 메뉴권한 상세=tb_menu_auth_detail, `update_auth` 는 `create_auth` 와 동일 저장(정책상 등록=수정).
