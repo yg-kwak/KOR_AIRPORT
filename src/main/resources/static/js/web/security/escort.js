@@ -5,6 +5,7 @@
 (function () {
   const BASE = '/security/escort';
   const PAGE_SIZE = 200; // 추가할 수 있는 사용자 한 쪽 — BiostarX 화면과 같다
+  const MAX_USERS = 300; // 출입문 하나에 넣을 수 있는 에스코트 사용자(서버도 같은 값으로 막는다)
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (s == null ? '' : String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
@@ -123,7 +124,10 @@
 
   function renderPicked() {
     const count = state.total >= 0 ? `${state.total}명` : `${state.shown}명 이상`;
-    $('addInfo').textContent = `넣을 수 있는 사용자 ${count} · 추가 ${state.picked.size}명 · 제외 ${state.removed.size}명`;
+    const after = afterCount();
+    $('addInfo').textContent = `넣을 수 있는 사용자 ${count} · 추가 ${state.picked.size}명 · 제외 ${state.removed.size}명`
+      + ` · 반영 후 ${after}/${MAX_USERS}명`;
+    $('addInfo').classList.toggle('text-danger', after > MAX_USERS);
     // 머리 체크 — 이 쪽에서 바꿀 수 있는 칸이 모두 체크면 체크, 일부면 반쯤
     const boxes = [...$('addBody').querySelectorAll('input[type="checkbox"]:not(:disabled)')];
     const on = boxes.filter((b) => b.checked).length;
@@ -143,10 +147,16 @@
     } else if (cb.checked) state.picked.set(id, cb.dataset.name); else state.picked.delete(id);
   }
 
+  const afterCount = () => (state.door.users || []).length - state.removed.size + state.picked.size;
+
   async function confirmAdd() {
     if (!state.picked.size && !state.removed.size) { toast.warning('추가하거나 뺄 사용자를 선택하세요.'); return; }
+    const after = afterCount();
+    if (after > MAX_USERS) {
+      toast.warning(`에스코트 사용자는 출입문 하나에 ${MAX_USERS}명까지입니다. (반영 후 ${after}명 — ${after - MAX_USERS}명을 빼 주세요)`);
+      return;
+    }
     const name = state.door.doorName || '문 ' + state.door.doorId;
-    const after = (state.door.users || []).length - state.removed.size + state.picked.size;
     const parts = [];
     if (state.picked.size) parts.push(`${state.picked.size}명 추가`);
     if (state.removed.size) parts.push(`${state.removed.size}명 제외`);

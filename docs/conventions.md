@@ -141,6 +141,7 @@ DOMContentLoaded → bind()  → load()
 - **쓰기 흐름(순서 고정)**: ① `menuAuthService.requireCreate|requireDelete(actor, menuId)` → ② 업무 검증(중복 등) → ③ mapper 호출 → ④ `auditService.log(actor, TYPE, menuId, detail[, remark])`.
 - 권한: 판정/강제는 `MenuAuthService`(`permissionFor`/`requireRead·Create·Delete`)만 사용. 등록/수정=create_auth 하나로 판정.
 - 감사: action_type 상수는 `AuditService`(MENU/READ/CREATE/UPDATE/DELETE/DOWNLOAD/LOGIN/LOGOUT). 목록 조회는 검색조건+건수를 detail 에 남긴다. (`security.md`)
+  - **detail 은 짧게 — 여러 건을 한 번에 바꾸면 ID 를 늘어놓지 말고 건수만** 남긴다(예: 에스코트 `추가 288명 · 제외 0명 → 반영 후 289명`). `action_detail`·`remark` 는 `nvarchar(1000)` 이고, 넘친 감사가 예외를 내면 **이미 끝난 외부 반영이 화면에는 실패로 보인다**. 그래서 `AuditService.clip` 이 1000자에서 자르지만(끝에 `…`), 자르는 것은 안전망일 뿐 문구를 짧게 짓는 것이 먼저다.
 - **암복호화(ARIA) 규칙**:
   - 호출은 **Service 계층에서만**. Controller/Mapper 에서 금지.
   - 저장 직전 `ARIAUtil.ariaEncrypt()`, 표시용 조회 직후 `ariaDecrypt()`. 대상 컬럼=`database.md` Enc=Y.

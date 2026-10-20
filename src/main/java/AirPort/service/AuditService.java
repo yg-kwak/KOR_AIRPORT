@@ -42,6 +42,9 @@ public class AuditService {
   /** 시스템 종료. */
   public static final String SHUTDOWN = "SHUTDOWN";
 
+  /** tb_system_log.action_detail·remark 의 길이(nvarchar(1000)). */
+  static final int TEXT_MAX = 1000;
+
   private final TbSystemLogMapper systemLogMapper;
 
   public AuditService(TbSystemLogMapper systemLogMapper) {
@@ -73,11 +76,20 @@ public class AuditService {
     }
     row.setActionType(actionType);
     row.setMenuId(menuId);
-    row.setActionDetail(detail);
-    row.setRemark(remark);
+    // 칸보다 길면 자른다 — 감사가 넘쳐 예외가 나면, 이미 끝난 일(외부 장비 반영 등)이 화면에는 실패로 보인다
+    row.setActionDetail(clip(detail));
+    row.setRemark(clip(remark));
     systemLogMapper.insert(row);
     // 파일에도 같은 내용을 남긴다(사용자ID 는 로그 패턴의 %X{userId} 로 함께 찍힌다)
     audit.info(
         "{} {}{}", actionType, detail, (remark == null || remark.isBlank()) ? "" : " — " + remark);
+  }
+
+  /** 감사 칸 길이에 맞춘다(넘치면 끝에 … 를 붙여 잘린 것이 보이게). */
+  static String clip(String text) {
+    if (text == null || text.length() <= TEXT_MAX) {
+      return text;
+    }
+    return text.substring(0, TEXT_MAX - 1) + "…";
   }
 }

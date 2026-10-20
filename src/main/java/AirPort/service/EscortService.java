@@ -37,6 +37,9 @@ public class EscortService {
   /** 추가할 수 있는 사용자 한 쪽의 상한 — BiostarX 화면과 같은 200. */
   static final int USER_PAGE_MAX = 200;
 
+  /** 출입문 하나에 넣을 수 있는 에스코트 사용자 수. */
+  static final int MAX_USERS = 300;
+
   /** 일정이 비어 있을 때 쓰는 BiostarX 기본 일정(Always). */
   static final String ALWAYS_SCHEDULE = "1";
 
@@ -189,6 +192,11 @@ public class EscortService {
     if (added.isEmpty() && removed.isEmpty()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "바뀐 내용이 없습니다. (이미 반영된 상태입니다)");
     }
+    if (merged.size() > MAX_USERS) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT,
+          "에스코트 사용자는 출입문 하나에 " + MAX_USERS + "명까지입니다. (반영 후 " + merged.size() + "명)");
+    }
     if (!removed.isEmpty()) {
       menuAuthService.requireDelete(actor, menuId);
     }
@@ -197,15 +205,19 @@ public class EscortService {
     BiostarResult res =
         doorAdapter.updateAuthUsers(
             cfg.getBiostarIp(), cfg.getBiostarId(), pw(cfg), doorId, schedule, List.copyOf(merged));
+    // 사람마다 ID 를 늘어놓지 않는다 — 수백 명이면 감사 칸(1000자)을 넘는다. 누가 들어 있는지는 BiostarX 가 원천이다
     String what =
         "에스코트 인원 변경: 문 "
             + doorId
             + " "
             + nvl(auth.doorName())
-            + " — "
-            + change("추가", added)
-            + (added.isEmpty() || removed.isEmpty() ? "" : ", ")
-            + change("제외", removed);
+            + " — 추가 "
+            + added.size()
+            + "명 · 제외 "
+            + removed.size()
+            + "명 → 반영 후 "
+            + merged.size()
+            + "명";
     if (!res.success()) {
       auditService.logAlways(actor, AuditService.UPDATE, menuId, what + " 실패 — " + res.message());
       throw new BusinessException(ErrorCode.INVALID_INPUT, "BiostarX 반영 실패: " + res.message());
@@ -219,10 +231,6 @@ public class EscortService {
       parts.add(removed.size() + "명 제외");
     }
     return String.join(" · ", parts) + "했습니다.";
-  }
-
-  private static String change(String label, List<String> ids) {
-    return ids.isEmpty() ? "" : label + " " + ids.size() + "명 (" + String.join(", ", ids) + ")";
   }
 
   /** 사용자ID — 앞뒤 공백을 지우고 빈 값·중복을 뺀다(고른 순서는 지킨다). */

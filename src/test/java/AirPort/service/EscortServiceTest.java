@@ -82,7 +82,7 @@ class EscortServiceTest {
             eq(null),
             eq(AuditService.UPDATE),
             eq(504),
-            org.mockito.ArgumentMatchers.contains("202606110002"));
+            org.mockito.ArgumentMatchers.contains("추가 1명 · 제외 0명 → 반영 후 3명"));
   }
 
   @Test
@@ -165,6 +165,36 @@ class EscortServiceTest {
         BusinessException.class,
         () -> service.update(change(List.of("1"), List.of("1")), null, 504));
     verify(doorAdapter, never()).updateAuthUsers(any(), any(), any(), anyLong(), any(), any());
+  }
+
+  @Test
+  void 출입문_하나에_300명을_넘기면_보내지_않는다() {
+    current(true, "1", "a", "b");
+    List<String> many = java.util.stream.IntStream.range(0, 299).mapToObj(i -> "u" + i).toList();
+    BusinessException e =
+        assertThrows(BusinessException.class, () -> service.update(change(many, null), null, 504));
+    assertTrue(
+        e.getMessage().contains("300명까지") && e.getMessage().contains("301명"), e.getMessage());
+    verify(doorAdapter, never()).updateAuthUsers(any(), any(), any(), anyLong(), any(), any());
+
+    // 빼면서 넣어 300명이 되면 된다
+    when(doorAdapter.updateAuthUsers(any(), any(), any(), anyLong(), any(), any()))
+        .thenReturn(BiostarResult.ok());
+    service.update(change(many, List.of("a")), null, 504);
+  }
+
+  @Test
+  void 수백_명을_바꿔도_감사_문구는_짧다() {
+    current(true, "1", "a");
+    when(doorAdapter.updateAuthUsers(any(), any(), any(), anyLong(), any(), any()))
+        .thenReturn(BiostarResult.ok());
+    List<String> many =
+        java.util.stream.IntStream.range(0, 288).mapToObj(i -> "2026061100" + i).toList();
+    service.update(change(many, null), null, 504);
+    org.mockito.ArgumentCaptor<String> detail = org.mockito.ArgumentCaptor.forClass(String.class);
+    verify(auditService).log(eq(null), eq(AuditService.UPDATE), eq(504), detail.capture());
+    // 사람마다 ID 를 늘어놓으면 1000자 칸을 넘어 저장 자체가 실패했다(현장 오류)
+    assertEquals("에스코트 인원 변경: 문 15 CS_40 — 추가 288명 · 제외 0명 → 반영 후 289명", detail.getValue());
   }
 
   @Test
