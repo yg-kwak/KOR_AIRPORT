@@ -127,7 +127,7 @@
     const after = afterCount();
     $('addInfo').textContent = `넣을 수 있는 사용자 ${count} · 추가 ${state.picked.size}명 · 제외 ${state.removed.size}명`
       + ` · 반영 후 ${after}/${MAX_USERS}명`;
-    $('addInfo').classList.toggle('text-danger', after > MAX_USERS);
+    $('addInfo').classList.toggle('text-danger', overLimit(after));
     // 머리 체크 — 이 쪽에서 바꿀 수 있는 칸이 모두 체크면 체크, 일부면 반쯤
     const boxes = [...$('addBody').querySelectorAll('input[type="checkbox"]:not(:disabled)')];
     const on = boxes.filter((b) => b.checked).length;
@@ -147,13 +147,17 @@
     } else if (cb.checked) state.picked.set(id, cb.dataset.name); else state.picked.delete(id);
   }
 
-  const afterCount = () => (state.door.users || []).length - state.removed.size + state.picked.size;
+  const nowCount = () => (state.door.users || []).length;
+  const afterCount = () => nowCount() - state.removed.size + state.picked.size;
+  /* 300명을 넘고 지금보다 늘어날 때만 막는다 — 이미 넘긴 문(BiostarX 에서 직접 넣은 경우)도 줄이는 것은 된다(서버 overLimit 과 같은 식) */
+  const overLimit = (after) => after > MAX_USERS && after > nowCount();
 
   async function confirmAdd() {
     if (!state.picked.size && !state.removed.size) { toast.warning('추가하거나 뺄 사용자를 선택하세요.'); return; }
     const after = afterCount();
-    if (after > MAX_USERS) {
-      toast.warning(`에스코트 사용자는 출입문 하나에 ${MAX_USERS}명까지입니다. (반영 후 ${after}명 — ${after - MAX_USERS}명을 빼 주세요)`);
+    if (overLimit(after)) {
+      const excess = after - Math.max(MAX_USERS, nowCount());
+      toast.warning(`에스코트 사용자는 출입문 하나에 ${MAX_USERS}명까지입니다. (반영 후 ${after}명 — ${excess}명을 빼 주세요)`);
       return;
     }
     const name = state.door.doorName || '문 ' + state.door.doorId;

@@ -192,10 +192,16 @@ public class EscortService {
     if (added.isEmpty() && removed.isEmpty()) {
       throw new BusinessException(ErrorCode.INVALID_INPUT, "바뀐 내용이 없습니다. (이미 반영된 상태입니다)");
     }
-    if (merged.size() > MAX_USERS) {
+    if (overLimit(auth.users().size(), merged.size())) {
       throw new BusinessException(
           ErrorCode.INVALID_INPUT,
-          "에스코트 사용자는 출입문 하나에 " + MAX_USERS + "명까지입니다. (반영 후 " + merged.size() + "명)");
+          "에스코트 사용자는 출입문 하나에 "
+              + MAX_USERS
+              + "명까지입니다. (지금 "
+              + auth.users().size()
+              + "명 → 반영 후 "
+              + merged.size()
+              + "명)");
     }
     if (!removed.isEmpty()) {
       menuAuthService.requireDelete(actor, menuId);
@@ -231,6 +237,16 @@ public class EscortService {
       parts.add(removed.size() + "명 제외");
     }
     return String.join(" · ", parts) + "했습니다.";
+  }
+
+  /**
+   * 상한을 넘기는 변경인가 — 300명을 넘고 <b>지금보다 늘어날 때만</b>이다.
+   *
+   * <p>BiostarX 에서 직접 넣어 이미 300명을 넘긴 문도 있다. 반영 후 인원만 보면 그 문은 몇 명을 빼도 여전히 300을 넘어 거절되고, 한 번에 300 이하로
+   * 줄이는 수밖에 없다. 줄이거나 그대로인 변경은 받는다(화면 escort.js 와 같은 식).
+   */
+  static boolean overLimit(int now, int after) {
+    return after > MAX_USERS && after > now;
   }
 
   /** 사용자ID — 앞뒤 공백을 지우고 빈 값·중복을 뺀다(고른 순서는 지킨다). */

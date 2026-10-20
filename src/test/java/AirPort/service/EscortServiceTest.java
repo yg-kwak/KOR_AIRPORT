@@ -184,6 +184,33 @@ class EscortServiceTest {
   }
 
   @Test
+  void 이미_300명을_넘긴_문도_줄이거나_그대로인_변경은_받는다() {
+    // BiostarX 에서 직접 넣어 302명인 문
+    String[] now =
+        java.util.stream.IntStream.range(0, 302).mapToObj(i -> "n" + i).toArray(String[]::new);
+    current(true, "1", now);
+    when(doorAdapter.updateAuthUsers(any(), any(), any(), anyLong(), any(), any()))
+        .thenReturn(BiostarResult.ok());
+    service.update(change(List.of(), List.of("n0")), null, 504); // 302 → 301: 줄인다
+    service.update(change(List.of("x"), List.of("n1")), null, 504); // 302 → 302: 그대로(한 명 바꿈)
+    BusinessException e =
+        assertThrows(
+            BusinessException.class, () -> service.update(change(List.of("y"), null), null, 504));
+    assertTrue(e.getMessage().contains("지금 302명 → 반영 후 303명"), e.getMessage()); // 늘리면 막는다
+    verify(doorAdapter, org.mockito.Mockito.times(2))
+        .updateAuthUsers(any(), any(), any(), anyLong(), any(), any());
+  }
+
+  @Test
+  void 상한은_300을_넘고_늘어날_때만이다() {
+    assertTrue(EscortService.overLimit(300, 301));
+    assertTrue(EscortService.overLimit(10, 301));
+    assertEquals(false, EscortService.overLimit(10, 300), "딱 300 은 된다");
+    assertEquals(false, EscortService.overLimit(350, 340), "줄이면 300을 넘어도 된다");
+    assertEquals(false, EscortService.overLimit(350, 350), "그대로면 된다");
+  }
+
+  @Test
   void 수백_명을_바꿔도_감사_문구는_짧다() {
     current(true, "1", "a");
     when(doorAdapter.updateAuthUsers(any(), any(), any(), anyLong(), any(), any()))
